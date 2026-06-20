@@ -53,7 +53,10 @@ These are product rules, not suggestions. Do not "simplify" them away.
    activity HARD-BLOCKS its venue for its date and time range. Two activities
    conflict only if they share a venue and date AND their time ranges OVERLAP
    (A.start < B.end AND B.start < A.end). Same time at a different venue never
-   conflicts.
+   conflicts. **Venue is a free-text value typed by the user; there is no
+   canonical or managed venue list.** Conflict detection matches on the entered
+   string exactly — the same physical place must be typed consistently for a
+   clash to be detected.
 
 7. **Full revision history is kept** for every document across all transitions.
 
@@ -76,6 +79,13 @@ These are product rules, not suggestions. Do not "simplify" them away.
    - *Off-calendar*: SDAO → adviser → principal → asst. director of academic
      services → academic director → executive director
 
+9. **Approver notification on every hand-off.** When the engine advances a
+   document to the next approver, it fires a notification to that approver
+   immediately — build this as part of the engine now, not later. Only the
+   delivery channel (school email via SSO) is deferred to the SSO slice; the
+   notification trigger itself is not deferred. This is how "no follow-ups"
+   is enforced.
+
 ## Short chains
 
 Registration, renewal, activity calendar, and after-activity report use:
@@ -89,25 +99,49 @@ SDAO → final status.
   dean — it has a single principal.
 - An organization belongs to one program within a regular school, OR directly
   to Senior High School (which has no programs).
-- Organization renewal happens at most once per academic year per org.
+- Organization renewal happens at most once per academic year per org. Renewal
+  does NOT start from scratch — it carries forward the organization's previous
+  data. The prior year's record is preserved (one record per academic year),
+  never deleted or overwritten.
 - Activity proposal is a SINGLE submission in TWO steps: (1) request form,
   (2) proposal narrative + attachments. Routing begins after step 2.
   Step 1: student picks an approved-calendar activity (on-calendar) OR creates
-  one outside it (off-calendar).
+  one outside it (off-calendar). The proposal is persisted as a draft from
+  step 1 — an abandoned half-finished proposal auto-saves and can be resumed;
+  it does not enter the approval chain until step 2 is submitted.
+- The after-activity report is hard-linked to the specific **approved**
+  activity it reports on. A report cannot exist without a corresponding
+  approved activity.
 - Attachments are stored in separate locations per document type.
 - Probation status is intentionally NOT modeled. Do not add it.
 
-## To settle before the CALENDAR slice (not blocking earlier slices)
+## Document status model
 
-- A canonical list of venues, so a venue can be identified and hard-blocked.
-- How an approver is notified it is their turn (delivers "no follow-ups").
+Every document moves through these statuses. The model must be explicit; do
+not invent additional statuses or collapse these.
+
+- **Draft** — created but not yet submitted (includes the two-step proposal
+  while step 2 is incomplete).
+- **In Review** — submitted and currently moving through the approval chain.
+- **Returned** — sent back to the student for revision (mid-flow, NOT
+  terminal; the student edits and resubmits, then flow resumes at the
+  returning approver per invariant #2).
+- **Approved** — all required approvals received. **Terminal.**
+- **Rejected** — permanently stopped by an approver. **Terminal.** The
+  student must file a brand-new document; the rejected document is not
+  revived.
+
+Returned is in-progress, not final. There are exactly two terminal statuses:
+Approved and Rejected.
 
 ## Identity & accounts (foundational)
 
-- **SSO is deferred.** Identity is a SEEDED STUB during development — fake
-  users with roles plus a dev login to act as any of them — behind an auth
-  interface/boundary. Build every feature against that boundary, NOT against
-  SSO. Swapping the stub for SSO must be a localized change.
+- **Identity model is settled.** Seeded fake accounts (with assigned roles and
+  a dev login to act as any of them) are used for ALL development and testing.
+  Real school login (SSO) is applied last, in Slice 6 only.
+- **SSO is deferred.** The stub sits behind an auth interface/boundary; build
+  every feature against that boundary, NOT against SSO. Swapping the stub for
+  SSO must be a localized change.
 - Eventual real system: authenticate via school SSO over school emails; do not
   build custom password storage; restrict logins to the school domain(s).
 - Authentication ≠ authorization. A valid login grants no power until a role
