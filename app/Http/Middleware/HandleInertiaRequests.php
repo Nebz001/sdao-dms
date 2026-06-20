@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\RoleAssignment;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +41,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'roles' => $request->user()?->roleAssignments->map(fn (RoleAssignment $ra) => [
+                    'role' => $ra->role->value,
+                    'school_id' => $ra->school_id,
+                    'program_id' => $ra->program_id,
+                    'organization_id' => $ra->organization_id,
+                ]),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
