@@ -91,6 +91,15 @@ These are product rules, not suggestions. Do not "simplify" them away.
 Registration, renewal, activity calendar, and after-activity report use:
 SDAO → final status.
 
+**Registration & renewal — digital scope.** The physical NU Lipa
+registration/renewal form includes adviser, dean, and CRSO endorsement/receipt
+steps and a probation outcome. These are intentionally NOT part of the digital
+approval chain (client direction). The digital system reviews organization
+registration and renewal via **SDAO only**, with exactly two terminal outcomes
+(Approved, Rejected). Do not model CRSO, adviser/dean approval steps, or
+probation for these forms. (Probation remains unmodeled system-wide — see the
+Key model facts note.)
+
 ## Key model facts
 
 - Four schools exist: three regular schools plus the Senior High School department.
