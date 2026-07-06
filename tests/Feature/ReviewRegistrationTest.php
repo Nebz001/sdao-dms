@@ -23,26 +23,26 @@ beforeEach(function () {
 });
 
 /** Create a submitted (InReview) registration for Computing Society. */
-function submittedRegistration(Organization $org, ApprovalEngine $engine): Document
+function submittedRegistration(Organization $org, ApprovalEngine $engine, User $submitter): Document
 {
     $doc = Document::factory()->create([
         'form_type' => FormType::OrganizationRegistration,
         'organization_id' => $org->id,
         'status' => DocumentStatus::Draft,
-        'submitted_by' => User::where('email', 'student-alpha@sdao.test')->first()?->id,
+        'submitted_by' => $submitter->id,
     ]);
     OrganizationRegistrationDetail::factory()->create([
         'document_id' => $doc->id,
         'organization_type' => OrganizationType::CoCurricular,
     ]);
-    $engine->submit($doc);
+    $engine->submit($doc, $submitter);
     $doc->refresh();
 
     return $doc;
 }
 
 test('first SDAO approval does not yet approve the document (quorum not reached)', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->engine->approve($doc, $this->sdaoA);
     $doc->refresh();
@@ -52,7 +52,7 @@ test('first SDAO approval does not yet approve the document (quorum not reached)
 });
 
 test('second SDAO approval completes the registration', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
@@ -63,7 +63,7 @@ test('second SDAO approval completes the registration', function () {
 });
 
 test('SDAO can reject a registration permanently', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->engine->reject($doc, $this->sdaoA, 'Incomplete documentation.');
     $doc->refresh();
@@ -72,7 +72,7 @@ test('SDAO can reject a registration permanently', function () {
 });
 
 test('SDAO can return a registration for revision', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->engine->returnForRevision($doc, $this->sdaoA, 'Please attach the constitution.');
     $doc->refresh();
@@ -82,7 +82,7 @@ test('SDAO can return a registration for revision', function () {
 });
 
 test('split decision (one approve, one return) puts document in Returned', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->engine->approve($doc, $this->sdaoA);
     $doc->refresh();
@@ -94,7 +94,7 @@ test('split decision (one approve, one return) puts document in Returned', funct
 });
 
 test('non-SDAO user cannot review a registration', function () {
-    $doc = submittedRegistration($this->org, $this->engine);
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
     $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
 
     expect(fn () => $this->engine->approve($doc, $adviser))

@@ -30,13 +30,13 @@ test('every engine action writes a transition row', function () {
     ]);
 
     // submit
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $doc->refresh();
     $t1 = $doc->transitions()->orderBy('id')->first();
     expect($t1->action)->toBe(TransitionAction::Submitted);
     expect($t1->from_status)->toBe(DocumentStatus::Draft);
     expect($t1->to_status)->toBe(DocumentStatus::InReview);
-    expect($t1->actor_id)->toBeNull(); // system event
+    expect($t1->actor_id)->toBe($this->sdaoA->id); // invariant #7: actor recorded on every transition
 
     // first SDAO approval (partial — no advance)
     $this->engine->approve($doc, $this->sdaoA);
@@ -55,12 +55,13 @@ test('every engine action writes a transition row', function () {
     expect($t3->to_status)->toBe(DocumentStatus::Returned);
 
     // resubmit
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->sdaoA);
     $doc->refresh();
     $t4 = $doc->transitions()->orderBy('id')->get()->last();
     expect($t4->action)->toBe(TransitionAction::Resubmitted);
     expect($t4->from_status)->toBe(DocumentStatus::Returned);
     expect($t4->to_status)->toBe(DocumentStatus::InReview);
+    expect($t4->actor_id)->toBe($this->sdaoA->id); // invariant #7: actor recorded on resubmit
 });
 
 test('completed document transition is recorded when final step is approved', function () {
@@ -69,7 +70,7 @@ test('completed document transition is recorded when final step is approved', fu
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
@@ -87,7 +88,7 @@ test('a completed short-chain document shows submitted, approved, approved, comp
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
@@ -107,7 +108,7 @@ test('rejected document transition is recorded with actor and comment', function
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $this->engine->reject($doc, $this->sdaoA, 'Non-compliant.');
     $doc->refresh();
 

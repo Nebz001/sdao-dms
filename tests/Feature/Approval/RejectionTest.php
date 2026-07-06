@@ -29,7 +29,7 @@ beforeEach(function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $doc->refresh();
     $this->doc = $doc;
 });
@@ -55,14 +55,14 @@ test('a rejected document cannot be resubmitted', function () {
     $this->engine->reject($this->doc, $this->sdaoA);
     $this->doc->refresh();
 
-    expect(fn () => $this->engine->resubmit($this->doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->resubmit($this->doc, $this->sdaoA))->toThrow(InvalidTransitionException::class);
 });
 
 test('a rejected document cannot be re-submitted as a new submission', function () {
     $this->engine->reject($this->doc, $this->sdaoA);
     $this->doc->refresh();
 
-    expect(fn () => $this->engine->submit($this->doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->submit($this->doc, $this->sdaoA))->toThrow(InvalidTransitionException::class);
 });
 
 // Test 21: reject by non-resolved user is refused

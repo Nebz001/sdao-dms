@@ -32,7 +32,7 @@ beforeEach(function () {
 });
 
 /** Helper: create and submit a regular on-calendar proposal for Computing Society. */
-function regularOnCalendarDoc(Organization $org, ApprovalEngine $engine): Document
+function regularOnCalendarDoc(Organization $org, ApprovalEngine $engine, User $submitter): Document
 {
     $doc = Document::factory()->create([
         'form_type' => FormType::ActivityProposal,
@@ -40,7 +40,7 @@ function regularOnCalendarDoc(Organization $org, ApprovalEngine $engine): Docume
         'organization_id' => $org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $engine->submit($doc);
+    $engine->submit($doc, $submitter);
     $doc->refresh();
 
     return $doc;
@@ -48,7 +48,7 @@ function regularOnCalendarDoc(Organization $org, ApprovalEngine $engine): Docume
 
 // Test 10: approve at a single-approver step advances one step and notifies next
 test('approving the first single-approver step advances to step 2 and notifies next approver', function () {
-    $doc = regularOnCalendarDoc($this->org, $this->engine);
+    $doc = regularOnCalendarDoc($this->org, $this->engine, $this->adviser);
     // Step 1 = adviser; step 2 = program chair
     $notificationsBeforeAdvance = ApprovalNotification::where('document_id', $doc->id)->count();
 
@@ -75,7 +75,7 @@ test('approving the final step marks the document as Approved (terminal)', funct
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $doc->refresh();
 
     $this->engine->approve($doc, $this->sdaoA);
@@ -95,7 +95,7 @@ test('approving the final step marks the document as Approved (terminal)', funct
 
 // Test 12: non-resolved user cannot approve
 test('a user not assigned to the current step cannot approve', function () {
-    $doc = regularOnCalendarDoc($this->org, $this->engine);
+    $doc = regularOnCalendarDoc($this->org, $this->engine, $this->adviser);
     // Step 1 = adviser; try to approve with the dean
     $before = $doc->fresh();
 
@@ -107,7 +107,7 @@ test('a user not assigned to the current step cannot approve', function () {
 
 // Test 13: same approver cannot approve twice
 test('the same approver cannot approve the same step twice', function () {
-    $doc = regularOnCalendarDoc($this->org, $this->engine);
+    $doc = regularOnCalendarDoc($this->org, $this->engine, $this->adviser);
     $this->engine->approve($doc, $this->adviser);
     $doc->refresh();
     // Now at step 2 (chair). Go back to adviser scenario using a fresh short-chain doc.
@@ -116,7 +116,7 @@ test('the same approver cannot approve the same step twice', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc2);
+    $this->engine->submit($doc2, $this->sdaoA);
     $doc2->refresh();
 
     $this->engine->approve($doc2, $this->sdaoA);
@@ -128,7 +128,7 @@ test('the same approver cannot approve the same step twice', function () {
 
 // Test 14: full regular on-calendar chain approved end-to-end
 test('full regular on-calendar chain can be approved end-to-end', function () {
-    $doc = regularOnCalendarDoc($this->org, $this->engine);
+    $doc = regularOnCalendarDoc($this->org, $this->engine, $this->adviser);
 
     $this->engine->approve($doc, $this->adviser);     // step 1
     $this->engine->approve($doc, $this->chair);       // step 2

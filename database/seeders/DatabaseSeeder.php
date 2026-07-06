@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(WorkflowTemplateSeeder::class);
         $this->call(MembershipSeeder::class);
         $this->call(CalendarSeeder::class);
+        $this->call(ProposalSeeder::class);
     }
 }

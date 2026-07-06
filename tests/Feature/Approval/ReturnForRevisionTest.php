@@ -39,7 +39,7 @@ function advanceToStep(int $step, ApprovalEngine $engine, Organization $org, arr
         'organization_id' => $org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $engine->submit($doc);
+    $engine->submit($doc, $users['adviser']);
     $doc->refresh();
 
     $approvers = [
@@ -110,7 +110,7 @@ test('resubmit from Returned re-enters at the returning step, not step 1', funct
     $doc = advanceToStep(3, $this->engine, $this->org, $users);
     $this->engine->returnForRevision($doc, $this->dean, 'Revision needed.');
 
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->adviser);
     $doc->refresh();
 
     expect($doc->status)->toBe(DocumentStatus::InReview);
@@ -145,7 +145,7 @@ test('lower-ranked approvers are not re-notified after resubmit', function () {
     $chairBefore = ApprovalNotification::where('document_id', $doc->id)
         ->where('user_id', $this->chair->id)->count();
 
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->adviser);
 
     expect(ApprovalNotification::where('document_id', $doc->id)
         ->where('user_id', $this->adviser->id)->count())->toBe($adviserBefore);
@@ -191,7 +191,7 @@ test('full return-resume scenario: adviser and chair are never re-consulted', fu
     ];
     $doc = advanceToStep(3, $this->engine, $this->org, $users);
     $this->engine->returnForRevision($doc, $this->dean, 'Needs work.');
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->adviser);
 
     // Dean approves on resume → should advance to SDAO (step 4).
     $this->engine->approve($doc, $this->dean);
@@ -243,5 +243,5 @@ test('cannot resubmit a document that is not in Returned status', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    expect(fn () => $this->engine->resubmit($doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->resubmit($doc, $this->adviser))->toThrow(InvalidTransitionException::class);
 });

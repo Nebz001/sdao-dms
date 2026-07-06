@@ -46,7 +46,7 @@ class UpdateActivityCalendar
         // Hard-block vs confirmed bookings (exclude self so own rows don't block)
         $this->guardConfirmedConflicts($activities, $document->id);
 
-        $result = DB::transaction(function () use ($document, $term, $activities) {
+        $result = DB::transaction(function () use ($actor, $document, $term, $activities) {
             $calendar = $document->activityCalendar;
             $calendar->update(['term' => $term->value]);
 
@@ -65,7 +65,7 @@ class UpdateActivityCalendar
                 ]);
             }
 
-            $this->engine->resubmit($document);
+            $this->engine->resubmit($document, $actor);
             $document->refresh();
 
             return $document;

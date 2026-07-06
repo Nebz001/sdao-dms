@@ -8,6 +8,7 @@ use App\Enums\ProposalVariant;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +19,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $this->submitter = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
 });
 
 // Test 7: submit → InReview, step 1, template bound, notification to step-1 approvers
@@ -29,7 +31,7 @@ test('submitting a draft document sets status to InReview at step 1 and binds th
         'status' => DocumentStatus::Draft,
     ]);
 
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->submitter);
     $doc->refresh();
 
     expect($doc->status)->toBe(DocumentStatus::InReview);
@@ -51,7 +53,7 @@ test('submitting binds the template matching form type and variant', function ()
         'status' => DocumentStatus::Draft,
     ]);
 
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->submitter);
     $doc->refresh();
 
     $template = $doc->workflowTemplate()->with('steps')->first();
@@ -72,7 +74,7 @@ test('cannot submit a document that is already in review', function () {
         'current_step_position' => 1,
     ]);
 
-    expect(fn () => $this->engine->submit($doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->submit($doc, $this->submitter))->toThrow(InvalidTransitionException::class);
 });
 
 test('cannot submit an approved document', function () {
@@ -82,7 +84,7 @@ test('cannot submit an approved document', function () {
         'status' => DocumentStatus::Approved,
     ]);
 
-    expect(fn () => $this->engine->submit($doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->submit($doc, $this->submitter))->toThrow(InvalidTransitionException::class);
 });
 
 test('cannot submit a rejected document', function () {
@@ -92,5 +94,5 @@ test('cannot submit a rejected document', function () {
         'status' => DocumentStatus::Rejected,
     ]);
 
-    expect(fn () => $this->engine->submit($doc))->toThrow(InvalidTransitionException::class);
+    expect(fn () => $this->engine->submit($doc, $this->submitter))->toThrow(InvalidTransitionException::class);
 });

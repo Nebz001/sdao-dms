@@ -33,7 +33,7 @@ test('submitting fires notifications to all step-1 approvers', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->adviser);
     $doc->refresh();
 
     expect(ApprovalNotification::where('document_id', $doc->id)->where('step_position', 1)->count())->toBe(1);
@@ -47,7 +47,7 @@ test('submitting a short-chain document fires notifications to both SDAO members
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $doc->refresh();
 
     // SDAO step requires both members — both must be notified.
@@ -65,7 +65,7 @@ test('advancing to step 2 fires a notification to the chair', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->adviser);
     $this->engine->approve($doc, $this->adviser);
     $doc->refresh();
 
@@ -81,14 +81,14 @@ test('resubmit fires notifications to the resuming step approver', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->adviser);
     $this->engine->returnForRevision($doc, $this->adviser, 'Missing signature.');
     $doc->refresh();
 
     $notifyCountBefore = ApprovalNotification::where('document_id', $doc->id)
         ->where('user_id', $this->adviser->id)->count();
 
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->adviser);
 
     $notifyCountAfter = ApprovalNotification::where('document_id', $doc->id)
         ->where('user_id', $this->adviser->id)->count();
@@ -102,7 +102,7 @@ test('rejecting a document does not fire any notification', function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $countAfterSubmit = ApprovalNotification::where('document_id', $doc->id)->count();
 
     $this->engine->reject($doc, $this->sdaoA);
@@ -117,7 +117,7 @@ test('a non-quorum SDAO partial approval does not fire a notification to the nex
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->sdaoA);
     $countAfterSubmit = ApprovalNotification::where('document_id', $doc->id)->count();
 
     // First approval (1 of 2 required) — should not advance.

@@ -37,7 +37,7 @@ function returnedRegistration(Organization $org, ApprovalEngine $engine, User $s
         'document_id' => $doc->id,
         'organization_type' => OrganizationType::CoCurricular,
     ]);
-    $engine->submit($doc);
+    $engine->submit($doc, $submitter);
     $doc->refresh();
     $engine->returnForRevision($doc, $sdaoA, 'Please revise your description.');
     $doc->refresh();

@@ -78,4 +78,10 @@ class Document extends Model
     {
         return $this->hasOne(ActivityCalendar::class);
     }
+
+    /** @return HasOne<ActivityProposal, $this> */
+    public function activityProposal(): HasOne
+    {
+        return $this->hasOne(ActivityProposal::class);
+    }
 }

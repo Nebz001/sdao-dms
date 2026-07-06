@@ -77,7 +77,7 @@ class SubmitOrganizationRegistration
                 'roster' => $roster,
             ]);
 
-            $this->engine->submit($document);
+            $this->engine->submit($document, $actor);
             $document->refresh();
 
             return $document;

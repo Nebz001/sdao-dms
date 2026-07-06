@@ -1,0 +1,209 @@
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import * as activityProposals from '@/routes/activity-proposals';
+
+type DocumentData = {
+    id: number;
+    title: string;
+    status: string;
+    current_step_position: number | null;
+    submitted_by: number | null;
+    organization: { id: number; name: string };
+};
+
+type ProposalData = {
+    id: number;
+    calendar_mode: string;
+    title: string;
+    objectives: string | null;
+    narrative: string | null;
+    estimated_budget: string | null;
+    form_step: number;
+} | null;
+
+type ActivityData = {
+    id: number;
+    name: string;
+    venue: string;
+    activity_date: string;
+    start_time: string;
+    end_time: string;
+} | null;
+
+type TransitionEntry = {
+    id: number;
+    action: string;
+    from_status: string | null;
+    to_status: string;
+    step_position: number | null;
+    comment: string | null;
+    actor: { name: string } | null;
+    created_at: string;
+};
+
+type Props = {
+    document: DocumentData;
+    proposal: ProposalData;
+    activity: ActivityData;
+    history: TransitionEntry[];
+    flash?: { message?: string; warnings?: { conflicts: object[] }[] };
+};
+
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    draft: 'outline',
+    in_review: 'secondary',
+    returned: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
+};
+
+function statusLabel(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function actionLabel(action: string): string {
+    return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function ShowActivityProposal({ document: doc, proposal, activity, history, flash }: Props) {
+    const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
+
+    useDocumentUpdates(['document', 'proposal', 'activity', 'history']);
+
+    const isDraft = doc.status === 'draft';
+    const isReturned = doc.status === 'returned';
+    const isOwnDoc = doc.submitted_by === auth?.user?.id;
+
+    return (
+        <>
+            <Head title={doc.title} />
+
+            <div className="mx-auto max-w-3xl space-y-6 p-8">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-xl font-semibold">{doc.title}</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">{doc.organization.name}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={statusVariant[doc.status] ?? 'outline'}>{statusLabel(doc.status)}</Badge>
+                        {isDraft && isOwnDoc && (
+                            <Button asChild size="sm">
+                                <Link href={activityProposals.continueMethod({ document: doc.id }).url}>
+                                    Continue Narrative
+                                </Link>
+                            </Button>
+                        )}
+                        {isReturned && isOwnDoc && (
+                            <Button asChild size="sm">
+                                <Link href={activityProposals.edit({ document: doc.id }).url}>
+                                    Edit &amp; Resubmit
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Flash warnings */}
+                {flash?.warnings && flash.warnings.length > 0 && (
+                    <Card className="border-amber-500 bg-amber-50">
+                        <CardContent className="pt-4">
+                            <p className="text-sm font-medium text-amber-700">
+                                Submitted, but a possible venue conflict was detected:
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Activity summary */}
+                {activity && proposal && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                Activity{' '}
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    ({proposal.calendar_mode === 'on_calendar' ? 'On Calendar' : 'Off Calendar'})
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm">
+                            <p className="font-medium">{activity.name}</p>
+                            <p className="text-muted-foreground">
+                                {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Narrative */}
+                {proposal && (proposal.objectives || proposal.narrative) && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Proposal Narrative</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
+                            {proposal.objectives && (
+                                <div>
+                                    <p className="mb-1 font-medium">Objectives</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.objectives}</p>
+                                </div>
+                            )}
+                            {proposal.narrative && (
+                                <div>
+                                    <p className="mb-1 font-medium">Narrative</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.narrative}</p>
+                                </div>
+                            )}
+                            {proposal.estimated_budget && (
+                                <div>
+                                    <p className="mb-1 font-medium">Estimated Budget</p>
+                                    <p className="text-muted-foreground">₱{proposal.estimated_budget}</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Revision history */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Revision History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {history.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No history yet.</p>
+                        ) : (
+                            <ol className="relative border-l border-border pl-4">
+                                {history.map((entry) => (
+                                    <li key={entry.id} className="mb-4 ml-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{actionLabel(entry.action)}</span>
+                                            {entry.actor && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    — {entry.actor.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {entry.comment && (
+                                            <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
+                                        )}
+                                        <time className="text-xs text-muted-foreground">
+                                            {new Date(entry.created_at).toLocaleString()}
+                                        </time>
+                                    </li>
+                                ))}
+                            </ol>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </>
+    );
+}
+
+ShowActivityProposal.layout = {
+    breadcrumbs: [{ title: 'Activity Proposals', href: '/activity-proposals' }, { title: 'View' }],
+};

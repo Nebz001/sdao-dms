@@ -45,13 +45,15 @@ class ApprovalEngine
     /**
      * Submit a Draft document into the approval chain.
      *
+     * @param  User  $actor  The student (president or secretary) submitting the document.
+     *
      * @throws InvalidTransitionException
      */
-    public function submit(Document $document): void
+    public function submit(Document $document, User $actor): void
     {
         $this->guardStatus($document, DocumentStatus::Draft, 'submit');
 
-        DB::transaction(function () use ($document) {
+        DB::transaction(function () use ($document, $actor) {
             $template = $this->templateResolver->resolve(
                 $document->form_type,
                 $document->variant,
@@ -64,7 +66,7 @@ class ApprovalEngine
             $document->current_step_position = 1;
             $document->save();
 
-            $this->recordTransition($document, null, TransitionAction::Submitted, $fromStatus, DocumentStatus::InReview, 1);
+            $this->recordTransition($document, $actor, TransitionAction::Submitted, $fromStatus, DocumentStatus::InReview, 1);
             $this->activateStep($document, 1);
         });
     }
@@ -206,20 +208,22 @@ class ApprovalEngine
      * Resumes at the step that issued the return (current_step_position is
      * unchanged). Approvals for all earlier steps still count (invariant #2).
      *
+     * @param  User  $actor  The student resubmitting after revision (president or secretary).
+     *
      * @throws InvalidTransitionException
      */
-    public function resubmit(Document $document): void
+    public function resubmit(Document $document, User $actor): void
     {
         $this->guardStatus($document, DocumentStatus::Returned, 'resubmit');
 
-        DB::transaction(function () use ($document) {
+        DB::transaction(function () use ($document, $actor) {
             $fromStatus = $document->status;
             $resumePosition = $document->current_step_position;
 
             $document->status = DocumentStatus::InReview;
             $document->save();
 
-            $this->recordTransition($document, null, TransitionAction::Resubmitted, $fromStatus, DocumentStatus::InReview, $resumePosition);
+            $this->recordTransition($document, $actor, TransitionAction::Resubmitted, $fromStatus, DocumentStatus::InReview, $resumePosition);
             $this->activateStep($document, $resumePosition);
         });
     }

@@ -33,7 +33,7 @@ beforeEach(function () {
         'organization_id' => $this->org->id,
         'status' => DocumentStatus::Draft,
     ]);
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->adviser);
     $doc->refresh();
     $this->engine->approve($doc, $this->adviser);
     $this->engine->approve($doc, $this->chair);
@@ -100,7 +100,7 @@ test('SDAO split returns the document and clears the SDAO step partials', functi
 test('after a split and resubmit both SDAO members must approve again', function () {
     $this->engine->approve($this->doc, $this->sdaoA);
     $this->engine->returnForRevision($this->doc, $this->sdaoB, 'Revision needed');
-    $this->engine->resubmit($this->doc);
+    $this->engine->resubmit($this->doc, $this->adviser);
     $this->doc->refresh();
 
     expect($this->doc->status)->toBe(DocumentStatus::InReview);

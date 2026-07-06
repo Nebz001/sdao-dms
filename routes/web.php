@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityCalendarReviewController;
+use App\Http\Controllers\ActivityProposalController;
+use App\Http\Controllers\ActivityProposalReviewController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Dev\DevLoginController;
 use App\Http\Controllers\OrganizationOfficerController;
@@ -56,6 +58,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/review/activity-calendars/{document}/approve', [ActivityCalendarReviewController::class, 'approve'])->name('review.activity-calendars.approve');
     Route::post('/review/activity-calendars/{document}/reject', [ActivityCalendarReviewController::class, 'reject'])->name('review.activity-calendars.reject');
     Route::post('/review/activity-calendars/{document}/return', [ActivityCalendarReviewController::class, 'return'])->name('review.activity-calendars.return');
+
+    // Student — activity proposal lifecycle (literal paths declared before {document} wildcard)
+    Route::get('/activity-proposals', [ActivityProposalController::class, 'index'])->name('activity-proposals.index');
+    Route::get('/activity-proposals/create', [ActivityProposalController::class, 'create'])->name('activity-proposals.create');
+    Route::post('/activity-proposals', [ActivityProposalController::class, 'store'])->name('activity-proposals.store');
+    Route::post('/activity-proposals/conflict-check', [ActivityProposalController::class, 'conflictCheck'])->name('activity-proposals.conflict-check');
+    Route::get('/activity-proposals/on-calendar-activities', [ActivityProposalController::class, 'onCalendarActivities'])->name('activity-proposals.on-calendar-activities');
+    Route::get('/activity-proposals/{document}', [ActivityProposalController::class, 'show'])->name('activity-proposals.show');
+    Route::get('/activity-proposals/{document}/edit', [ActivityProposalController::class, 'edit'])->name('activity-proposals.edit');
+    Route::get('/activity-proposals/{document}/continue', [ActivityProposalController::class, 'continue'])->name('activity-proposals.continue');
+    Route::patch('/activity-proposals/{document}/draft', [ActivityProposalController::class, 'draft'])->name('activity-proposals.draft');
+    Route::post('/activity-proposals/{document}/submit', [ActivityProposalController::class, 'submit'])->name('activity-proposals.submit');
+    Route::put('/activity-proposals/{document}', [ActivityProposalController::class, 'update'])->name('activity-proposals.update');
+
+    // Approvers — activity proposal review queue
+    Route::get('/review/activity-proposals', [ActivityProposalReviewController::class, 'index'])->name('review.activity-proposals.index');
+    Route::get('/review/activity-proposals/{document}', [ActivityProposalReviewController::class, 'show'])->name('review.activity-proposals.show');
+    Route::post('/review/activity-proposals/{document}/approve', [ActivityProposalReviewController::class, 'approve'])->name('review.activity-proposals.approve');
+    Route::post('/review/activity-proposals/{document}/reject', [ActivityProposalReviewController::class, 'reject'])->name('review.activity-proposals.reject');
+    Route::post('/review/activity-proposals/{document}/return', [ActivityProposalReviewController::class, 'return'])->name('review.activity-proposals.return');
 });
 
 require __DIR__.'/settings.php';

@@ -39,7 +39,7 @@ class UpdateOrganizationRegistration
         }
 
         return DB::transaction(function () use (
-            $document, $organizationType, $description,
+            $actor, $document, $organizationType, $description,
             $contactPerson, $contactNumber, $contactEmail, $dateOrganized, $roster
         ) {
             $document->registrationDetail()->update([
@@ -52,7 +52,7 @@ class UpdateOrganizationRegistration
                 'roster' => $roster,
             ]);
 
-            $this->engine->resubmit($document);
+            $this->engine->resubmit($document, $actor);
             $document->refresh();
 
             return $document;

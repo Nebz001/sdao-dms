@@ -30,7 +30,7 @@ test('full approval records Submitted + two Approved + Completed transitions', f
     ]);
     OrganizationRegistrationDetail::factory()->create(['document_id' => $doc->id]);
 
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->studentAlpha);
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
@@ -56,10 +56,10 @@ test('return and resubmit records Returned and Resubmitted transitions', functio
     ]);
     OrganizationRegistrationDetail::factory()->create(['document_id' => $doc->id]);
 
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->studentAlpha);
     $this->engine->returnForRevision($doc, $this->sdaoA, 'Please attach the constitution.');
     $doc->refresh();
-    $this->engine->resubmit($doc);
+    $this->engine->resubmit($doc, $this->studentAlpha);
     $doc->refresh();
 
     $actions = $doc->transitions->pluck('action');
@@ -82,7 +82,7 @@ test('show endpoint includes transition history with actor names', function () {
     ]);
     OrganizationRegistrationDetail::factory()->create(['document_id' => $doc->id]);
 
-    $this->engine->submit($doc);
+    $this->engine->submit($doc, $this->studentAlpha);
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
