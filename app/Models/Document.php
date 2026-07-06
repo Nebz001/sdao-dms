@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -64,5 +65,11 @@ class Document extends Model
     public function transitions(): HasMany
     {
         return $this->hasMany(DocumentTransition::class)->orderBy('id');
+    }
+
+    /** @return HasOne<OrganizationRegistrationDetail, $this> */
+    public function registrationDetail(): HasOne
+    {
+        return $this->hasOne(OrganizationRegistrationDetail::class);
     }
 }
