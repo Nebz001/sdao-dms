@@ -4,8 +4,8 @@ Goal: take the SDAO student-org paperwork process online — digital submission,
 configurable approval chains, live status, a shared venue calendar — to
 eliminate lost documents, manual follow-ups, and scheduling conflicts.
 
-Real SSO is DEFERRED (no school IT contact yet). We build the core features
-against a seeded identity stub and integrate SSO last. Domain rules live in
+Real email/password auth is DEFERRED. We build the core features against a
+seeded identity stub and integrate real auth last. Domain rules live in
 CLAUDE.md; follow them, do not restate them.
 
 Build in vertical slices: prove each piece before moving on.
@@ -20,7 +20,7 @@ Unblocks every feature without real auth.
   adviser, a chair and dean per school, the three directors.
 - A simple dev login to act as any seeded user.
 - Put identity behind an auth interface/boundary so features depend on the
-  boundary, not on how identity is provided. SSO swaps in later (Slice 6).
+  boundary, not on how identity is provided. Real auth swaps in later (Slice 6).
 
 **Done when:** you can log in as any role and the engine can resolve a role to
 a person per school.
@@ -50,6 +50,9 @@ Proves the engine inside the product, using the simplest form (short chain).
 - Student submission form.
 - SDAO review screen: approve / reject / return-for-revision.
 - Live status updates (no refresh) and a visible revision history.
+- Build the org-officer membership model here (student ↔ org link with role
+  and active status, scoped to academic year) — this is where org membership
+  first appears.
 
 **Done when:** a registration can be submitted, dual-approved, rejected, or
 returned-and-resubmitted, all reflected live, with full history and tests.
@@ -101,15 +104,18 @@ uniqueness rule is enforced.
 
 ---
 
-## Slice 6 — Real SSO + account provisioning (when IT is available)
+## Slice 6 — Real email/password auth + admin provisioning + email verification
 
-- Replace the identity stub with school SSO; restrict to the school domain(s).
-- Staff/approver roles assigned by SDAO/admin (never self-claimed).
-- Students auto-provisioned on first login; org affiliation verified by adviser
-  or SDAO before they can submit for that org.
+- Email + password via Fortify; email verification required before an account
+  is active.
+- Approvers admin-provisioned (created or invited by SDAO admin; never
+  self-registered).
+- Students self-register into unaffiliated accounts; adviser binds the
+  org-officer affiliation before any submission is possible.
 
-**Done when:** real school accounts log in, roles are governed as above, and no
-feature code needed changing beyond the auth boundary.
+**Done when:** real accounts authenticate, email verification gates access,
+roles are governed as above, and no feature code needed changing beyond the
+auth boundary.
 
 ---
 

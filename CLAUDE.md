@@ -85,9 +85,9 @@ These are product rules, not suggestions. Do not "simplify" them away.
 9. **Approver notification on every hand-off.** When the engine advances a
    document to the next approver, it fires a notification to that approver
    immediately — build this as part of the engine now, not later. Only the
-   delivery channel (school email via SSO) is deferred to the SSO slice; the
-   notification trigger itself is not deferred. This is how "no follow-ups"
-   is enforced.
+   delivery channel (personal email via a transactional email provider) is
+   deferred to the auth slice; the notification trigger itself is not deferred.
+   This is how "no follow-ups" is enforced.
 
 ## Short chains
 
@@ -117,6 +117,16 @@ SDAO → final status.
   approved activity.
 - Attachments are stored in separate locations per document type.
 - Probation status is intentionally NOT modeled. Do not add it.
+- Org membership is its own entity linking a student to an org with a role
+  (president or secretary) and an active status, scoped to an academic year.
+  Do NOT model this as president_id/secretary_id columns on the org.
+- Both president and secretary can submit documents and receive returned
+  documents for their org — they are equal partners, not a hierarchy.
+- At most one active president and one active secretary per org at a time
+  (a validation rule, not a table constraint).
+- On officer turnover, the adviser invites the new officers; old memberships
+  are deactivated, never hard-deleted — retained for document history
+  (consistent with the renewal "preserve per academic year" rule).
 
 ## Document status model
 
@@ -141,17 +151,27 @@ Approved and Rejected.
 
 - **Identity model is settled.** Seeded fake accounts (with assigned roles and
   a dev login to act as any of them) are used for ALL development and testing.
-  Real school login (SSO) is applied last, in Slice 6 only.
-- **SSO is deferred.** The stub sits behind an auth interface/boundary; build
-  every feature against that boundary, NOT against SSO. Swapping the stub for
-  SSO must be a localized change.
-- Eventual real system: authenticate via school SSO over school emails; do not
-  build custom password storage; restrict logins to the school domain(s).
+  Real email/password auth (Laravel Fortify) is applied last, in Slice 6 only.
+- **Real auth is deferred.** The stub sits behind an auth interface/boundary;
+  build every feature against that boundary, NOT against the real auth
+  implementation. Swapping the stub for real auth must be a localized change.
+- Authentication uses personal email + password via Laravel Fortify. Email
+  verification is REQUIRED — it confirms an address is real before an account
+  exists.
+- Account creation is split by role:
+  - Approvers (adviser, program chair, dean, principal, SDAO members, and the
+    three directors) are created or invited by SDAO admin. They never
+    self-register.
+  - Student officers (president, secretary) self-register. Self-registration
+    grants only a bare, unaffiliated, email-verified student account — no org,
+    no officer role, no ability to submit anything.
+- Org affiliation is adviser-initiated: the org's adviser binds a student to
+  the org as president or secretary. A student CANNOT submit for an org until
+  that binding exists. Trust flows from the trusted adviser account, not from
+  the student's claim.
 - Authentication ≠ authorization. A valid login grants no power until a role
   is assigned.
 - Staff/approver roles are assigned by SDAO/admin and are never self-claimed.
-- A student's claim to represent an org is verified (by adviser or SDAO) before
-  they can submit on that org's behalf.
 
 ## Architecture ownership — do not blur these
 
@@ -178,7 +198,7 @@ Approved and Rejected.
 ## Build order (vertical slices — see PLAN.md)
 
 stub identity → engine core (tested) → registration → calendar →
-activity proposal → remaining short-chain forms → real SSO
+activity proposal → remaining short-chain forms → real email/password auth
 
 - Use plan mode for any non-trivial feature; get the plan approved before edits.
 - Keep commits small and scoped to one slice/feature.
