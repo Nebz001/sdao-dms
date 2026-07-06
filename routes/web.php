@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\ActivityCalendarController;
+use App\Http\Controllers\ActivityCalendarReviewController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Dev\DevLoginController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
@@ -29,12 +32,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/registrations/{document}/edit', [RegistrationController::class, 'edit'])->name('registrations.edit');
     Route::put('/registrations/{document}', [RegistrationController::class, 'update'])->name('registrations.update');
 
-    // SDAO — review queue
+    // SDAO — registration review queue
     Route::get('/review/registrations', [RegistrationReviewController::class, 'index'])->name('review.registrations.index');
     Route::get('/review/registrations/{document}', [RegistrationReviewController::class, 'show'])->name('review.registrations.show');
     Route::post('/review/registrations/{document}/approve', [RegistrationReviewController::class, 'approve'])->name('review.registrations.approve');
     Route::post('/review/registrations/{document}/reject', [RegistrationReviewController::class, 'reject'])->name('review.registrations.reject');
     Route::post('/review/registrations/{document}/return', [RegistrationReviewController::class, 'return'])->name('review.registrations.return');
+
+    // Shared venue calendar
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+
+    // Student — activity calendar lifecycle
+    Route::post('/activity-calendars/conflict-check', [ActivityCalendarController::class, 'conflictCheck'])->name('activity-calendars.conflict-check');
+    Route::get('/activity-calendars/create', [ActivityCalendarController::class, 'create'])->name('activity-calendars.create');
+    Route::post('/activity-calendars', [ActivityCalendarController::class, 'store'])->name('activity-calendars.store');
+    Route::get('/activity-calendars/{document}', [ActivityCalendarController::class, 'show'])->name('activity-calendars.show');
+    Route::get('/activity-calendars/{document}/edit', [ActivityCalendarController::class, 'edit'])->name('activity-calendars.edit');
+    Route::put('/activity-calendars/{document}', [ActivityCalendarController::class, 'update'])->name('activity-calendars.update');
+
+    // SDAO — activity calendar review queue
+    Route::get('/review/activity-calendars', [ActivityCalendarReviewController::class, 'index'])->name('review.activity-calendars.index');
+    Route::get('/review/activity-calendars/{document}', [ActivityCalendarReviewController::class, 'show'])->name('review.activity-calendars.show');
+    Route::post('/review/activity-calendars/{document}/approve', [ActivityCalendarReviewController::class, 'approve'])->name('review.activity-calendars.approve');
+    Route::post('/review/activity-calendars/{document}/reject', [ActivityCalendarReviewController::class, 'reject'])->name('review.activity-calendars.reject');
+    Route::post('/review/activity-calendars/{document}/return', [ActivityCalendarReviewController::class, 'return'])->name('review.activity-calendars.return');
 });
 
 require __DIR__.'/settings.php';

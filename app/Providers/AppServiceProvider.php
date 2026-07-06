@@ -8,7 +8,7 @@ use App\Identity\Contracts\IdentityProvider;
 use App\Identity\Providers\DevIdentityProvider;
 use App\Models\Document;
 use App\Models\Organization;
-use App\Policies\RegistrationPolicy;
+use App\Policies\DocumentPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -41,8 +41,8 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configurePolicies(): void
     {
-        Gate::policy(Organization::class, RegistrationPolicy::class);
-        Gate::policy(Document::class, RegistrationPolicy::class);
+        Gate::policy(Organization::class, DocumentPolicy::class);
+        Gate::policy(Document::class, DocumentPolicy::class);
     }
 
     protected function configureDefaults(): void
