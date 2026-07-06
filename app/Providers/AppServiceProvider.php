@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Approval\Contracts\ApproverNotifier;
+use App\Approval\Notifications\RecordingApproverNotifier;
 use App\Identity\Contracts\IdentityProvider;
 use App\Identity\Providers\DevIdentityProvider;
 use Carbon\CarbonImmutable;
@@ -18,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(IdentityProvider::class, DevIdentityProvider::class);
+        $this->app->bind(ApproverNotifier::class, RecordingApproverNotifier::class);
     }
 
     /**
