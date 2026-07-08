@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/organizations/{organization}/officers/{membership}', [OrganizationOfficerController::class, 'destroy'])->name('officers.destroy');
 
     // Student — registration lifecycle
+    Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
     Route::get('/registrations/create', [RegistrationController::class, 'create'])->name('registrations.create');
     Route::post('/registrations', [RegistrationController::class, 'store'])->name('registrations.store');
     Route::get('/registrations/{document}', [RegistrationController::class, 'show'])->name('registrations.show');
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
     // Student — activity calendar lifecycle
+    Route::get('/activity-calendars', [ActivityCalendarController::class, 'index'])->name('activity-calendars.index');
     Route::post('/activity-calendars/conflict-check', [ActivityCalendarController::class, 'conflictCheck'])->name('activity-calendars.conflict-check');
     Route::get('/activity-calendars/create', [ActivityCalendarController::class, 'create'])->name('activity-calendars.create');
     Route::post('/activity-calendars', [ActivityCalendarController::class, 'store'])->name('activity-calendars.store');

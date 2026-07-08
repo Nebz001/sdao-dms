@@ -1,5 +1,15 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    BookOpen,
+    CalendarDays,
+    FilePlus2,
+    FileText,
+    Files,
+    FolderGit2,
+    Inbox,
+    LayoutGrid,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,15 +24,15 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+import * as activityCalendars from '@/routes/activity-calendars';
+import * as activityProposals from '@/routes/activity-proposals';
+import * as calendar from '@/routes/calendar';
+import * as officers from '@/routes/officers';
+import * as registrations from '@/routes/registrations';
+import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
+import * as reviewActivityProposals from '@/routes/review/activity-proposals';
+import * as reviewRegistrations from '@/routes/review/registrations';
+import type { NavItem, RoleAssignment } from '@/types';
 
 const footerNavItems: NavItem[] = [
     {
@@ -37,7 +47,87 @@ const footerNavItems: NavItem[] = [
     },
 ];
 
+/** Roles that take part in the activity-proposal approval chain (CLAUDE.md #8). */
+const PROPOSAL_APPROVER_ROLES = new Set([
+    'sdao_member',
+    'adviser',
+    'program_chair',
+    'dean',
+    'principal',
+    'assistant_director_academic_services',
+    'academic_director',
+    'executive_director',
+]);
+
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const roles: RoleAssignment[] = auth?.roles ?? [];
+
+    const isStudentOfficer = roles.some((r) => r.role === 'student' && r.organization_id !== null);
+    const isSdao = roles.some((r) => r.role === 'sdao_member');
+    const reviewsProposals = roles.some((r) => PROPOSAL_APPROVER_ROLES.has(r.role));
+    const adviserRole = roles.find((r) => r.role === 'adviser' && r.organization_id !== null);
+
+    const sections: { label: string; items: NavItem[] }[] = [
+        {
+            label: 'Platform',
+            items: [
+                { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+                { title: 'Venue Calendar', href: calendar.index(), icon: CalendarDays },
+            ],
+        },
+    ];
+
+    if (isStudentOfficer) {
+        sections.push({
+            label: 'Submit',
+            items: [
+                { title: 'Submit Registration', href: registrations.create(), icon: FilePlus2 },
+                { title: 'Submit Activity Calendar', href: activityCalendars.create(), icon: FilePlus2 },
+                { title: 'Submit Activity Proposal', href: activityProposals.create(), icon: FilePlus2 },
+            ],
+        });
+
+        sections.push({
+            label: 'My Documents',
+            items: [
+                { title: 'My Registrations', href: registrations.index(), icon: Files },
+                { title: 'My Calendars', href: activityCalendars.index(), icon: Files },
+                { title: 'My Proposals', href: activityProposals.index(), icon: Files },
+            ],
+        });
+    }
+
+    const reviewItems: NavItem[] = [];
+
+    if (isSdao) {
+        reviewItems.push(
+            { title: 'Review Registrations', href: reviewRegistrations.index(), icon: FileText },
+            { title: 'Review Calendars', href: reviewActivityCalendars.index(), icon: FileText },
+        );
+    }
+
+    if (reviewsProposals) {
+        reviewItems.push({ title: 'Review Proposals', href: reviewActivityProposals.index(), icon: Inbox });
+    }
+
+    if (reviewItems.length > 0) {
+        sections.push({ label: 'Review', items: reviewItems });
+    }
+
+    if (adviserRole?.organization_id) {
+        sections.push({
+            label: 'Manage',
+            items: [
+                {
+                    title: 'Manage Officers',
+                    href: officers.index({ organization: adviserRole.organization_id }),
+                    icon: Users,
+                },
+            ],
+        });
+    }
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -53,7 +143,9 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {sections.map((section) => (
+                    <NavMain key={section.label} label={section.label} items={section.items} />
+                ))}
             </SidebarContent>
 
             <SidebarFooter>

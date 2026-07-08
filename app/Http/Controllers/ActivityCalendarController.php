@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Calendar\VenueConflictChecker;
+use App\Enums\FormType;
 use App\Enums\Term;
 use App\Http\Requests\Calendar\ConflictCheckRequest;
 use App\Http\Requests\Calendar\StoreActivityCalendarRequest;
@@ -20,6 +21,36 @@ use Inertia\Response;
 
 class ActivityCalendarController extends Controller
 {
+    /**
+     * List: activity calendars belonging to any org the user is an active officer of
+     * (both president and secretary see the same list — equal partners).
+     */
+    public function index(): Response
+    {
+        $user = Auth::user();
+
+        $organizationIds = OrganizationMembership::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->pluck('organization_id');
+
+        $documents = Document::query()
+            ->with('organization')
+            ->where('form_type', FormType::ActivityCalendar->value)
+            ->whereIn('organization_id', $organizationIds)
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(fn (Document $d) => [
+                'id' => $d->id,
+                'title' => $d->title,
+                'status' => $d->status->value,
+                'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
+                'created_at' => $d->created_at,
+            ]);
+
+        return Inertia::render('activity-calendars/index', ['calendars' => $documents]);
+    }
+
     public function create(): Response
     {
         $user = Auth::user();

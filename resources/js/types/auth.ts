@@ -10,8 +10,16 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type RoleAssignment = {
+    role: string;
+    school_id: number | null;
+    program_id: number | null;
+    organization_id: number | null;
+};
+
 export type Auth = {
     user: User;
+    roles: RoleAssignment[] | null;
 };
 
 /* @chisel-passkeys */
