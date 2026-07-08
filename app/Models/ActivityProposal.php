@@ -50,4 +50,10 @@ class ActivityProposal extends Model
     {
         return $this->hasMany(ProposalAttachment::class);
     }
+
+    /** @return HasMany<AfterActivityReport, $this> */
+    public function afterActivityReports(): HasMany
+    {
+        return $this->hasMany(AfterActivityReport::class);
+    }
 }

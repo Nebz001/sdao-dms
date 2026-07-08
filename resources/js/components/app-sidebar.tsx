@@ -29,9 +29,13 @@ import * as activityProposals from '@/routes/activity-proposals';
 import * as calendar from '@/routes/calendar';
 import * as officers from '@/routes/officers';
 import * as registrations from '@/routes/registrations';
+import * as renewals from '@/routes/renewals';
+import * as reports from '@/routes/reports';
 import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
 import * as reviewRegistrations from '@/routes/review/registrations';
+import * as reviewRenewals from '@/routes/review/renewals';
+import * as reviewReports from '@/routes/review/reports';
 import type { NavItem, RoleAssignment } from '@/types';
 
 const footerNavItems: NavItem[] = [
@@ -83,8 +87,10 @@ export function AppSidebar() {
             label: 'Submit',
             items: [
                 { title: 'Submit Registration', href: registrations.create(), icon: FilePlus2 },
+                { title: 'Submit Renewal', href: renewals.create(), icon: FilePlus2 },
                 { title: 'Submit Activity Calendar', href: activityCalendars.create(), icon: FilePlus2 },
                 { title: 'Submit Activity Proposal', href: activityProposals.create(), icon: FilePlus2 },
+                { title: 'Submit Report', href: reports.create(), icon: FilePlus2 },
             ],
         });
 
@@ -92,8 +98,10 @@ export function AppSidebar() {
             label: 'My Documents',
             items: [
                 { title: 'My Registrations', href: registrations.index(), icon: Files },
+                { title: 'My Renewals', href: renewals.index(), icon: Files },
                 { title: 'My Calendars', href: activityCalendars.index(), icon: Files },
                 { title: 'My Proposals', href: activityProposals.index(), icon: Files },
+                { title: 'My Reports', href: reports.index(), icon: Files },
             ],
         });
     }
@@ -103,7 +111,9 @@ export function AppSidebar() {
     if (isSdao) {
         reviewItems.push(
             { title: 'Review Registrations', href: reviewRegistrations.index(), icon: FileText },
+            { title: 'Review Renewals', href: reviewRenewals.index(), icon: FileText },
             { title: 'Review Calendars', href: reviewActivityCalendars.index(), icon: FileText },
+            { title: 'Review Reports', href: reviewReports.index(), icon: FileText },
         );
     }
 

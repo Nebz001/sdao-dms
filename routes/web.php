@@ -4,11 +4,15 @@ use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
+use App\Http\Controllers\AfterActivityReportController;
+use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Dev\DevLoginController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
+use App\Http\Controllers\RenewalController;
+use App\Http\Controllers\RenewalReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -80,6 +84,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/review/activity-proposals/{document}/approve', [ActivityProposalReviewController::class, 'approve'])->name('review.activity-proposals.approve');
     Route::post('/review/activity-proposals/{document}/reject', [ActivityProposalReviewController::class, 'reject'])->name('review.activity-proposals.reject');
     Route::post('/review/activity-proposals/{document}/return', [ActivityProposalReviewController::class, 'return'])->name('review.activity-proposals.return');
+
+    // Student — organization renewal lifecycle
+    Route::get('/renewals', [RenewalController::class, 'index'])->name('renewals.index');
+    Route::get('/renewals/create', [RenewalController::class, 'create'])->name('renewals.create');
+    Route::post('/renewals', [RenewalController::class, 'store'])->name('renewals.store');
+    Route::get('/renewals/{document}', [RenewalController::class, 'show'])->name('renewals.show');
+    Route::get('/renewals/{document}/edit', [RenewalController::class, 'edit'])->name('renewals.edit');
+    Route::put('/renewals/{document}', [RenewalController::class, 'update'])->name('renewals.update');
+
+    // SDAO — renewal review queue
+    Route::get('/review/renewals', [RenewalReviewController::class, 'index'])->name('review.renewals.index');
+    Route::get('/review/renewals/{document}', [RenewalReviewController::class, 'show'])->name('review.renewals.show');
+    Route::post('/review/renewals/{document}/approve', [RenewalReviewController::class, 'approve'])->name('review.renewals.approve');
+    Route::post('/review/renewals/{document}/reject', [RenewalReviewController::class, 'reject'])->name('review.renewals.reject');
+    Route::post('/review/renewals/{document}/return', [RenewalReviewController::class, 'return'])->name('review.renewals.return');
+
+    // Student — after-activity report lifecycle
+    Route::get('/reports', [AfterActivityReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/create', [AfterActivityReportController::class, 'create'])->name('reports.create');
+    Route::post('/reports', [AfterActivityReportController::class, 'store'])->name('reports.store');
+    Route::get('/reports/{document}', [AfterActivityReportController::class, 'show'])->name('reports.show');
+    Route::get('/reports/{document}/edit', [AfterActivityReportController::class, 'edit'])->name('reports.edit');
+    Route::put('/reports/{document}', [AfterActivityReportController::class, 'update'])->name('reports.update');
+
+    // SDAO — after-activity report review queue
+    Route::get('/review/reports', [AfterActivityReportReviewController::class, 'index'])->name('review.reports.index');
+    Route::get('/review/reports/{document}', [AfterActivityReportReviewController::class, 'show'])->name('review.reports.show');
+    Route::post('/review/reports/{document}/approve', [AfterActivityReportReviewController::class, 'approve'])->name('review.reports.approve');
+    Route::post('/review/reports/{document}/reject', [AfterActivityReportReviewController::class, 'reject'])->name('review.reports.reject');
+    Route::post('/review/reports/{document}/return', [AfterActivityReportReviewController::class, 'return'])->name('review.reports.return');
 });
 
 require __DIR__.'/settings.php';

@@ -21,8 +21,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonInterface $date_organized
  * @property int|null $adviser_id
  * @property array<int, string>|null $roster
+ * @property string|null $academic_year
  */
-#[Fillable(['document_id', 'organization_type', 'description', 'contact_person', 'contact_number', 'contact_email', 'date_organized', 'adviser_id', 'roster'])]
+#[Fillable(['document_id', 'organization_type', 'description', 'contact_person', 'contact_number', 'contact_email', 'date_organized', 'adviser_id', 'roster', 'academic_year'])]
 class OrganizationRegistrationDetail extends Model
 {
     /** @use HasFactory<OrganizationRegistrationDetailFactory> */

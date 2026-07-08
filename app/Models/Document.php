@@ -84,4 +84,10 @@ class Document extends Model
     {
         return $this->hasOne(ActivityProposal::class);
     }
+
+    /** @return HasOne<AfterActivityReport, $this> */
+    public function afterActivityReport(): HasOne
+    {
+        return $this->hasOne(AfterActivityReport::class);
+    }
 }

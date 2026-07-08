@@ -27,6 +27,7 @@ class OrganizationRegistrationDetailFactory extends Factory
             'date_organized' => fake()->date(),
             'adviser_id' => null,
             'roster' => [fake()->name(), fake()->name()],
+            'academic_year' => null,
         ];
     }
 }
