@@ -174,6 +174,8 @@ class ActivityProposalController extends Controller
 
     public function show(Document $document): Response
     {
+        Gate::authorize('view', $document);
+
         $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user']);
 
         $proposal = $document->activityProposal;

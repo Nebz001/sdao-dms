@@ -12,6 +12,7 @@ use App\Organizations\BindOrganizationOfficer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -95,6 +96,8 @@ class OrganizationOfficerController extends Controller
 
     public function destroy(Organization $organization, OrganizationMembership $membership): RedirectResponse
     {
+        Gate::authorize('manageOfficers', $organization);
+
         $membership->update(['is_active' => false]);
 
         return redirect()->route('officers.index', $organization)

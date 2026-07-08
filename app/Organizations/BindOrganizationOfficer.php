@@ -32,9 +32,7 @@ class BindOrganizationOfficer
         OfficerPosition $position,
         ?string $academicYear = null,
     ): OrganizationMembership {
-        $adviser = $this->roleDirectory->adviserFor($organization);
-
-        if ($actor->id !== $adviser->id) {
+        if (! $this->roleDirectory->isAdviserOf($actor, $organization)) {
             throw new AuthorizationException('Only the org\'s adviser may bind officers.');
         }
 

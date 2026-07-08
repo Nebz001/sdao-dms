@@ -136,6 +136,8 @@ class AfterActivityReportController extends Controller
 
     public function show(Document $document): Response
     {
+        Gate::authorize('view', $document);
+
         $document->load([
             'organization',
             'afterActivityReport.activityProposal.calendarActivity',

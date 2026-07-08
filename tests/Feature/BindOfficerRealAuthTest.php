@@ -128,3 +128,41 @@ test('officer turnover correctly goes stale: the outgoing officer loses nav acce
         ->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page->where('auth.isActiveOfficer', true));
 });
+
+// ── officers.destroy authorization (IDOR gap audit fix) ─────────────────────
+
+test('the org\'s own adviser can deactivate an officer', function () {
+    $student = User::factory()->create();
+    $this->actingAs($this->adviser)->post(route('officers.store', $this->org), [
+        'user_id' => $student->id,
+        'position' => OfficerPosition::President->value,
+    ]);
+    $membership = OrganizationMembership::where('user_id', $student->id)
+        ->where('organization_id', $this->org->id)
+        ->firstOrFail();
+
+    $response = $this->actingAs($this->adviser)
+        ->delete(route('officers.destroy', [$this->org, $membership]));
+
+    $response->assertRedirect(route('officers.index', $this->org));
+    expect($membership->fresh()->is_active)->toBeFalse();
+});
+
+test('a DIFFERENT org\'s adviser cannot deactivate this org\'s officer', function () {
+    $student = User::factory()->create();
+    $this->actingAs($this->adviser)->post(route('officers.store', $this->org), [
+        'user_id' => $student->id,
+        'position' => OfficerPosition::President->value,
+    ]);
+    $membership = OrganizationMembership::where('user_id', $student->id)
+        ->where('organization_id', $this->org->id)
+        ->firstOrFail();
+
+    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+
+    $response = $this->actingAs($itGuildAdviser)
+        ->delete(route('officers.destroy', [$this->org, $membership]));
+
+    $response->assertForbidden();
+    expect($membership->fresh()->is_active)->toBeTrue();
+});

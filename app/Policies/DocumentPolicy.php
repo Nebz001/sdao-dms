@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Approval\StepApproverResolver;
 use App\Enums\DocumentStatus;
+use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
@@ -15,6 +16,7 @@ class DocumentPolicy
     public function __construct(
         private readonly OrganizationMembershipService $membershipService,
         private readonly StepApproverResolver $approverResolver,
+        private readonly RoleDirectory $roleDirectory,
     ) {}
 
     /**
@@ -23,6 +25,30 @@ class DocumentPolicy
     public function submit(User $user, Organization $organization): bool
     {
         return $this->membershipService->activeMembershipFor($user, $organization) !== null;
+    }
+
+    /**
+     * Can the user view this document? Either an affiliated officer of the
+     * document's own organization, or an approver whose current step in
+     * this document's chain is active right now (same check as `review()`
+     * — reused, not duplicated). Prevents any authenticated user from
+     * reading another organization's document by guessing/enumerating IDs.
+     */
+    public function view(User $user, Document $document): bool
+    {
+        return $this->membershipService->activeMembershipFor($user, $document->organization) !== null
+            || $this->review($user, $document);
+    }
+
+    /**
+     * Can the user manage (bind/deactivate) officers for this organization?
+     * The org's adviser only — the same check BindOrganizationOfficer
+     * performs before binding, reused (not duplicated) here for the
+     * deactivation path via RoleDirectory::isAdviserOf().
+     */
+    public function manageOfficers(User $user, Organization $organization): bool
+    {
+        return $this->roleDirectory->isAdviserOf($user, $organization);
     }
 
     /**

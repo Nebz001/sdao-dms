@@ -105,6 +105,8 @@ class RegistrationController extends Controller
 
     public function show(Document $document): Response
     {
+        Gate::authorize('view', $document);
+
         $document->load(['organization', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
 
         $detail = $document->registrationDetail;

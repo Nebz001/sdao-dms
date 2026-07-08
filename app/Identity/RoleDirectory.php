@@ -25,6 +25,21 @@ class RoleDirectory
     }
 
     /**
+     * Whether the given user is the adviser of this organization. The single
+     * adviser-ownership check — used both by BindOrganizationOfficer (binding
+     * officers) and DocumentPolicy::manageOfficers (deactivating them), so
+     * it lives here once rather than being duplicated in each caller.
+     */
+    public function isAdviserOf(User $user, Organization $organization): bool
+    {
+        try {
+            return $this->adviserFor($organization)->id === $user->id;
+        } catch (ModelNotFoundException) {
+            return false;
+        }
+    }
+
+    /**
      * Only valid for regular-school organizations (those with a program).
      *
      * @throws ModelNotFoundException|\LogicException
