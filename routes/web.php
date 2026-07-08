@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
+use App\Http\Controllers\Admin\ApproverController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\CalendarController;
@@ -114,6 +115,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/review/reports/{document}/approve', [AfterActivityReportReviewController::class, 'approve'])->name('review.reports.approve');
     Route::post('/review/reports/{document}/reject', [AfterActivityReportReviewController::class, 'reject'])->name('review.reports.reject');
     Route::post('/review/reports/{document}/return', [AfterActivityReportReviewController::class, 'return'])->name('review.reports.return');
+
+    // SDAO admin — approver provisioning
+    Route::middleware('can:access-admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/approvers', [ApproverController::class, 'index'])->name('approvers.index');
+        Route::get('/approvers/create', [ApproverController::class, 'create'])->name('approvers.create');
+        Route::post('/approvers', [ApproverController::class, 'store'])->name('approvers.store');
+    });
 });
 
 require __DIR__.'/settings.php';

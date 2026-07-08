@@ -47,6 +47,11 @@ class HandleInertiaRequests extends Middleware
                     'program_id' => $ra->program_id,
                     'organization_id' => $ra->organization_id,
                 ]),
+                // The real source of truth for "is a currently active student
+                // officer" — OrganizationMembership.is_active is deactivated
+                // on turnover, unlike the role_assignments table (no status
+                // column at all, never updated once created).
+                'isActiveOfficer' => $request->user()?->organizationMemberships()->active()->exists() ?? false,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

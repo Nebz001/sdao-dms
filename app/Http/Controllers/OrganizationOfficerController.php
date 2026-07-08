@@ -3,19 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OfficerPosition;
+use App\Enums\Role;
 use App\Http\Requests\Organizations\BindOfficerRequest;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class OrganizationOfficerController extends Controller
 {
-    public function index(Organization $organization): Response
+    /**
+     * Max search results returned to the bind-officer picker.
+     */
+    private const int SEARCH_LIMIT = 20;
+
+    public function index(Request $request, Organization $organization): Response
     {
         $memberships = OrganizationMembership::query()
             ->with('user')
@@ -30,12 +37,31 @@ class OrganizationOfficerController extends Controller
                 'academic_year' => $m->academic_year,
             ]);
 
-        // Students assigned to this org who could be bound as officers.
+        $search = $request->string('search')->trim()->toString();
+
+        // Candidates the adviser can bind: never an account holding an
+        // approver role (RoleAssignment is the only thing that knows an
+        // account is an adviser/chair/dean/etc. — OrganizationMembership has
+        // no concept of it), AND either a bare account (no OrganizationMembership
+        // row at all — the shape a self-registered student has) OR an account
+        // currently ACTIVE in THIS org. Using is_active (not mere row
+        // existence) means a former officer whose membership was deactivated
+        // on turnover is correctly excluded, not perpetually "known."
         $students = User::query()
-            ->whereHas('roleAssignments', fn ($q) => $q
-                ->where('role', 'student')
-                ->where('organization_id', $organization->id)
-            )
+            ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
+            ->where(function ($query) use ($organization) {
+                $query->whereDoesntHave('organizationMemberships')
+                    ->orWhereHas('organizationMemberships', fn ($q) => $q
+                        ->where('organization_id', $organization->id)
+                        ->active()
+                    );
+            })
+            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+            ))
+            ->orderBy('name')
+            ->limit(self::SEARCH_LIMIT)
             ->get(['id', 'name', 'email'])
             ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email]);
 
@@ -43,6 +69,7 @@ class OrganizationOfficerController extends Controller
             'organization' => ['id' => $organization->id, 'name' => $organization->name],
             'memberships' => $memberships,
             'students' => $students,
+            'search' => $search,
             'positions' => collect(OfficerPosition::cases())->map(fn ($p) => [
                 'value' => $p->value,
                 'label' => $p->label(),

@@ -8,6 +8,7 @@ import {
     FolderGit2,
     Inbox,
     LayoutGrid,
+    UserPlus,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -26,6 +27,7 @@ import {
 import { dashboard } from '@/routes';
 import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
+import * as approvers from '@/routes/admin/approvers';
 import * as calendar from '@/routes/calendar';
 import * as officers from '@/routes/officers';
 import * as registrations from '@/routes/registrations';
@@ -67,7 +69,11 @@ export function AppSidebar() {
     const { auth } = usePage().props;
     const roles: RoleAssignment[] = auth?.roles ?? [];
 
-    const isStudentOfficer = roles.some((r) => r.role === 'student' && r.organization_id !== null);
+    // The real source of truth for "currently an active student officer" is
+    // OrganizationMembership.is_active (shared as auth.isActiveOfficer) — NOT
+    // a role_assignments row, which has no status column and is never
+    // updated once created (would go stale on officer turnover).
+    const isStudentOfficer = auth?.isActiveOfficer ?? false;
     const isSdao = roles.some((r) => r.role === 'sdao_member');
     const reviewsProposals = roles.some((r) => PROPOSAL_APPROVER_ROLES.has(r.role));
     const adviserRole = roles.find((r) => r.role === 'adviser' && r.organization_id !== null);
@@ -125,17 +131,26 @@ export function AppSidebar() {
         sections.push({ label: 'Review', items: reviewItems });
     }
 
+    const manageItems: NavItem[] = [];
+
     if (adviserRole?.organization_id) {
-        sections.push({
-            label: 'Manage',
-            items: [
-                {
-                    title: 'Manage Officers',
-                    href: officers.index({ organization: adviserRole.organization_id }),
-                    icon: Users,
-                },
-            ],
+        manageItems.push({
+            title: 'Manage Officers',
+            href: officers.index({ organization: adviserRole.organization_id }),
+            icon: Users,
         });
+    }
+
+    if (isSdao) {
+        manageItems.push({
+            title: 'Provision Approvers',
+            href: approvers.index(),
+            icon: UserPlus,
+        });
+    }
+
+    if (manageItems.length > 0) {
+        sections.push({ label: 'Manage', items: manageItems });
     }
 
     return (

@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Session;
 
 /**
  * Dev-only identity provider: logs in any seeded user directly, with no
- * password or SSO assertion required. Replaced by an SSO provider in Slice 6.
+ * password required. Used exclusively by the dev-only login page (never
+ * registered in production). Real users authenticate via Laravel Fortify's
+ * own pipeline (Slice 6), which does not use this class or this interface.
  */
 class DevIdentityProvider implements IdentityProvider
 {

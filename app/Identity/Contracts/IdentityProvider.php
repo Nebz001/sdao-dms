@@ -5,10 +5,17 @@ namespace App\Identity\Contracts;
 use App\Models\User;
 
 /**
- * Stable boundary between the application's login/logout mechanics and the
- * rest of the codebase. The stub implementation uses seeded fake accounts;
- * the SSO implementation (Slice 6) validates a school assertion and provisions
- * the user before delegating here. Only this interface is touched at that swap.
+ * Boundary between the dev-only login page and the session login/logout
+ * mechanics. The stub implementation (`DevIdentityProvider`) logs in any
+ * seeded fake account with no credential check.
+ *
+ * Production users authenticate via Laravel Fortify's own email/password
+ * pipeline (Slice 6), which manages `Auth::login()`/logout and session
+ * regeneration itself and does not go through this interface — Fortify's
+ * routes/controllers are a separate, self-contained path. This interface
+ * exists solely so the dev-only login page (never registered in production,
+ * see the `!app()->isProduction()` guard in routes/web.php) doesn't call
+ * `Auth`/`Session` facades directly.
  */
 interface IdentityProvider
 {

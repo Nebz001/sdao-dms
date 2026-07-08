@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use App\Approval\Contracts\ApproverNotifier;
 use App\Approval\Notifications\RecordingApproverNotifier;
+use App\Enums\Role;
 use App\Identity\Contracts\IdentityProvider;
 use App\Identity\Providers\DevIdentityProvider;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\RoleAssignment;
+use App\Models\User;
 use App\Policies\DocumentPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -34,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configurePolicies();
+        $this->configureGates();
     }
 
     /**
@@ -43,6 +47,15 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Organization::class, DocumentPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
+    }
+
+    /**
+     * Gate access to the SDAO admin-provisioning area (Slice 6).
+     */
+    protected function configureGates(): void
+    {
+        Gate::define('access-admin', fn (User $user): bool => $user->roleAssignments
+            ->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember));
     }
 
     protected function configureDefaults(): void

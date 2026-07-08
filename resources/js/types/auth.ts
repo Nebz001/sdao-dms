@@ -20,6 +20,7 @@ export type RoleAssignment = {
 export type Auth = {
     user: User;
     roles: RoleAssignment[] | null;
+    isActiveOfficer: boolean;
 };
 
 /* @chisel-passkeys */
