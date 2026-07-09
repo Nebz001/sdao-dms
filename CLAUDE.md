@@ -15,6 +15,23 @@ Five form types: organization registration, organization renewal,
 activity calendar (term plan), activity proposal, after-activity report.
 Each activity has a venue, a date, and a start/end time.
 
+## Standing rules (apply to ALL work)
+
+Every frontend change, regardless of size, must consult the `frontend-design`
+skill and use the project's existing shadcn/ui component library correctly and
+consistently — no ad-hoc styling, no unaligned/unspaced layouts, no empty
+dashboard-style placeholder blocks left over from scaffolding. Match the visual
+density and spacing already established in working screens (reference: the
+populated sidebar with grouped nav sections). Every new screen must include real
+user feedback: loading states, success/error confirmation, and confirmation
+modals before destructive or hard-to-reverse actions (approve, reject,
+deactivate an officer, submit for review). This is a permanent standard, not a
+one-time cleanup.
+
+Dev login is removed entirely once real authentication is in active use — not
+just production-gated. Delete the dev login routes, controller, and pages. All
+testing from this point forward uses real registration and login exclusively.
+
 ## DOMAIN INVARIANTS — never violate these
 
 These are product rules, not suggestions. Do not "simplify" them away.
@@ -181,6 +198,11 @@ Approved and Rejected.
 - Authentication ≠ authorization. A valid login grants no power until a role
   is assigned.
 - Staff/approver roles are assigned by SDAO/admin and are never self-claimed.
+- **Student account verification gate.** Self-registered student accounts are
+  created in an "Unverified" state — able to log in, but unable to submit or act
+  on anything. SDAO reviews new self-registered accounts via a "Pending
+  Accounts" queue and manually marks each Verified or Rejected. Only Verified
+  accounts can submit registrations or be adviser-bound as officers.
 
 ## Architecture ownership — do not blur these
 
@@ -195,6 +217,107 @@ Approved and Rejected.
   Add relevant tables to Supabase's realtime publication.
 - Attachment uploads are the only direct client→Supabase action, gated by
   signed URLs issued by Laravel.
+
+## Remediation-phase rules & corrections (post-manual-testing)
+
+Discovered during manual testing after Slice 6. Additive to the invariants
+above; nothing here relaxes an existing rule.
+
+### One organization per student
+
+A student cannot be an active officer (president/secretary) of more than one
+organization at a time, and cannot have more than one organization registration
+in Draft/In Review/Returned simultaneously. They may attempt a new registration
+only after a prior one is Rejected (reject frees them to try again) or has no
+active officer binding yet. Once a registration is Approved, the founding
+student is automatically bound as President and this rule locks them to that org.
+
+### Adviser selection, exclusivity, and binding timing
+
+The registration form's adviser field is a typeahead search against existing
+admin-provisioned adviser accounts (never free text, never a new adviser account
+created by the student). While selecting, the UI shows a live warning if the
+chosen adviser is already assigned to another organization. An adviser may be
+assigned to exactly ONE organization at a time — enforced with a hard re-check
+at SDAO approval time (race-condition guard, same defensive pattern as
+VenueConflictChecker's approve-time re-check from Slice 3), since two students
+could pick the same unbound adviser while both applications are pending. The
+adviser is only actually bound to the organization at the moment the
+registration is Approved — not at submission. If the chosen adviser is the
+specific problem, SDAO uses return-for-revision (not reject) so the student can
+pick a different one; reject remains available separately for other reasons.
+
+### Section-based revision flagging — universal (all form types, all approvers)
+
+Every return-for-revision action allows the approver to flag one or more specific
+sections of the document as needing revision (not just a free-text comment), and
+the UI highlights exactly those sections for the student on resubmission. An
+approver may flag multiple sections in a single return, freely, with no
+restriction. Store this as structured data on the transition (a list of section
+keys), not just a comment string. Section definitions per form type:
+
+- **Registration/Renewal:** Contact Information, Organization Details, Adviser
+  Selection, Attachments, General
+- **Activity Request Form (proposal step 1):** RSO Info, Activity Details
+  (Nature/Type), Partner Orgs & SDG, Budget, Schedule & Venue, General
+- **Proposal narrative (step 2):** Objectives, Activity Description, Budget,
+  Resource Person, General
+- **Activity Calendar:** each activity row is its own flaggable unit (no shared
+  sections)
+- **After-Activity Report:** Event Details, Summary/Program, Evaluation,
+  Attachments, General
+
+### Registration/Renewal required attachments — no conditionals
+
+Every attachment listed on the physical form for the relevant application type is
+REQUIRED regardless of Organization Type — submission is blocked if any required
+attachment is missing. This is the real attachments upload pipeline, no longer
+schema-only/deferred for this form type.
+- **New:** Letter of Intent, Application Form, By-Laws, Updated List of
+  Officers/Founders, Letter from College Dean endorsing the Faculty Adviser,
+  List of Proposed Projects with Budget.
+- **Renewal:** the same as New, plus List of Past Projects, Financial Statement,
+  Summary of Evaluation.
+
+### Activity Calendar term is a global, admin-controlled setting
+
+Not a per-submission dropdown. SDAO/admin sets the current term system-wide. New
+calendar submissions always use the current term automatically; existing,
+already-submitted calendars retain the term they were submitted under and are
+never changed by a later term update.
+
+### Real names for provisioned roles
+
+SDAO members are Carl Justin Magpantay and Zaira Joy Enayo (already used).
+Additionally seed: Pia Jasmin I. Quizon (Assistant Director of Academic
+Services), Bernie S. Fabito (Academic Director), Avelino D. Palupit (Executive
+Director).
+
+### Exact field corrections per form
+
+Sourced from the client's real physical/template forms. Do not rephrase or
+approximate these.
+- **Registration/Renewal:** Organization Name, Contact Person, Contact No.,
+  Email Address, Date Organized, Purpose of Organization, Type of Organization
+  (Co-Curricular / Extra Curricular-Interest Clubs), College.
+- **Activity Request Form (proposal step 1):** Name of RSO, Title of Activity,
+  Nature of Activity (Co-Curricular / Non-curricular / Community Extension /
+  Others), Type of Activity (Seminar/Workshop, General Assembly, Orientation,
+  Competition, Recruitment/Audition, Donation Drive/Fundraising Activity,
+  Outreach, Off-campus Activity, Others), Partner Organization(s)/School(s)/RSO,
+  Target SDG, Proposed Budget, Budget Source, Date of Activity, Venue.
+- **Proposal narrative (step 2):** Project/Activity Title, Proposed Date(s),
+  Proposed Time, Venue, Objectives, Criteria/Mechanics, Program Flow, Proposed
+  Budget, Source of Funding, Expenses, Resume of Resource Person(s) if
+  applicable.
+- **Activity Calendar:** RSO Name, Date, Activity Name, SDG, Venue,
+  Participant/Program Assigned, Budget. Status and Date Received are NOT
+  user-input fields — derive Status from the document's actual approval status
+  and Date Received from its actual submission timestamp.
+- **After-Activity Report:** Name of Event, Date and Time of Event, Activity
+  Chair/s, Prepared By, Date Submitted, Summary, Program, Photos (attachment),
+  Activity Evaluation Report (% target participants + sample eval form,
+  attachment), Attendance Sheet (attachment).
 
 ## Commands
 

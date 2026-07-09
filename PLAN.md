@@ -119,6 +119,44 @@ auth boundary.
 
 ---
 
+## Phase 2 — Remediation
+
+Discovered after manual testing of the completed Slices 0–6. These do not
+renumber or replace any slice above; they are sequenced follow-on work.
+
+1. **Account verification gate.** Self-registered students land in an
+   Unverified state; SDAO reviews a "Pending Accounts" queue and marks
+   Verified/Rejected. Only Verified accounts can submit or be adviser-bound.
+2. **Remove dev login entirely.** Delete the dev-login routes, controller, and
+   pages — real registration/login becomes the only path (all further testing
+   uses real auth).
+3. **Wire real notification delivery.** Actual email sending via a mail
+   provider, fulfilling the previously-deferred invariant #9 delivery channel —
+   the notification trigger already exists from Slice 1; this adds the actual
+   send.
+4. **One-org-per-student.** Enforce a single active org per student and a
+   single in-flight (Draft/In Review/Returned) registration; Approved
+   auto-binds the founding student as President and locks them to that org.
+5. **Adviser exclusivity / binding-on-approval.** Enforce a single org per
+   adviser; bind the adviser only at registration approval, with an
+   approve-time re-check guard.
+6. **Term-as-global-setting.** Move Activity Calendar term to an
+   admin-controlled system-wide setting; new submissions inherit the current
+   term, existing ones are frozen.
+7. **Exact field corrections across all four form types.** Align every form's
+   fields to the client's real physical/template forms (see sdao.md).
+8. **Real attachments upload pipeline for registration/renewal.** Implement the
+   real upload pipeline with all required attachments enforced (no conditionals).
+9. **Section-based revision flagging (universal).** Structured per-section flags
+   on every return-for-revision, highlighted for the student on resubmission.
+10. **Activity Calendar submit-flow fix + add-multiple-then-submit UX.** Fix
+    the submit flow and support adding multiple activities before submitting.
+11. **Full UI/UX pass.** Apply the standing UI/UX rule across all screens:
+    shadcn/ui consistency, spacing/density, loading & success/error feedback,
+    confirmation modals for destructive actions.
+
+---
+
 ## Working agreement
 
 - Plan mode before each slice; approve the plan before any code.
