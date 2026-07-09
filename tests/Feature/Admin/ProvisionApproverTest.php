@@ -12,7 +12,8 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
@@ -140,9 +141,8 @@ test('a provisioned approver lands account-Verified and email-verified — no ve
     expect($user->email_verified_at)->not->toBeNull();
 });
 
-test('provisioning sends a password-reset link and never sets a usable password directly', function () {
-    Password::shouldReceive('broker')->once()->with('users')->andReturnSelf();
-    Password::shouldReceive('sendResetLink')->once()->with(['email' => 'reset-check@sdao.test']);
+test('provisioning sends a real password-reset notification and never sets a usable password directly', function () {
+    Notification::fake();
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
@@ -153,6 +153,12 @@ test('provisioning sends a password-reset link and never sets a usable password 
     );
 
     expect($user->password)->not->toBeNull();
+
+    // The framework's real, email-bearing password-reset notification was
+    // dispatched to the newly-provisioned approver — this is what actually
+    // sends through Laravel's Mail pipeline (MAIL_MAILER=log locally, a real
+    // provider in production), not a no-op.
+    Notification::assertSentTo($user, ResetPassword::class);
 });
 
 test('an SDAO member can reach the admin routes end-to-end via HTTP', function () {

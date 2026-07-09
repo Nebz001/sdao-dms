@@ -4,9 +4,11 @@ namespace App\Identity\Admin;
 
 use App\Enums\AccountStatus;
 use App\Enums\Role;
+use App\Mail\AccountVerifiedMail;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,6 +35,8 @@ class VerifyAccount
         }
 
         $account->update(['account_status' => AccountStatus::Verified]);
+
+        Mail::to($account)->send(new AccountVerifiedMail($account));
 
         return $account;
     }

@@ -3,16 +3,19 @@
 namespace App\Approval\Notifications;
 
 use App\Approval\Contracts\ApproverNotifier;
+use App\Mail\ApproverHandOffMail;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 /**
- * Development stub for the approver notifier (invariant #9).
- *
- * Records a row in approval_notifications so the engine trigger is testable.
- * Phase 2 item 3 (wire real notification delivery) swaps this out for a real
- * email implementation as a localized container rebind.
+ * Records a row in approval_notifications so the engine trigger is testable,
+ * AND sends the approver a real, synchronous email (Phase 2 item 3 — the
+ * actual delivery channel for invariant #9; the trigger itself is unchanged
+ * from Slice 1, still fired once per approver from
+ * ApprovalEngine::activateStep). Sent synchronously (not queued) so delivery
+ * never silently depends on a queue worker running.
  */
 class RecordingApproverNotifier implements ApproverNotifier
 {
@@ -24,5 +27,7 @@ class RecordingApproverNotifier implements ApproverNotifier
             'step_position' => $stepPosition,
             'created_at' => now(),
         ]);
+
+        Mail::to($approver)->send(new ApproverHandOffMail($approver, $document, $stepPosition));
     }
 }
