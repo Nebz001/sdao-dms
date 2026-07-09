@@ -28,6 +28,9 @@ class UpdateRegistrationRequest extends FormRequest
             'date_organized' => ['required', 'date'],
             'roster' => ['nullable', 'array'],
             'roster.*' => ['string', 'max:255'],
+            // Optional: Phase 2 item 5 — the student may pick a different
+            // adviser when resubmitting after a return-for-revision.
+            'adviser_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

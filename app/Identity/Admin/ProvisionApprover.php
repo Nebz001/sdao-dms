@@ -85,6 +85,28 @@ class ProvisionApprover
 
         $providedKeys = array_keys(array_filter($scope, fn ($value) => $value !== null));
 
+        // Role::Adviser is the ONE deliberate exception to strict scope-matching,
+        // tied to the Phase 2 item-5 founding-flow redesign: a student proposing
+        // a brand-new organization picks an adviser from a pool of admin-
+        // provisioned accounts that are NOT yet assigned to any org — the
+        // adviser is only actually bound to an organization_id at the moment
+        // SDAO approves that founding registration (see
+        // App\Registrations\ApproveOrganizationRegistration). So provisioning
+        // an Adviser with NO scope (available, pending assignment) must be
+        // allowed, alongside the normal "assign immediately" path for admin
+        // convenience. This asymmetry with Dean/ProgramChair/Principal below —
+        // which still require their scope exactly, unconditionally — is
+        // intentional and should NOT be "fixed" back to strict parity.
+        if ($role === Role::Adviser) {
+            if ($providedKeys !== [] && $providedKeys !== ['organization_id']) {
+                throw ValidationException::withMessages([
+                    'scope' => "{$role->label()} takes either no scope (available, unassigned) or exactly an organization_id.",
+                ]);
+            }
+
+            return;
+        }
+
         if ($expectedKey === null) {
             if ($providedKeys !== []) {
                 throw ValidationException::withMessages([

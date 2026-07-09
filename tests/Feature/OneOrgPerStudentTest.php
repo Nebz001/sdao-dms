@@ -3,12 +3,13 @@
 use App\Approval\ApprovalEngine;
 use App\Approval\Exceptions\InvalidTransitionException;
 use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Enums\OfficerPosition;
 use App\Enums\OrganizationType;
-use App\Models\Document;
+use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\RoleAssignment;
+use App\Models\School;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use App\Registrations\SubmitOrganizationRegistration;
@@ -29,14 +30,26 @@ beforeEach(function () {
     $this->adviserB = User::where('email', 'adviser-two@sdao.test')->firstOrFail(); // IT Guild
     $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
     $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
 
     // Already bound (via MembershipSeeder) as active President of Computing Society.
     $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
 });
 
-function oneOrgPayload(): array
+/** A fresh, admin-provisioned adviser account with no organization yet (available). */
+function unboundAdviser(): User
 {
-    return [
+    $adviser = User::factory()->create();
+    RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);
+
+    return $adviser;
+}
+
+function oneOrgPayload(array $overrides = []): array
+{
+    return array_merge([
+        'name' => 'One-Org Test Org',
+        'programId' => null,
         'organizationType' => OrganizationType::CoCurricular,
         'description' => 'Description.',
         'contactPerson' => 'Contact Person',
@@ -44,7 +57,7 @@ function oneOrgPayload(): array
         'contactEmail' => 'contact@example.test',
         'dateOrganized' => '2020-06-01',
         'roster' => ['Member One'],
-    ];
+    ], $overrides);
 }
 
 test('a student with an active officer role elsewhere is blocked from a new binding', function () {
@@ -60,94 +73,77 @@ test('a student with an active officer role elsewhere is blocked from a new bind
         ->exists())->toBeFalse();
 });
 
-test('a student with an in-flight registration for a different org is blocked from starting another', function () {
+test('a student with an in-flight proposal is blocked from founding a second organization', function () {
     $student = User::factory()->create();
+    $adviser1 = unboundAdviser();
+    $adviser2 = unboundAdviser();
 
-    // Bind to orgA and submit — lands InReview.
-    $membershipA = $this->bindAction->execute(
-        actor: $this->adviserA,
-        organization: $this->orgA,
-        student: $student,
-        position: OfficerPosition::Secretary,
-    );
-    $p = oneOrgPayload();
-    $docA = $this->submitAction->execute(...$p, actor: $student, organization: $this->orgA);
-    expect($docA->status)->toBe(DocumentStatus::InReview);
-
-    // Independently deactivate the orgA membership (e.g. adviser removes them)
-    // WITHOUT the registration document itself being resolved — the loophole
-    // this guard exists to close.
-    $membershipA->update(['is_active' => false]);
-
-    // Now bindable elsewhere (no active membership anywhere).
-    $this->bindAction->execute(
-        actor: $this->adviserB,
-        organization: $this->orgB,
-        student: $student,
-        position: OfficerPosition::Secretary,
+    $this->submitAction->execute(
+        ...oneOrgPayload(),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser1->id,
     );
 
-    // But submitting orgB's registration is blocked — orgA's document is
-    // still Draft/InReview/Returned.
-    expect(fn () => $this->submitAction->execute(...oneOrgPayload(), actor: $student, organization: $this->orgB))
-        ->toThrow(ValidationException::class);
+    // A founding proposal has NO membership yet (Phase 2 item 5) — the
+    // in-flight DOCUMENT is the only thing blocking a second proposal.
+    expect(fn () => $this->submitAction->execute(
+        ...oneOrgPayload(['name' => 'Second Org', 'contactEmail' => 'second@example.test']),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser2->id,
+    ))->toThrow(ValidationException::class);
 
-    expect(Document::where('form_type', FormType::OrganizationRegistration->value)
-        ->where('organization_id', $this->orgB->id)
-        ->exists())->toBeFalse();
+    expect(Organization::where('name', 'Second Org')->exists())->toBeFalse();
 });
 
-test('a rejected registration frees the student to start a new one elsewhere', function () {
+test('a rejected proposal frees the student to found a different organization', function () {
     $student = User::factory()->create();
+    $adviser1 = unboundAdviser();
+    $adviser2 = unboundAdviser();
 
-    $this->bindAction->execute(
-        actor: $this->adviserA,
-        organization: $this->orgA,
-        student: $student,
-        position: OfficerPosition::Secretary,
+    $docA = $this->submitAction->execute(
+        ...oneOrgPayload(),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser1->id,
     );
-    $docA = $this->submitAction->execute(...oneOrgPayload(), actor: $student, organization: $this->orgA);
-    expect($docA->status)->toBe(DocumentStatus::InReview);
 
-    // Reject via the real HTTP review action — the deactivation side effect
-    // lives in the controller, not the engine.
+    // Reject via the real HTTP review action.
     $this->actingAs($this->sdaoA)
         ->post(route('review.registrations.reject', $docA), ['comment' => 'Incomplete paperwork.'])
         ->assertRedirect(route('review.registrations.index'));
 
     $docA->refresh();
     expect($docA->status)->toBe(DocumentStatus::Rejected);
-    expect(OrganizationMembership::where('user_id', $student->id)
-        ->where('organization_id', $this->orgA->id)
-        ->where('is_active', true)
-        ->exists())->toBeFalse();
 
-    // Now free to be bound to, and submit for, a different org.
-    $this->bindAction->execute(
-        actor: $this->adviserB,
-        organization: $this->orgB,
-        student: $student,
-        position: OfficerPosition::Secretary,
+    // Now free to found a DIFFERENT organization.
+    $docB = $this->submitAction->execute(
+        ...oneOrgPayload(['name' => 'Second Org', 'contactEmail' => 'second@example.test']),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser2->id,
     );
-    $docB = $this->submitAction->execute(...oneOrgPayload(), actor: $student, organization: $this->orgB);
 
     expect($docB->status)->toBe(DocumentStatus::InReview);
 });
 
 test('a student is locked in once Approved — irreversibly, unlike Rejected', function () {
     $student = User::factory()->create();
+    $adviser1 = unboundAdviser();
 
-    $this->bindAction->execute(
-        actor: $this->adviserA,
-        organization: $this->orgA,
-        student: $student,
-        position: OfficerPosition::Secretary,
+    $docA = $this->submitAction->execute(
+        ...oneOrgPayload(),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser1->id,
     );
-    $docA = $this->submitAction->execute(...oneOrgPayload(), actor: $student, organization: $this->orgA);
 
-    $this->engine->approve($docA, $this->sdaoA);
+    // Approve via the real HTTP review action — binding (Phase 2 item 5)
+    // happens inside ApproveOrganizationRegistration, not the raw engine.
+    $this->actingAs($this->sdaoA)->post(route('review.registrations.approve', $docA));
     $docA->refresh();
-    $this->engine->approve($docA, $this->sdaoB);
+    $this->actingAs($this->sdaoB)->post(route('review.registrations.approve', $docA));
     $docA->refresh();
     expect($docA->status)->toBe(DocumentStatus::Approved);
 
@@ -163,10 +159,11 @@ test('a student is locked in once Approved — irreversibly, unlike Rejected', f
     expect(fn () => $this->engine->reject($docA, $this->sdaoA, 'Too late.'))
         ->toThrow(InvalidTransitionException::class);
 
-    // Membership remains active throughout.
+    // Founding student was bound as President upon Approval and remains active.
     expect(OrganizationMembership::where('user_id', $student->id)
-        ->where('organization_id', $this->orgA->id)
+        ->where('organization_id', $docA->organization_id)
         ->where('is_active', true)
+        ->where('position', OfficerPosition::President->value)
         ->exists())->toBeTrue();
 });
 

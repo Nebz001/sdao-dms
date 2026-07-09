@@ -3,11 +3,12 @@
 use App\Approval\ApprovalEngine;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
-use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -35,17 +36,35 @@ function submittedRenewal(): Document
     $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
     $engine = app(ApprovalEngine::class);
 
-    $registration = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $student,
-        organization: $org,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'Original description.',
-        contactPerson: 'Original Person',
-        contactNumber: '09171111111',
-        contactEmail: 'original@example.test',
-        dateOrganized: '2020-06-01',
-        roster: ['Member One'],
-    );
+    // Built directly (not via SubmitOrganizationRegistration): this fixture
+    // only needs a valid PRIOR APPROVED registration for an org the student
+    // is already bound to (via MembershipSeeder) — registration-submission
+    // mechanics are covered elsewhere (SubmitRegistrationTest /
+    // OrganizationFoundingTest) and now require a not-yet-affiliated
+    // founding student, the opposite of this fixture's shape.
+    $registration = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $student->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $registration->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'description' => 'Original description.',
+        'contact_person' => 'Original Person',
+        'contact_number' => '09171111111',
+        'contact_email' => 'original@example.test',
+        'date_organized' => '2020-06-01',
+        'adviser_id' => null,
+        'roster' => ['Member One'],
+    ]);
+    $engine->submit($registration, $student);
+    $registration->refresh();
     $engine->approve($registration, $sdaoA);
     $registration->refresh();
     $engine->approve($registration, $sdaoB);

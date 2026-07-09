@@ -40,6 +40,19 @@ test('an SDAO member can provision an adviser scoped to an organization', functi
         ->exists())->toBeTrue();
 });
 
+test('an SDAO member can provision an adviser with NO scope — available, pending assignment (Phase 2 item 5)', function () {
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Available Adviser',
+        email: 'available-adviser@sdao.test',
+        role: Role::Adviser,
+        scope: [],
+    );
+
+    $ra = RoleAssignment::where('user_id', $user->id)->where('role', Role::Adviser->value)->firstOrFail();
+    expect($ra->organization_id)->toBeNull();
+});
+
 test('an SDAO member can provision a dean scoped to a school', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,

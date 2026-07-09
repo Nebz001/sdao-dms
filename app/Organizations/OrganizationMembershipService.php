@@ -36,15 +36,16 @@ class OrganizationMembershipService
     /**
      * One organization per student (Phase 2 item 4): is this student actively
      * bound as an officer of any organization OTHER than $excluding? Shared by
-     * BindOrganizationOfficer today; Phase 2 item 5's future approval-time
-     * bind action should call this same method rather than re-deriving the
-     * check when it replaces the founding (not turnover) binding path.
+     * BindOrganizationOfficer (turnover) and, since Phase 2 item 5, the
+     * proposal-gate check for a brand-new founding registration — pass null
+     * for $excluding when there is no existing organization to exclude yet
+     * (checks for ANY active membership at all).
      */
-    public function hasActiveMembershipElsewhere(User $student, Organization $excluding): bool
+    public function hasActiveMembershipElsewhere(User $student, ?Organization $excluding = null): bool
     {
         return OrganizationMembership::query()
             ->where('user_id', $student->id)
-            ->where('organization_id', '!=', $excluding->id)
+            ->when($excluding !== null, fn ($query) => $query->where('organization_id', '!=', $excluding->id))
             ->active()
             ->exists();
     }

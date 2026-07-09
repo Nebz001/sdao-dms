@@ -14,9 +14,9 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
-use App\Registrations\SubmitOrganizationRegistration;
 use App\Support\AcademicYear;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -25,6 +25,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
 });
 
 /**
@@ -150,17 +151,16 @@ test('OrganizationMembershipService treats a rejected account as having no activ
     expect(app(OrganizationMembershipService::class)->activeMembershipFor($rejected, $this->org))->toBeNull();
 });
 
-test('an unverified officer is forbidden from submitting a registration', function () {
+test('an unverified officer is forbidden from proposing a new organization', function () {
     $officer = User::factory()->unverifiedAccount()->create();
-    OrganizationMembership::create([
-        'user_id' => $officer->id,
-        'organization_id' => $this->org->id,
-        'position' => 'president',
-        'academic_year' => '2026-2027',
-        'is_active' => true,
-    ]);
 
+    // Phase 2 item 5: registration is now a founding proposal — the payload
+    // must be schema-valid so the block comes from Gate::authorize('propose')
+    // (isVerifiedAccount), not incidental FormRequest validation noise.
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
+        'name' => 'Should Never Be Created',
+        'school_id' => $this->org->school_id,
+        'adviser_id' => $this->sdaoA->id,
         'organization_type' => 'co_curricular',
         'description' => 'Should never be created.',
         'contact_person' => 'Someone',
@@ -170,22 +170,16 @@ test('an unverified officer is forbidden from submitting a registration', functi
     ]);
 
     $response->assertForbidden();
-    expect(Document::where('form_type', FormType::OrganizationRegistration->value)
-        ->where('organization_id', $this->org->id)
-        ->exists())->toBeFalse();
+    expect(Organization::where('name', 'Should Never Be Created')->exists())->toBeFalse();
 });
 
-test('a rejected officer is forbidden from submitting a registration', function () {
+test('a rejected officer is forbidden from proposing a new organization', function () {
     $officer = User::factory()->rejectedAccount()->create();
-    OrganizationMembership::create([
-        'user_id' => $officer->id,
-        'organization_id' => $this->org->id,
-        'position' => 'president',
-        'academic_year' => '2026-2027',
-        'is_active' => true,
-    ]);
 
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
+        'name' => 'Should Never Be Created Either',
+        'school_id' => $this->org->school_id,
+        'adviser_id' => $this->sdaoA->id,
         'organization_type' => 'co_curricular',
         'description' => 'Should never be created.',
         'contact_person' => 'Someone',
@@ -195,6 +189,7 @@ test('a rejected officer is forbidden from submitting a registration', function 
     ]);
 
     $response->assertForbidden();
+    expect(Organization::where('name', 'Should Never Be Created Either')->exists())->toBeFalse();
 });
 
 test('the activity-proposal chain-entry submit is forbidden once the account is no longer verified', function () {
@@ -258,18 +253,35 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
 test('an unverified officer is forbidden from submitting a renewal', function () {
     // Renewal requires a prior Approved registration for the org first.
     $verifiedOfficer = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $registration = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $verifiedOfficer,
-        organization: $this->org,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'Original description.',
-        contactPerson: 'Original Person',
-        contactNumber: '09171111111',
-        contactEmail: 'original@example.test',
-        dateOrganized: '2020-06-01',
-        roster: ['Member One'],
-    );
+
+    // Built directly (not via SubmitOrganizationRegistration, which now
+    // requires a not-yet-affiliated founding student — Phase 2 item 5): this
+    // fixture only needs a prior Approved registration for an org the
+    // officer is already bound to.
+    $registration = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$this->org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $this->org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $verifiedOfficer->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $registration->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'description' => 'Original description.',
+        'contact_person' => 'Original Person',
+        'contact_number' => '09171111111',
+        'contact_email' => 'original@example.test',
+        'date_organized' => '2020-06-01',
+        'adviser_id' => null,
+        'roster' => ['Member One'],
+    ]);
     $engine = app(ApprovalEngine::class);
+    $engine->submit($registration, $verifiedOfficer);
+    $registration->refresh();
     $engine->approve($registration, User::where('email', 'sdao-a@sdao.test')->firstOrFail());
     $registration->refresh();
     $engine->approve($registration, User::where('email', 'sdao-b@sdao.test')->firstOrFail());

@@ -4,6 +4,7 @@ use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
+use App\Models\School;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -59,21 +60,33 @@ test('the public registration endpoint ignores role/scope fields smuggled into t
     expect(RoleAssignment::where('user_id', $user->id)->exists())->toBeFalse();
 });
 
-test('a self-registered, verified user still cannot submit any document or reach review/admin routes', function () {
+test('a self-registered, verified user CAN propose a new organization (Phase 2 item 5), but still cannot reach review/admin routes', function () {
     $user = User::factory()->create(); // verified, but zero RoleAssignment / OrganizationMembership
 
-    // Cannot submit — RegistrationController::store() looks up the actor's
-    // active membership first (firstOrFail), which doesn't exist for a bare
-    // account, so this never even reaches the submit Gate check.
+    // A bare, not-yet-affiliated Verified student is EXACTLY who item 5's
+    // founding flow is for — this is no longer blocked (see
+    // SubmitRegistrationTest for full coverage of this path). What remains
+    // blocked is everything else: review/admin routes below, and every other
+    // form type (renewal/calendar/proposal/report — covered in
+    // AccountVerificationGateTest and elsewhere), which still require an
+    // existing officer binding this bare account doesn't have.
+    $school = School::query()->firstOrFail();
+    $adviser = User::factory()->create();
+    RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);
+
     $response = $this->actingAs($user)->post(route('registrations.store'), [
+        'name' => 'Bare User Founded Org',
+        'school_id' => $school->id,
+        'adviser_id' => $adviser->id,
         'organization_type' => 'co_curricular',
-        'description' => 'Should never be created.',
+        'description' => 'A brand-new organization.',
         'contact_person' => 'Someone',
         'contact_number' => '09170000000',
         'contact_email' => 'someone@example.test',
         'date_organized' => '2020-06-01',
     ]);
-    $response->assertNotFound();
+    $response->assertRedirect();
+    expect(Organization::where('name', 'Bare User Founded Org')->exists())->toBeTrue();
 
     // Cannot reach an SDAO review queue.
     $this->actingAs($user)->get(route('review.registrations.index'))->assertOk(); // queue itself has no gate…

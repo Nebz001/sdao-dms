@@ -13,8 +13,8 @@ use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
-use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
 use App\Support\AcademicYear;
@@ -41,26 +41,51 @@ beforeEach(function () {
     $this->chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
 });
 
+/**
+ * Builds and dual-approves a registration directly for an org the actor is
+ * ALREADY bound to (not via SubmitOrganizationRegistration, which now
+ * requires a not-yet-affiliated founding student — Phase 2 item 5). These
+ * tests are about view-authorization, not submission mechanics.
+ */
 function viewAuthApprovedRegistration(Organization $org, User $actor): void
 {
     $engine = app(ApprovalEngine::class);
     $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
     $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
 
-    $doc = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $actor,
-        organization: $org,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'Original description.',
-        contactPerson: 'Contact Person',
-        contactNumber: '09170000000',
-        contactEmail: 'contact@example.test',
-        dateOrganized: '2020-06-01',
-        roster: ['Member One'],
-    );
+    $doc = viewAuthRegistrationDocument($org, $actor);
+    $engine->submit($doc, $actor);
+    $doc->refresh();
     $engine->approve($doc, $sdaoA);
     $doc->refresh();
     $engine->approve($doc, $sdaoB);
+}
+
+function viewAuthRegistrationDocument(Organization $org, User $actor): Document
+{
+    $doc = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $actor->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $doc->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'description' => 'Original description.',
+        'contact_person' => 'Contact Person',
+        'contact_number' => '09170000000',
+        'contact_email' => 'contact@example.test',
+        'date_organized' => '2020-06-01',
+        'adviser_id' => null,
+        'roster' => ['Member One'],
+    ]);
+
+    return $doc;
 }
 
 function viewAuthApprovedCalendarActivity(Organization $org, string $name): CalendarActivity
@@ -92,17 +117,9 @@ function viewAuthApprovedCalendarActivity(Organization $org, string $name): Cale
 }
 
 test('registration show: org officer can view, different-org officer cannot, current-step SDAO can', function () {
-    $doc = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $this->studentAlpha,
-        organization: $this->computingSociety,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'Original description.',
-        contactPerson: 'Contact Person',
-        contactNumber: '09170000000',
-        contactEmail: 'contact@example.test',
-        dateOrganized: '2020-06-01',
-        roster: ['Member One'],
-    );
+    $doc = viewAuthRegistrationDocument($this->computingSociety, $this->studentAlpha);
+    $this->engine->submit($doc, $this->studentAlpha);
+    $doc->refresh();
 
     $this->actingAs($this->studentAlpha)->get(route('registrations.show', $doc))->assertOk();
     $this->actingAs($this->studentBeta)->get(route('registrations.show', $doc))->assertForbidden();

@@ -6,8 +6,8 @@ use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
-use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Renewals\UpdateOrganizationRenewal;
 use App\Support\AcademicYear;
@@ -21,7 +21,6 @@ use Illuminate\Validation\ValidationException;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
-    $this->registrationAction = app(SubmitOrganizationRegistration::class);
     $this->renewalAction = app(SubmitOrganizationRenewal::class);
     $this->updateRenewalAction = app(UpdateOrganizationRenewal::class);
     $this->engine = app(ApprovalEngine::class);
@@ -39,9 +38,9 @@ afterEach(function () {
 
 /**
  * Submits and dual-approves an organization registration for the given org,
- * returning the now-Approved Document. Uses the real action + engine (not
- * raw factories) so the renewal's "prior approved record" precondition is
- * genuinely satisfied.
+ * returning the now-Approved Document. Builds the Document/detail rows
+ * directly and drives them through the real ApprovalEngine, so the renewal's
+ * "prior approved record" precondition is genuinely satisfied.
  */
 function submitAndApproveRegistrationFor(User $actor, Organization $org, array $overrides = []): Document
 {
@@ -55,19 +54,40 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
         'roster' => ['Member One'],
     ], $overrides);
 
-    $document = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $actor,
-        organization: $org,
-        organizationType: $p['organizationType'],
-        description: $p['description'],
-        contactPerson: $p['contactPerson'],
-        contactNumber: $p['contactNumber'],
-        contactEmail: $p['contactEmail'],
-        dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
-    );
+    // Built directly (not via SubmitOrganizationRegistration): renewal tests
+    // only need a valid PRIOR APPROVED registration fixture for an org the
+    // actor is already bound to (via MembershipSeeder) — they don't exercise
+    // registration-submission mechanics, which now (Phase 2 item 5) require a
+    // not-yet-affiliated founding student, the opposite of this fixture's
+    // shape. Registration submission itself is covered by
+    // SubmitRegistrationTest / OrganizationFoundingTest.
+    $document = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $actor->id,
+    ]);
+
+    OrganizationRegistrationDetail::create([
+        'document_id' => $document->id,
+        'organization_type' => $p['organizationType']->value,
+        'description' => $p['description'],
+        'contact_person' => $p['contactPerson'],
+        'contact_number' => $p['contactNumber'],
+        'contact_email' => $p['contactEmail'],
+        'date_organized' => $p['dateOrganized'],
+        'adviser_id' => null,
+        'roster' => $p['roster'],
+    ]);
 
     $engine = app(ApprovalEngine::class);
+    $engine->submit($document, $actor);
+    $document->refresh();
+
     $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
     $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
     $engine->approve($document, $sdaoA);

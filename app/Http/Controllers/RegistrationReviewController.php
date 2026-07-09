@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Enums\Role;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Models\RoleAssignment;
+use App\Registrations\ApproveOrganizationRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -57,6 +60,23 @@ class RegistrationReviewController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
+        // Proactive adviser-availability display (Phase 2 item 5) — mirrors
+        // ActivityCalendarReviewController::show()'s pattern of computing
+        // conflict state up front so SDAO sees it BEFORE clicking Approve,
+        // not only after a failed attempt. The actual enforcement is still
+        // the re-check inside ApproveOrganizationRegistration.
+        $adviserAvailable = true;
+        if ($detail?->adviser_id) {
+            $adviserAssignment = RoleAssignment::query()
+                ->where('user_id', $detail->adviser_id)
+                ->where('role', Role::Adviser->value)
+                ->first();
+
+            $adviserAvailable = $adviserAssignment === null
+                || $adviserAssignment->organization_id === null
+                || $adviserAssignment->organization_id === $document->organization_id;
+        }
+
         return Inertia::render('review/registrations/show', [
             'document' => [
                 'id' => $document->id,
@@ -76,6 +96,7 @@ class RegistrationReviewController extends Controller
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
                 'roster' => $detail->roster,
             ] : null,
+            'adviserAvailable' => $adviserAvailable,
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
@@ -91,11 +112,16 @@ class RegistrationReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ApprovalEngine $engine): RedirectResponse
+    public function approve(Document $document, ApproveOrganizationRegistration $action): RedirectResponse
     {
         Gate::authorize('review', $document);
 
-        $engine->approve($document, Auth::user());
+        // ApproveOrganizationRegistration wraps ApprovalEngine::approve() with
+        // the founding-flow race-condition re-check + bind-on-quorum side
+        // effects (Phase 2 item 5). A thrown ValidationException redirects
+        // back with `errors.approve` via Laravel's default handling, same as
+        // any other validation failure.
+        $action->execute($document, Auth::user());
 
         return redirect()->route('review.registrations.show', $document)
             ->with('flash', ['message' => 'Approval recorded.']);

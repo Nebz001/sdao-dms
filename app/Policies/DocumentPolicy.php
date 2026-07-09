@@ -28,15 +28,30 @@ class DocumentPolicy
     }
 
     /**
-     * Can the user view this document? Either an affiliated officer of the
-     * document's own organization, or an approver whose current step in
-     * this document's chain is active right now (same check as `review()`
-     * — reused, not duplicated). Prevents any authenticated user from
-     * reading another organization's document by guessing/enumerating IDs.
+     * Can the user propose a brand-new organization (Phase 2 item 5's founding
+     * flow)? No $organization argument — none exists yet at this point. Must
+     * be Verified and not already tied to another org (item 4's one-org rule).
+     */
+    public function propose(User $user): bool
+    {
+        return $user->isVerifiedAccount()
+            && ! $this->membershipService->hasActiveMembershipElsewhere($user);
+    }
+
+    /**
+     * Can the user view this document? Either the document's own submitter
+     * (a founding student has no membership yet on their own pending
+     * proposal — Phase 2 item 5 — so this must be checked independently of
+     * membership), an affiliated officer of the document's own organization,
+     * or an approver whose current step in this document's chain is active
+     * right now (same check as `review()` — reused, not duplicated).
+     * Prevents any authenticated user from reading another organization's
+     * document by guessing/enumerating IDs.
      */
     public function view(User $user, Document $document): bool
     {
-        return $this->membershipService->activeMembershipFor($user, $document->organization) !== null
+        return $document->submitted_by === $user->id
+            || $this->membershipService->activeMembershipFor($user, $document->organization) !== null
             || $this->review($user, $document);
     }
 

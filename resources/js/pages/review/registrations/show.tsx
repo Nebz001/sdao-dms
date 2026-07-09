@@ -1,9 +1,18 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import RegistrationReviewController from '@/actions/App/Http/Controllers/RegistrationReviewController';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRegistrations from '@/routes/review/registrations';
@@ -49,6 +58,7 @@ type Props = {
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
+    adviserAvailable: boolean;
 };
 
 function actionLabel(action: string): string {
@@ -61,9 +71,11 @@ export default function ReviewRegistrationShow({
     history,
     currentStepApprovals,
     hasApproved,
+    adviserAvailable,
 }: Props) {
-    useDocumentUpdates(['document', 'detail', 'history', 'currentStepApprovals', 'hasApproved']);
+    useDocumentUpdates(['document', 'detail', 'history', 'currentStepApprovals', 'hasApproved', 'adviserAvailable']);
 
+    const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const isInReview = document.status === 'in_review';
 
     function handleApprove() {
@@ -149,10 +161,40 @@ export default function ReviewRegistrationShow({
                             <CardTitle className="text-base">Review Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Approve */}
-                            <Button onClick={handleApprove} className="w-full sm:w-auto">
-                                Approve
-                            </Button>
+                            {/* Approve — blocked when the chosen adviser is no longer
+                                available (Phase 2 item 5 race-condition guard) */}
+                            {!adviserAvailable || errors.approve ? (
+                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                                    ⛔{' '}
+                                    {errors.approve ??
+                                        'Cannot approve: the chosen adviser is now assigned to a different organization.'}{' '}
+                                    Return the document so the student can pick a different adviser.
+                                </div>
+                            ) : (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full sm:w-auto">Approve</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>Approve this registration?</DialogTitle>
+                                        <DialogDescription>
+                                            This action is irreversible once the SDAO quorum is met — the
+                                            organization becomes real, the adviser is bound, and the founding
+                                            student is locked to this organization going forward.
+                                        </DialogDescription>
+                                        <DialogFooter className="gap-2">
+                                            <DialogClose asChild>
+                                                <Button type="button" variant="secondary">
+                                                    Cancel
+                                                </Button>
+                                            </DialogClose>
+                                            <Button type="button" onClick={handleApprove}>
+                                                Confirm Approval
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
 
                             {/* Return for revision */}
                             <Form

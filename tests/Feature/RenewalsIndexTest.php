@@ -1,10 +1,13 @@
 <?php
 
 use App\Approval\ApprovalEngine;
+use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
-use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -26,17 +29,32 @@ function submitRenewalFor(User $actor, Organization $org): void
     $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
     $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
 
-    $registration = app(SubmitOrganizationRegistration::class)->execute(
-        actor: $actor,
-        organization: $org,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'Original description.',
-        contactPerson: 'Original Person',
-        contactNumber: '09171111111',
-        contactEmail: 'original@example.test',
-        dateOrganized: '2020-06-01',
-        roster: ['Member One'],
-    );
+    // Built directly (not via SubmitOrganizationRegistration) — this fixture
+    // only needs a prior Approved registration for an org the actor is
+    // already bound to; registration-submission mechanics live elsewhere.
+    $registration = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $actor->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $registration->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'description' => 'Original description.',
+        'contact_person' => 'Original Person',
+        'contact_number' => '09171111111',
+        'contact_email' => 'original@example.test',
+        'date_organized' => '2020-06-01',
+        'adviser_id' => null,
+        'roster' => ['Member One'],
+    ]);
+    $engine->submit($registration, $actor);
+    $registration->refresh();
     $engine->approve($registration, $sdaoA);
     $registration->refresh();
     $engine->approve($registration, $sdaoB);

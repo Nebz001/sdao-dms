@@ -13,7 +13,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Adviser-initiated officer binding.
+ * Adviser-initiated officer binding — TURNOVER ONLY (Phase 2 item 5): used to
+ * replace a president/secretary on an already-Approved, already-real
+ * organization. Founding a brand-new org's first president is a SEPARATE
+ * path now (App\Registrations\SubmitOrganizationRegistration submits the
+ * proposal; App\Registrations\ApproveOrganizationRegistration binds the
+ * founding president once SDAO approves) — this class's own
+ * isAdviserOf($actor, $organization) check couldn't authorize a founding
+ * bind anyway, since the actor there is SDAO, not an adviser the org doesn't
+ * have bound yet.
  *
  * Invariant: at most one active president and one active secretary per org.
  * On turnover the old holder is deactivated (never deleted) and a new

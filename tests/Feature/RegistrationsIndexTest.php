@@ -1,9 +1,13 @@
 <?php
 
+use App\Approval\ApprovalEngine;
+use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
-use App\Registrations\SubmitOrganizationRegistration;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -18,19 +22,38 @@ beforeEach(function () {
     $this->studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // president, IT Guild
 });
 
+/**
+ * Builds and submits a registration document directly for an org the actor
+ * is ALREADY bound to (not via SubmitOrganizationRegistration, which now
+ * requires a not-yet-affiliated founding student — Phase 2 item 5). This
+ * test is about index() visibility by org membership, not submission
+ * mechanics; the founding student's own-pending-proposal visibility is
+ * covered separately in OrganizationFoundingTest.
+ */
 function submitRegistrationFor(User $actor, Organization $org): void
 {
-    app(SubmitOrganizationRegistration::class)->execute(
-        actor: $actor,
-        organization: $org,
-        organizationType: OrganizationType::CoCurricular,
-        description: 'A student organization.',
-        contactPerson: 'Contact Person',
-        contactNumber: '09171234567',
-        contactEmail: 'contact@example.test',
-        dateOrganized: '2024-06-01',
-        roster: ['Member One'],
-    );
+    $document = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $actor->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $document->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'description' => 'A student organization.',
+        'contact_person' => 'Contact Person',
+        'contact_number' => '09171234567',
+        'contact_email' => 'contact@example.test',
+        'date_organized' => '2024-06-01',
+        'adviser_id' => null,
+        'roster' => ['Member One'],
+    ]);
+    app(ApprovalEngine::class)->submit($document, $actor);
 }
 
 test('officer sees their org registration in the index', function () {

@@ -26,9 +26,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'store'])->name('officers.store');
     Route::delete('/organizations/{organization}/officers/{membership}', [OrganizationOfficerController::class, 'destroy'])->name('officers.destroy');
 
-    // Student — registration lifecycle
+    // Student — registration lifecycle (literal paths declared before {document} wildcard)
     Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
     Route::get('/registrations/create', [RegistrationController::class, 'create'])->name('registrations.create');
+    Route::get('/registrations/adviser-search', [RegistrationController::class, 'adviserSearch'])->name('registrations.adviser-search');
     Route::post('/registrations', [RegistrationController::class, 'store'])->name('registrations.store');
     Route::get('/registrations/{document}', [RegistrationController::class, 'show'])->name('registrations.show');
     Route::get('/registrations/{document}/edit', [RegistrationController::class, 'edit'])->name('registrations.edit');

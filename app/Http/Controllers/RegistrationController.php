@@ -4,13 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Enums\Role;
 use App\Http\Requests\Registrations\StoreRegistrationRequest;
 use App\Http\Requests\Registrations\UpdateRegistrationRequest;
 use App\Models\Document;
+use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\RoleAssignment;
+use App\Models\School;
+use App\Models\User;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Registrations\UpdateOrganizationRegistration;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -19,8 +26,15 @@ use Inertia\Response;
 class RegistrationController extends Controller
 {
     /**
-     * List: registrations belonging to any org the user is an active officer of
-     * (both president and secretary see the same list — equal partners).
+     * Max search results returned to the adviser typeahead.
+     */
+    private const int ADVISER_SEARCH_LIMIT = 10;
+
+    /**
+     * List: registrations for any org the user is an active officer of, PLUS
+     * their own pending founding proposals (Phase 2 item 5) — a founding
+     * student has no membership yet on their own not-yet-Approved proposal,
+     * so the org-membership filter alone would hide it from them.
      */
     public function index(): Response
     {
@@ -34,7 +48,10 @@ class RegistrationController extends Controller
         $documents = Document::query()
             ->with('organization')
             ->where('form_type', FormType::OrganizationRegistration->value)
-            ->whereIn('organization_id', $organizationIds)
+            ->where(function ($query) use ($organizationIds, $user) {
+                $query->whereIn('organization_id', $organizationIds)
+                    ->orWhere('submitted_by', $user->id);
+            })
             ->orderBy('updated_at', 'desc')
             ->get()
             ->map(fn (Document $d) => [
@@ -48,27 +65,27 @@ class RegistrationController extends Controller
         return Inertia::render('registrations/index', ['registrations' => $documents]);
     }
 
+    /**
+     * Phase 2 item 5: a not-yet-affiliated Verified student proposes a
+     * brand-new organization directly — no pre-existing org, no pre-existing
+     * binding.
+     */
     public function create(): Response
     {
-        $user = Auth::user();
-
-        // Find the org this student is an active officer of.
-        $membership = OrganizationMembership::query()
-            ->with('organization')
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->first();
+        $canPropose = Gate::allows('propose', Organization::class);
 
         return Inertia::render('registrations/create', [
-            'membership' => $membership ? [
-                'id' => $membership->id,
-                'position' => $membership->position->value,
-                'position_label' => $membership->position->label(),
-                'organization' => [
-                    'id' => $membership->organization->id,
-                    'name' => $membership->organization->name,
-                ],
-            ] : null,
+            'canPropose' => $canPropose,
+            'schools' => School::query()
+                ->with('programs')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (School $s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'type' => $s->type,
+                    'programs' => $s->programs->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values(),
+                ]),
             'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
@@ -79,17 +96,15 @@ class RegistrationController extends Controller
     public function store(StoreRegistrationRequest $request, SubmitOrganizationRegistration $action): RedirectResponse
     {
         $user = Auth::user();
-        $membership = OrganizationMembership::query()
-            ->with('organization')
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->firstOrFail();
 
-        Gate::authorize('submit', $membership->organization);
+        Gate::authorize('propose', Organization::class);
 
         $document = $action->execute(
             actor: $user,
-            organization: $membership->organization,
+            name: $request->string('name')->toString(),
+            schoolId: $request->integer('school_id'),
+            programId: $request->filled('program_id') ? $request->integer('program_id') : null,
+            adviserId: $request->integer('adviser_id'),
             organizationType: OrganizationType::from($request->string('organization_type')->toString()),
             description: $request->string('description')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
@@ -101,6 +116,44 @@ class RegistrationController extends Controller
 
         return redirect()->route('registrations.show', $document)
             ->with('flash', ['message' => 'Registration submitted for SDAO review.']);
+    }
+
+    /**
+     * Live adviser typeahead (Phase 2 item 5) — mirrors
+     * ActivityCalendarController::conflictCheck's debounced-fetch pattern.
+     * Returns whether each matching adviser is currently available
+     * (organization_id null) so the frontend can show a live warning; this
+     * is a soft signal only, NOT the enforcement point (that's the
+     * approve-time re-check in ApproveOrganizationRegistration).
+     */
+    public function adviserSearch(Request $request): JsonResponse
+    {
+        $search = $request->string('q')->trim()->toString();
+
+        $advisers = User::query()
+            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value))
+            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+            ))
+            ->orderBy('name')
+            ->limit(self::ADVISER_SEARCH_LIMIT)
+            ->get(['id', 'name', 'email']);
+
+        $assignments = RoleAssignment::query()
+            ->where('role', Role::Adviser->value)
+            ->whereIn('user_id', $advisers->pluck('id'))
+            ->get()
+            ->keyBy('user_id');
+
+        $results = $advisers->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'is_available' => ($assignments->get($u->id)?->organization_id) === null,
+        ]);
+
+        return response()->json(['advisers' => $results]);
     }
 
     public function show(Document $document): Response
@@ -148,7 +201,7 @@ class RegistrationController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['organization', 'registrationDetail']);
+        $document->load(['organization', 'registrationDetail.adviser']);
         $detail = $document->registrationDetail;
 
         return Inertia::render('registrations/edit', [
@@ -161,6 +214,7 @@ class RegistrationController extends Controller
                 'contact_email' => $detail->contact_email,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'roster' => $detail->roster,
+                'adviser' => $detail->adviser ? ['id' => $detail->adviser->id, 'name' => $detail->adviser->name] : null,
             ] : null,
             'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
                 'value' => $t->value,
@@ -183,6 +237,7 @@ class RegistrationController extends Controller
             contactEmail: $request->string('contact_email')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
             roster: $request->input('roster'),
+            adviserId: $request->filled('adviser_id') ? $request->integer('adviser_id') : null,
         );
 
         return redirect()->route('registrations.show', $document)

@@ -6,34 +6,44 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
-use App\Identity\RoleDirectory;
+use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Founds a brand-new organization (Phase 2 item 5). No pre-existing
+ * Organization or OrganizationMembership is required — the student proposes
+ * the org and picks an adviser directly. Both the Organization row and the
+ * chosen adviser reference exist in a PENDING state from submission onward:
+ * the adviser is not actually bound (RoleAssignment.organization_id stays as
+ * it was) and the student is not bound as an officer until SDAO Approval
+ * (see App\Registrations\ApproveOrganizationRegistration).
+ */
 class SubmitOrganizationRegistration
 {
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
-        private readonly RoleDirectory $roleDirectory,
     ) {}
 
     /**
      * @param  array<int, string>|null  $roster
      *
-     * @throws AuthorizationException
      * @throws ValidationException
      */
     public function execute(
         User $actor,
-        Organization $organization,
+        string $name,
+        int $schoolId,
+        ?int $programId,
+        int $adviserId,
         OrganizationType $organizationType,
         string $description,
         string $contactPerson,
@@ -42,21 +52,25 @@ class SubmitOrganizationRegistration
         string $dateOrganized,
         ?array $roster = null,
     ): Document {
-        $membership = $this->membershipService->activeMembershipFor($actor, $organization);
-
-        if ($membership === null) {
-            throw new AuthorizationException('You must be an active officer of this organization to submit a registration.');
+        if (! $actor->isVerifiedAccount()) {
+            throw ValidationException::withMessages([
+                'organization' => 'Your account has not been SDAO-verified yet.',
+            ]);
         }
 
-        // One organization per student (Phase 2 item 4): block a second,
-        // simultaneous in-flight registration for a DIFFERENT org — reachable
-        // even with the BindOrganizationOfficer guard in place, since an
-        // adviser can independently deactivate a membership while that org's
-        // registration document is still open.
-        $hasInFlightElsewhere = Document::query()
+        // One organization per student (Phase 2 item 4): a founding student
+        // has no membership yet, so the membership-based guard alone can't
+        // catch a second, simultaneous proposal — this in-flight-document
+        // check is now the PRIMARY defense against that.
+        if ($this->membershipService->hasActiveMembershipElsewhere($actor)) {
+            throw ValidationException::withMessages([
+                'organization' => 'You are already an active officer of an organization.',
+            ]);
+        }
+
+        $hasInFlightProposal = Document::query()
             ->where('submitted_by', $actor->id)
             ->where('form_type', FormType::OrganizationRegistration->value)
-            ->where('organization_id', '!=', $organization->id)
             ->whereIn('status', [
                 DocumentStatus::Draft->value,
                 DocumentStatus::InReview->value,
@@ -64,20 +78,41 @@ class SubmitOrganizationRegistration
             ])
             ->exists();
 
-        if ($hasInFlightElsewhere) {
+        if ($hasInFlightProposal) {
             throw ValidationException::withMessages([
-                'organization' => 'You already have an in-progress registration for a different organization.',
+                'organization' => 'You already have an in-progress organization registration.',
             ]);
         }
 
-        $adviser = $this->roleDirectory->adviserFor($organization);
+        // The chosen adviser must be a real, admin-provisioned adviser
+        // account — never free text, never a new account created here.
+        $isAdviser = RoleAssignment::query()
+            ->where('user_id', $adviserId)
+            ->where('role', Role::Adviser->value)
+            ->exists();
+
+        if (! $isAdviser) {
+            throw ValidationException::withMessages([
+                'adviser_id' => 'Choose an adviser from the list of admin-provisioned adviser accounts.',
+            ]);
+        }
+
         $academicYear = AcademicYear::current();
 
         return DB::transaction(function () use (
-            $actor, $organization, $organizationType, $description,
-            $contactPerson, $contactNumber, $contactEmail, $dateOrganized,
-            $roster, $adviser, $academicYear
+            $actor, $name, $schoolId, $programId, $adviserId, $organizationType,
+            $description, $contactPerson, $contactNumber, $contactEmail,
+            $dateOrganized, $roster, $academicYear
         ) {
+            // Pending state (Phase 2 item 5): the org exists from submission
+            // onward, but is not "real" until Approved — no adviser
+            // RoleAssignment or founding OrganizationMembership exists yet.
+            $organization = Organization::create([
+                'name' => $name,
+                'school_id' => $schoolId,
+                'program_id' => $programId,
+            ]);
+
             $document = Document::create([
                 'form_type' => FormType::OrganizationRegistration,
                 'variant' => null,
@@ -97,7 +132,7 @@ class SubmitOrganizationRegistration
                 'contact_number' => $contactNumber,
                 'contact_email' => $contactEmail,
                 'date_organized' => $dateOrganized,
-                'adviser_id' => $adviser->id,
+                'adviser_id' => $adviserId,
                 'roster' => $roster,
             ]);
 
