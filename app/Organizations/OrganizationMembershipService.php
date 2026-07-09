@@ -32,4 +32,20 @@ class OrganizationMembershipService
             ->where('is_active', true)
             ->first();
     }
+
+    /**
+     * One organization per student (Phase 2 item 4): is this student actively
+     * bound as an officer of any organization OTHER than $excluding? Shared by
+     * BindOrganizationOfficer today; Phase 2 item 5's future approval-time
+     * bind action should call this same method rather than re-deriving the
+     * check when it replaces the founding (not turnover) binding path.
+     */
+    public function hasActiveMembershipElsewhere(User $student, Organization $excluding): bool
+    {
+        return OrganizationMembership::query()
+            ->where('user_id', $student->id)
+            ->where('organization_id', '!=', $excluding->id)
+            ->active()
+            ->exists();
+    }
 }

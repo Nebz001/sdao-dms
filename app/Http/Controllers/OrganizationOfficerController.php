@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AccountStatus;
+use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\OfficerPosition;
 use App\Enums\Role;
 use App\Http\Requests\Organizations\BindOfficerRequest;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
@@ -52,6 +55,21 @@ class OrganizationOfficerController extends Controller
         // org. Using is_active (not mere row existence) means a former
         // officer whose membership was deactivated on turnover is correctly
         // excluded, not perpetually "known."
+        // One organization per student (Phase 2 item 4): also hide anyone with
+        // an in-flight (Draft/InReview/Returned) registration for a DIFFERENT
+        // org — they'd immediately trip BindOrganizationOfficer's/
+        // SubmitOrganizationRegistration's guards anyway, so the adviser
+        // never sees an un-bindable candidate in the picker.
+        $inFlightElsewhereUserIds = Document::query()
+            ->where('form_type', FormType::OrganizationRegistration->value)
+            ->where('organization_id', '!=', $organization->id)
+            ->whereIn('status', [
+                DocumentStatus::Draft->value,
+                DocumentStatus::InReview->value,
+                DocumentStatus::Returned->value,
+            ])
+            ->pluck('submitted_by');
+
         $students = User::query()
             ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
             ->where('account_status', AccountStatus::Verified->value)
@@ -62,6 +80,7 @@ class OrganizationOfficerController extends Controller
                         ->active()
                     );
             })
+            ->whereNotIn('id', $inFlightElsewhereUserIds)
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")

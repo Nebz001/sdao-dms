@@ -21,7 +21,10 @@ use Illuminate\Validation\ValidationException;
  */
 class BindOrganizationOfficer
 {
-    public function __construct(private readonly RoleDirectory $roleDirectory) {}
+    public function __construct(
+        private readonly RoleDirectory $roleDirectory,
+        private readonly OrganizationMembershipService $membershipService,
+    ) {}
 
     /**
      * @throws AuthorizationException
@@ -41,6 +44,15 @@ class BindOrganizationOfficer
         if (! $student->isVerifiedAccount()) {
             throw ValidationException::withMessages([
                 'user_id' => 'This student\'s account has not been SDAO-verified yet.',
+            ]);
+        }
+
+        // One organization per student (Phase 2 item 4): a student already
+        // actively bound elsewhere cannot be bound here too, whether this is
+        // a founding bind or officer turnover.
+        if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
+            throw ValidationException::withMessages([
+                'user_id' => 'This student is already an active officer of a different organization.',
             ]);
         }
 

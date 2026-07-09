@@ -15,6 +15,7 @@ use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SubmitOrganizationRegistration
 {
@@ -28,6 +29,7 @@ class SubmitOrganizationRegistration
      * @param  array<int, string>|null  $roster
      *
      * @throws AuthorizationException
+     * @throws ValidationException
      */
     public function execute(
         User $actor,
@@ -44,6 +46,28 @@ class SubmitOrganizationRegistration
 
         if ($membership === null) {
             throw new AuthorizationException('You must be an active officer of this organization to submit a registration.');
+        }
+
+        // One organization per student (Phase 2 item 4): block a second,
+        // simultaneous in-flight registration for a DIFFERENT org — reachable
+        // even with the BindOrganizationOfficer guard in place, since an
+        // adviser can independently deactivate a membership while that org's
+        // registration document is still open.
+        $hasInFlightElsewhere = Document::query()
+            ->where('submitted_by', $actor->id)
+            ->where('form_type', FormType::OrganizationRegistration->value)
+            ->where('organization_id', '!=', $organization->id)
+            ->whereIn('status', [
+                DocumentStatus::Draft->value,
+                DocumentStatus::InReview->value,
+                DocumentStatus::Returned->value,
+            ])
+            ->exists();
+
+        if ($hasInFlightElsewhere) {
+            throw ValidationException::withMessages([
+                'organization' => 'You already have an in-progress registration for a different organization.',
+            ]);
         }
 
         $adviser = $this->roleDirectory->adviserFor($organization);

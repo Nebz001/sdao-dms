@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
+use App\Models\OrganizationMembership;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -105,6 +106,18 @@ class RegistrationReviewController extends Controller
         Gate::authorize('review', $document);
 
         $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
+
+        // One organization per student (Phase 2 item 4): rejecting an
+        // ORIGINAL registration frees the founding officer to try elsewhere —
+        // deactivate their membership for this org (never hard-deleted,
+        // same mechanism OrganizationOfficerController::destroy() uses).
+        // Renewal rejections must NOT do this (see RenewalReviewController) —
+        // that org was already legitimately Approved earlier and remains real.
+        OrganizationMembership::query()
+            ->where('user_id', $document->submitted_by)
+            ->where('organization_id', $document->organization_id)
+            ->active()
+            ->update(['is_active' => false]);
 
         return redirect()->route('review.registrations.index')
             ->with('flash', ['message' => 'Registration rejected.']);
