@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\AccountStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -28,6 +29,10 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
+            // Test/dev accounts are trusted by default so existing acting-as
+            // tests keep working; self-registration (CreateNewUser) sets
+            // Unverified explicitly instead of relying on this default.
+            'account_status' => AccountStatus::Verified,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
@@ -43,6 +48,26 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Simulates a fresh self-registered account awaiting SDAO review.
+     */
+    public function unverifiedAccount(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_status' => AccountStatus::Unverified,
+        ]);
+    }
+
+    /**
+     * Simulates a self-registered account SDAO has declined.
+     */
+    public function rejectedAccount(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_status' => AccountStatus::Rejected,
         ]);
     }
 

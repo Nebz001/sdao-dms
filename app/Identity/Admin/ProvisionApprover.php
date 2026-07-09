@@ -2,6 +2,7 @@
 
 namespace App\Identity\Admin;
 
+use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Enums\ScopeType;
 use App\Models\RoleAssignment;
@@ -48,6 +49,11 @@ class ProvisionApprover
             'name' => $name,
             'email' => $email,
             'password' => Hash::make(Str::random(40)),
+            // The admin vouches for the address, and the reset link itself
+            // proves ownership — approvers are trusted accounts and must not
+            // hit the email/account verification walls before they can log in.
+            'email_verified_at' => now(),
+            'account_status' => AccountStatus::Verified,
         ]);
 
         RoleAssignment::create([

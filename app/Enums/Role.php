@@ -31,7 +31,7 @@ enum Role: string
     }
 
     /**
-     * Human-readable label for display in the dev login picker.
+     * Human-readable label for display (approver provisioning, badges, etc).
      */
     public function label(): string
     {

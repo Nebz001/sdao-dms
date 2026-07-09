@@ -1,8 +1,52 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { Ban, Hourglass } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import { dashboard } from '@/routes';
 
 export default function Dashboard() {
+    const { auth } = usePage().props;
+    const accountStatus = auth.user.account_status;
+
+    if (accountStatus === 'unverified') {
+        return (
+            <>
+                <Head title="Dashboard" />
+                <div className="mx-auto max-w-2xl p-8">
+                    <Alert>
+                        <Hourglass />
+                        <AlertTitle>Pending SDAO verification</AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                Your account is awaiting review. Once SDAO verifies it, you&apos;ll be
+                                able to be bound as an organization officer and submit documents.
+                            </p>
+                            <p>There&apos;s nothing else to do right now — check back later.</p>
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </>
+        );
+    }
+
+    if (accountStatus === 'rejected') {
+        return (
+            <>
+                <Head title="Dashboard" />
+                <div className="mx-auto max-w-2xl p-8">
+                    <Alert variant="destructive">
+                        <Ban />
+                        <AlertTitle>Account not approved</AlertTitle>
+                        <AlertDescription>
+                            <p>SDAO reviewed your registration and it was not approved.</p>
+                            <p>Contact SDAO directly if you believe this was a mistake.</p>
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <Head title="Dashboard" />

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Identity\Admin\ProvisionApprover;
 use App\Models\Organization;
@@ -124,6 +125,19 @@ test('a non-SDAO authenticated user gets 403 on every admin route', function () 
     $this->actingAs($adviser)->post(route('admin.approvers.store'), [
         'name' => 'X', 'email' => 'x@sdao.test', 'role' => Role::Adviser->value, 'organization_id' => $this->org->id,
     ])->assertForbidden();
+});
+
+test('a provisioned approver lands account-Verified and email-verified — no verification wall on the reset-link login path', function () {
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Trusted Approver',
+        email: 'trusted-approver@sdao.test',
+        role: Role::Dean,
+        scope: ['school_id' => $this->school->id],
+    );
+
+    expect($user->account_status)->toBe(AccountStatus::Verified);
+    expect($user->email_verified_at)->not->toBeNull();
 });
 
 test('provisioning sends a password-reset link and never sets a usable password directly', function () {

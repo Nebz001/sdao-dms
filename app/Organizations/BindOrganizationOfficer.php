@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Adviser-initiated officer binding.
@@ -24,6 +25,7 @@ class BindOrganizationOfficer
 
     /**
      * @throws AuthorizationException
+     * @throws ValidationException
      */
     public function execute(
         User $actor,
@@ -34,6 +36,12 @@ class BindOrganizationOfficer
     ): OrganizationMembership {
         if (! $this->roleDirectory->isAdviserOf($actor, $organization)) {
             throw new AuthorizationException('Only the org\'s adviser may bind officers.');
+        }
+
+        if (! $student->isVerifiedAccount()) {
+            throw ValidationException::withMessages([
+                'user_id' => 'This student\'s account has not been SDAO-verified yet.',
+            ]);
         }
 
         return DB::transaction(function () use ($organization, $student, $position, $academicYear) {

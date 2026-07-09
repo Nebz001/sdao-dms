@@ -11,8 +11,8 @@ use App\Models\User;
  * Development stub for the approver notifier (invariant #9).
  *
  * Records a row in approval_notifications so the engine trigger is testable.
- * The SSO slice swaps this out for a real email implementation as a localized
- * container rebind — identical to how DevIdentityProvider works in Slice 0.
+ * Phase 2 item 3 (wire real notification delivery) swaps this out for a real
+ * email implementation as a localized container rebind.
  */
 class RecordingApproverNotifier implements ApproverNotifier
 {

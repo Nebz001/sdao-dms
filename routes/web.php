@@ -5,10 +5,10 @@ use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
 use App\Http\Controllers\Admin\ApproverController;
+use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\Dev\DevLoginController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
@@ -17,12 +17,6 @@ use App\Http\Controllers\RenewalReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
-
-if (! app()->isProduction()) {
-    Route::get('/dev/login', [DevLoginController::class, 'index'])->name('dev.login');
-    Route::post('/dev/login', [DevLoginController::class, 'store'])->name('dev.login.store');
-    Route::post('/dev/logout', [DevLoginController::class, 'destroy'])->name('dev.logout');
-}
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
@@ -116,11 +110,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/review/reports/{document}/reject', [AfterActivityReportReviewController::class, 'reject'])->name('review.reports.reject');
     Route::post('/review/reports/{document}/return', [AfterActivityReportReviewController::class, 'return'])->name('review.reports.return');
 
-    // SDAO admin — approver provisioning
+    // SDAO admin — approver provisioning + account verification
     Route::middleware('can:access-admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/approvers', [ApproverController::class, 'index'])->name('approvers.index');
         Route::get('/approvers/create', [ApproverController::class, 'create'])->name('approvers.create');
         Route::post('/approvers', [ApproverController::class, 'store'])->name('approvers.store');
+
+        Route::get('/pending-accounts', [PendingAccountController::class, 'index'])->name('pending-accounts.index');
+        Route::post('/pending-accounts/{account}/verify', [PendingAccountController::class, 'verify'])->name('pending-accounts.verify');
+        Route::post('/pending-accounts/{account}/reject', [PendingAccountController::class, 'reject'])->name('pending-accounts.reject');
     });
 });
 

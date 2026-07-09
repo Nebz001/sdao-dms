@@ -1,9 +1,12 @@
+export type AccountStatus = 'unverified' | 'verified' | 'rejected';
+
 export type User = {
     id: number;
     name: string;
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    account_status: AccountStatus;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;

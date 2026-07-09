@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Enums\OfficerPosition;
 use App\Models\Organization;
 use App\Models\User;
@@ -18,13 +19,13 @@ beforeEach(function () {
  * component that derives its Submit/My Documents sections from the shared
  * `auth.isActiveOfficer` Inertia prop (sourced from OrganizationMembership,
  * not a RoleAssignment proxy). "Nav renders identically for a real-auth user
- * as a dev-login user" therefore reduces to: does a real Fortify-authenticated,
- * verified, adviser-bound student get `isActiveOfficer: true`, the same as a
- * dev-login session for an equivalent seeded student? This proves it
- * end-to-end through the REAL login route (`login.store`), not dev-login or
- * actingAs().
+ * as for a seeded test session" therefore reduces to: does a real
+ * Fortify-authenticated, verified, adviser-bound student get
+ * `isActiveOfficer: true`, the same as an `actingAs()` seeded student in the
+ * rest of the suite? This proves it end-to-end through the REAL login route
+ * (`login.store`), not `actingAs()`.
  */
-test('a real Fortify-authenticated, adviser-bound student gets the same auth.isActiveOfficer signal a dev-login student would', function () {
+test('a real Fortify-authenticated, adviser-bound student gets the same auth.isActiveOfficer signal a seeded test session would', function () {
     // 1. Self-register a real account (the actual Fortify pipeline).
     $this->post(route('register.store'), [
         'name' => 'Real Auth Student',
@@ -34,9 +35,15 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
     ]);
     $student = User::where('email', 'real-auth-student@example.test')->firstOrFail();
 
-    // 2. Mark verified (skips the email round-trip; verification enforcement
-    // itself is covered by EmailVerificationEnforcementTest).
-    $student->forceFill(['email_verified_at' => now()])->save();
+    // 2. Mark email-verified AND SDAO account-Verified (skips the email
+    // round-trip and the Pending Accounts queue; both enforcement paths have
+    // their own dedicated tests — EmailVerificationEnforcementTest and
+    // AccountVerificationGateTest/PendingAccountsTest respectively). Binding
+    // now requires account_status = Verified (see BindOrganizationOfficer).
+    $student->forceFill([
+        'email_verified_at' => now(),
+        'account_status' => AccountStatus::Verified,
+    ])->save();
 
     // 3. The adviser binds them as an officer through the real route.
     $this->actingAs($this->adviser)->post(route('officers.store', $this->org), [
@@ -44,7 +51,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
         'position' => OfficerPosition::President->value,
     ]);
 
-    // 4. Log in through Fortify's REAL login route — not dev-login, not actingAs().
+    // 4. Log in through Fortify's REAL login route — not actingAs().
     // Must log out the adviser first: Fortify's login route is guest-gated,
     // so an already-authenticated session would otherwise silently bypass it.
     $this->post(route('logout'));
@@ -64,7 +71,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
     );
 });
 
-test('the same auth.isActiveOfficer signal appears for an equivalent dev-login seeded student', function () {
+test('the same auth.isActiveOfficer signal appears for an equivalent seeded student via actingAs', function () {
     $seededStudent = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
 
     $this->actingAs($seededStudent);

@@ -11,6 +11,7 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
@@ -98,4 +99,28 @@ test('officer can be bound for secretary position independently of president', f
         ->count();
     expect($activeMemberships)->toBeGreaterThanOrEqual(2);
     expect($membership->position)->toBe(OfficerPosition::Secretary);
+});
+
+test('an unverified self-registered student cannot be bound as an officer', function () {
+    $unverified = User::factory()->unverifiedAccount()->create();
+
+    expect(fn () => $this->action->execute(
+        actor: $this->adviser,
+        organization: $this->org,
+        student: $unverified,
+        position: OfficerPosition::President,
+    ))->toThrow(ValidationException::class);
+
+    expect(OrganizationMembership::where('user_id', $unverified->id)->exists())->toBeFalse();
+});
+
+test('a rejected student cannot be bound as an officer', function () {
+    $rejected = User::factory()->rejectedAccount()->create();
+
+    expect(fn () => $this->action->execute(
+        actor: $this->adviser,
+        organization: $this->org,
+        student: $rejected,
+        position: OfficerPosition::Secretary,
+    ))->toThrow(ValidationException::class);
 });

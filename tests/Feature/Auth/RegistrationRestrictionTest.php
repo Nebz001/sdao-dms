@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
@@ -23,6 +24,19 @@ test('a freshly self-registered account has zero role assignments', function () 
     $user = User::where('email', 'bare-student@example.test')->firstOrFail();
 
     expect($user->roleAssignments()->count())->toBe(0);
+});
+
+test('a freshly self-registered account starts Unverified, awaiting SDAO review', function () {
+    $this->post(route('register.store'), [
+        'name' => 'Fresh Registrant',
+        'email' => 'fresh-registrant@example.test',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $user = User::where('email', 'fresh-registrant@example.test')->firstOrFail();
+
+    expect($user->account_status)->toBe(AccountStatus::Unverified);
 });
 
 test('the public registration endpoint ignores role/scope fields smuggled into the request body', function () {

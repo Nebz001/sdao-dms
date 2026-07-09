@@ -8,6 +8,7 @@ import {
     FolderGit2,
     Inbox,
     LayoutGrid,
+    UserCheck,
     UserPlus,
     Users,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import { dashboard } from '@/routes';
 import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
 import * as approvers from '@/routes/admin/approvers';
+import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as calendar from '@/routes/calendar';
 import * as officers from '@/routes/officers';
 import * as registrations from '@/routes/registrations';
@@ -142,11 +144,18 @@ export function AppSidebar() {
     }
 
     if (isSdao) {
-        manageItems.push({
-            title: 'Provision Approvers',
-            href: approvers.index(),
-            icon: UserPlus,
-        });
+        manageItems.push(
+            {
+                title: 'Provision Approvers',
+                href: approvers.index(),
+                icon: UserPlus,
+            },
+            {
+                title: 'Pending Accounts',
+                href: pendingAccounts.index(),
+                icon: UserCheck,
+            },
+        );
     }
 
     if (manageItems.length > 0) {

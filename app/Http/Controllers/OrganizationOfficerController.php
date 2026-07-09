@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccountStatus;
 use App\Enums\OfficerPosition;
 use App\Enums\Role;
 use App\Http\Requests\Organizations\BindOfficerRequest;
@@ -43,13 +44,17 @@ class OrganizationOfficerController extends Controller
         // Candidates the adviser can bind: never an account holding an
         // approver role (RoleAssignment is the only thing that knows an
         // account is an adviser/chair/dean/etc. — OrganizationMembership has
-        // no concept of it), AND either a bare account (no OrganizationMembership
-        // row at all — the shape a self-registered student has) OR an account
-        // currently ACTIVE in THIS org. Using is_active (not mere row
-        // existence) means a former officer whose membership was deactivated
-        // on turnover is correctly excluded, not perpetually "known."
+        // no concept of it), must be SDAO-Verified (BindOrganizationOfficer
+        // rejects an unverified/rejected student anyway — filtered here too
+        // so the adviser never sees an un-bindable candidate), AND either a
+        // bare account (no OrganizationMembership row at all — the shape a
+        // self-registered student has) OR an account currently ACTIVE in THIS
+        // org. Using is_active (not mere row existence) means a former
+        // officer whose membership was deactivated on turnover is correctly
+        // excluded, not perpetually "known."
         $students = User::query()
             ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
+            ->where('account_status', AccountStatus::Verified->value)
             ->where(function ($query) use ($organization) {
                 $query->whereDoesntHave('organizationMemberships')
                     ->orWhereHas('organizationMemberships', fn ($q) => $q

@@ -310,6 +310,14 @@ class ActivityProposalController extends Controller
             abort(403);
         }
 
+        // Chain-entry submit bypasses OrganizationMembershipService (there's
+        // no org membership lookup on this route), so the account-verified
+        // gate isn't inherited automatically the way it is for the other four
+        // forms — assert it explicitly here.
+        if (! Auth::user()->isVerifiedAccount()) {
+            abort(403);
+        }
+
         $result = $action->execute(
             actor: Auth::user(),
             document: $document,
