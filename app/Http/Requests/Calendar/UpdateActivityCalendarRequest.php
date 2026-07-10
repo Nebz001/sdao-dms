@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests\Calendar;
 
-use App\Enums\Term;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateActivityCalendarRequest extends FormRequest
 {
@@ -20,7 +18,8 @@ class UpdateActivityCalendarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'term' => ['required', Rule::enum(Term::class)],
+            // Term is frozen at original submission (Phase 2 item 6) and is
+            // never re-derived from user input on resubmit.
             'activities' => ['required', 'array', 'min:1'],
             'activities.*.name' => ['required', 'string', 'max:255'],
             'activities.*.venue' => ['required', 'string', 'max:255'],

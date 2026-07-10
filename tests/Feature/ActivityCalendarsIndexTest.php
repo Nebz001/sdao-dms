@@ -1,7 +1,6 @@
 <?php
 
 use App\Calendar\SubmitActivityCalendar;
-use App\Enums\Term;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
@@ -23,7 +22,6 @@ function submitActivityCalendarFor(User $actor, Organization $org): void
     app(SubmitActivityCalendar::class)->execute(
         actor: $actor,
         organization: $org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',

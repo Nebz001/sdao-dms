@@ -30,7 +30,6 @@ beforeEach(function () {
 function calendarPayload(): array
 {
     return [
-        'term' => Term::FirstTerm,
         'activities' => [[
             'name' => 'JS Night',
             'venue' => 'Gymnasium',
@@ -105,7 +104,6 @@ test('affiliated president can submit an activity calendar', function () {
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -120,7 +118,6 @@ test('submission creates an activity calendar and activity rows', function () {
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -134,7 +131,6 @@ test('submission notifies both SDAO members', function () {
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -148,7 +144,6 @@ test('affiliated secretary (equal partner) can also submit', function () {
     $result = $this->action->execute(
         actor: $this->studentDelta,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -162,7 +157,6 @@ test('unaffiliated user cannot submit', function () {
     expect(fn () => $this->action->execute(
         actor: $outsider,
         organization: $this->org,
-        term: Term::FirstTerm,
         activities: calendarPayload()['activities'],
     ))->toThrow(AuthorizationException::class);
 });
@@ -174,7 +168,6 @@ test('tentative overlap is non-blocking — submission succeeds with warnings', 
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -193,7 +186,6 @@ test('confirmed hard-block: overlap vs an Approved activity is rejected with no 
     expect(fn () => $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     ))->toThrow(ValidationException::class);
 
@@ -211,7 +203,6 @@ test('same venue + date + touching endpoints vs Approved is allowed', function (
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -226,7 +217,6 @@ test('same date + time + different venue vs Approved is allowed', function () {
     $result = $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: $p['term'],
         activities: $p['activities'],
     );
 
@@ -238,7 +228,6 @@ test('intra-calendar self-overlap is a validation error', function () {
     expect(fn () => $this->action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: Term::FirstTerm,
         activities: [
             ['name' => 'Event A', 'venue' => 'Gymnasium', 'activity_date' => '2026-09-15', 'start_time' => '09:00', 'end_time' => '12:00'],
             ['name' => 'Event B', 'venue' => 'Gymnasium', 'activity_date' => '2026-09-15', 'start_time' => '11:00', 'end_time' => '14:00'],

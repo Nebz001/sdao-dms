@@ -8,7 +8,6 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\ProposalCalendarMode;
-use App\Enums\Term;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -150,7 +149,6 @@ test('activity calendar show: org officer can view, different-org officer cannot
     $result = app(SubmitActivityCalendar::class)->execute(
         actor: $this->studentAlpha,
         organization: $this->computingSociety,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',

@@ -4,7 +4,6 @@ namespace App\Calendar;
 
 use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
-use App\Enums\Term;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\User;
@@ -29,7 +28,6 @@ class UpdateActivityCalendar
     public function execute(
         User $actor,
         Document $document,
-        Term $term,
         array $activities,
     ): array {
         if ($document->status !== DocumentStatus::Returned) {
@@ -46,9 +44,12 @@ class UpdateActivityCalendar
         // Hard-block vs confirmed bookings (exclude self so own rows don't block)
         $this->guardConfirmedConflicts($activities, $document->id);
 
-        $result = DB::transaction(function () use ($actor, $document, $term, $activities) {
+        $result = DB::transaction(function () use ($actor, $document, $activities) {
             $calendar = $document->activityCalendar;
-            $calendar->update(['term' => $term->value]);
+
+            // Term is frozen at original submission (Phase 2 item 6) — a
+            // resubmission after a Return never re-derives or overwrites it,
+            // even if the global current term has since changed.
 
             // Replace all child activities
             CalendarActivity::where('activity_calendar_id', $calendar->id)->delete();

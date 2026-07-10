@@ -8,6 +8,7 @@ use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\CurrentTerm;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -34,7 +35,6 @@ function returnedCalendar(): Document
     $result = $action->execute(
         actor: $student,
         organization: $org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Draft Event',
             'venue' => 'Gymnasium',
@@ -57,7 +57,6 @@ test('officer can resubmit a returned calendar', function () {
     $result = $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Updated Event',
             'venue' => 'Auditorium',
@@ -77,7 +76,6 @@ test('resubmitted calendar resumes at the SDAO step and requires both to re-appr
     $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Updated Event',
             'venue' => 'Auditorium',
@@ -105,7 +103,6 @@ test('activities are replaced on resubmit', function () {
     $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        term: Term::FirstTerm,
         activities: [
             ['name' => 'New Event A', 'venue' => 'Auditorium', 'activity_date' => '2026-10-01', 'start_time' => '09:00', 'end_time' => '11:00'],
             ['name' => 'New Event B', 'venue' => 'AVR 1', 'activity_date' => '2026-10-02', 'start_time' => '13:00', 'end_time' => '15:00'],
@@ -126,7 +123,32 @@ test('non-submitter cannot resubmit', function () {
     expect(fn () => $this->updateAction->execute(
         actor: $outsider,
         document: $doc,
-        term: Term::FirstTerm,
         activities: [['name' => 'X', 'venue' => 'Y', 'activity_date' => '2026-10-01', 'start_time' => '09:00', 'end_time' => '11:00']],
     ))->toThrow(AuthorizationException::class);
+});
+
+test('resubmit retains the term frozen at original submission — even after a global term change', function () {
+    CurrentTerm::set(Term::FirstTerm);
+    $doc = returnedCalendar();
+    $doc->load('activityCalendar');
+    expect($doc->activityCalendar->term)->toBe(Term::FirstTerm);
+
+    // Admin changes the global current term AFTER submission but before resubmit.
+    CurrentTerm::set(Term::ThirdTerm);
+
+    $this->updateAction->execute(
+        actor: $this->studentAlpha,
+        document: $doc,
+        activities: [[
+            'name' => 'Updated Event',
+            'venue' => 'Auditorium',
+            'activity_date' => '2026-09-15',
+            'start_time' => '09:00',
+            'end_time' => '12:00',
+        ]],
+    );
+
+    $doc->refresh();
+    $doc->load('activityCalendar');
+    expect($doc->activityCalendar->term)->toBe(Term::FirstTerm);
 });

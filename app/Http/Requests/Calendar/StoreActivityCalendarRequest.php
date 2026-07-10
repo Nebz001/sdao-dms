@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests\Calendar;
 
-use App\Enums\Term;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreActivityCalendarRequest extends FormRequest
 {
@@ -20,7 +18,8 @@ class StoreActivityCalendarRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'term' => ['required', Rule::enum(Term::class)],
+            // Term is a global, admin-controlled setting (Phase 2 item 6),
+            // not user input — no validation rule for it here.
             'activities' => ['required', 'array', 'min:1'],
             'activities.*.name' => ['required', 'string', 'max:255'],
             'activities.*.venue' => ['required', 'string', 'max:255'],

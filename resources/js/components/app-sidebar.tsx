@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
+    CalendarCog,
     CalendarDays,
     FilePlus2,
     FileText,
@@ -30,6 +31,7 @@ import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
 import * as approvers from '@/routes/admin/approvers';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
+import * as currentTermSettings from '@/routes/admin/settings/term';
 import * as calendar from '@/routes/calendar';
 import * as officers from '@/routes/officers';
 import * as registrations from '@/routes/registrations';
@@ -154,6 +156,11 @@ export function AppSidebar() {
                 title: 'Pending Accounts',
                 href: pendingAccounts.index(),
                 icon: UserCheck,
+            },
+            {
+                title: 'Current Term',
+                href: currentTermSettings.edit(),
+                icon: CalendarCog,
             },
         );
     }

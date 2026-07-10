@@ -4,16 +4,7 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-
-type TermOption = { value: string; label: string };
 
 type ActivityData = {
     id: number;
@@ -26,14 +17,13 @@ type ActivityData = {
 };
 
 type CalendarData = {
-    term: string;
+    term_label: string;
     activities: ActivityData[];
 } | null;
 
 type Props = {
     document: { id: number; title: string };
     calendar: CalendarData;
-    terms: TermOption[];
 };
 
 type ActivityRow = {
@@ -45,7 +35,7 @@ type ActivityRow = {
     description: string;
 };
 
-export default function EditActivityCalendar({ document, calendar, terms }: Props) {
+export default function EditActivityCalendar({ document, calendar }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>(
         calendar?.activities.map((a) => ({
             name: a.name,
@@ -68,10 +58,9 @@ export default function EditActivityCalendar({ document, calendar, terms }: Prop
 
     function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        const form = e.currentTarget;
-        const termValue = (form.querySelector('[name="term"]') as HTMLSelectElement | null)?.value ?? '';
+        // Term is frozen at original submission (Phase 2 item 6) — it is
+        // never resent or re-derived from user input on resubmit.
         router.put(`/activity-calendars/${document.id}`, {
-            term: termValue,
             activities,
         });
     }
@@ -87,21 +76,12 @@ export default function EditActivityCalendar({ document, calendar, terms }: Prop
                 />
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Term select */}
+                    {/* Term is frozen at original submission — shown read-only. */}
                     <div className="grid gap-2">
-                        <Label htmlFor="term">Term</Label>
-                        <Select name="term" defaultValue={calendar?.term} required>
-                            <SelectTrigger id="term" className="w-full max-w-xs">
-                                <SelectValue placeholder="Select term…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {terms.map((t) => (
-                                    <SelectItem key={t.value} value={t.value}>
-                                        {t.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>Term</Label>
+                        <p className="text-sm text-muted-foreground">
+                            {calendar?.term_label} <span className="text-xs">(set at original submission — cannot be changed)</span>
+                        </p>
                     </div>
 
                     {/* Activities */}

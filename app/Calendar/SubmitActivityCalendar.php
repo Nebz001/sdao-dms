@@ -5,7 +5,6 @@ namespace App\Calendar;
 use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
-use App\Enums\Term;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -13,6 +12,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
+use App\Support\CurrentTerm;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +35,6 @@ class SubmitActivityCalendar
     public function execute(
         User $actor,
         Organization $organization,
-        Term $term,
         array $activities,
     ): array {
         $membership = $this->membershipService->activeMembershipFor($actor, $organization);
@@ -51,6 +50,10 @@ class SubmitActivityCalendar
         $this->guardConfirmedConflicts($activities);
 
         $academicYear = AcademicYear::current();
+        // Term is a global, admin-controlled setting (Phase 2 item 6), not a
+        // per-submission choice — read whatever is current right now and
+        // stamp it on the row. A later admin change never rewrites this.
+        $term = CurrentTerm::get();
 
         $document = DB::transaction(function () use ($actor, $organization, $term, $activities, $academicYear) {
             $document = Document::create([

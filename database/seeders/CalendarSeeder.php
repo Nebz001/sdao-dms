@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;
-use App\Enums\Term;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -44,7 +43,6 @@ class CalendarSeeder extends Seeder
         $result = $this->submitAction->execute(
             actor: $studentBeta,
             organization: $itGuild,
-            term: Term::FirstTerm,
             activities: [[
                 'name' => 'Tech Fair',
                 'venue' => 'Auditorium',
@@ -69,7 +67,6 @@ class CalendarSeeder extends Seeder
         $this->submitAction->execute(
             actor: $studentAlpha,
             organization: $computingSoc,
-            term: Term::FirstTerm,
             activities: [[
                 'name' => 'CS Week Kickoff',
                 'venue' => 'Function Hall',

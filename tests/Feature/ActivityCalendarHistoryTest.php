@@ -3,7 +3,6 @@
 use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;
 use App\Enums\DocumentStatus;
-use App\Enums\Term;
 use App\Enums\TransitionAction;
 use App\Models\Organization;
 use App\Models\User;
@@ -25,7 +24,6 @@ test('transitions are recorded for each action', function () {
     $result = $action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',
@@ -55,7 +53,6 @@ test('return transition includes the comment', function () {
     $result = $action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',
@@ -80,7 +77,6 @@ test('show endpoint returns document with history', function () {
     $result = $action->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',

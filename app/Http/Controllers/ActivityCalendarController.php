@@ -6,12 +6,12 @@ use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\FormType;
-use App\Enums\Term;
 use App\Http\Requests\Calendar\ConflictCheckRequest;
 use App\Http\Requests\Calendar\StoreActivityCalendarRequest;
 use App\Http\Requests\Calendar\UpdateActivityCalendarRequest;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Support\CurrentTerm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -71,10 +71,10 @@ class ActivityCalendarController extends Controller
                     'name' => $membership->organization->name,
                 ],
             ] : null,
-            'terms' => collect(Term::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
+            // Term is a global, admin-controlled setting (Phase 2 item 6) —
+            // shown read-only so the student knows what they're submitting
+            // under, but it is never user-selectable.
+            'current_term_label' => CurrentTerm::get()->label(),
         ]);
     }
 
@@ -92,7 +92,6 @@ class ActivityCalendarController extends Controller
         $result = $action->execute(
             actor: $user,
             organization: $membership->organization,
-            term: Term::from($request->string('term')->toString()),
             activities: $request->input('activities'),
         );
 
@@ -160,7 +159,9 @@ class ActivityCalendarController extends Controller
         return Inertia::render('activity-calendars/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
             'calendar' => $calendar ? [
-                'term' => $calendar->term->value,
+                // Frozen at original submission (Phase 2 item 6) — shown
+                // read-only; resubmitting never changes it.
+                'term_label' => $calendar->term->label(),
                 'activities' => $calendar->activities->map(fn ($a) => [
                     'id' => $a->id,
                     'name' => $a->name,
@@ -171,10 +172,6 @@ class ActivityCalendarController extends Controller
                     'end_time' => $a->end_time,
                 ]),
             ] : null,
-            'terms' => collect(Term::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
         ]);
     }
 
@@ -185,7 +182,6 @@ class ActivityCalendarController extends Controller
         $result = $action->execute(
             actor: Auth::user(),
             document: $document,
-            term: Term::from($request->string('term')->toString()),
             activities: $request->input('activities'),
         );
 

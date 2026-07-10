@@ -4,16 +4,7 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-
-type TermOption = { value: string; label: string };
 
 type Membership = {
     id: number;
@@ -45,10 +36,10 @@ const emptyRow = (): ActivityRow => ({
 
 type Props = {
     membership: Membership | null;
-    terms: TermOption[];
+    current_term_label: string;
 };
 
-export default function CreateActivityCalendar({ membership, terms }: Props) {
+export default function CreateActivityCalendar({ membership, current_term_label }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>([emptyRow()]);
     const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,21 +121,12 @@ export default function CreateActivityCalendar({ membership, terms }: Props) {
                         router.post('/activity-calendars', Object.fromEntries(data as any));
                     }}
                 >
-                    {/* Term select */}
+                    {/* Term is a global, admin-controlled setting — shown read-only. */}
                     <div className="grid gap-2">
-                        <Label htmlFor="term">Term</Label>
-                        <Select name="term" required>
-                            <SelectTrigger id="term" className="w-full max-w-xs">
-                                <SelectValue placeholder="Select term…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {terms.map((t) => (
-                                    <SelectItem key={t.value} value={t.value}>
-                                        {t.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>Term</Label>
+                        <p className="text-sm text-muted-foreground">
+                            {current_term_label} <span className="text-xs">(set by SDAO — not selectable here)</span>
+                        </p>
                     </div>
 
                     {/* Activities */}

@@ -5,6 +5,7 @@ use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
 use App\Http\Controllers\Admin\ApproverController;
+use App\Http\Controllers\Admin\CurrentTermController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
@@ -120,6 +121,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pending-accounts', [PendingAccountController::class, 'index'])->name('pending-accounts.index');
         Route::post('/pending-accounts/{account}/verify', [PendingAccountController::class, 'verify'])->name('pending-accounts.verify');
         Route::post('/pending-accounts/{account}/reject', [PendingAccountController::class, 'reject'])->name('pending-accounts.reject');
+
+        // SDAO admin — global settings (Phase 2 item 6: current term)
+        Route::get('/settings/term', [CurrentTermController::class, 'edit'])->name('settings.term.edit');
+        Route::put('/settings/term', [CurrentTermController::class, 'update'])->name('settings.term.update');
     });
 });
 

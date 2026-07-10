@@ -36,7 +36,6 @@ function submittedCalendar(): Document
     return $action->execute(
         actor: $student,
         organization: $org,
-        term: Term::FirstTerm,
         activities: [[
             'name' => 'Test Event',
             'venue' => 'Gymnasium',

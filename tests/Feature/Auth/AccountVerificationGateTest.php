@@ -310,7 +310,6 @@ test('an unverified officer is forbidden from submitting an activity calendar', 
     $officer = bindUnverifiedOfficerTo($this->org);
 
     $response = $this->actingAs($officer)->post(route('activity-calendars.store'), [
-        'term' => 'first_term',
         'activities' => [[
             'name' => 'JS Night',
             'venue' => 'Gymnasium',
