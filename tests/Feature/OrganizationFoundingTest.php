@@ -30,10 +30,10 @@ function foundingOrgPayload(array $overrides = []): array
         'name' => 'Founding Org',
         'programId' => null,
         'organizationType' => OrganizationType::CoCurricular,
-        'description' => 'Description.',
+        'purposeOfOrganization' => 'Description.',
         'contactPerson' => 'Contact Person',
-        'contactNumber' => '09170000000',
-        'contactEmail' => 'contact@example.test',
+        'contactNo' => '09170000000',
+        'emailAddress' => 'contact@example.test',
         'dateOrganized' => '2020-06-01',
         'roster' => ['Member One'],
     ], $overrides);
@@ -74,13 +74,13 @@ test('approval-time race guard blocks approving a second proposal that picked th
     RoleAssignment::create(['user_id' => $sharedAdviser->id, 'role' => Role::Adviser->value]);
 
     $docA = $this->submitAction->execute(
-        ...foundingOrgPayload(['name' => 'Org A', 'contactEmail' => 'a@example.test']),
+        ...foundingOrgPayload(['name' => 'Org A', 'emailAddress' => 'a@example.test']),
         actor: $studentA,
         schoolId: $this->school->id,
         adviserId: $sharedAdviser->id,
     );
     $docB = $this->submitAction->execute(
-        ...foundingOrgPayload(['name' => 'Org B', 'contactEmail' => 'b@example.test']),
+        ...foundingOrgPayload(['name' => 'Org B', 'emailAddress' => 'b@example.test']),
         actor: $studentB,
         schoolId: $this->school->id,
         adviserId: $sharedAdviser->id,
@@ -129,10 +129,10 @@ test('return-for-revision preserves the ability to pick a new adviser and resubm
         actor: $student,
         document: $document,
         organizationType: OrganizationType::CoCurricular,
-        description: 'Description.',
+        purposeOfOrganization: 'Description.',
         contactPerson: 'Contact Person',
-        contactNumber: '09170000000',
-        contactEmail: 'contact@example.test',
+        contactNo: '09170000000',
+        emailAddress: 'contact@example.test',
         dateOrganized: '2020-06-01',
         roster: ['Member One'],
         adviserId: $goodAdviser->id,
@@ -216,10 +216,10 @@ test('adviser and founding student remain unbound through every non-terminal sta
         actor: $student,
         document: $document,
         organizationType: OrganizationType::CoCurricular,
-        description: 'Revised description.',
+        purposeOfOrganization: 'Revised description.',
         contactPerson: 'Contact Person',
-        contactNumber: '09170000000',
-        contactEmail: 'contact@example.test',
+        contactNo: '09170000000',
+        emailAddress: 'contact@example.test',
         dateOrganized: '2020-06-01',
         roster: ['Member One'],
     );

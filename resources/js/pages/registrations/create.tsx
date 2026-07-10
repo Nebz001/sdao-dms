@@ -40,10 +40,10 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const [schoolId, setSchoolId] = useState('');
     const [programId, setProgramId] = useState('');
     const [organizationType, setOrganizationType] = useState('');
-    const [description, setDescription] = useState('');
+    const [purposeOfOrganization, setPurposeOfOrganization] = useState('');
     const [contactPerson, setContactPerson] = useState('');
-    const [contactNumber, setContactNumber] = useState('');
-    const [contactEmail, setContactEmail] = useState('');
+    const [contactNo, setContactNo] = useState('');
+    const [emailAddress, setEmailAddress] = useState('');
     const [dateOrganized, setDateOrganized] = useState('');
 
     const [adviserQuery, setAdviserQuery] = useState('');
@@ -104,10 +104,10 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                 program_id: needsProgram ? programId : '',
                 adviser_id: selectedAdviser?.id ?? '',
                 organization_type: organizationType,
-                description,
+                purpose_of_organization: purposeOfOrganization,
                 contact_person: contactPerson,
-                contact_number: contactNumber,
-                contact_email: contactEmail,
+                contact_no: contactNo,
+                email_address: emailAddress,
                 date_organized: dateOrganized,
             },
             {
@@ -137,10 +137,10 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         (!needsProgram || programId !== '') &&
         selectedAdviser !== null &&
         organizationType !== '' &&
-        description.trim() !== '' &&
+        purposeOfOrganization.trim() !== '' &&
         contactPerson.trim() !== '' &&
-        contactNumber.trim() !== '' &&
-        contactEmail.trim() !== '' &&
+        contactNo.trim() !== '' &&
+        emailAddress.trim() !== '' &&
         dateOrganized !== '';
 
     return (
@@ -161,7 +161,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="school">School</Label>
+                        <Label htmlFor="college">College</Label>
                         <Select
                             value={schoolId}
                             onValueChange={(value) => {
@@ -169,8 +169,8 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                 setProgramId('');
                             }}
                         >
-                            <SelectTrigger id="school" className="w-full">
-                                <SelectValue placeholder="Select school…" />
+                            <SelectTrigger id="college" className="w-full">
+                                <SelectValue placeholder="Select college…" />
                             </SelectTrigger>
                             <SelectContent>
                                 {schools.map((s) => (
@@ -244,7 +244,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="organization_type">Organization Type</Label>
+                        <Label htmlFor="organization_type">Type of Organization</Label>
                         <Select value={organizationType} onValueChange={setOrganizationType}>
                             <SelectTrigger id="organization_type" className="w-full">
                                 <SelectValue placeholder="Select type…" />
@@ -273,28 +273,28 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="contact_number">Contact Number</Label>
+                        <Label htmlFor="contact_no">Contact No.</Label>
                         <Input
-                            id="contact_number"
-                            value={contactNumber}
-                            onChange={(e) => setContactNumber(e.target.value)}
+                            id="contact_no"
+                            value={contactNo}
+                            onChange={(e) => setContactNo(e.target.value)}
                             placeholder="e.g. 09171234567"
                             required
                         />
-                        {errors.contact_number && <p className="text-sm text-destructive">{errors.contact_number}</p>}
+                        {errors.contact_no && <p className="text-sm text-destructive">{errors.contact_no}</p>}
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="contact_email">Contact Email</Label>
+                        <Label htmlFor="email_address">Email Address</Label>
                         <Input
-                            id="contact_email"
+                            id="email_address"
                             type="email"
-                            value={contactEmail}
-                            onChange={(e) => setContactEmail(e.target.value)}
+                            value={emailAddress}
+                            onChange={(e) => setEmailAddress(e.target.value)}
                             placeholder="organization@email.com"
                             required
                         />
-                        {errors.contact_email && <p className="text-sm text-destructive">{errors.contact_email}</p>}
+                        {errors.email_address && <p className="text-sm text-destructive">{errors.email_address}</p>}
                     </div>
 
                     <div className="grid gap-2">
@@ -310,16 +310,18 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
                         <Textarea
-                            id="description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
+                            id="purpose_of_organization"
+                            value={purposeOfOrganization}
+                            onChange={(e) => setPurposeOfOrganization(e.target.value)}
                             placeholder="Brief description of the organization's purpose and activities…"
                             rows={4}
                             required
                         />
-                        {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
+                        {errors.purpose_of_organization && (
+                            <p className="text-sm text-destructive">{errors.purpose_of_organization}</p>
+                        )}
                     </div>
 
                     <Dialog>

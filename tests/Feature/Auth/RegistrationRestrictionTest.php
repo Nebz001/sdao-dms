@@ -79,10 +79,10 @@ test('a self-registered, verified user CAN propose a new organization (Phase 2 i
         'school_id' => $school->id,
         'adviser_id' => $adviser->id,
         'organization_type' => 'co_curricular',
-        'description' => 'A brand-new organization.',
+        'purpose_of_organization' => 'A brand-new organization.',
         'contact_person' => 'Someone',
-        'contact_number' => '09170000000',
-        'contact_email' => 'someone@example.test',
+        'contact_no' => '09170000000',
+        'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
     ]);
     $response->assertRedirect();

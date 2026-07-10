@@ -52,10 +52,10 @@ test('officer can edit and resubmit a returned registration', function () {
         actor: $this->studentAlpha,
         document: $doc,
         organizationType: OrganizationType::ExtraCurricular,
-        description: 'Updated description.',
+        purposeOfOrganization: 'Updated description.',
         contactPerson: 'Student Alpha',
-        contactNumber: '09171234567',
-        contactEmail: 'cs@sdao.test',
+        contactNo: '09171234567',
+        emailAddress: 'cs@sdao.test',
         dateOrganized: '2020-06-01',
         roster: ['Student Alpha'],
     );
@@ -64,7 +64,7 @@ test('officer can edit and resubmit a returned registration', function () {
     expect($resubmitted->status)->toBe(DocumentStatus::InReview);
     expect($resubmitted->current_step_position)->toBe(1);
     expect($resubmitted->registrationDetail->organization_type)->toBe(OrganizationType::ExtraCurricular);
-    expect($resubmitted->registrationDetail->description)->toBe('Updated description.');
+    expect($resubmitted->registrationDetail->purpose_of_organization)->toBe('Updated description.');
 });
 
 test('resubmit resumes at SDAO step and both must re-approve', function () {
@@ -75,10 +75,10 @@ test('resubmit resumes at SDAO step and both must re-approve', function () {
         actor: $this->studentAlpha,
         document: $doc,
         organizationType: OrganizationType::CoCurricular,
-        description: 'Revised.',
+        purposeOfOrganization: 'Revised.',
         contactPerson: 'Alpha',
-        contactNumber: '09171234567',
-        contactEmail: 'cs@sdao.test',
+        contactNo: '09171234567',
+        emailAddress: 'cs@sdao.test',
         dateOrganized: '2020-06-01',
     );
     $doc->refresh();
@@ -107,10 +107,10 @@ test('a different student cannot edit another student\'s returned registration',
         actor: $outsider,
         document: $doc,
         organizationType: OrganizationType::CoCurricular,
-        description: 'Malicious edit.',
+        purposeOfOrganization: 'Malicious edit.',
         contactPerson: 'Outsider',
-        contactNumber: '123',
-        contactEmail: 'x@x.com',
+        contactNo: '123',
+        emailAddress: 'x@x.com',
         dateOrganized: '2020-01-01',
     ))->toThrow(AuthorizationException::class);
 });
@@ -128,10 +128,10 @@ test('cannot update a document that is not Returned', function () {
         actor: $this->studentAlpha,
         document: $doc,
         organizationType: OrganizationType::CoCurricular,
-        description: 'test',
+        purposeOfOrganization: 'test',
         contactPerson: 'Test',
-        contactNumber: '123',
-        contactEmail: 'test@test.com',
+        contactNo: '123',
+        emailAddress: 'test@test.com',
         dateOrganized: '2020-01-01',
     ))->toThrow(AuthorizationException::class);
 });

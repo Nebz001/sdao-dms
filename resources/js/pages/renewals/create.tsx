@@ -24,15 +24,15 @@ type Membership = {
     id: number;
     position: string;
     position_label: string;
-    organization: { id: number; name: string };
+    organization: { id: number; name: string; college: string | null; program: string | null };
 };
 
 type PriorRecord = {
     organization_type: string;
-    description: string;
+    purpose_of_organization: string;
     contact_person: string;
-    contact_number: string;
-    contact_email: string;
+    contact_no: string;
+    email_address: string;
     date_organized: string;
     roster: string[] | null;
 } | null;
@@ -108,12 +108,28 @@ export default function CreateRenewal({
                     description={`Renewing ${membership.organization.name} for ${academicYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}
                 />
 
+                {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —
+                    read-only field-presence parity; not editable on renewal. */}
+                <div className="grid gap-1 rounded-md border p-4 text-sm">
+                    <p>
+                        <span className="font-medium">Organization Name:</span> {membership.organization.name}
+                    </p>
+                    <p>
+                        <span className="font-medium">College:</span> {membership.organization.college ?? '—'}
+                    </p>
+                    {membership.organization.program && (
+                        <p>
+                            <span className="font-medium">Program:</span> {membership.organization.program}
+                        </p>
+                    )}
+                </div>
+
                 <Form {...RenewalController.store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             {/* Organization type */}
                             <div className="grid gap-2">
-                                <Label htmlFor="organization_type">Organization Type</Label>
+                                <Label htmlFor="organization_type">Type of Organization</Label>
                                 <Select
                                     name="organization_type"
                                     defaultValue={priorRecord.organization_type}
@@ -145,29 +161,29 @@ export default function CreateRenewal({
                                 <InputError message={errors.contact_person} />
                             </div>
 
-                            {/* Contact number */}
+                            {/* Contact no. */}
                             <div className="grid gap-2">
-                                <Label htmlFor="contact_number">Contact Number</Label>
+                                <Label htmlFor="contact_no">Contact No.</Label>
                                 <Input
-                                    id="contact_number"
-                                    name="contact_number"
-                                    defaultValue={priorRecord.contact_number}
+                                    id="contact_no"
+                                    name="contact_no"
+                                    defaultValue={priorRecord.contact_no}
                                     required
                                 />
-                                <InputError message={errors.contact_number} />
+                                <InputError message={errors.contact_no} />
                             </div>
 
-                            {/* Contact email */}
+                            {/* Email address */}
                             <div className="grid gap-2">
-                                <Label htmlFor="contact_email">Contact Email</Label>
+                                <Label htmlFor="email_address">Email Address</Label>
                                 <Input
-                                    id="contact_email"
+                                    id="email_address"
                                     type="email"
-                                    name="contact_email"
-                                    defaultValue={priorRecord.contact_email}
+                                    name="email_address"
+                                    defaultValue={priorRecord.email_address}
                                     required
                                 />
-                                <InputError message={errors.contact_email} />
+                                <InputError message={errors.email_address} />
                             </div>
 
                             {/* Date organized */}
@@ -183,23 +199,18 @@ export default function CreateRenewal({
                                 <InputError message={errors.date_organized} />
                             </div>
 
-                            {/* Description */}
+                            {/* Purpose of organization */}
                             <div className="grid gap-2">
-                                <Label htmlFor="description">Description</Label>
+                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
                                 <Textarea
-                                    id="description"
-                                    name="description"
-                                    defaultValue={priorRecord.description}
+                                    id="purpose_of_organization"
+                                    name="purpose_of_organization"
+                                    defaultValue={priorRecord.purpose_of_organization}
                                     rows={4}
                                     required
                                 />
-                                <InputError message={errors.description} />
+                                <InputError message={errors.purpose_of_organization} />
                             </div>
-
-                            <p className="text-sm text-muted-foreground">
-                                Organization: <strong>{membership.organization.name}</strong>{' '}
-                                (pre-filled)
-                            </p>
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Submit for Review</Button>

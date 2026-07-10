@@ -27,10 +27,10 @@ class UpdateOrganizationRegistration
         User $actor,
         Document $document,
         OrganizationType $organizationType,
-        string $description,
+        string $purposeOfOrganization,
         string $contactPerson,
-        string $contactNumber,
-        string $contactEmail,
+        string $contactNo,
+        string $emailAddress,
         string $dateOrganized,
         ?array $roster = null,
         ?int $adviserId = null,
@@ -44,15 +44,15 @@ class UpdateOrganizationRegistration
         }
 
         return DB::transaction(function () use (
-            $actor, $document, $organizationType, $description,
-            $contactPerson, $contactNumber, $contactEmail, $dateOrganized, $roster, $adviserId
+            $actor, $document, $organizationType, $purposeOfOrganization,
+            $contactPerson, $contactNo, $emailAddress, $dateOrganized, $roster, $adviserId
         ) {
             $updates = [
                 'organization_type' => $organizationType->value,
-                'description' => $description,
+                'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
-                'contact_number' => $contactNumber,
-                'contact_email' => $contactEmail,
+                'contact_no' => $contactNo,
+                'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'roster' => $roster,
             ];

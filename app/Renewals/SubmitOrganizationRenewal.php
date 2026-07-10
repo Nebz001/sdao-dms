@@ -41,10 +41,10 @@ class SubmitOrganizationRenewal
         User $actor,
         Organization $organization,
         OrganizationType $organizationType,
-        string $description,
+        string $purposeOfOrganization,
         string $contactPerson,
-        string $contactNumber,
-        string $contactEmail,
+        string $contactNo,
+        string $emailAddress,
         string $dateOrganized,
         ?array $roster = null,
     ): Document {
@@ -71,8 +71,8 @@ class SubmitOrganizationRenewal
         $adviser = $this->roleDirectory->adviserFor($organization);
 
         return DB::transaction(function () use (
-            $actor, $organization, $organizationType, $description,
-            $contactPerson, $contactNumber, $contactEmail, $dateOrganized,
+            $actor, $organization, $organizationType, $purposeOfOrganization,
+            $contactPerson, $contactNo, $emailAddress, $dateOrganized,
             $roster, $adviser, $academicYear
         ) {
             $document = Document::create([
@@ -89,10 +89,10 @@ class SubmitOrganizationRenewal
             OrganizationRegistrationDetail::create([
                 'document_id' => $document->id,
                 'organization_type' => $organizationType->value,
-                'description' => $description,
+                'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
-                'contact_number' => $contactNumber,
-                'contact_email' => $contactEmail,
+                'contact_no' => $contactNo,
+                'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'adviser_id' => $adviser->id,
                 'roster' => $roster,

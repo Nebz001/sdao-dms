@@ -42,10 +42,10 @@ test('an unverified officer cannot submit a document — blocked before the acti
 
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
         'organization_type' => 'co_curricular',
-        'description' => 'Should never be created.',
+        'purpose_of_organization' => 'Should never be created.',
         'contact_person' => 'Someone',
-        'contact_number' => '09170000000',
-        'contact_email' => 'someone@example.test',
+        'contact_no' => '09170000000',
+        'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
     ]);
 

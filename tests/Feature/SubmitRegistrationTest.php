@@ -38,10 +38,10 @@ function foundingPayload(array $overrides = []): array
         'name' => 'Founding Test Org',
         'programId' => null,
         'organizationType' => OrganizationType::CoCurricular,
-        'description' => 'A brand-new student organization.',
+        'purposeOfOrganization' => 'A brand-new student organization.',
         'contactPerson' => 'Founding Student',
-        'contactNumber' => '09171234567',
-        'contactEmail' => 'foundingorg@sdao.test',
+        'contactNo' => '09171234567',
+        'emailAddress' => 'foundingorg@sdao.test',
         'dateOrganized' => '2020-06-01',
         'roster' => ['Founding Student', 'Member Two'],
     ], $overrides);

@@ -14,16 +14,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $document_id
  * @property OrganizationType $organization_type
- * @property string $description
+ * @property string $purpose_of_organization
  * @property string $contact_person
- * @property string $contact_number
- * @property string $contact_email
+ * @property string $contact_no
+ * @property string $email_address
  * @property CarbonInterface $date_organized
  * @property int|null $adviser_id
  * @property array<int, string>|null $roster
  * @property string|null $academic_year
  */
-#[Fillable(['document_id', 'organization_type', 'description', 'contact_person', 'contact_number', 'contact_email', 'date_organized', 'adviser_id', 'roster', 'academic_year'])]
+#[Fillable(['document_id', 'organization_type', 'purpose_of_organization', 'contact_person', 'contact_no', 'email_address', 'date_organized', 'adviser_id', 'roster', 'academic_year'])]
 class OrganizationRegistrationDetail extends Model
 {
     /** @use HasFactory<OrganizationRegistrationDetailFactory> */

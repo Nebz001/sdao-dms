@@ -162,10 +162,10 @@ test('an unverified officer is forbidden from proposing a new organization', fun
         'school_id' => $this->org->school_id,
         'adviser_id' => $this->sdaoA->id,
         'organization_type' => 'co_curricular',
-        'description' => 'Should never be created.',
+        'purpose_of_organization' => 'Should never be created.',
         'contact_person' => 'Someone',
-        'contact_number' => '09170000000',
-        'contact_email' => 'someone@example.test',
+        'contact_no' => '09170000000',
+        'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
     ]);
 
@@ -181,10 +181,10 @@ test('a rejected officer is forbidden from proposing a new organization', functi
         'school_id' => $this->org->school_id,
         'adviser_id' => $this->sdaoA->id,
         'organization_type' => 'co_curricular',
-        'description' => 'Should never be created.',
+        'purpose_of_organization' => 'Should never be created.',
         'contact_person' => 'Someone',
-        'contact_number' => '09170000000',
-        'contact_email' => 'someone@example.test',
+        'contact_no' => '09170000000',
+        'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
     ]);
 
@@ -271,10 +271,10 @@ test('an unverified officer is forbidden from submitting a renewal', function ()
     OrganizationRegistrationDetail::create([
         'document_id' => $registration->id,
         'organization_type' => OrganizationType::CoCurricular->value,
-        'description' => 'Original description.',
+        'purpose_of_organization' => 'Original description.',
         'contact_person' => 'Original Person',
-        'contact_number' => '09171111111',
-        'contact_email' => 'original@example.test',
+        'contact_no' => '09171111111',
+        'email_address' => 'original@example.test',
         'date_organized' => '2020-06-01',
         'adviser_id' => null,
         'roster' => ['Member One'],
@@ -292,10 +292,10 @@ test('an unverified officer is forbidden from submitting a renewal', function ()
 
     $response = $this->actingAs($officer)->post(route('renewals.store'), [
         'organization_type' => 'co_curricular',
-        'description' => 'Renewed description.',
+        'purpose_of_organization' => 'Renewed description.',
         'contact_person' => 'Renewed Contact',
-        'contact_number' => '09172222222',
-        'contact_email' => 'renewed@example.test',
+        'contact_no' => '09172222222',
+        'email_address' => 'renewed@example.test',
         'date_organized' => '2020-06-01',
         'roster' => ['Member One'],
     ]);

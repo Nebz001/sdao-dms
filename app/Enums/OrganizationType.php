@@ -10,8 +10,8 @@ enum OrganizationType: string
     public function label(): string
     {
         return match ($this) {
-            self::CoCurricular => 'Co-curricular',
-            self::ExtraCurricular => 'Extra-curricular',
+            self::CoCurricular => 'Co-Curricular',
+            self::ExtraCurricular => 'Extra Curricular-Interest Clubs',
         };
     }
 }

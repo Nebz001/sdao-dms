@@ -41,7 +41,7 @@ class RenewalReviewController extends Controller
     {
         Gate::authorize('review', $document);
 
-        $document->load(['organization', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
 
         $detail = $document->registrationDetail;
         $user = Auth::user();
@@ -62,15 +62,21 @@ class RenewalReviewController extends Controller
                 'title' => $document->title,
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
-                'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                'organization' => [
+                    'id' => $document->organization->id,
+                    'name' => $document->organization->name,
+                    // Field-presence parity (Phase 2 item 7 slice 2).
+                    'college' => $document->organization->school?->name,
+                    'program' => $document->organization->program?->name,
+                ],
             ],
             'detail' => $detail ? [
                 'organization_type' => $detail->organization_type->value,
                 'organization_type_label' => $detail->organization_type->label(),
-                'description' => $detail->description,
+                'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
-                'contact_number' => $detail->contact_number,
-                'contact_email' => $detail->contact_email,
+                'contact_no' => $detail->contact_no,
+                'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
                 'roster' => $detail->roster,

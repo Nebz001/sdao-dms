@@ -21,13 +21,28 @@ class UpdateRenewalRequest extends FormRequest
     {
         return [
             'organization_type' => ['required', 'string', Rule::enum(OrganizationType::class)],
-            'description' => ['required', 'string', 'max:5000'],
+            'purpose_of_organization' => ['required', 'string', 'max:5000'],
             'contact_person' => ['required', 'string', 'max:255'],
-            'contact_number' => ['required', 'string', 'max:50'],
-            'contact_email' => ['required', 'email', 'max:255'],
+            'contact_no' => ['required', 'string', 'max:50'],
+            'email_address' => ['required', 'email', 'max:255'],
             'date_organized' => ['required', 'date'],
             'roster' => ['nullable', 'array'],
             'roster.*' => ['string', 'max:255'],
+        ];
+    }
+
+    /**
+     * Exact field corrections (Phase 2 item 7 slice 2).
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'organization_type' => 'Type of Organization',
+            'purpose_of_organization' => 'Purpose of Organization',
+            'contact_no' => 'Contact No.',
+            'email_address' => 'Email Address',
         ];
     }
 }

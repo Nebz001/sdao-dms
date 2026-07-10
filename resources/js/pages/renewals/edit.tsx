@@ -19,14 +19,18 @@ type OrganizationTypeOption = {
     label: string;
 };
 
-type DocumentData = { id: number; title: string };
+type DocumentData = {
+    id: number;
+    title: string;
+    organization: { name: string; college: string | null; program: string | null };
+};
 
 type DetailData = {
     organization_type: string;
-    description: string;
+    purpose_of_organization: string;
     contact_person: string;
-    contact_number: string;
-    contact_email: string;
+    contact_no: string;
+    email_address: string;
     date_organized: string;
     roster: string[] | null;
 } | null;
@@ -48,6 +52,22 @@ export default function EditRenewal({ document, detail, organizationTypes }: Pro
                     description="Update the details below and resubmit for SDAO review."
                 />
 
+                {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —
+                    read-only field-presence parity; not editable here. */}
+                <div className="grid gap-1 rounded-md border p-4 text-sm">
+                    <p>
+                        <span className="font-medium">Organization Name:</span> {document.organization.name}
+                    </p>
+                    <p>
+                        <span className="font-medium">College:</span> {document.organization.college ?? '—'}
+                    </p>
+                    {document.organization.program && (
+                        <p>
+                            <span className="font-medium">Program:</span> {document.organization.program}
+                        </p>
+                    )}
+                </div>
+
                 <Form
                     {...RenewalController.update.form({ document: document.id })}
                     className="space-y-6"
@@ -56,7 +76,7 @@ export default function EditRenewal({ document, detail, organizationTypes }: Pro
                         <>
                             {/* Organization type */}
                             <div className="grid gap-2">
-                                <Label htmlFor="organization_type">Organization Type</Label>
+                                <Label htmlFor="organization_type">Type of Organization</Label>
                                 <Select
                                     name="organization_type"
                                     defaultValue={detail?.organization_type}
@@ -88,29 +108,29 @@ export default function EditRenewal({ document, detail, organizationTypes }: Pro
                                 <InputError message={errors.contact_person} />
                             </div>
 
-                            {/* Contact number */}
+                            {/* Contact no. */}
                             <div className="grid gap-2">
-                                <Label htmlFor="contact_number">Contact Number</Label>
+                                <Label htmlFor="contact_no">Contact No.</Label>
                                 <Input
-                                    id="contact_number"
-                                    name="contact_number"
-                                    defaultValue={detail?.contact_number}
+                                    id="contact_no"
+                                    name="contact_no"
+                                    defaultValue={detail?.contact_no}
                                     required
                                 />
-                                <InputError message={errors.contact_number} />
+                                <InputError message={errors.contact_no} />
                             </div>
 
-                            {/* Contact email */}
+                            {/* Email address */}
                             <div className="grid gap-2">
-                                <Label htmlFor="contact_email">Contact Email</Label>
+                                <Label htmlFor="email_address">Email Address</Label>
                                 <Input
-                                    id="contact_email"
+                                    id="email_address"
                                     type="email"
-                                    name="contact_email"
-                                    defaultValue={detail?.contact_email}
+                                    name="email_address"
+                                    defaultValue={detail?.email_address}
                                     required
                                 />
-                                <InputError message={errors.contact_email} />
+                                <InputError message={errors.email_address} />
                             </div>
 
                             {/* Date organized */}
@@ -126,17 +146,17 @@ export default function EditRenewal({ document, detail, organizationTypes }: Pro
                                 <InputError message={errors.date_organized} />
                             </div>
 
-                            {/* Description */}
+                            {/* Purpose of organization */}
                             <div className="grid gap-2">
-                                <Label htmlFor="description">Description</Label>
+                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
                                 <Textarea
-                                    id="description"
-                                    name="description"
-                                    defaultValue={detail?.description}
+                                    id="purpose_of_organization"
+                                    name="purpose_of_organization"
+                                    defaultValue={detail?.purpose_of_organization}
                                     rows={4}
                                     required
                                 />
-                                <InputError message={errors.description} />
+                                <InputError message={errors.purpose_of_organization} />
                             </div>
 
                             <div className="flex items-center gap-4">

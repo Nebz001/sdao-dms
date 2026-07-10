@@ -23,10 +23,10 @@ class UpdateOrganizationRenewal
         User $actor,
         Document $document,
         OrganizationType $organizationType,
-        string $description,
+        string $purposeOfOrganization,
         string $contactPerson,
-        string $contactNumber,
-        string $contactEmail,
+        string $contactNo,
+        string $emailAddress,
         string $dateOrganized,
         ?array $roster = null,
     ): Document {
@@ -39,18 +39,18 @@ class UpdateOrganizationRenewal
         }
 
         return DB::transaction(function () use (
-            $actor, $document, $organizationType, $description,
-            $contactPerson, $contactNumber, $contactEmail, $dateOrganized, $roster
+            $actor, $document, $organizationType, $purposeOfOrganization,
+            $contactPerson, $contactNo, $emailAddress, $dateOrganized, $roster
         ) {
             // academic_year is intentionally NOT included: it is set once at
             // creation (SubmitOrganizationRenewal) and must never change across
             // the return/resubmit cycle.
             $document->registrationDetail()->update([
                 'organization_type' => $organizationType->value,
-                'description' => $description,
+                'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
-                'contact_number' => $contactNumber,
-                'contact_email' => $contactEmail,
+                'contact_no' => $contactNo,
+                'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'roster' => $roster,
             ]);

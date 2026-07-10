@@ -51,10 +51,10 @@ function oneOrgPayload(array $overrides = []): array
         'name' => 'One-Org Test Org',
         'programId' => null,
         'organizationType' => OrganizationType::CoCurricular,
-        'description' => 'Description.',
+        'purposeOfOrganization' => 'Description.',
         'contactPerson' => 'Contact Person',
-        'contactNumber' => '09170000000',
-        'contactEmail' => 'contact@example.test',
+        'contactNo' => '09170000000',
+        'emailAddress' => 'contact@example.test',
         'dateOrganized' => '2020-06-01',
         'roster' => ['Member One'],
     ], $overrides);
@@ -88,7 +88,7 @@ test('a student with an in-flight proposal is blocked from founding a second org
     // A founding proposal has NO membership yet (Phase 2 item 5) — the
     // in-flight DOCUMENT is the only thing blocking a second proposal.
     expect(fn () => $this->submitAction->execute(
-        ...oneOrgPayload(['name' => 'Second Org', 'contactEmail' => 'second@example.test']),
+        ...oneOrgPayload(['name' => 'Second Org', 'emailAddress' => 'second@example.test']),
         actor: $student,
         schoolId: $this->school->id,
         adviserId: $adviser2->id,
@@ -127,7 +127,7 @@ test('a rejected proposal frees the student to found a different organization', 
     // And no in-flight document status is left blocking them — the guard
     // itself proves this: a second submission for a DIFFERENT org succeeds.
     $docB = $this->submitAction->execute(
-        ...oneOrgPayload(['name' => 'Second Org', 'contactEmail' => 'second@example.test']),
+        ...oneOrgPayload(['name' => 'Second Org', 'emailAddress' => 'second@example.test']),
         actor: $student,
         schoolId: $this->school->id,
         adviserId: $adviser2->id,

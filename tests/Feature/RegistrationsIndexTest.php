@@ -45,10 +45,10 @@ function submitRegistrationFor(User $actor, Organization $org): void
     OrganizationRegistrationDetail::create([
         'document_id' => $document->id,
         'organization_type' => OrganizationType::CoCurricular->value,
-        'description' => 'A student organization.',
+        'purpose_of_organization' => 'A student organization.',
         'contact_person' => 'Contact Person',
-        'contact_number' => '09171234567',
-        'contact_email' => 'contact@example.test',
+        'contact_no' => '09171234567',
+        'email_address' => 'contact@example.test',
         'date_organized' => '2024-06-01',
         'adviser_id' => null,
         'roster' => ['Member One'],

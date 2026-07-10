@@ -54,7 +54,7 @@ class RenewalController extends Controller
         $user = Auth::user();
 
         $membership = OrganizationMembership::query()
-            ->with('organization')
+            ->with(['organization.school', 'organization.program'])
             ->where('user_id', $user->id)
             ->where('is_active', true)
             ->first();
@@ -88,14 +88,17 @@ class RenewalController extends Controller
                 'organization' => [
                     'id' => $membership->organization->id,
                     'name' => $membership->organization->name,
+                    // Field-presence parity (Phase 2 item 7 slice 2).
+                    'college' => $membership->organization->school?->name,
+                    'program' => $membership->organization->program?->name,
                 ],
             ],
             'priorRecord' => $detail ? [
                 'organization_type' => $detail->organization_type->value,
-                'description' => $detail->description,
+                'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
-                'contact_number' => $detail->contact_number,
-                'contact_email' => $detail->contact_email,
+                'contact_no' => $detail->contact_no,
+                'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'roster' => $detail->roster,
             ] : null,
@@ -120,10 +123,10 @@ class RenewalController extends Controller
             actor: $user,
             organization: $membership->organization,
             organizationType: OrganizationType::from($request->string('organization_type')->toString()),
-            description: $request->string('description')->toString(),
+            purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
-            contactNumber: $request->string('contact_number')->toString(),
-            contactEmail: $request->string('contact_email')->toString(),
+            contactNo: $request->string('contact_no')->toString(),
+            emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
             roster: $request->input('roster'),
         );
@@ -136,7 +139,7 @@ class RenewalController extends Controller
     {
         Gate::authorize('view', $document);
 
-        $document->load(['organization', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
 
         $detail = $document->registrationDetail;
 
@@ -147,15 +150,21 @@ class RenewalController extends Controller
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
                 'submitted_by' => $document->submitted_by,
-                'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                'organization' => [
+                    'id' => $document->organization->id,
+                    'name' => $document->organization->name,
+                    // Field-presence parity (Phase 2 item 7 slice 2).
+                    'college' => $document->organization->school?->name,
+                    'program' => $document->organization->program?->name,
+                ],
             ],
             'detail' => $detail ? [
                 'organization_type' => $detail->organization_type->value,
                 'organization_type_label' => $detail->organization_type->label(),
-                'description' => $detail->description,
+                'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
-                'contact_number' => $detail->contact_number,
-                'contact_email' => $detail->contact_email,
+                'contact_no' => $detail->contact_no,
+                'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
                 'roster' => $detail->roster,
@@ -178,17 +187,26 @@ class RenewalController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['organization', 'registrationDetail']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail']);
         $detail = $document->registrationDetail;
 
         return Inertia::render('renewals/edit', [
-            'document' => ['id' => $document->id, 'title' => $document->title],
+            'document' => [
+                'id' => $document->id,
+                'title' => $document->title,
+                'organization' => [
+                    'name' => $document->organization->name,
+                    // Field-presence parity (Phase 2 item 7 slice 2).
+                    'college' => $document->organization->school?->name,
+                    'program' => $document->organization->program?->name,
+                ],
+            ],
             'detail' => $detail ? [
                 'organization_type' => $detail->organization_type->value,
-                'description' => $detail->description,
+                'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
-                'contact_number' => $detail->contact_number,
-                'contact_email' => $detail->contact_email,
+                'contact_no' => $detail->contact_no,
+                'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'roster' => $detail->roster,
             ] : null,
@@ -207,10 +225,10 @@ class RenewalController extends Controller
             actor: Auth::user(),
             document: $document,
             organizationType: OrganizationType::from($request->string('organization_type')->toString()),
-            description: $request->string('description')->toString(),
+            purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
-            contactNumber: $request->string('contact_number')->toString(),
-            contactEmail: $request->string('contact_email')->toString(),
+            contactNo: $request->string('contact_no')->toString(),
+            emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
             roster: $request->input('roster'),
         );

@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRegistrations from '@/routes/review/registrations';
 
-type Organization = { id: number; name: string };
+type Organization = { id: number; name: string; college: string | null; program: string | null };
 
 type DocumentData = {
     id: number;
@@ -30,10 +30,10 @@ type DocumentData = {
 type DetailData = {
     organization_type: string;
     organization_type_label: string;
-    description: string;
+    purpose_of_organization: string;
     contact_person: string;
-    contact_number: string;
-    contact_email: string;
+    contact_no: string;
+    email_address: string;
     date_organized: string;
     adviser: { name: string } | null;
     roster: string[] | null;
@@ -128,17 +128,23 @@ export default function ReviewRegistrationShow({
                             <CardTitle className="text-base">Registration Details</CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
-                            <Row label="Organization Type" value={detail.organization_type_label} />
+                            {/* Field-presence parity (Phase 2 item 7 slice 2) */}
+                            <Row label="Organization Name" value={document.organization.name} />
+                            <Row label="College" value={document.organization.college ?? '—'} />
+                            {document.organization.program && (
+                                <Row label="Program" value={document.organization.program} />
+                            )}
+                            <Row label="Type of Organization" value={detail.organization_type_label} />
                             <Row label="Contact Person" value={detail.contact_person} />
-                            <Row label="Contact Number" value={detail.contact_number} />
-                            <Row label="Contact Email" value={detail.contact_email} />
+                            <Row label="Contact No." value={detail.contact_no} />
+                            <Row label="Email Address" value={detail.email_address} />
                             <Row label="Date Organized" value={detail.date_organized} />
                             {detail.adviser && (
                                 <Row label="Adviser" value={detail.adviser.name} />
                             )}
                             <div className="grid gap-1">
-                                <span className="font-medium text-muted-foreground">Description</span>
-                                <p className="whitespace-pre-wrap">{detail.description}</p>
+                                <span className="font-medium text-muted-foreground">Purpose of Organization</span>
+                                <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
                             </div>
                             {detail.roster && detail.roster.length > 0 && (
                                 <div className="grid gap-1">

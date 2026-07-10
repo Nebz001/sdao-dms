@@ -20,10 +20,10 @@ class OrganizationRegistrationDetailFactory extends Factory
         return [
             'document_id' => Document::factory(),
             'organization_type' => fake()->randomElement(OrganizationType::cases()),
-            'description' => fake()->paragraph(),
+            'purpose_of_organization' => fake()->paragraph(),
             'contact_person' => fake()->name(),
-            'contact_number' => fake()->phoneNumber(),
-            'contact_email' => fake()->safeEmail(),
+            'contact_no' => fake()->phoneNumber(),
+            'email_address' => fake()->safeEmail(),
             'date_organized' => fake()->date(),
             'adviser_id' => null,
             'roster' => [fake()->name(), fake()->name()],

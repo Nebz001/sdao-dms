@@ -45,10 +45,10 @@ class SubmitOrganizationRegistration
         ?int $programId,
         int $adviserId,
         OrganizationType $organizationType,
-        string $description,
+        string $purposeOfOrganization,
         string $contactPerson,
-        string $contactNumber,
-        string $contactEmail,
+        string $contactNo,
+        string $emailAddress,
         string $dateOrganized,
         ?array $roster = null,
     ): Document {
@@ -101,7 +101,7 @@ class SubmitOrganizationRegistration
 
         return DB::transaction(function () use (
             $actor, $name, $schoolId, $programId, $adviserId, $organizationType,
-            $description, $contactPerson, $contactNumber, $contactEmail,
+            $purposeOfOrganization, $contactPerson, $contactNo, $emailAddress,
             $dateOrganized, $roster, $academicYear
         ) {
             // Pending state (Phase 2 item 5): the org exists from submission
@@ -127,10 +127,10 @@ class SubmitOrganizationRegistration
             OrganizationRegistrationDetail::create([
                 'document_id' => $document->id,
                 'organization_type' => $organizationType->value,
-                'description' => $description,
+                'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
-                'contact_number' => $contactNumber,
-                'contact_email' => $contactEmail,
+                'contact_no' => $contactNo,
+                'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'adviser_id' => $adviserId,
                 'roster' => $roster,
