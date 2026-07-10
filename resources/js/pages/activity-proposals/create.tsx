@@ -17,6 +17,7 @@ type Membership = {
 
 type Term = { value: string; label: string };
 type CalendarMode = { value: string; label: string };
+type OptionItem = { value: string; label: string };
 
 type OnCalendarActivity = {
     id: number;
@@ -40,10 +41,21 @@ type Props = {
     membership: Membership;
     terms: Term[];
     calendarModes: CalendarMode[];
+    activityNatures: OptionItem[];
+    activityTypes: OptionItem[];
+    sdgs: OptionItem[];
     errors?: Record<string, string>;
 };
 
-export default function CreateActivityProposal({ membership, terms, calendarModes, errors = {} }: Props) {
+export default function CreateActivityProposal({
+    membership,
+    terms,
+    calendarModes,
+    activityNatures,
+    activityTypes,
+    sdgs,
+    errors = {},
+}: Props) {
     const [calendarMode, setCalendarMode] = useState('');
     const [onCalendarActivities, setOnCalendarActivities] = useState<OnCalendarActivity[]>([]);
     const [loadingActivities, setLoadingActivities] = useState(false);
@@ -53,6 +65,9 @@ export default function CreateActivityProposal({ membership, terms, calendarMode
     const [activityDate, setActivityDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
+
+    // Partner Organization(s)/School(s)/RSO — Phase 2 item 7 slice 4a
+    const [partnerOrgs, setPartnerOrgs] = useState<string[]>(['']);
 
     // Conflict state (off-calendar live preview)
     const [confirmedConflicts, setConfirmedConflicts] = useState<ConflictItem[]>([]);
@@ -123,7 +138,9 @@ clearTimeout(conflictTimer.current);
 
             <div className="mx-auto max-w-xl space-y-6 p-8">
                 <h1 className="text-xl font-semibold">New Activity Proposal</h1>
-                <p className="text-sm text-muted-foreground">Organization: {membership.organization.name}</p>
+                <p className="text-sm text-muted-foreground">
+                    <span className="font-medium">Name of RSO:</span> {membership.organization.name}
+                </p>
 
                 <Form action={activityProposals.store().url} method="post">
                     <div className="space-y-4">
@@ -188,7 +205,7 @@ clearTimeout(conflictTimer.current);
                         {calendarMode === 'off_calendar' && (
                             <>
                                 <div className="space-y-1">
-                                    <Label htmlFor="title">Activity Title</Label>
+                                    <Label htmlFor="title">Title of Activity</Label>
                                     <Input id="title" name="title" placeholder="e.g. Leadership Summit" />
                                     <InputError message={errors.title} />
                                 </div>
@@ -206,7 +223,7 @@ clearTimeout(conflictTimer.current);
 
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="activity_date">Date</Label>
+                                        <Label htmlFor="activity_date">Date of Activity</Label>
                                         <Input
                                             id="activity_date"
                                             name="activity_date"
@@ -286,6 +303,128 @@ clearTimeout(conflictTimer.current);
                                         </CardContent>
                                     </Card>
                                 )}
+                            </>
+                        )}
+
+                        {/* Exact field corrections (Phase 2 item 7 slice 4a) —
+                            apply regardless of on/off-calendar mode, since
+                            these are proposal-level classification/budget
+                            data, not schedule data. */}
+                        {calendarMode !== '' && (
+                            <>
+                                <div className="space-y-1">
+                                    <Label htmlFor="activity_nature">Nature of Activity</Label>
+                                    <Select name="activity_nature">
+                                        <SelectTrigger id="activity_nature">
+                                            <SelectValue placeholder="Select nature…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {activityNatures.map((n) => (
+                                                <SelectItem key={n.value} value={n.value}>
+                                                    {n.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.activity_nature} />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label htmlFor="activity_type">Type of Activity</Label>
+                                    <Select name="activity_type">
+                                        <SelectTrigger id="activity_type">
+                                            <SelectValue placeholder="Select type…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {activityTypes.map((t) => (
+                                                <SelectItem key={t.value} value={t.value}>
+                                                    {t.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.activity_type} />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <Label>Partner Organization(s)/School(s)/RSO</Label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setPartnerOrgs((prev) => [...prev, ''])}
+                                        >
+                                            + Add
+                                        </Button>
+                                    </div>
+                                    {partnerOrgs.map((org, i) => (
+                                        <div key={i} className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    name={`partner_organizations[${i}]`}
+                                                    value={org}
+                                                    onChange={(e) =>
+                                                        setPartnerOrgs((prev) => {
+                                                            const next = [...prev];
+                                                            next[i] = e.target.value;
+
+                                                            return next;
+                                                        })
+                                                    }
+                                                    placeholder="Organization, School, or RSO name"
+                                                />
+                                                {partnerOrgs.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setPartnerOrgs((prev) => prev.filter((_, idx) => idx !== i))}
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <InputError message={errors[`partner_organizations.${i}`]} />
+                                        </div>
+                                    ))}
+                                    <InputError message={errors.partner_organizations} />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label htmlFor="target_sdg">Target SDG</Label>
+                                    <Select name="target_sdg">
+                                        <SelectTrigger id="target_sdg">
+                                            <SelectValue placeholder="Select SDG…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sdgs.map((s) => (
+                                                <SelectItem key={s.value} value={s.value}>
+                                                    {s.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.target_sdg} />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label htmlFor="proposed_budget">Proposed Budget</Label>
+                                    <Input
+                                        id="proposed_budget"
+                                        name="proposed_budget"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                    />
+                                    <InputError message={errors.proposed_budget} />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <Label htmlFor="budget_source">Budget Source</Label>
+                                    <Input id="budget_source" name="budget_source" placeholder="e.g. Org funds, sponsorship…" />
+                                    <InputError message={errors.budget_source} />
+                                </div>
                             </>
                         )}
 

@@ -343,6 +343,15 @@ test('an unverified officer is forbidden from creating an activity-proposal draf
         'start_time' => '10:00',
         'end_time' => '12:00',
         'term' => 'first_term',
+        // Required by StoreProposalStepOneRequest (Phase 2 item 7 slice 4a)
+        // — without these the request would 422 on validation before ever
+        // reaching the authorization check this test is actually exercising.
+        'activity_nature' => 'co_curricular',
+        'activity_type' => 'seminar_workshop',
+        'partner_organizations' => ['Partner Org'],
+        'target_sdg' => 'quality_education',
+        'proposed_budget' => '5000.00',
+        'budget_source' => 'Org funds',
     ]);
 
     $response->assertForbidden();

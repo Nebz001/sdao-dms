@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityNature;
+use App\Enums\ActivityType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\Sdg;
 use Database\Factories\ActivityProposalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,12 +19,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ProposalCalendarMode $calendar_mode
  * @property int|null $calendar_activity_id
  * @property string $title
+ * @property ActivityNature|null $activity_nature
+ * @property ActivityType|null $activity_type
+ * @property array<int, string>|null $partner_organizations
+ * @property Sdg|null $target_sdg
  * @property string|null $objectives
  * @property string|null $narrative
- * @property float|null $estimated_budget
+ * @property float|null $proposed_budget
+ * @property string|null $budget_source
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'objectives', 'narrative', 'estimated_budget', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_type', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */
@@ -30,7 +38,11 @@ class ActivityProposal extends Model
     protected $casts = [
         'calendar_mode' => ProposalCalendarMode::class,
         'form_step' => 'integer',
-        'estimated_budget' => 'decimal:2',
+        'activity_nature' => ActivityNature::class,
+        'activity_type' => ActivityType::class,
+        'partner_organizations' => 'array',
+        'target_sdg' => Sdg::class,
+        'proposed_budget' => 'decimal:2',
     ];
 
     /** @return BelongsTo<Document, $this> */

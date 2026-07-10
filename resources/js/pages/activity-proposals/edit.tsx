@@ -1,18 +1,27 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import * as activityProposals from '@/routes/activity-proposals';
+
+type OptionItem = { value: string; label: string };
 
 type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
     narrative: string | null;
-    estimated_budget: string | null;
+    proposed_budget: string | null;
+    activity_nature: string | null;
+    activity_type: string | null;
+    partner_organizations: string[] | null;
+    target_sdg: string | null;
+    budget_source: string | null;
 } | null;
 
 type ActivityData = {
@@ -28,11 +37,25 @@ type Props = {
     document: { id: number; title: string };
     proposal: ProposalData;
     activity: ActivityData;
+    activityNatures: OptionItem[];
+    activityTypes: OptionItem[];
+    sdgs: OptionItem[];
     errors?: Record<string, string>;
 };
 
-export default function EditActivityProposal({ document: doc, proposal, activity, errors = {} }: Props) {
+export default function EditActivityProposal({
+    document: doc,
+    proposal,
+    activity,
+    activityNatures,
+    activityTypes,
+    sdgs,
+    errors = {},
+}: Props) {
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
+    const [partnerOrgs, setPartnerOrgs] = useState<string[]>(
+        proposal?.partner_organizations?.length ? proposal.partner_organizations : [''],
+    );
 
     return (
         <>
@@ -62,7 +85,7 @@ export default function EditActivityProposal({ document: doc, proposal, activity
                         {isOffCalendar && (
                             <>
                                 <div className="space-y-1">
-                                    <Label htmlFor="title">Activity Title</Label>
+                                    <Label htmlFor="title">Title of Activity</Label>
                                     <Input id="title" name="title" defaultValue={proposal?.title ?? ''} />
                                     <InputError message={errors.title} />
                                 </div>
@@ -73,7 +96,7 @@ export default function EditActivityProposal({ document: doc, proposal, activity
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="activity_date">Date</Label>
+                                        <Label htmlFor="activity_date">Date of Activity</Label>
                                         <Input
                                             id="activity_date"
                                             name="activity_date"
@@ -128,17 +151,126 @@ export default function EditActivityProposal({ document: doc, proposal, activity
                             <InputError message={errors.narrative} />
                         </div>
 
+                        {/* Exact field corrections (Phase 2 item 7 slice 4a) —
+                            editable on resubmission, same as Proposed Budget. */}
                         <div className="space-y-1">
-                            <Label htmlFor="estimated_budget">Estimated Budget (optional)</Label>
+                            <Label htmlFor="activity_nature">Nature of Activity</Label>
+                            <Select name="activity_nature" defaultValue={proposal?.activity_nature ?? undefined}>
+                                <SelectTrigger id="activity_nature">
+                                    <SelectValue placeholder="Select nature…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activityNatures.map((n) => (
+                                        <SelectItem key={n.value} value={n.value}>
+                                            {n.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.activity_nature} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="activity_type">Type of Activity</Label>
+                            <Select name="activity_type" defaultValue={proposal?.activity_type ?? undefined}>
+                                <SelectTrigger id="activity_type">
+                                    <SelectValue placeholder="Select type…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activityTypes.map((t) => (
+                                        <SelectItem key={t.value} value={t.value}>
+                                            {t.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.activity_type} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                                <Label>Partner Organization(s)/School(s)/RSO</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPartnerOrgs((prev) => [...prev, ''])}
+                                >
+                                    + Add
+                                </Button>
+                            </div>
+                            {partnerOrgs.map((org, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            name={`partner_organizations[${i}]`}
+                                            value={org}
+                                            onChange={(e) =>
+                                                setPartnerOrgs((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = e.target.value;
+
+                                                    return next;
+                                                })
+                                            }
+                                            placeholder="Organization, School, or RSO name"
+                                        />
+                                        {partnerOrgs.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setPartnerOrgs((prev) => prev.filter((_, idx) => idx !== i))}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <InputError message={errors[`partner_organizations.${i}`]} />
+                                </div>
+                            ))}
+                            <InputError message={errors.partner_organizations} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="target_sdg">Target SDG</Label>
+                            <Select name="target_sdg" defaultValue={proposal?.target_sdg ?? undefined}>
+                                <SelectTrigger id="target_sdg">
+                                    <SelectValue placeholder="Select SDG…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sdgs.map((s) => (
+                                        <SelectItem key={s.value} value={s.value}>
+                                            {s.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.target_sdg} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="proposed_budget">Proposed Budget</Label>
                             <Input
-                                id="estimated_budget"
-                                name="estimated_budget"
+                                id="proposed_budget"
+                                name="proposed_budget"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                defaultValue={proposal?.estimated_budget ?? ''}
+                                defaultValue={proposal?.proposed_budget ?? ''}
                             />
-                            <InputError message={errors.estimated_budget} />
+                            <InputError message={errors.proposed_budget} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="budget_source">Budget Source</Label>
+                            <Input
+                                id="budget_source"
+                                name="budget_source"
+                                defaultValue={proposal?.budget_source ?? ''}
+                                placeholder="e.g. Org funds, sponsorship…"
+                            />
+                            <InputError message={errors.budget_source} />
                         </div>
 
                         <InputError message={errors.activity} />

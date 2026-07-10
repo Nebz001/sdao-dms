@@ -20,7 +20,8 @@ class SubmitProposalRequest extends FormRequest
         return [
             'objectives' => ['required', 'string'],
             'narrative' => ['required', 'string'],
-            'estimated_budget' => ['nullable', 'numeric', 'min:0'],
+            // proposed_budget is no longer collected at step 2 (Phase 2
+            // item 7 slice 4a) — it's set once at step 1.
         ];
     }
 }

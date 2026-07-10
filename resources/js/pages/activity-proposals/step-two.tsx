@@ -3,7 +3,6 @@ import { useRef } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import * as activityProposals from '@/routes/activity-proposals';
@@ -21,7 +20,8 @@ type ProposalData = {
     title: string;
     objectives: string | null;
     narrative: string | null;
-    estimated_budget: string | null;
+    proposed_budget: string | null;
+    budget_source: string | null;
 } | null;
 
 type DocumentData = {
@@ -39,7 +39,6 @@ type Props = {
 export default function StepTwo({ document: doc, proposal, activity, errors = {} }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const narrativeRef = useRef<HTMLTextAreaElement>(null);
-    const budgetRef = useRef<HTMLInputElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     function scheduleSave() {
@@ -53,7 +52,6 @@ clearTimeout(saveTimer.current);
                 {
                     objectives: objectivesRef.current?.value ?? null,
                     narrative: narrativeRef.current?.value ?? null,
-                    estimated_budget: budgetRef.current?.value || null,
                 },
                 { preserveState: true, preserveScroll: true },
             );
@@ -70,7 +68,8 @@ clearTimeout(saveTimer.current);
                     <p className="mt-1 text-sm text-muted-foreground">{doc.title}</p>
                 </div>
 
-                {/* Activity summary */}
+                {/* Activity summary + Proposed Budget/Budget Source read-only echo
+                    (Phase 2 item 7 slice 4a — set once at step 1, not editable here) */}
                 {activity && (
                     <Card>
                         <CardHeader>
@@ -81,6 +80,17 @@ clearTimeout(saveTimer.current);
                             <p className="text-muted-foreground">
                                 {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
                             </p>
+                            {proposal?.proposed_budget && (
+                                <p className="mt-2 text-muted-foreground">
+                                    <span className="font-medium text-foreground">Proposed Budget:</span>{' '}
+                                    {proposal.proposed_budget}
+                                </p>
+                            )}
+                            {proposal?.budget_source && (
+                                <p className="text-muted-foreground">
+                                    <span className="font-medium text-foreground">Budget Source:</span> {proposal.budget_source}
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -111,21 +121,6 @@ clearTimeout(saveTimer.current);
                                 onChange={scheduleSave}
                             />
                             <InputError message={errors.narrative} />
-                        </div>
-
-                        <div className="space-y-1">
-                            <Label htmlFor="estimated_budget">Estimated Budget (optional)</Label>
-                            <Input
-                                id="estimated_budget"
-                                name="estimated_budget"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                ref={budgetRef}
-                                defaultValue={proposal?.estimated_budget ?? ''}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.estimated_budget} />
                         </div>
 
                         {/* Attachments placeholder */}

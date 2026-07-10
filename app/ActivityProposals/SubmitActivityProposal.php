@@ -38,7 +38,6 @@ class SubmitActivityProposal
         Document $document,
         string $objectives,
         string $narrative,
-        ?string $estimatedBudget = null,
     ): array {
         if ($document->status !== DocumentStatus::Draft) {
             throw new AuthorizationException('Only Draft documents can be submitted to the chain.');
@@ -59,11 +58,13 @@ class SubmitActivityProposal
 
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
 
-        $document = DB::transaction(function () use ($actor, $document, $proposal, $variant, $objectives, $narrative, $estimatedBudget) {
+        $document = DB::transaction(function () use ($actor, $document, $proposal, $variant, $objectives, $narrative) {
+            // proposed_budget (and the other step-1 exact fields) are
+            // intentionally NOT touched here — they're set once at step 1
+            // (Phase 2 item 7 slice 4a) and never re-collected at step 2.
             $proposal->update([
                 'objectives' => $objectives,
                 'narrative' => $narrative,
-                'estimated_budget' => $estimatedBudget,
             ]);
 
             $document->variant = $variant;

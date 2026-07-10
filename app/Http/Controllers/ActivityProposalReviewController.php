@@ -110,7 +110,13 @@ class ActivityProposalReviewController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
-                'estimated_budget' => $proposal->estimated_budget,
+                'proposed_budget' => $proposal->proposed_budget,
+                // Exact field corrections (Phase 2 item 7 slice 4a).
+                'activity_nature_label' => $proposal->activity_nature?->label(),
+                'activity_type_label' => $proposal->activity_type?->label(),
+                'partner_organizations' => $proposal->partner_organizations,
+                'target_sdg_label' => $proposal->target_sdg?->label(),
+                'budget_source' => $proposal->budget_source,
             ] : null,
             'activity' => $activity ? [
                 'name' => $activity->name,

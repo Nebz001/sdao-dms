@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Proposals;
 
+use App\Enums\ActivityNature;
+use App\Enums\ActivityType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\Sdg;
 use App\Enums\Term;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -41,6 +44,34 @@ class StoreProposalStepOneRequest extends FormRequest
             'start_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i'],
             'end_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i', 'after:start_time'],
             'term' => [Rule::requiredIf($isOffCalendar), 'nullable', Rule::enum(Term::class)],
+
+            // Exact field corrections (Phase 2 item 7 slice 4a) — apply
+            // regardless of calendar_mode; proposal-level classification/
+            // budget data, not schedule data.
+            'activity_nature' => ['required', Rule::enum(ActivityNature::class)],
+            'activity_type' => ['required', Rule::enum(ActivityType::class)],
+            'partner_organizations' => ['required', 'array', 'min:1'],
+            'partner_organizations.*' => ['required', 'string', 'max:255'],
+            'target_sdg' => ['required', Rule::enum(Sdg::class)],
+            'proposed_budget' => ['required', 'numeric', 'min:0'],
+            'budget_source' => ['required', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'title' => 'Title of Activity',
+            'activity_date' => 'Date of Activity',
+            'activity_nature' => 'Nature of Activity',
+            'activity_type' => 'Type of Activity',
+            'partner_organizations' => 'Partner Organization(s)/School(s)/RSO',
+            'target_sdg' => 'Target SDG',
+            'proposed_budget' => 'Proposed Budget',
+            'budget_source' => 'Budget Source',
         ];
     }
 }

@@ -20,8 +20,13 @@ type ProposalData = {
     title: string;
     objectives: string | null;
     narrative: string | null;
-    estimated_budget: string | null;
+    proposed_budget: string | null;
     form_step: number;
+    activity_nature_label: string | null;
+    activity_type_label: string | null;
+    partner_organizations: string[] | null;
+    target_sdg_label: string | null;
+    budget_source: string | null;
 } | null;
 
 type ActivityData = {
@@ -86,7 +91,9 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-xl font-semibold">{doc.title}</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">{doc.organization.name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            <span className="font-medium">Name of RSO:</span> {doc.organization.name}
+                        </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Badge variant={statusVariant[doc.status] ?? 'outline'}>{statusLabel(doc.status)}</Badge>
@@ -138,6 +145,44 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                     </Card>
                 )}
 
+                {/* Activity Request Form fields (Phase 2 item 7 slice 4a) */}
+                {proposal && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Activity Request Form</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid gap-3 text-sm">
+                            {proposal.activity_nature_label && (
+                                <Row label="Nature of Activity" value={proposal.activity_nature_label} />
+                            )}
+                            {proposal.activity_type_label && (
+                                <Row label="Type of Activity" value={proposal.activity_type_label} />
+                            )}
+                            {proposal.partner_organizations && proposal.partner_organizations.length > 0 && (
+                                <div className="grid gap-1">
+                                    <span className="font-medium text-muted-foreground">
+                                        Partner Organization(s)/School(s)/RSO
+                                    </span>
+                                    <ul className="list-disc pl-4">
+                                        {proposal.partner_organizations.map((org, i) => (
+                                            <li key={i}>{org}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {proposal.target_sdg_label && (
+                                <Row label="Target SDG" value={proposal.target_sdg_label} />
+                            )}
+                            {proposal.proposed_budget && (
+                                <Row label="Proposed Budget" value={`₱${proposal.proposed_budget}`} />
+                            )}
+                            {proposal.budget_source && (
+                                <Row label="Budget Source" value={proposal.budget_source} />
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Narrative */}
                 {proposal && (proposal.objectives || proposal.narrative) && (
                     <Card>
@@ -155,12 +200,6 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                                 <div>
                                     <p className="mb-1 font-medium">Narrative</p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">{proposal.narrative}</p>
-                                </div>
-                            )}
-                            {proposal.estimated_budget && (
-                                <div>
-                                    <p className="mb-1 font-medium">Estimated Budget</p>
-                                    <p className="text-muted-foreground">₱{proposal.estimated_budget}</p>
                                 </div>
                             )}
                         </CardContent>
@@ -201,6 +240,15 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                 </Card>
             </div>
         </>
+    );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="grid grid-cols-3 gap-2">
+            <span className="font-medium text-muted-foreground">{label}</span>
+            <span className="col-span-2">{value}</span>
+        </div>
     );
 }
 

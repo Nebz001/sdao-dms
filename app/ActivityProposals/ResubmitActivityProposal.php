@@ -72,7 +72,14 @@ class ResubmitActivityProposal
             $proposal->update([
                 'objectives' => $data['objectives'],
                 'narrative' => $data['narrative'],
-                'estimated_budget' => $data['estimated_budget'] ?? $proposal->estimated_budget,
+                'proposed_budget' => $data['proposed_budget'] ?? $proposal->proposed_budget,
+                // Exact field corrections (Phase 2 item 7 slice 4a) — editable
+                // on resubmission, same as proposed_budget already is.
+                'activity_nature' => $data['activity_nature'] ?? $proposal->activity_nature,
+                'activity_type' => $data['activity_type'] ?? $proposal->activity_type,
+                'partner_organizations' => $data['partner_organizations'] ?? $proposal->partner_organizations,
+                'target_sdg' => $data['target_sdg'] ?? $proposal->target_sdg,
+                'budget_source' => $data['budget_source'] ?? $proposal->budget_source,
             ]);
 
             if (isset($data['title'])) {

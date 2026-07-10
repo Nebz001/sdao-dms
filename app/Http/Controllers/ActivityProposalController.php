@@ -7,9 +7,12 @@ use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
 use App\Calendar\VenueConflictChecker;
+use App\Enums\ActivityNature;
+use App\Enums\ActivityType;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\Sdg;
 use App\Enums\Term;
 use App\Http\Requests\Proposals\ConflictCheckRequest;
 use App\Http\Requests\Proposals\StoreProposalStepOneRequest;
@@ -78,6 +81,19 @@ class ActivityProposalController extends Controller
             'calendarModes' => collect(ProposalCalendarMode::cases())->map(fn ($m) => [
                 'value' => $m->value,
                 'label' => $m->label(),
+            ]),
+            // Exact field corrections (Phase 2 item 7 slice 4a).
+            'activityNatures' => collect(ActivityNature::cases())->map(fn ($n) => [
+                'value' => $n->value,
+                'label' => $n->label(),
+            ]),
+            'activityTypes' => collect(ActivityType::cases())->map(fn ($t) => [
+                'value' => $t->value,
+                'label' => $t->label(),
+            ]),
+            'sdgs' => collect(Sdg::cases())->map(fn ($s) => [
+                'value' => $s->value,
+                'label' => $s->number().'. '.$s->label(),
             ]),
         ]);
     }
@@ -196,8 +212,14 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
-                'estimated_budget' => $proposal->estimated_budget,
+                'proposed_budget' => $proposal->proposed_budget,
                 'form_step' => $proposal->form_step,
+                // Exact field corrections (Phase 2 item 7 slice 4a).
+                'activity_nature_label' => $proposal->activity_nature?->label(),
+                'activity_type_label' => $proposal->activity_type?->label(),
+                'partner_organizations' => $proposal->partner_organizations,
+                'target_sdg_label' => $proposal->target_sdg?->label(),
+                'budget_source' => $proposal->budget_source,
             ] : null,
             'activity' => $activity ? [
                 'id' => $activity->id,
@@ -238,7 +260,14 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
-                'estimated_budget' => $proposal->estimated_budget,
+                'proposed_budget' => $proposal->proposed_budget,
+                // Exact field corrections (Phase 2 item 7 slice 4a) — raw
+                // values for re-selecting in the editable form.
+                'activity_nature' => $proposal->activity_nature?->value,
+                'activity_type' => $proposal->activity_type?->value,
+                'partner_organizations' => $proposal->partner_organizations,
+                'target_sdg' => $proposal->target_sdg?->value,
+                'budget_source' => $proposal->budget_source,
             ] : null,
             'activity' => $activity ? [
                 'id' => $activity->id,
@@ -251,6 +280,18 @@ class ActivityProposalController extends Controller
             'terms' => collect(Term::cases())->map(fn ($t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
+            ]),
+            'activityNatures' => collect(ActivityNature::cases())->map(fn ($n) => [
+                'value' => $n->value,
+                'label' => $n->label(),
+            ]),
+            'activityTypes' => collect(ActivityType::cases())->map(fn ($t) => [
+                'value' => $t->value,
+                'label' => $t->label(),
+            ]),
+            'sdgs' => collect(Sdg::cases())->map(fn ($s) => [
+                'value' => $s->value,
+                'label' => $s->number().'. '.$s->label(),
             ]),
         ]);
     }
@@ -275,7 +316,10 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
-                'estimated_budget' => $proposal->estimated_budget,
+                // proposed_budget is read-only here — set once at step 1
+                // (Phase 2 item 7 slice 4a), never re-collected at step 2.
+                'proposed_budget' => $proposal->proposed_budget,
+                'budget_source' => $proposal->budget_source,
             ] : null,
             'activity' => $activity ? [
                 'name' => $activity->name,
@@ -323,7 +367,6 @@ class ActivityProposalController extends Controller
             document: $document,
             objectives: $request->string('objectives')->toString(),
             narrative: $request->string('narrative')->toString(),
-            estimatedBudget: $request->string('estimated_budget')->toString() ?: null,
         );
 
         $flash = ['message' => 'Proposal submitted for review.'];

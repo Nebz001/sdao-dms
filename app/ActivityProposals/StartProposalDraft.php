@@ -50,20 +50,23 @@ class StartProposalDraft
 
         return DB::transaction(function () use ($actor, $organization, $mode, $data) {
             if ($mode === ProposalCalendarMode::OnCalendar) {
-                return $this->startOnCalendar($actor, $organization, (int) $data['calendar_activity_id']);
+                return $this->startOnCalendar($actor, $organization, $data);
             }
 
             return $this->startOffCalendar($actor, $organization, $data);
         });
     }
 
-    private function startOnCalendar(User $actor, Organization $organization, int $calendarActivityId): Document
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function startOnCalendar(User $actor, Organization $organization, array $data): Document
     {
         $calendarActivity = CalendarActivity::query()
             ->whereHas('calendar.document', fn ($q) => $q
                 ->where('organization_id', $organization->id)
                 ->where('status', DocumentStatus::Approved->value))
-            ->where('id', $calendarActivityId)
+            ->where('id', (int) $data['calendar_activity_id'])
             ->firstOrFail();
 
         $document = Document::create([
@@ -82,6 +85,7 @@ class StartProposalDraft
             'calendar_mode' => ProposalCalendarMode::OnCalendar->value,
             'calendar_activity_id' => $calendarActivity->id,
             'title' => $calendarActivity->name,
+            ...$this->exactFieldsFromData($data),
             'form_step' => 2,
         ]);
 
@@ -130,9 +134,33 @@ class StartProposalDraft
             'calendar_mode' => ProposalCalendarMode::OffCalendar->value,
             'calendar_activity_id' => $calendarActivity->id,
             'title' => $data['title'],
+            ...$this->exactFieldsFromData($data),
             'form_step' => 2,
         ]);
 
         return $document;
+    }
+
+    /**
+     * Exact field corrections (Phase 2 item 7 slice 4a) — Nature of
+     * Activity, Type of Activity, Partner Organization(s), Target SDG,
+     * Budget Source, and Proposed Budget apply regardless of calendar_mode
+     * (they're proposal-level classification/budget data, not schedule
+     * data). Nullable at the DB level; StoreProposalStepOneRequest is what
+     * actually requires them for a real student submission.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function exactFieldsFromData(array $data): array
+    {
+        return [
+            'activity_nature' => $data['activity_nature'] ?? null,
+            'activity_type' => $data['activity_type'] ?? null,
+            'partner_organizations' => $data['partner_organizations'] ?? null,
+            'target_sdg' => $data['target_sdg'] ?? null,
+            'proposed_budget' => $data['proposed_budget'] ?? null,
+            'budget_source' => $data['budget_source'] ?? null,
+        ];
     }
 }

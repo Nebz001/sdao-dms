@@ -25,12 +25,12 @@ class UpdateProposalDraft
 
         $proposal = $document->activityProposal;
 
+        // proposed_budget is intentionally NOT autosaved here — it's set
+        // once at step 1 (Phase 2 item 7 slice 4a) and is not part of the
+        // step-2 narrative autosave.
         $proposal->update([
             'objectives' => $data['objectives'] ?? $proposal->objectives,
             'narrative' => $data['narrative'] ?? $proposal->narrative,
-            'estimated_budget' => array_key_exists('estimated_budget', $data)
-                ? $data['estimated_budget']
-                : $proposal->estimated_budget,
         ]);
 
         return $document;
