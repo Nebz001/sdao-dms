@@ -125,9 +125,13 @@ class AfterActivityReportController extends Controller
         $document = $action->execute(
             actor: $user,
             proposal: $proposal,
-            narrative: $request->string('narrative')->toString(),
+            summary: $request->string('summary')->toString(),
             outcomes: $request->string('outcomes')->toString() ?: null,
             participantCount: $request->filled('participant_count') ? $request->integer('participant_count') : null,
+            activityChairs: $request->input('activity_chairs'),
+            preparedBy: $request->string('prepared_by')->toString(),
+            eventProgram: $request->string('event_program')->toString(),
+            targetParticipantsPercentage: $request->integer('target_participants_percentage'),
         );
 
         return redirect()->route('reports.show', $document)
@@ -155,15 +159,26 @@ class AfterActivityReportController extends Controller
                 'current_step_position' => $document->current_step_position,
                 'submitted_by' => $document->submitted_by,
                 'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                // Date Submitted (Phase 2 item 7 slice 3) — derived, same
+                // pattern as Activity Calendar's Date Received.
+                'date_submitted' => $document->created_at,
             ],
             'report' => $report ? [
-                'narrative' => $report->narrative,
+                'summary' => $report->summary,
                 'outcomes' => $report->outcomes,
                 'participant_count' => $report->participant_count,
+                'activity_chairs' => $report->activity_chairs,
+                'prepared_by' => $report->prepared_by,
+                'event_program' => $report->event_program,
+                'target_participants_percentage' => $report->target_participants_percentage,
                 'activity' => $report->activityProposal ? [
+                    // Name of Event / Date and Time of Event — derived from
+                    // the linked proposal/activity, not duplicated storage.
                     'title' => $report->activityProposal->title,
                     'venue' => $report->activityProposal->calendarActivity?->venue,
                     'activity_date' => $report->activityProposal->calendarActivity?->activity_date?->toDateString(),
+                    'start_time' => $report->activityProposal->calendarActivity?->start_time,
+                    'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
             'history' => $document->transitions->map(fn ($t) => [
@@ -189,11 +204,19 @@ class AfterActivityReportController extends Controller
         return Inertia::render('reports/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
             'detail' => $report ? [
-                'narrative' => $report->narrative,
+                'summary' => $report->summary,
                 'outcomes' => $report->outcomes,
                 'participant_count' => $report->participant_count,
+                'activity_chairs' => $report->activity_chairs,
+                'prepared_by' => $report->prepared_by,
+                'event_program' => $report->event_program,
+                'target_participants_percentage' => $report->target_participants_percentage,
                 'activity' => $report->activityProposal ? [
                     'title' => $report->activityProposal->title,
+                    'venue' => $report->activityProposal->calendarActivity?->venue,
+                    'activity_date' => $report->activityProposal->calendarActivity?->activity_date?->toDateString(),
+                    'start_time' => $report->activityProposal->calendarActivity?->start_time,
+                    'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
         ]);
@@ -206,9 +229,13 @@ class AfterActivityReportController extends Controller
         $action->execute(
             actor: Auth::user(),
             document: $document,
-            narrative: $request->string('narrative')->toString(),
+            summary: $request->string('summary')->toString(),
             outcomes: $request->string('outcomes')->toString() ?: null,
             participantCount: $request->filled('participant_count') ? $request->integer('participant_count') : null,
+            activityChairs: $request->input('activity_chairs'),
+            preparedBy: $request->string('prepared_by')->toString(),
+            eventProgram: $request->string('event_program')->toString(),
+            targetParticipantsPercentage: $request->integer('target_participants_percentage'),
         );
 
         return redirect()->route('reports.show', $document)

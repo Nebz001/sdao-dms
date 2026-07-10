@@ -94,7 +94,7 @@ function submitReportForOrg(User $actor, Organization $org): void
     app(SubmitAfterActivityReport::class)->execute(
         actor: $actor,
         proposal: $proposal,
-        narrative: 'The activity happened as planned.',
+        summary: 'The activity happened as planned.',
     );
 }
 

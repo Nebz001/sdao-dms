@@ -133,7 +133,7 @@ test('(ii) picker excludes a proposal that already has a non-rejected (e.g. InRe
     app(SubmitAfterActivityReport::class)->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'First report, still under review.',
+        summary: 'First report, still under review.',
     );
 
     $this->actingAs($this->studentAlpha)
@@ -153,7 +153,7 @@ test('(ii) a proposal whose only report was REJECTED reappears in the picker —
     $report = app(SubmitAfterActivityReport::class)->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'First report attempt.',
+        summary: 'First report attempt.',
     );
 
     $this->engine->reject($report, $sdaoA, 'Not enough detail.');
@@ -178,7 +178,7 @@ test('(i)+(ii) combined: multiple orgs and report states — picker returns exac
     app(SubmitAfterActivityReport::class)->execute(
         actor: $this->studentAlpha,
         proposal: $csReported,
-        narrative: 'Live report.',
+        summary: 'Live report.',
     );
 
     // IT Guild: approved proposal, eligible for IT Guild but must NOT appear for Computing Society.

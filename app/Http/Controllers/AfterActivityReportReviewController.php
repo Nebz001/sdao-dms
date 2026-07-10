@@ -67,15 +67,23 @@ class AfterActivityReportReviewController extends Controller
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
                 'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                // Date Submitted (Phase 2 item 7 slice 3) — derived.
+                'date_submitted' => $document->created_at,
             ],
             'report' => $report ? [
-                'narrative' => $report->narrative,
+                'summary' => $report->summary,
                 'outcomes' => $report->outcomes,
                 'participant_count' => $report->participant_count,
+                'activity_chairs' => $report->activity_chairs,
+                'prepared_by' => $report->prepared_by,
+                'event_program' => $report->event_program,
+                'target_participants_percentage' => $report->target_participants_percentage,
                 'activity' => $report->activityProposal ? [
                     'title' => $report->activityProposal->title,
                     'venue' => $report->activityProposal->calendarActivity?->venue,
                     'activity_date' => $report->activityProposal->calendarActivity?->activity_date?->toDateString(),
+                    'start_time' => $report->activityProposal->calendarActivity?->start_time,
+                    'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
             'history' => $document->transitions->map(fn ($t) => [

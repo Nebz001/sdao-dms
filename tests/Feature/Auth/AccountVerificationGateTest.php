@@ -359,7 +359,14 @@ test('an unverified officer is forbidden from submitting an after-activity repor
 
     $response = $this->actingAs($officer)->post(route('reports.store'), [
         'activity_proposal_id' => $proposal->id,
-        'narrative' => 'Should never be created.',
+        'summary' => 'Should never be created.',
+        // Required by StoreReportRequest (Phase 2 item 7 slice 3) — without
+        // these the request would 422 on validation before ever reaching
+        // the authorization check this test is actually exercising.
+        'activity_chairs' => ['Chair Name'],
+        'prepared_by' => 'Preparer Name',
+        'event_program' => 'Program details.',
+        'target_participants_percentage' => 80,
     ]);
 
     $response->assertForbidden();

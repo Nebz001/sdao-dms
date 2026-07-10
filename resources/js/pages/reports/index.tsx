@@ -55,6 +55,9 @@ export default function ReportsIndex({ reports: items }: Props) {
                                         <div>
                                             <p className="font-medium">{r.title}</p>
                                             <p className="text-sm text-muted-foreground">{r.organization.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Date Submitted: {new Date(r.created_at).toLocaleDateString()}
+                                            </p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Badge variant={statusVariant[r.status] ?? 'outline'}>

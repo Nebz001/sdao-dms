@@ -19,9 +19,13 @@ class UpdateAfterActivityReport
     public function execute(
         User $actor,
         Document $document,
-        string $narrative,
+        string $summary,
         ?string $outcomes = null,
         ?int $participantCount = null,
+        ?array $activityChairs = null,
+        ?string $preparedBy = null,
+        ?string $eventProgram = null,
+        ?int $targetParticipantsPercentage = null,
     ): Document {
         if ($document->status !== DocumentStatus::Returned) {
             throw new AuthorizationException('Only returned documents can be edited.');
@@ -31,13 +35,20 @@ class UpdateAfterActivityReport
             throw new AuthorizationException('Only the original submitter may edit this document.');
         }
 
-        return DB::transaction(function () use ($actor, $document, $narrative, $outcomes, $participantCount) {
+        return DB::transaction(function () use (
+            $actor, $document, $summary, $outcomes, $participantCount,
+            $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage
+        ) {
             // activity_proposal_id is intentionally NOT included here — the
             // hard link to the approved activity never changes on revision.
             $document->afterActivityReport()->update([
-                'narrative' => $narrative,
+                'summary' => $summary,
                 'outcomes' => $outcomes,
                 'participant_count' => $participantCount,
+                'activity_chairs' => $activityChairs,
+                'prepared_by' => $preparedBy,
+                'event_program' => $eventProgram,
+                'target_participants_percentage' => $targetParticipantsPercentage,
             ]);
 
             $this->engine->resubmit($document, $actor);

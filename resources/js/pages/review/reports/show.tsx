@@ -16,16 +16,23 @@ type DocumentData = {
     status: string;
     current_step_position: number | null;
     organization: Organization;
+    date_submitted: string;
 };
 
 type ReportData = {
-    narrative: string;
+    summary: string;
     outcomes: string | null;
     participant_count: number | null;
+    activity_chairs: string[] | null;
+    prepared_by: string | null;
+    event_program: string | null;
+    target_participants_percentage: number | null;
     activity: {
         title: string;
         venue: string | null;
         activity_date: string | null;
+        start_time: string | null;
+        end_time: string | null;
     } | null;
 } | null;
 
@@ -87,6 +94,12 @@ export default function ReviewReportShow({
                     </Badge>
                 </div>
 
+                {/* Date Submitted (Phase 2 item 7 slice 3) — derived. */}
+                <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Date Submitted:</span>{' '}
+                    {new Date(document.date_submitted).toLocaleDateString()}
+                </p>
+
                 {/* Dual-SDAO quorum state */}
                 {isInReview && (
                     <Card>
@@ -116,21 +129,49 @@ export default function ReviewReportShow({
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
                             {report.activity && (
-                                <Row label="Activity" value={report.activity.title} />
+                                <Row label="Name of Event" value={report.activity.title} />
                             )}
                             {report.activity?.venue && (
                                 <Row label="Venue" value={report.activity.venue} />
                             )}
                             {report.activity?.activity_date && (
-                                <Row label="Activity Date" value={report.activity.activity_date} />
+                                <Row
+                                    label="Date and Time of Event"
+                                    value={`${report.activity.activity_date} · ${report.activity.start_time}–${report.activity.end_time}`}
+                                />
+                            )}
+                            {report.prepared_by && (
+                                <Row label="Prepared By" value={report.prepared_by} />
+                            )}
+                            {report.activity_chairs && report.activity_chairs.length > 0 && (
+                                <div className="grid gap-1">
+                                    <span className="font-medium text-muted-foreground">Activity Chair/s</span>
+                                    <ul className="list-disc pl-4">
+                                        {report.activity_chairs.map((chair, i) => (
+                                            <li key={i}>{chair}</li>
+                                        ))}
+                                    </ul>
+                                </div>
                             )}
                             {report.participant_count !== null && (
                                 <Row label="Participants" value={String(report.participant_count)} />
                             )}
+                            {report.target_participants_percentage !== null && (
+                                <Row
+                                    label="Activity Evaluation Report — % Target Participants"
+                                    value={`${report.target_participants_percentage}%`}
+                                />
+                            )}
                             <div className="grid gap-1">
-                                <span className="font-medium text-muted-foreground">Narrative</span>
-                                <p className="whitespace-pre-wrap">{report.narrative}</p>
+                                <span className="font-medium text-muted-foreground">Summary</span>
+                                <p className="whitespace-pre-wrap">{report.summary}</p>
                             </div>
+                            {report.event_program && (
+                                <div className="grid gap-1">
+                                    <span className="font-medium text-muted-foreground">Program</span>
+                                    <p className="whitespace-pre-wrap">{report.event_program}</p>
+                                </div>
+                            )}
                             {report.outcomes && (
                                 <div className="grid gap-1">
                                     <span className="font-medium text-muted-foreground">Outcomes</span>

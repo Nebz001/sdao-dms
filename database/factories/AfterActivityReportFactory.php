@@ -25,7 +25,7 @@ class AfterActivityReportFactory extends Factory
     {
         return [
             'document_id' => Document::factory(),
-            'narrative' => fake()->paragraphs(3, true),
+            'summary' => fake()->paragraphs(3, true),
             'outcomes' => fake()->paragraph(),
             'participant_count' => fake()->numberBetween(10, 200),
         ];

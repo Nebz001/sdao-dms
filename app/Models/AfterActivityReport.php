@@ -13,11 +13,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $document_id
  * @property int $activity_proposal_id
- * @property string $narrative
+ * @property string $summary
  * @property string|null $outcomes
  * @property int|null $participant_count
+ * @property array<int, string>|null $activity_chairs
+ * @property string|null $prepared_by
+ * @property string|null $event_program
+ * @property int|null $target_participants_percentage
  */
-#[Fillable(['document_id', 'activity_proposal_id', 'narrative', 'outcomes', 'participant_count'])]
+#[Fillable(['document_id', 'activity_proposal_id', 'summary', 'outcomes', 'participant_count', 'activity_chairs', 'prepared_by', 'event_program', 'target_participants_percentage'])]
 class AfterActivityReport extends Model
 {
     /** @use HasFactory<AfterActivityReportFactory> */
@@ -25,6 +29,8 @@ class AfterActivityReport extends Model
 
     protected $casts = [
         'participant_count' => 'integer',
+        'activity_chairs' => 'array',
+        'target_participants_percentage' => 'integer',
     ];
 
     /** @return BelongsTo<Document, $this> */

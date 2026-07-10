@@ -97,7 +97,7 @@ function submittedReportForComputingSociety(): Document
     return app(SubmitAfterActivityReport::class)->execute(
         actor: $student,
         proposal: $proposal,
-        narrative: 'The activity happened as planned.',
+        summary: 'The activity happened as planned.',
         outcomes: 'Great turnout.',
         participantCount: 100,
     );

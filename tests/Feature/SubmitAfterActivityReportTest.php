@@ -148,7 +148,7 @@ test('a report cannot be filed against a proposal that is not approved', functio
     expect(fn () => $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'The activity happened.',
+        summary: 'The activity happened.',
     ))->toThrow(ValidationException::class);
 });
 
@@ -158,7 +158,7 @@ test('an officer of the activity\'s org can submit a report against an approved 
     $report = $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'The activity happened as planned.',
+        summary: 'The activity happened as planned.',
         outcomes: 'Great turnout.',
         participantCount: 120,
     );
@@ -176,7 +176,7 @@ test('an officer of a different org cannot submit a report for this activity', f
     expect(fn () => $this->reportAction->execute(
         actor: $outsiderOfficer,
         proposal: $proposal,
-        narrative: 'Attempting to report someone else\'s activity.',
+        summary: 'Attempting to report someone else\'s activity.',
     ))->toThrow(AuthorizationException::class);
 });
 
@@ -186,13 +186,13 @@ test('at most one non-rejected report may exist per proposal', function () {
     $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'First report.',
+        summary: 'First report.',
     );
 
     expect(fn () => $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'Second report attempt.',
+        summary: 'Second report attempt.',
     ))->toThrow(ValidationException::class);
 });
 
@@ -202,7 +202,7 @@ test('a rejected report frees the slot — a new report for the same proposal is
     $firstReport = $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'First report.',
+        summary: 'First report.',
     );
 
     $this->engine->reject($firstReport, $this->sdaoA, 'Incomplete.');
@@ -212,7 +212,7 @@ test('a rejected report frees the slot — a new report for the same proposal is
     $secondReport = $this->reportAction->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'Second report after rejection.',
+        summary: 'Second report after rejection.',
     );
 
     expect($secondReport->status)->toBe(DocumentStatus::InReview);

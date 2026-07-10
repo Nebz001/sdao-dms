@@ -224,7 +224,7 @@ test('after-activity report show: org officer can view, different-org officer ca
     $reportDoc = app(SubmitAfterActivityReport::class)->execute(
         actor: $this->studentAlpha,
         proposal: $proposal,
-        narrative: 'The activity happened as planned.',
+        summary: 'The activity happened as planned.',
     );
 
     $this->actingAs($this->studentAlpha)->get(route('reports.show', $reportDoc))->assertOk();

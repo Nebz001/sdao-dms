@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -37,6 +38,8 @@ type Props = {
 };
 
 export default function CreateReport({ membership, eligibleProposals }: Props) {
+    const [chairs, setChairs] = useState<string[]>(['']);
+
     if (!membership) {
         return (
             <>
@@ -101,17 +104,100 @@ export default function CreateReport({ membership, eligibleProposals }: Props) {
                                 <InputError message={errors.activity_proposal_id} />
                             </div>
 
-                            {/* Narrative */}
+                            {/* Summary */}
                             <div className="grid gap-2">
-                                <Label htmlFor="narrative">Narrative</Label>
+                                <Label htmlFor="summary">Summary</Label>
                                 <Textarea
-                                    id="narrative"
-                                    name="narrative"
+                                    id="summary"
+                                    name="summary"
                                     placeholder="Summarize how the activity was conducted…"
                                     rows={5}
                                     required
                                 />
-                                <InputError message={errors.narrative} />
+                                <InputError message={errors.summary} />
+                            </div>
+
+                            {/* Activity Chair/s */}
+                            <div className="grid gap-2">
+                                <div className="flex items-center justify-between">
+                                    <Label>Activity Chair/s</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setChairs((prev) => [...prev, ''])}
+                                    >
+                                        + Add Chair
+                                    </Button>
+                                </div>
+                                {chairs.map((chair, i) => (
+                                    <div key={i} className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                name={`activity_chairs[${i}]`}
+                                                value={chair}
+                                                onChange={(e) =>
+                                                    setChairs((prev) => {
+                                                        const next = [...prev];
+                                                        next[i] = e.target.value;
+
+                                                        return next;
+                                                    })
+                                                }
+                                                placeholder="Full name"
+                                                required
+                                            />
+                                            {chairs.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setChairs((prev) => prev.filter((_, idx) => idx !== i))}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <InputError message={errors[`activity_chairs.${i}`]} />
+                                    </div>
+                                ))}
+                                <InputError message={errors.activity_chairs} />
+                            </div>
+
+                            {/* Prepared By */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="prepared_by">Prepared By</Label>
+                                <Input id="prepared_by" name="prepared_by" placeholder="Full name" required />
+                                <InputError message={errors.prepared_by} />
+                            </div>
+
+                            {/* Program */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="event_program">Program</Label>
+                                <Textarea
+                                    id="event_program"
+                                    name="event_program"
+                                    placeholder="Order of activities / program flow for the event…"
+                                    rows={4}
+                                    required
+                                />
+                                <InputError message={errors.event_program} />
+                            </div>
+
+                            {/* % Target Participants */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="target_participants_percentage">
+                                    Activity Evaluation Report — % Target Participants
+                                </Label>
+                                <Input
+                                    id="target_participants_percentage"
+                                    type="number"
+                                    name="target_participants_percentage"
+                                    min={0}
+                                    max={100}
+                                    required
+                                />
+                                <InputError message={errors.target_participants_percentage} />
                             </div>
 
                             {/* Outcomes */}

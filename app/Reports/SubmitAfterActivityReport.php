@@ -34,9 +34,13 @@ class SubmitAfterActivityReport
     public function execute(
         User $actor,
         ActivityProposal $proposal,
-        string $narrative,
+        string $summary,
         ?string $outcomes = null,
         ?int $participantCount = null,
+        ?array $activityChairs = null,
+        ?string $preparedBy = null,
+        ?string $eventProgram = null,
+        ?int $targetParticipantsPercentage = null,
     ): Document {
         $proposal->loadMissing('document.organization');
         $proposalDocument = $proposal->document;
@@ -60,7 +64,10 @@ class SubmitAfterActivityReport
             ]);
         }
 
-        return DB::transaction(function () use ($actor, $proposal, $organization, $narrative, $outcomes, $participantCount) {
+        return DB::transaction(function () use (
+            $actor, $proposal, $organization, $summary, $outcomes, $participantCount,
+            $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage
+        ) {
             $document = Document::create([
                 'form_type' => FormType::AfterActivityReport,
                 'variant' => null,
@@ -75,9 +82,13 @@ class SubmitAfterActivityReport
             AfterActivityReport::create([
                 'document_id' => $document->id,
                 'activity_proposal_id' => $proposal->id,
-                'narrative' => $narrative,
+                'summary' => $summary,
                 'outcomes' => $outcomes,
                 'participant_count' => $participantCount,
+                'activity_chairs' => $activityChairs,
+                'prepared_by' => $preparedBy,
+                'event_program' => $eventProgram,
+                'target_participants_percentage' => $targetParticipantsPercentage,
             ]);
 
             $this->engine->submit($document, $actor);
