@@ -8,7 +8,6 @@ use App\Enums\FormType;
 use App\Enums\Role;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
-use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Registrations\ApproveOrganizationRegistration;
 use Illuminate\Http\RedirectResponse;
@@ -133,17 +132,13 @@ class RegistrationReviewController extends Controller
 
         $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
 
-        // One organization per student (Phase 2 item 4): rejecting an
-        // ORIGINAL registration frees the founding officer to try elsewhere —
-        // deactivate their membership for this org (never hard-deleted,
-        // same mechanism OrganizationOfficerController::destroy() uses).
-        // Renewal rejections must NOT do this (see RenewalReviewController) —
-        // that org was already legitimately Approved earlier and remains real.
-        OrganizationMembership::query()
-            ->where('user_id', $document->submitted_by)
-            ->where('organization_id', $document->organization_id)
-            ->active()
-            ->update(['is_active' => false]);
+        // No membership deactivation needed here (Phase 2 item 5 superseded
+        // item 4's original design): a founding registration only ever gets
+        // an OrganizationMembership once ApproveOrganizationRegistration sees
+        // the SDAO quorum satisfied. A rejected registration never reaches
+        // that branch, so there is never a membership to deactivate. This is
+        // unlike RenewalReviewController, where the org was already
+        // legitimately Approved earlier and the membership is real.
 
         return redirect()->route('review.registrations.index')
             ->with('flash', ['message' => 'Registration rejected.']);

@@ -117,7 +117,15 @@ test('a rejected proposal frees the student to found a different organization', 
     $docA->refresh();
     expect($docA->status)->toBe(DocumentStatus::Rejected);
 
-    // Now free to found a DIFFERENT organization.
+    // Nothing left over from the rejected attempt: a founding registration
+    // never has a membership before Approval, so there is none to clean up,
+    // and the chosen adviser was never bound either.
+    expect(OrganizationMembership::where('user_id', $student->id)->exists())->toBeFalse();
+    expect(RoleAssignment::where('user_id', $adviser1->id)->where('role', Role::Adviser->value)->value('organization_id'))
+        ->toBeNull();
+
+    // And no in-flight document status is left blocking them — the guard
+    // itself proves this: a second submission for a DIFFERENT org succeeds.
     $docB = $this->submitAction->execute(
         ...oneOrgPayload(['name' => 'Second Org', 'contactEmail' => 'second@example.test']),
         actor: $student,
