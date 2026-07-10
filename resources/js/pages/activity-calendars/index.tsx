@@ -55,6 +55,9 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
                                         <div>
                                             <p className="font-medium">{c.title}</p>
                                             <p className="text-sm text-muted-foreground">{c.organization.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Date Received: {new Date(c.created_at).toLocaleDateString()}
+                                            </p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Badge variant={statusVariant[c.status] ?? 'outline'}>

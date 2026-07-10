@@ -19,7 +19,7 @@ class UpdateActivityCalendar
     ) {}
 
     /**
-     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null}>  $activities
+     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null, sdg?: string|null, participant_program_assigned?: string|null, budget?: string|float|null}>  $activities
      * @return array{document: Document, warnings: array<int, mixed>}
      *
      * @throws AuthorizationException
@@ -63,6 +63,9 @@ class UpdateActivityCalendar
                     'activity_date' => $activity['activity_date'],
                     'start_time' => $activity['start_time'],
                     'end_time' => $activity['end_time'],
+                    'sdg' => $activity['sdg'] ?? null,
+                    'participant_program_assigned' => $activity['participant_program_assigned'] ?? null,
+                    'budget' => $activity['budget'] ?? null,
                 ]);
             }
 

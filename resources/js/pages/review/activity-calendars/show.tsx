@@ -12,6 +12,8 @@ type DocumentData = {
     status: string;
     current_step_position: number | null;
     organization: { id: number; name: string };
+    rso_name: string;
+    date_received: string;
 };
 
 type ActivityData = {
@@ -22,6 +24,9 @@ type ActivityData = {
     start_time: string;
     end_time: string;
     description: string | null;
+    sdg_label: string | null;
+    participant_program_assigned: string | null;
+    budget: string | null;
 };
 
 type CalendarData = {
@@ -92,6 +97,18 @@ export default function ReviewActivityCalendarShow({
                     </Badge>
                 </div>
 
+                {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,
+                    document-level values, shown once rather than per activity row. */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                    <span>
+                        <span className="font-medium text-foreground">RSO Name:</span> {document.rso_name}
+                    </span>
+                    <span>
+                        <span className="font-medium text-foreground">Date Received:</span>{' '}
+                        {new Date(document.date_received).toLocaleDateString()}
+                    </span>
+                </div>
+
                 {/* Dual-SDAO quorum */}
                 {isInReview && (
                     <Card>
@@ -125,6 +142,13 @@ export default function ReviewActivityCalendarShow({
                                         <p className="font-medium">{a.name}</p>
                                         <p className="text-sm text-muted-foreground">
                                             {a.venue} · {a.activity_date} · {a.start_time}–{a.end_time}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {a.sdg_label && <>SDG: {a.sdg_label} · </>}
+                                            {a.participant_program_assigned && (
+                                                <>Participant/Program Assigned: {a.participant_program_assigned} · </>
+                                            )}
+                                            {a.budget && <>Budget: ₱{a.budget}</>}
                                         </p>
                                         {a.description && <p className="text-sm">{a.description}</p>}
                                         {conflict?.confirmed.length > 0 && (

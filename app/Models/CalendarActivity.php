@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Sdg;
 use Database\Factories\CalendarActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,8 +19,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon $activity_date
  * @property string $start_time
  * @property string $end_time
+ * @property Sdg|null $sdg
+ * @property string|null $participant_program_assigned
+ * @property float|null $budget
  */
-#[Fillable(['activity_calendar_id', 'name', 'description', 'venue', 'activity_date', 'start_time', 'end_time'])]
+#[Fillable(['activity_calendar_id', 'name', 'description', 'venue', 'activity_date', 'start_time', 'end_time', 'sdg', 'participant_program_assigned', 'budget'])]
 class CalendarActivity extends Model
 {
     /** @use HasFactory<CalendarActivityFactory> */
@@ -27,6 +31,8 @@ class CalendarActivity extends Model
 
     protected $casts = [
         'activity_date' => 'date',
+        'sdg' => Sdg::class,
+        'budget' => 'decimal:2',
     ];
 
     /** @return BelongsTo<ActivityCalendar, $this> */

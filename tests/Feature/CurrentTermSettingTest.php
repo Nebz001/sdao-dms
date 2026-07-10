@@ -29,6 +29,12 @@ function currentTermPayload(): array
             'activity_date' => '2026-09-15',
             'start_time' => '09:00',
             'end_time' => '12:00',
+            // Required by StoreActivityCalendarRequest (Phase 2 item 7 slice 1) —
+            // included here since this payload is also used by the one
+            // HTTP-level test in this file (direct action calls ignore these).
+            'sdg' => 'quality_education',
+            'participant_program_assigned' => 'All Year Levels',
+            'budget' => '5000.00',
         ]],
     ];
 }

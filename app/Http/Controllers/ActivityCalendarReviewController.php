@@ -86,6 +86,10 @@ class ActivityCalendarReviewController extends Controller
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
                 'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                // RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,
+                // document-level values shown to the approver.
+                'rso_name' => $document->organization->name,
+                'date_received' => $document->created_at,
             ],
             'calendar' => $calendar ? [
                 'academic_year' => $calendar->academic_year,
@@ -99,6 +103,9 @@ class ActivityCalendarReviewController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
+                    'sdg_label' => $a->sdg?->label(),
+                    'participant_program_assigned' => $a->participant_program_assigned,
+                    'budget' => $a->budget,
                 ]),
             ] : null,
             'history' => $document->transitions->map(fn ($t) => [

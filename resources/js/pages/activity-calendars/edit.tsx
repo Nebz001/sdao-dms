@@ -4,7 +4,16 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+
+type SdgOption = { value: string; label: string };
 
 type ActivityData = {
     id: number;
@@ -14,6 +23,9 @@ type ActivityData = {
     start_time: string;
     end_time: string;
     description: string | null;
+    sdg: string | null;
+    participant_program_assigned: string | null;
+    budget: string | null;
 };
 
 type CalendarData = {
@@ -24,6 +36,7 @@ type CalendarData = {
 type Props = {
     document: { id: number; title: string };
     calendar: CalendarData;
+    sdgs: SdgOption[];
 };
 
 type ActivityRow = {
@@ -33,9 +46,24 @@ type ActivityRow = {
     start_time: string;
     end_time: string;
     description: string;
+    sdg: string;
+    participant_program_assigned: string;
+    budget: string;
 };
 
-export default function EditActivityCalendar({ document, calendar }: Props) {
+const emptyRow = (): ActivityRow => ({
+    name: '',
+    venue: '',
+    activity_date: '',
+    start_time: '',
+    end_time: '',
+    description: '',
+    sdg: '',
+    participant_program_assigned: '',
+    budget: '',
+});
+
+export default function EditActivityCalendar({ document, calendar, sdgs }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>(
         calendar?.activities.map((a) => ({
             name: a.name,
@@ -44,7 +72,10 @@ export default function EditActivityCalendar({ document, calendar }: Props) {
             start_time: a.start_time,
             end_time: a.end_time,
             description: a.description ?? '',
-        })) ?? [{ name: '', venue: '', activity_date: '', start_time: '', end_time: '', description: '' }],
+            sdg: a.sdg ?? '',
+            participant_program_assigned: a.participant_program_assigned ?? '',
+            budget: a.budget ?? '',
+        })) ?? [emptyRow()],
     );
 
     function updateActivity(index: number, field: keyof ActivityRow, value: string) {
@@ -92,12 +123,7 @@ export default function EditActivityCalendar({ document, calendar }: Props) {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
-                                    setActivities((prev) => [
-                                        ...prev,
-                                        { name: '', venue: '', activity_date: '', start_time: '', end_time: '', description: '' },
-                                    ])
-                                }
+                                onClick={() => setActivities((prev) => [...prev, emptyRow()])}
                             >
                                 + Add Activity
                             </Button>
@@ -166,6 +192,48 @@ export default function EditActivityCalendar({ document, calendar }: Props) {
                                             required
                                         />
                                     </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor={`sdg-${i}`}>SDG</Label>
+                                    <Select
+                                        value={activity.sdg}
+                                        onValueChange={(value) => updateActivity(i, 'sdg', value)}
+                                        required
+                                    >
+                                        <SelectTrigger id={`sdg-${i}`} className="w-full">
+                                            <SelectValue placeholder="Select SDG…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sdgs.map((s) => (
+                                                <SelectItem key={s.value} value={s.value}>
+                                                    {s.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Participant/Program Assigned</Label>
+                                    <Input
+                                        value={activity.participant_program_assigned}
+                                        onChange={(e) => updateActivity(i, 'participant_program_assigned', e.target.value)}
+                                        placeholder="e.g. BSCS — All Year Levels"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Budget</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={activity.budget}
+                                        onChange={(e) => updateActivity(i, 'budget', e.target.value)}
+                                        required
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">

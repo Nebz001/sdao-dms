@@ -26,7 +26,7 @@ class SubmitActivityCalendar
     ) {}
 
     /**
-     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null}>  $activities
+     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null, sdg?: string|null, participant_program_assigned?: string|null, budget?: string|float|null}>  $activities
      * @return array{document: Document, warnings: array<int, array{activity_index: int, conflicts: array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, organization: string}>}>}
      *
      * @throws AuthorizationException
@@ -82,6 +82,12 @@ class SubmitActivityCalendar
                     'activity_date' => $activity['activity_date'],
                     'start_time' => $activity['start_time'],
                     'end_time' => $activity['end_time'],
+                    // Nullable at the DB level; StoreActivityCalendarRequest is what
+                    // actually requires these for a real student submission (Phase 2
+                    // item 7 slice 1) — direct callers (seeders, tests) may omit them.
+                    'sdg' => $activity['sdg'] ?? null,
+                    'participant_program_assigned' => $activity['participant_program_assigned'] ?? null,
+                    'budget' => $activity['budget'] ?? null,
                 ]);
             }
 

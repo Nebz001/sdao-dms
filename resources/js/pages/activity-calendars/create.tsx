@@ -4,7 +4,16 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+
+type SdgOption = { value: string; label: string };
 
 type Membership = {
     id: number;
@@ -20,6 +29,9 @@ type ActivityRow = {
     start_time: string;
     end_time: string;
     description: string;
+    sdg: string;
+    participant_program_assigned: string;
+    budget: string;
 };
 
 type ConflictEntry = { name: string; venue: string; activity_date: string; start_time: string; end_time: string; organization: string };
@@ -32,14 +44,18 @@ const emptyRow = (): ActivityRow => ({
     start_time: '',
     end_time: '',
     description: '',
+    sdg: '',
+    participant_program_assigned: '',
+    budget: '',
 });
 
 type Props = {
     membership: Membership | null;
     current_term_label: string;
+    sdgs: SdgOption[];
 };
 
-export default function CreateActivityCalendar({ membership, current_term_label }: Props) {
+export default function CreateActivityCalendar({ membership, current_term_label, sdgs }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>([emptyRow()]);
     const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -230,6 +246,51 @@ export default function CreateActivityCalendar({ membership, current_term_label 
                                             required
                                         />
                                     </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor={`sdg-${i}`}>SDG</Label>
+                                    <Select
+                                        name={`activities[${i}][sdg]`}
+                                        value={activity.sdg}
+                                        onValueChange={(value) => updateActivity(i, 'sdg', value)}
+                                        required
+                                    >
+                                        <SelectTrigger id={`sdg-${i}`} className="w-full">
+                                            <SelectValue placeholder="Select SDG…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sdgs.map((s) => (
+                                                <SelectItem key={s.value} value={s.value}>
+                                                    {s.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Participant/Program Assigned</Label>
+                                    <Input
+                                        name={`activities[${i}][participant_program_assigned]`}
+                                        value={activity.participant_program_assigned}
+                                        onChange={(e) => updateActivity(i, 'participant_program_assigned', e.target.value)}
+                                        placeholder="e.g. BSCS — All Year Levels"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Budget</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name={`activities[${i}][budget]`}
+                                        value={activity.budget}
+                                        onChange={(e) => updateActivity(i, 'budget', e.target.value)}
+                                        required
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">

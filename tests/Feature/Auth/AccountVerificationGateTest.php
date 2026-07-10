@@ -317,6 +317,12 @@ test('an unverified officer is forbidden from submitting an activity calendar', 
             'start_time' => '09:00',
             'end_time' => '12:00',
             'description' => 'JavaScript showcase.',
+            // Required by StoreActivityCalendarRequest (Phase 2 item 7 slice 1)
+            // — without these the request would 422 on validation before ever
+            // reaching the authorization check this test is actually exercising.
+            'sdg' => 'quality_education',
+            'participant_program_assigned' => 'All Year Levels',
+            'budget' => '5000.00',
         ]],
     ]);
 

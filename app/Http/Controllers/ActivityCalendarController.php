@@ -6,6 +6,7 @@ use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\FormType;
+use App\Enums\Sdg;
 use App\Http\Requests\Calendar\ConflictCheckRequest;
 use App\Http\Requests\Calendar\StoreActivityCalendarRequest;
 use App\Http\Requests\Calendar\UpdateActivityCalendarRequest;
@@ -75,6 +76,11 @@ class ActivityCalendarController extends Controller
             // shown read-only so the student knows what they're submitting
             // under, but it is never user-selectable.
             'current_term_label' => CurrentTerm::get()->label(),
+            // Exact field corrections (Phase 2 item 7 slice 1).
+            'sdgs' => collect(Sdg::cases())->map(fn (Sdg $s) => [
+                'value' => $s->value,
+                'label' => $s->number().'. '.$s->label(),
+            ]),
         ]);
     }
 
@@ -121,6 +127,11 @@ class ActivityCalendarController extends Controller
                 'current_step_position' => $document->current_step_position,
                 'submitted_by' => $document->submitted_by,
                 'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+                // RSO Name / Date Received (Phase 2 item 7 slice 1) — both
+                // are derived, document-level values (constant across every
+                // activity row in this submission), not new columns.
+                'rso_name' => $document->organization->name,
+                'date_received' => $document->created_at,
             ],
             'calendar' => $calendar ? [
                 'academic_year' => $calendar->academic_year,
@@ -134,6 +145,9 @@ class ActivityCalendarController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
+                    'sdg_label' => $a->sdg?->label(),
+                    'participant_program_assigned' => $a->participant_program_assigned,
+                    'budget' => $a->budget,
                 ]),
             ] : null,
             'history' => $document->transitions->map(fn ($t) => [
@@ -170,8 +184,16 @@ class ActivityCalendarController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
+                    'sdg' => $a->sdg?->value,
+                    'participant_program_assigned' => $a->participant_program_assigned,
+                    'budget' => $a->budget,
                 ]),
             ] : null,
+            // Exact field corrections (Phase 2 item 7 slice 1).
+            'sdgs' => collect(Sdg::cases())->map(fn (Sdg $s) => [
+                'value' => $s->value,
+                'label' => $s->number().'. '.$s->label(),
+            ]),
         ]);
     }
 
