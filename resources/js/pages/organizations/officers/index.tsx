@@ -40,9 +40,13 @@ type Props = {
 
 export default function OfficersIndex({ organization, memberships, students, search, positions }: Props) {
     const [searchValue, setSearchValue] = useState(search);
+    const [deactivateError, setDeactivateError] = useState<string | null>(null);
 
     function deactivate(membershipId: number) {
-        router.delete(officers.destroy(organization.id, membershipId));
+        setDeactivateError(null);
+        router.delete(officers.destroy(organization.id, membershipId), {
+            onError: () => setDeactivateError('Could not deactivate this officer. Please try again.'),
+        });
     }
 
     function runSearch(e: FormEvent) {
@@ -72,6 +76,9 @@ export default function OfficersIndex({ organization, memberships, students, sea
                         <CardTitle className="text-base">Active Officers</CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y">
+                        {deactivateError && (
+                            <p className="pb-3 text-sm text-destructive">{deactivateError}</p>
+                        )}
                         {memberships.length === 0 ? (
                             <p className="py-2 text-sm text-muted-foreground">
                                 No active officers bound yet.

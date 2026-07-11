@@ -309,6 +309,7 @@ export default function ReviewActivityProposalShow({
                                             Return for Revision
                                         </Button>
                                     </div>
+                                    <InputError message={errors.comment} />
                                     <SectionFlagFields sections={sectionFlags} />
                                 </Form>
 
@@ -316,12 +317,15 @@ export default function ReviewActivityProposalShow({
                                 <Form
                                     action={ActivityProposalReviewController.reject({ document: doc.id }).url}
                                     method="post"
-                                    className="flex gap-2"
+                                    className="w-full space-y-2 sm:w-auto"
                                 >
-                                    <Textarea name="comment" placeholder="Rejection reason (required)…" rows={2} className="w-64" />
-                                    <Button type="submit" variant="destructive">
-                                        Reject
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Textarea name="comment" placeholder="Rejection reason (required)…" rows={2} className="w-64" />
+                                        <Button type="submit" variant="destructive">
+                                            Reject
+                                        </Button>
+                                    </div>
+                                    <InputError message={errors.comment} />
                                 </Form>
                             </div>
                         </CardContent>

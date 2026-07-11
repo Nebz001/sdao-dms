@@ -80,6 +80,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
         })) ?? [emptyRow()],
     );
 
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
     function updateActivity(index: number, field: keyof ActivityRow, value: string) {
         setActivities((prev) => {
             const next = [...prev];
@@ -91,11 +94,19 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
 
     function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
+        setProcessing(true);
+        setErrors({});
+
         // Term is frozen at original submission (Phase 2 item 6) — it is
         // never resent or re-derived from user input on resubmit.
-        router.put(`/activity-calendars/${document.id}`, {
-            activities,
-        });
+        router.put(
+            `/activity-calendars/${document.id}`,
+            { activities },
+            {
+                onError: (errs) => setErrors(errs as Record<string, string>),
+                onFinish: () => setProcessing(false),
+            },
+        );
     }
 
     return (
@@ -109,6 +120,12 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                 />
 
                 <form onSubmit={handleSubmit} className="space-y-8">
+                    {errors.activities && (
+                        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                            {errors.activities}
+                        </div>
+                    )}
+
                     {/* Term is frozen at original submission — shown read-only. */}
                     <div className="grid gap-2">
                         <Label>Term</Label>
@@ -155,6 +172,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         onChange={(e) => updateActivity(i, 'name', e.target.value)}
                                         required
                                     />
+                                    {errors[`activities.${i}.name`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.name`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -165,6 +185,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         placeholder="Exact venue name"
                                         required
                                     />
+                                    {errors[`activities.${i}.venue`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.venue`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
@@ -176,6 +199,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             onChange={(e) => updateActivity(i, 'activity_date', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.activity_date`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.activity_date`]}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>Start Time</Label>
@@ -185,6 +211,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             onChange={(e) => updateActivity(i, 'start_time', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.start_time`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.start_time`]}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>End Time</Label>
@@ -194,6 +223,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             onChange={(e) => updateActivity(i, 'end_time', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.end_time`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.end_time`]}</p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -215,6 +247,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {errors[`activities.${i}.sdg`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.sdg`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -225,6 +260,11 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         placeholder="e.g. BSCS — All Year Levels"
                                         required
                                     />
+                                    {errors[`activities.${i}.participant_program_assigned`] && (
+                                        <p className="text-sm text-destructive">
+                                            {errors[`activities.${i}.participant_program_assigned`]}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -237,6 +277,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         onChange={(e) => updateActivity(i, 'budget', e.target.value)}
                                         required
                                     />
+                                    {errors[`activities.${i}.budget`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.budget`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -246,13 +289,18 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         onChange={(e) => updateActivity(i, 'description', e.target.value)}
                                         rows={2}
                                     />
+                                    {errors[`activities.${i}.description`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.description`]}</p>
+                                    )}
                                 </div>
                             </div>
                             </FlaggedSectionWrapper>
                         ))}
                     </div>
 
-                    <Button type="submit">Save &amp; Resubmit</Button>
+                    <Button type="submit" disabled={processing}>
+                        {processing ? 'Saving…' : 'Save & Resubmit'}
+                    </Button>
                 </form>
             </div>
         </>
