@@ -171,6 +171,10 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Objectives',
         'narrative' => 'Narrative',
+        'criteria_mechanics' => 'Criteria/Mechanics',
+        'program_flow' => 'Program Flow',
+        'source_of_funding' => 'Source of Funding',
+        'expenses' => 'Expenses',
     ]);
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);

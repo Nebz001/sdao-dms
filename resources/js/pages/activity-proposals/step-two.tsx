@@ -20,6 +20,10 @@ type ProposalData = {
     title: string;
     objectives: string | null;
     narrative: string | null;
+    criteria_mechanics: string | null;
+    program_flow: string | null;
+    source_of_funding: string | null;
+    expenses: string | null;
     proposed_budget: string | null;
     budget_source: string | null;
 } | null;
@@ -39,6 +43,10 @@ type Props = {
 export default function StepTwo({ document: doc, proposal, activity, errors = {} }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const narrativeRef = useRef<HTMLTextAreaElement>(null);
+    const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
+    const programFlowRef = useRef<HTMLTextAreaElement>(null);
+    const sourceOfFundingRef = useRef<HTMLTextAreaElement>(null);
+    const expensesRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     function scheduleSave() {
@@ -52,6 +60,10 @@ clearTimeout(saveTimer.current);
                 {
                     objectives: objectivesRef.current?.value ?? null,
                     narrative: narrativeRef.current?.value ?? null,
+                    criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
+                    program_flow: programFlowRef.current?.value ?? null,
+                    source_of_funding: sourceOfFundingRef.current?.value ?? null,
+                    expenses: expensesRef.current?.value ?? null,
                 },
                 { preserveState: true, preserveScroll: true },
             );
@@ -123,14 +135,57 @@ clearTimeout(saveTimer.current);
                             <InputError message={errors.narrative} />
                         </div>
 
-                        {/* Attachments placeholder */}
-                        <Card className="border-dashed opacity-60">
-                            <CardContent className="pt-4">
-                                <p className="text-sm text-muted-foreground">
-                                    Attachments — available in a future update.
-                                </p>
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-1">
+                            <Label htmlFor="criteria_mechanics">Criteria/Mechanics</Label>
+                            <Textarea
+                                id="criteria_mechanics"
+                                name="criteria_mechanics"
+                                ref={criteriaMechanicsRef}
+                                defaultValue={proposal?.criteria_mechanics ?? ''}
+                                rows={4}
+                                onChange={scheduleSave}
+                            />
+                            <InputError message={errors.criteria_mechanics} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="program_flow">Program Flow</Label>
+                            <Textarea
+                                id="program_flow"
+                                name="program_flow"
+                                ref={programFlowRef}
+                                defaultValue={proposal?.program_flow ?? ''}
+                                rows={4}
+                                onChange={scheduleSave}
+                            />
+                            <InputError message={errors.program_flow} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="source_of_funding">Source of Funding</Label>
+                            <Textarea
+                                id="source_of_funding"
+                                name="source_of_funding"
+                                ref={sourceOfFundingRef}
+                                defaultValue={proposal?.source_of_funding ?? ''}
+                                rows={3}
+                                onChange={scheduleSave}
+                            />
+                            <InputError message={errors.source_of_funding} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="expenses">Expenses</Label>
+                            <Textarea
+                                id="expenses"
+                                name="expenses"
+                                ref={expensesRef}
+                                defaultValue={proposal?.expenses ?? ''}
+                                rows={4}
+                                onChange={scheduleSave}
+                            />
+                            <InputError message={errors.expenses} />
+                        </div>
 
                         <InputError message={errors.activity} />
 

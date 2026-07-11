@@ -25,6 +25,11 @@ class UpdateActivityProposalRequest extends FormRequest
         return [
             'objectives' => ['required', 'string'],
             'narrative' => ['required', 'string'],
+            // Exact field corrections (Phase 2 item 7 slice 4b).
+            'criteria_mechanics' => ['required', 'string'],
+            'program_flow' => ['required', 'string'],
+            'source_of_funding' => ['required', 'string'],
+            'expenses' => ['required', 'string'],
             'proposed_budget' => ['nullable', 'numeric', 'min:0'],
             // Optional off-calendar activity update fields
             'title' => ['nullable', 'string', 'max:255'],
@@ -62,6 +67,9 @@ class UpdateActivityProposalRequest extends FormRequest
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
+            'criteria_mechanics' => 'Criteria/Mechanics',
+            'program_flow' => 'Program Flow',
+            'source_of_funding' => 'Source of Funding',
         ];
     }
 }

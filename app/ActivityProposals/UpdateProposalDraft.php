@@ -31,6 +31,11 @@ class UpdateProposalDraft
         $proposal->update([
             'objectives' => $data['objectives'] ?? $proposal->objectives,
             'narrative' => $data['narrative'] ?? $proposal->narrative,
+            // Exact field corrections (Phase 2 item 7 slice 4b).
+            'criteria_mechanics' => $data['criteria_mechanics'] ?? $proposal->criteria_mechanics,
+            'program_flow' => $data['program_flow'] ?? $proposal->program_flow,
+            'source_of_funding' => $data['source_of_funding'] ?? $proposal->source_of_funding,
+            'expenses' => $data['expenses'] ?? $proposal->expenses,
         ]);
 
         return $document;

@@ -25,11 +25,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Sdg|null $target_sdg
  * @property string|null $objectives
  * @property string|null $narrative
+ * @property string|null $criteria_mechanics
+ * @property string|null $program_flow
+ * @property string|null $source_of_funding
+ * @property string|null $expenses
  * @property float|null $proposed_budget
  * @property string|null $budget_source
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_type', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_type', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */

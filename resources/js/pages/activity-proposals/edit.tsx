@@ -16,6 +16,10 @@ type ProposalData = {
     title: string;
     objectives: string | null;
     narrative: string | null;
+    criteria_mechanics: string | null;
+    program_flow: string | null;
+    source_of_funding: string | null;
+    expenses: string | null;
     proposed_budget: string | null;
     activity_nature: string | null;
     activity_type: string | null;
@@ -149,6 +153,51 @@ export default function EditActivityProposal({
                                 rows={6}
                             />
                             <InputError message={errors.narrative} />
+                        </div>
+
+                        {/* Exact field corrections (Phase 2 item 7 slice 4b). */}
+                        <div className="space-y-1">
+                            <Label htmlFor="criteria_mechanics">Criteria/Mechanics</Label>
+                            <Textarea
+                                id="criteria_mechanics"
+                                name="criteria_mechanics"
+                                defaultValue={proposal?.criteria_mechanics ?? ''}
+                                rows={4}
+                            />
+                            <InputError message={errors.criteria_mechanics} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="program_flow">Program Flow</Label>
+                            <Textarea
+                                id="program_flow"
+                                name="program_flow"
+                                defaultValue={proposal?.program_flow ?? ''}
+                                rows={4}
+                            />
+                            <InputError message={errors.program_flow} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="source_of_funding">Source of Funding</Label>
+                            <Textarea
+                                id="source_of_funding"
+                                name="source_of_funding"
+                                defaultValue={proposal?.source_of_funding ?? ''}
+                                rows={3}
+                            />
+                            <InputError message={errors.source_of_funding} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="expenses">Expenses</Label>
+                            <Textarea
+                                id="expenses"
+                                name="expenses"
+                                defaultValue={proposal?.expenses ?? ''}
+                                rows={4}
+                            />
+                            <InputError message={errors.expenses} />
                         </div>
 
                         {/* Exact field corrections (Phase 2 item 7 slice 4a) —

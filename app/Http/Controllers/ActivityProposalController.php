@@ -212,6 +212,11 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
+                // Exact field corrections (Phase 2 item 7 slice 4b).
+                'criteria_mechanics' => $proposal->criteria_mechanics,
+                'program_flow' => $proposal->program_flow,
+                'source_of_funding' => $proposal->source_of_funding,
+                'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 'form_step' => $proposal->form_step,
                 // Exact field corrections (Phase 2 item 7 slice 4a).
@@ -260,6 +265,11 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
+                // Exact field corrections (Phase 2 item 7 slice 4b).
+                'criteria_mechanics' => $proposal->criteria_mechanics,
+                'program_flow' => $proposal->program_flow,
+                'source_of_funding' => $proposal->source_of_funding,
+                'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — raw
                 // values for re-selecting in the editable form.
@@ -316,6 +326,11 @@ class ActivityProposalController extends Controller
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
                 'narrative' => $proposal->narrative,
+                // Exact field corrections (Phase 2 item 7 slice 4b).
+                'criteria_mechanics' => $proposal->criteria_mechanics,
+                'program_flow' => $proposal->program_flow,
+                'source_of_funding' => $proposal->source_of_funding,
+                'expenses' => $proposal->expenses,
                 // proposed_budget is read-only here — set once at step 1
                 // (Phase 2 item 7 slice 4a), never re-collected at step 2.
                 'proposed_budget' => $proposal->proposed_budget,
@@ -367,6 +382,10 @@ class ActivityProposalController extends Controller
             document: $document,
             objectives: $request->string('objectives')->toString(),
             narrative: $request->string('narrative')->toString(),
+            criteriaMechanics: $request->string('criteria_mechanics')->toString(),
+            programFlow: $request->string('program_flow')->toString(),
+            sourceOfFunding: $request->string('source_of_funding')->toString(),
+            expenses: $request->string('expenses')->toString(),
         );
 
         $flash = ['message' => 'Proposal submitted for review.'];

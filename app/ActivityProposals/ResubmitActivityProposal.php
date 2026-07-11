@@ -72,6 +72,11 @@ class ResubmitActivityProposal
             $proposal->update([
                 'objectives' => $data['objectives'],
                 'narrative' => $data['narrative'],
+                // Exact field corrections (Phase 2 item 7 slice 4b).
+                'criteria_mechanics' => $data['criteria_mechanics'],
+                'program_flow' => $data['program_flow'],
+                'source_of_funding' => $data['source_of_funding'],
+                'expenses' => $data['expenses'],
                 'proposed_budget' => $data['proposed_budget'] ?? $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — editable
                 // on resubmission, same as proposed_budget already is.

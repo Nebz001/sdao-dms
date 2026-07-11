@@ -21,6 +21,10 @@ class ActivityProposalFactory extends Factory
             'title' => $this->faker->sentence(4),
             'objectives' => null,
             'narrative' => null,
+            'criteria_mechanics' => null,
+            'program_flow' => null,
+            'source_of_funding' => null,
+            'expenses' => null,
             'proposed_budget' => null,
             'form_step' => 2,
         ];

@@ -20,6 +20,10 @@ type ProposalData = {
     title: string;
     objectives: string | null;
     narrative: string | null;
+    criteria_mechanics: string | null;
+    program_flow: string | null;
+    source_of_funding: string | null;
+    expenses: string | null;
     proposed_budget: string | null;
     form_step: number;
     activity_nature_label: string | null;
@@ -200,6 +204,30 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                                 <div>
                                     <p className="mb-1 font-medium">Narrative</p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">{proposal.narrative}</p>
+                                </div>
+                            )}
+                            {proposal.criteria_mechanics && (
+                                <div>
+                                    <p className="mb-1 font-medium">Criteria/Mechanics</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.criteria_mechanics}</p>
+                                </div>
+                            )}
+                            {proposal.program_flow && (
+                                <div>
+                                    <p className="mb-1 font-medium">Program Flow</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.program_flow}</p>
+                                </div>
+                            )}
+                            {proposal.source_of_funding && (
+                                <div>
+                                    <p className="mb-1 font-medium">Source of Funding</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.source_of_funding}</p>
+                                </div>
+                            )}
+                            {proposal.expenses && (
+                                <div>
+                                    <p className="mb-1 font-medium">Expenses</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.expenses}</p>
                                 </div>
                             )}
                         </CardContent>
