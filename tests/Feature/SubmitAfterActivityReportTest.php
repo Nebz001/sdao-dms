@@ -161,6 +161,7 @@ test('an officer of the activity\'s org can submit a report against an approved 
         summary: 'The activity happened as planned.',
         outcomes: 'Great turnout.',
         participantCount: 120,
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     expect($report->status)->toBe(DocumentStatus::InReview);
@@ -187,6 +188,7 @@ test('at most one non-rejected report may exist per proposal', function () {
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'First report.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     expect(fn () => $this->reportAction->execute(
@@ -203,6 +205,7 @@ test('a rejected report frees the slot — a new report for the same proposal is
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'First report.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $this->engine->reject($firstReport, $this->sdaoA, 'Incomplete.');
@@ -213,6 +216,7 @@ test('a rejected report frees the slot — a new report for the same proposal is
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'Second report after rejection.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     expect($secondReport->status)->toBe(DocumentStatus::InReview);

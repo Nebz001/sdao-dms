@@ -61,12 +61,6 @@ class ActivityProposal extends Model
         return $this->belongsTo(CalendarActivity::class);
     }
 
-    /** @return HasMany<ProposalAttachment, $this> */
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(ProposalAttachment::class);
-    }
-
     /** @return HasMany<AfterActivityReport, $this> */
     public function afterActivityReports(): HasMany
     {

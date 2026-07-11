@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Reports;
 
+use App\Attachments\AttachmentSlots;
+use App\Enums\FormType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -26,6 +28,9 @@ class UpdateReportRequest extends FormRequest
             'prepared_by' => ['required', 'string', 'max:255'],
             'event_program' => ['required', 'string', 'max:10000'],
             'target_participants_percentage' => ['required', 'integer', 'min:0', 'max:100'],
+            // Phase 2 item 8 — nullable at Update; AttachmentStorage::assertRequiredSlotsFilled
+            // is the real completeness gate (persisted rows + anything newly attached).
+            ...AttachmentSlots::validationRules(FormType::AfterActivityReport, requiredAtWrite: false),
         ];
     }
 
@@ -40,6 +45,7 @@ class UpdateReportRequest extends FormRequest
             'prepared_by' => 'Prepared By',
             'event_program' => 'Program',
             'target_participants_percentage' => '% Target Participants',
+            ...AttachmentSlots::validationAttributes(FormType::AfterActivityReport),
         ];
     }
 }

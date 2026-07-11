@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\CurrentTermController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
@@ -21,6 +22,13 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    // Attachments (Phase 2 item 8) — generic across every form type.
+    // store/destroy are Mode B (attach-to-existing-document, e.g. Activity
+    // Proposal's optional resume slot); download is shared by Mode A too.
+    Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
+    Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+    Route::get('/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');

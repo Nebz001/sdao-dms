@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import RegistrationController from '@/actions/App/Http/Controllers/RegistrationController';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -36,7 +38,6 @@ type DetailData = {
     contact_no: string;
     email_address: string;
     date_organized: string;
-    roster: string[] | null;
     adviser: { id: number; name: string } | null;
 } | null;
 
@@ -44,9 +45,11 @@ type Props = {
     document: DocumentData;
     detail: DetailData;
     organizationTypes: OrganizationTypeOption[];
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
 };
 
-export default function EditRegistration({ document, detail, organizationTypes }: Props) {
+export default function EditRegistration({ document, detail, organizationTypes, attachmentSlots, attachments }: Props) {
     // Return-for-revision preserves the ability to pick a NEW adviser (Phase
     // 2 item 5). Left untouched, the existing adviser is kept — this is a
     // separate, small controlled-state island alongside the rest of the
@@ -243,6 +246,15 @@ export default function EditRegistration({ document, detail, organizationTypes }
                                 />
                                 <InputError message={errors.purpose_of_organization} />
                             </div>
+
+                            {attachmentSlots.map((slot) => (
+                                <AttachmentSlotField
+                                    key={slot.key}
+                                    slot={slot}
+                                    existing={attachments[slot.key]}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            ))}
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Save &amp; Resubmit</Button>

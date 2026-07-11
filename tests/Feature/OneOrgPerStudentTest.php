@@ -56,7 +56,7 @@ function oneOrgPayload(array $overrides = []): array
         'contactNo' => '09170000000',
         'emailAddress' => 'contact@example.test',
         'dateOrganized' => '2020-06-01',
-        'roster' => ['Member One'],
+        'attachmentFiles' => registrationAttachmentFiles(),
     ], $overrides);
 }
 

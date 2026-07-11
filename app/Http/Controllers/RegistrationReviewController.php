@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
@@ -44,9 +45,10 @@ class RegistrationReviewController extends Controller
     {
         Gate::authorize('review', $document);
 
-        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user', 'attachments']);
 
         $detail = $document->registrationDetail;
+        $attachments = AttachmentSlots::presentForDocument($document);
         $user = Auth::user();
 
         // Which SDAO members have already approved the current step?
@@ -99,8 +101,9 @@ class RegistrationReviewController extends Controller
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
-                'roster' => $detail->roster,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'adviserAvailable' => $adviserAvailable,
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,

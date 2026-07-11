@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
@@ -90,6 +91,7 @@ class RegistrationController extends Controller
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
+            'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRegistration),
         ]);
     }
 
@@ -111,7 +113,7 @@ class RegistrationController extends Controller
             contactNo: $request->string('contact_no')->toString(),
             emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
-            roster: $request->input('roster'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRegistration),
         );
 
         return redirect()->route('registrations.show', $document)
@@ -160,9 +162,10 @@ class RegistrationController extends Controller
     {
         Gate::authorize('view', $document);
 
-        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user', 'attachments']);
 
         $detail = $document->registrationDetail;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('registrations/show', [
             'document' => [
@@ -189,8 +192,9 @@ class RegistrationController extends Controller
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
-                'roster' => $detail->roster,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
@@ -208,8 +212,9 @@ class RegistrationController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'attachments']);
         $detail = $document->registrationDetail;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('registrations/edit', [
             'document' => [
@@ -229,13 +234,14 @@ class RegistrationController extends Controller
                 'contact_no' => $detail->contact_no,
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
-                'roster' => $detail->roster,
                 'adviser' => $detail->adviser ? ['id' => $detail->adviser->id, 'name' => $detail->adviser->name] : null,
             ] : null,
             'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
         ]);
     }
 
@@ -252,7 +258,7 @@ class RegistrationController extends Controller
             contactNo: $request->string('contact_no')->toString(),
             emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
-            roster: $request->input('roster'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRegistration),
             adviserId: $request->filled('adviser_id') ? $request->integer('adviser_id') : null,
         );
 

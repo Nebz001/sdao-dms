@@ -61,7 +61,6 @@ function submittedRenewal(): Document
         'email_address' => 'original@example.test',
         'date_organized' => '2020-06-01',
         'adviser_id' => null,
-        'roster' => ['Member One'],
     ]);
     $engine->submit($registration, $student);
     $registration->refresh();
@@ -79,7 +78,7 @@ function submittedRenewal(): Document
         contactNo: '09172222222',
         emailAddress: 'renewed@example.test',
         dateOrganized: '2020-06-01',
-        roster: ['Member One'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 }
 

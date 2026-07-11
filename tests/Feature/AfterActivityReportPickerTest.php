@@ -134,6 +134,7 @@ test('(ii) picker excludes a proposal that already has a non-rejected (e.g. InRe
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'First report, still under review.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $this->actingAs($this->studentAlpha)
@@ -154,6 +155,7 @@ test('(ii) a proposal whose only report was REJECTED reappears in the picker —
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'First report attempt.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $this->engine->reject($report, $sdaoA, 'Not enough detail.');
@@ -179,6 +181,7 @@ test('(i)+(ii) combined: multiple orgs and report states — picker returns exac
         actor: $this->studentAlpha,
         proposal: $csReported,
         summary: 'Live report.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     // IT Guild: approved proposal, eligible for IT Guild but must NOT appear for Computing Society.

@@ -81,7 +81,6 @@ function viewAuthRegistrationDocument(Organization $org, User $actor): Document
         'email_address' => 'contact@example.test',
         'date_organized' => '2020-06-01',
         'adviser_id' => null,
-        'roster' => ['Member One'],
     ]);
 
     return $doc;
@@ -137,7 +136,7 @@ test('renewal show: org officer can view, different-org officer cannot, current-
         contactNo: '09170000000',
         emailAddress: 'contact@example.test',
         dateOrganized: '2020-06-01',
-        roster: ['Member One'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     $this->actingAs($this->studentAlpha)->get(route('renewals.show', $doc))->assertOk();
@@ -225,6 +224,7 @@ test('after-activity report show: org officer can view, different-org officer ca
         actor: $this->studentAlpha,
         proposal: $proposal,
         summary: 'The activity happened as planned.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $this->actingAs($this->studentAlpha)->get(route('reports.show', $reportDoc))->assertOk();

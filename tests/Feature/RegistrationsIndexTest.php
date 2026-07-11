@@ -51,7 +51,6 @@ function submitRegistrationFor(User $actor, Organization $org): void
         'email_address' => 'contact@example.test',
         'date_organized' => '2024-06-01',
         'adviser_id' => null,
-        'roster' => ['Member One'],
     ]);
     app(ApprovalEngine::class)->submit($document, $actor);
 }

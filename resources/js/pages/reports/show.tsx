@@ -1,4 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +50,8 @@ type TransitionEntry = {
 type Props = {
     document: DocumentData;
     report: ReportData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
 };
 
@@ -67,8 +71,8 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ShowReport({ document, report, history }: Props) {
-    useDocumentUpdates(['document', 'report', 'history']);
+export default function ShowReport({ document, report, attachmentSlots, attachments, history }: Props) {
+    useDocumentUpdates(['document', 'report', 'attachments', 'history']);
 
     const isReturned = document.status === 'returned';
 
@@ -169,6 +173,8 @@ export default function ShowReport({ document, report, history }: Props) {
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Revision history */}
                 <Card>

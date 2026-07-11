@@ -100,6 +100,7 @@ function submittedReportForComputingSociety(): Document
         summary: 'The activity happened as planned.',
         outcomes: 'Great turnout.',
         participantCount: 100,
+        attachmentFiles: reportAttachmentFiles(),
     );
 }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
 use App\Approval\StepApproverResolver;
+use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -59,10 +60,11 @@ class ActivityProposalReviewController extends Controller
     {
         Gate::authorize('review', $document);
 
-        $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user', 'workflowTemplate.steps']);
+        $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user', 'workflowTemplate.steps', 'attachments']);
 
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
+        $attachments = AttachmentSlots::presentForDocument($document);
         $user = Auth::user();
 
         $step = $document->workflowTemplate?->steps
@@ -130,6 +132,8 @@ class ActivityProposalReviewController extends Controller
                 'start_time' => $activity->start_time,
                 'end_time' => $activity->end_time,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,

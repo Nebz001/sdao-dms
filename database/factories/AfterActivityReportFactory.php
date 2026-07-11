@@ -10,9 +10,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  * @extends Factory<AfterActivityReport>
  *
  * Note: `activity_proposal_id` has no default — callers must pass an existing
- * ActivityProposal id explicitly (mirrors ProposalAttachmentFactory, which also
- * requires its parent FK explicitly rather than auto-creating one, since the
- * parent must be a real, already-Approved proposal for the hard link to be valid).
+ * ActivityProposal id explicitly, since the parent must be a real,
+ * already-Approved proposal for the hard link to be valid.
  */
 class AfterActivityReportFactory extends Factory
 {

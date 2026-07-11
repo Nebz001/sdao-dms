@@ -43,7 +43,7 @@ function foundingPayload(array $overrides = []): array
         'contactNo' => '09171234567',
         'emailAddress' => 'foundingorg@sdao.test',
         'dateOrganized' => '2020-06-01',
-        'roster' => ['Founding Student', 'Member Two'],
+        'attachmentFiles' => registrationAttachmentFiles(),
     ], $overrides);
 }
 
@@ -96,7 +96,6 @@ test('submission creates a registration detail row with the chosen (pending) adv
     expect($document->registrationDetail)->not->toBeNull();
     expect($document->registrationDetail->organization_type)->toBe(OrganizationType::CoCurricular);
     expect($document->registrationDetail->adviser_id)->toBe($adviser->id);
-    expect($document->registrationDetail->roster)->toEqual(['Founding Student', 'Member Two']);
 });
 
 test('submission notifies both SDAO members', function () {

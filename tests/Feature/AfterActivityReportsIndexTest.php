@@ -95,6 +95,7 @@ function submitReportForOrg(User $actor, Organization $org): void
         actor: $actor,
         proposal: $proposal,
         summary: 'The activity happened as planned.',
+        attachmentFiles: reportAttachmentFiles(),
     );
 }
 

@@ -1,4 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +27,6 @@ type DetailData = {
     email_address: string;
     date_organized: string;
     adviser: { name: string } | null;
-    roster: string[] | null;
     academic_year: string | null;
 } | null;
 
@@ -43,6 +44,8 @@ type TransitionEntry = {
 type Props = {
     document: DocumentData;
     detail: DetailData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
 };
 
@@ -62,8 +65,8 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ShowRenewal({ document, detail, history }: Props) {
-    useDocumentUpdates(['document', 'detail', 'history']);
+export default function ShowRenewal({ document, detail, attachmentSlots, attachments, history }: Props) {
+    useDocumentUpdates(['document', 'detail', 'attachments', 'history']);
 
     const isReturned = document.status === 'returned';
 
@@ -122,19 +125,11 @@ export default function ShowRenewal({ document, detail, history }: Props) {
                                 <span className="font-medium text-muted-foreground">Purpose of Organization</span>
                                 <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
                             </div>
-                            {detail.roster && detail.roster.length > 0 && (
-                                <div className="grid gap-1">
-                                    <span className="font-medium text-muted-foreground">Roster</span>
-                                    <ul className="list-disc pl-4">
-                                        {detail.roster.map((name, i) => (
-                                            <li key={i}>{name}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Revision history */}
                 <Card>

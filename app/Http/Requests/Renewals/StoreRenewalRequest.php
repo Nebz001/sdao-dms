@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Renewals;
 
+use App\Attachments\AttachmentSlots;
+use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,8 +28,10 @@ class StoreRenewalRequest extends FormRequest
             'contact_no' => ['required', 'string', 'max:50'],
             'email_address' => ['required', 'email', 'max:255'],
             'date_organized' => ['required', 'date'],
-            'roster' => ['nullable', 'array'],
-            'roster.*' => ['string', 'max:255'],
+            // Phase 2 item 8 — Renewal's required list is the same 6 as
+            // Registration, plus 3 more (List of Past Projects, Financial
+            // Statement, Summary of Evaluation).
+            ...AttachmentSlots::validationRules(FormType::OrganizationRenewal, requiredAtWrite: true),
         ];
     }
 
@@ -43,6 +47,7 @@ class StoreRenewalRequest extends FormRequest
             'purpose_of_organization' => 'Purpose of Organization',
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',
+            ...AttachmentSlots::validationAttributes(FormType::OrganizationRenewal),
         ];
     }
 }

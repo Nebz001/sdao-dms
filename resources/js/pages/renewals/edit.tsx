@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -32,16 +34,17 @@ type DetailData = {
     contact_no: string;
     email_address: string;
     date_organized: string;
-    roster: string[] | null;
 } | null;
 
 type Props = {
     document: DocumentData;
     detail: DetailData;
     organizationTypes: OrganizationTypeOption[];
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
 };
 
-export default function EditRenewal({ document, detail, organizationTypes }: Props) {
+export default function EditRenewal({ document, detail, organizationTypes, attachmentSlots, attachments }: Props) {
     return (
         <>
             <Head title="Edit Renewal" />
@@ -158,6 +161,15 @@ export default function EditRenewal({ document, detail, organizationTypes }: Pro
                                 />
                                 <InputError message={errors.purpose_of_organization} />
                             </div>
+
+                            {attachmentSlots.map((slot) => (
+                                <AttachmentSlotField
+                                    key={slot.key}
+                                    slot={slot}
+                                    existing={attachments[slot.key]}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            ))}
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Save &amp; Resubmit</Button>

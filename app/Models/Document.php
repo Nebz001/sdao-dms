@@ -90,4 +90,15 @@ class Document extends Model
     {
         return $this->hasOne(AfterActivityReport::class);
     }
+
+    /**
+     * Uploaded files across all attachment slots for this document (Phase 2
+     * item 8) — generic across all form types, see App\Attachments\AttachmentSlots.
+     *
+     * @return HasMany<DocumentAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(DocumentAttachment::class);
+    }
 }

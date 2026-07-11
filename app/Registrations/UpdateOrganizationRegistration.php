@@ -3,6 +3,7 @@
 namespace App\Registrations;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
@@ -10,15 +11,19 @@ use App\Models\Document;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateOrganizationRegistration
 {
-    public function __construct(private readonly ApprovalEngine $engine) {}
+    public function __construct(
+        private readonly ApprovalEngine $engine,
+        private readonly AttachmentStorage $attachmentStorage,
+    ) {}
 
     /**
-     * @param  array<int, string>|null  $roster
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -32,7 +37,7 @@ class UpdateOrganizationRegistration
         string $contactNo,
         string $emailAddress,
         string $dateOrganized,
-        ?array $roster = null,
+        array $attachmentFiles = [],
         ?int $adviserId = null,
     ): Document {
         if ($document->status !== DocumentStatus::Returned) {
@@ -45,7 +50,7 @@ class UpdateOrganizationRegistration
 
         return DB::transaction(function () use (
             $actor, $document, $organizationType, $purposeOfOrganization,
-            $contactPerson, $contactNo, $emailAddress, $dateOrganized, $roster, $adviserId
+            $contactPerson, $contactNo, $emailAddress, $dateOrganized, $adviserId, $attachmentFiles
         ) {
             $updates = [
                 'organization_type' => $organizationType->value,
@@ -54,7 +59,6 @@ class UpdateOrganizationRegistration
                 'contact_no' => $contactNo,
                 'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
-                'roster' => $roster,
             ];
 
             // Return-for-revision preserves the ability to pick a DIFFERENT
@@ -77,6 +81,13 @@ class UpdateOrganizationRegistration
             }
 
             $document->registrationDetail()->update($updates);
+
+            // Phase 2 item 8 — only newly re-uploaded slots are in
+            // $attachmentFiles; untouched slots from the original submission
+            // are left in place. assertRequiredSlotsFilled checks persisted
+            // rows + anything just stored, so completeness still holds.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
             $this->engine->resubmit($document, $actor);
             $document->refresh();

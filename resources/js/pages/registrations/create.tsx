@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +35,10 @@ type Props = {
     canPropose: boolean;
     schools: SchoolOption[];
     organizationTypes: OrganizationTypeOption[];
+    attachmentSlots: AttachmentSlotDef[];
 };
 
-export default function CreateRegistration({ canPropose, schools, organizationTypes }: Props) {
+export default function CreateRegistration({ canPropose, schools, organizationTypes, attachmentSlots }: Props) {
     const [name, setName] = useState('');
     const [schoolId, setSchoolId] = useState('');
     const [programId, setProgramId] = useState('');
@@ -45,6 +48,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const [contactNo, setContactNo] = useState('');
     const [emailAddress, setEmailAddress] = useState('');
     const [dateOrganized, setDateOrganized] = useState('');
+    const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File | null>>({});
 
     const [adviserQuery, setAdviserQuery] = useState('');
     const [adviserResults, setAdviserResults] = useState<AdviserResult[]>([]);
@@ -109,6 +113,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                 contact_no: contactNo,
                 email_address: emailAddress,
                 date_organized: dateOrganized,
+                attachments: attachmentFiles,
             },
             {
                 onError: (errs) => setErrors(errs as Record<string, string>),
@@ -141,7 +146,8 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         contactPerson.trim() !== '' &&
         contactNo.trim() !== '' &&
         emailAddress.trim() !== '' &&
-        dateOrganized !== '';
+        dateOrganized !== '' &&
+        attachmentSlots.every((slot) => !slot.required || attachmentFiles[slot.key]);
 
     return (
         <>
@@ -323,6 +329,17 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             <p className="text-sm text-destructive">{errors.purpose_of_organization}</p>
                         )}
                     </div>
+
+                    {attachmentSlots.map((slot) => (
+                        <AttachmentSlotField
+                            key={slot.key}
+                            slot={slot}
+                            error={errors[`attachments.${slot.key}`]}
+                            onFilesChange={(files) =>
+                                setAttachmentFiles((prev) => ({ ...prev, [slot.key]: files?.[0] ?? null }))
+                            }
+                        />
+                    ))}
 
                     <Dialog>
                         <DialogTrigger asChild>

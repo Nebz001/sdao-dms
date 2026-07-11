@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import ActivityProposalReviewController from '@/actions/App/Http/Controllers/ActivityProposalReviewController';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +63,8 @@ type Props = {
     document: DocumentData;
     proposal: ProposalData;
     activity: ActivityData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
@@ -99,6 +103,8 @@ export default function ReviewActivityProposalShow({
     document: doc,
     proposal,
     activity,
+    attachmentSlots,
+    attachments,
     history,
     currentStepApprovals,
     hasApproved,
@@ -108,7 +114,7 @@ export default function ReviewActivityProposalShow({
     hasConfirmedConflict,
     errors = {},
 }: Props) {
-    useDocumentUpdates(['document', 'proposal', 'activity', 'history', 'currentStepApprovals', 'hasApproved', 'currentStepRole', 'requiredApprovals', 'activityConflict', 'hasConfirmedConflict']);
+    useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'history', 'currentStepApprovals', 'hasApproved', 'currentStepRole', 'requiredApprovals', 'activityConflict', 'hasConfirmedConflict']);
 
     const isInReview = doc.status === 'in_review';
     const isSdaoStep = currentStepRole === 'sdao_member';
@@ -248,6 +254,8 @@ export default function ReviewActivityProposalShow({
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Approver actions */}
                 {isInReview && (

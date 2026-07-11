@@ -1,5 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import RenewalReviewController from '@/actions/App/Http/Controllers/RenewalReviewController';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +29,6 @@ type DetailData = {
     email_address: string;
     date_organized: string;
     adviser: { name: string } | null;
-    roster: string[] | null;
     academic_year: string | null;
 } | null;
 
@@ -47,6 +48,8 @@ type StepApproval = { user_id: number; name: string };
 type Props = {
     document: DocumentData;
     detail: DetailData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
@@ -59,11 +62,13 @@ function actionLabel(action: string): string {
 export default function ReviewRenewalShow({
     document,
     detail,
+    attachmentSlots,
+    attachments,
     history,
     currentStepApprovals,
     hasApproved,
 }: Props) {
-    useDocumentUpdates(['document', 'detail', 'history', 'currentStepApprovals', 'hasApproved']);
+    useDocumentUpdates(['document', 'detail', 'attachments', 'history', 'currentStepApprovals', 'hasApproved']);
 
     const isInReview = document.status === 'in_review';
 
@@ -138,19 +143,11 @@ export default function ReviewRenewalShow({
                                 <span className="font-medium text-muted-foreground">Purpose of Organization</span>
                                 <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
                             </div>
-                            {detail.roster && detail.roster.length > 0 && (
-                                <div className="grid gap-1">
-                                    <span className="font-medium text-muted-foreground">Roster</span>
-                                    <ul className="list-disc pl-4">
-                                        {detail.roster.map((name, i) => (
-                                            <li key={i}>{name}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Review actions */}
                 {isInReview && !hasApproved && (

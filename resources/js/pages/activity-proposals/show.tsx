@@ -1,4 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +59,8 @@ type Props = {
     document: DocumentData;
     proposal: ProposalData;
     activity: ActivityData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
     flash?: { message?: string; warnings?: { conflicts: object[] }[] };
 };
@@ -77,10 +81,18 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ShowActivityProposal({ document: doc, proposal, activity, history, flash }: Props) {
+export default function ShowActivityProposal({
+    document: doc,
+    proposal,
+    activity,
+    attachmentSlots,
+    attachments,
+    history,
+    flash,
+}: Props) {
     const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
 
-    useDocumentUpdates(['document', 'proposal', 'activity', 'history']);
+    useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'history']);
 
     const isDraft = doc.status === 'draft';
     const isReturned = doc.status === 'returned';
@@ -233,6 +245,8 @@ export default function ShowActivityProposal({ document: doc, proposal, activity
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Revision history */}
                 <Card>

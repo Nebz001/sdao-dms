@@ -3,6 +3,7 @@
 namespace App\Reports;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\ActivityProposal;
@@ -11,6 +12,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,9 +27,12 @@ class SubmitAfterActivityReport
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
     /**
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
+     *
      * @throws AuthorizationException
      * @throws ValidationException
      */
@@ -41,6 +46,7 @@ class SubmitAfterActivityReport
         ?string $preparedBy = null,
         ?string $eventProgram = null,
         ?int $targetParticipantsPercentage = null,
+        array $attachmentFiles = [],
     ): Document {
         $proposal->loadMissing('document.organization');
         $proposalDocument = $proposal->document;
@@ -66,7 +72,7 @@ class SubmitAfterActivityReport
 
         return DB::transaction(function () use (
             $actor, $proposal, $organization, $summary, $outcomes, $participantCount,
-            $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage
+            $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage, $attachmentFiles
         ) {
             $document = Document::create([
                 'form_type' => FormType::AfterActivityReport,
@@ -90,6 +96,11 @@ class SubmitAfterActivityReport
                 'event_program' => $eventProgram,
                 'target_participants_percentage' => $targetParticipantsPercentage,
             ]);
+
+            // Phase 2 item 8 — Photos, Sample Evaluation Form, Attendance
+            // Sheet all required, no conditionals.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
             $this->engine->submit($document, $actor);
             $document->refresh();

@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -34,7 +36,6 @@ type PriorRecord = {
     contact_no: string;
     email_address: string;
     date_organized: string;
-    roster: string[] | null;
 } | null;
 
 type Props = {
@@ -43,6 +44,7 @@ type Props = {
     alreadyRenewed: boolean;
     academicYear: string;
     organizationTypes: OrganizationTypeOption[];
+    attachmentSlots: AttachmentSlotDef[];
 };
 
 export default function CreateRenewal({
@@ -51,6 +53,7 @@ export default function CreateRenewal({
     alreadyRenewed,
     academicYear,
     organizationTypes,
+    attachmentSlots,
 }: Props) {
     if (!membership) {
         return (
@@ -211,6 +214,14 @@ export default function CreateRenewal({
                                 />
                                 <InputError message={errors.purpose_of_organization} />
                             </div>
+
+                            {attachmentSlots.map((slot) => (
+                                <AttachmentSlotField
+                                    key={slot.key}
+                                    slot={slot}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            ))}
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Submit for Review</Button>

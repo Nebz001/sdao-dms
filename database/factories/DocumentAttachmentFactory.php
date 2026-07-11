@@ -2,24 +2,22 @@
 
 namespace Database\Factories;
 
-use App\Models\AfterActivityReportAttachment;
+use App\Models\DocumentAttachment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<AfterActivityReportAttachment>
+ * @extends Factory<DocumentAttachment>
  */
-class AfterActivityReportAttachmentFactory extends Factory
+class DocumentAttachmentFactory extends Factory
 {
-    protected $model = AfterActivityReportAttachment::class;
+    protected $model = DocumentAttachment::class;
 
-    /**
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
+            'slot_key' => $this->faker->word(),
             'original_filename' => $this->faker->word().'.pdf',
-            'path' => 'reports/'.$this->faker->uuid().'.pdf',
+            'path' => 'attachments/'.$this->faker->uuid().'.pdf',
             'disk' => 'local',
             'mime_type' => 'application/pdf',
             'size' => $this->faker->numberBetween(10000, 5000000),

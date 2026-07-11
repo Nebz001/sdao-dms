@@ -1,5 +1,7 @@
 import { Form, Head, router, usePage } from '@inertiajs/react';
 import RegistrationReviewController from '@/actions/App/Http/Controllers/RegistrationReviewController';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,7 +38,6 @@ type DetailData = {
     email_address: string;
     date_organized: string;
     adviser: { name: string } | null;
-    roster: string[] | null;
 } | null;
 
 type TransitionEntry = {
@@ -55,6 +56,8 @@ type StepApproval = { user_id: number; name: string };
 type Props = {
     document: DocumentData;
     detail: DetailData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
@@ -68,12 +71,14 @@ function actionLabel(action: string): string {
 export default function ReviewRegistrationShow({
     document,
     detail,
+    attachmentSlots,
+    attachments,
     history,
     currentStepApprovals,
     hasApproved,
     adviserAvailable,
 }: Props) {
-    useDocumentUpdates(['document', 'detail', 'history', 'currentStepApprovals', 'hasApproved', 'adviserAvailable']);
+    useDocumentUpdates(['document', 'detail', 'attachments', 'history', 'currentStepApprovals', 'hasApproved', 'adviserAvailable']);
 
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const isInReview = document.status === 'in_review';
@@ -146,19 +151,11 @@ export default function ReviewRegistrationShow({
                                 <span className="font-medium text-muted-foreground">Purpose of Organization</span>
                                 <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
                             </div>
-                            {detail.roster && detail.roster.length > 0 && (
-                                <div className="grid gap-1">
-                                    <span className="font-medium text-muted-foreground">Roster</span>
-                                    <ul className="list-disc pl-4">
-                                        {detail.roster.map((name, i) => (
-                                            <li key={i}>{name}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Review actions */}
                 {isInReview && !hasApproved && (

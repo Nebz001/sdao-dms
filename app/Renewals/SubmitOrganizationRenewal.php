@@ -3,6 +3,7 @@
 namespace App\Renewals;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,10 +31,11 @@ class SubmitOrganizationRenewal
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
         private readonly RoleDirectory $roleDirectory,
+        private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
     /**
-     * @param  array<int, string>|null  $roster
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -46,7 +49,7 @@ class SubmitOrganizationRenewal
         string $contactNo,
         string $emailAddress,
         string $dateOrganized,
-        ?array $roster = null,
+        array $attachmentFiles = [],
     ): Document {
         $membership = $this->membershipService->activeMembershipFor($actor, $organization);
 
@@ -73,7 +76,7 @@ class SubmitOrganizationRenewal
         return DB::transaction(function () use (
             $actor, $organization, $organizationType, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized,
-            $roster, $adviser, $academicYear
+            $adviser, $academicYear, $attachmentFiles
         ) {
             $document = Document::create([
                 'form_type' => FormType::OrganizationRenewal,
@@ -95,9 +98,13 @@ class SubmitOrganizationRenewal
                 'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'adviser_id' => $adviser->id,
-                'roster' => $roster,
                 'academic_year' => $academicYear,
             ]);
+
+            // Phase 2 item 8 — every attachment listed on the client's real
+            // form is required, no conditionals on Organization Type.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
             $this->engine->submit($document, $actor);
             $document->refresh();

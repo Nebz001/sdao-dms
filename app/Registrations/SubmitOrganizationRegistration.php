@@ -3,6 +3,7 @@
 namespace App\Registrations;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -14,6 +15,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -31,10 +33,11 @@ class SubmitOrganizationRegistration
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
     /**
-     * @param  array<int, string>|null  $roster
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
      *
      * @throws ValidationException
      */
@@ -50,7 +53,7 @@ class SubmitOrganizationRegistration
         string $contactNo,
         string $emailAddress,
         string $dateOrganized,
-        ?array $roster = null,
+        array $attachmentFiles = [],
     ): Document {
         if (! $actor->isVerifiedAccount()) {
             throw ValidationException::withMessages([
@@ -102,7 +105,7 @@ class SubmitOrganizationRegistration
         return DB::transaction(function () use (
             $actor, $name, $schoolId, $programId, $adviserId, $organizationType,
             $purposeOfOrganization, $contactPerson, $contactNo, $emailAddress,
-            $dateOrganized, $roster, $academicYear
+            $dateOrganized, $academicYear, $attachmentFiles
         ) {
             // Pending state (Phase 2 item 5): the org exists from submission
             // onward, but is not "real" until Approved — no adviser
@@ -133,8 +136,12 @@ class SubmitOrganizationRegistration
                 'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'adviser_id' => $adviserId,
-                'roster' => $roster,
             ]);
+
+            // Phase 2 item 8 — every attachment listed on the client's real
+            // form is required, no conditionals on Organization Type.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
             $this->engine->submit($document, $actor);
             $document->refresh();

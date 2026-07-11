@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -35,9 +37,10 @@ type EligibleProposal = {
 type Props = {
     membership: Membership | null;
     eligibleProposals: EligibleProposal[];
+    attachmentSlots: AttachmentSlotDef[];
 };
 
-export default function CreateReport({ membership, eligibleProposals }: Props) {
+export default function CreateReport({ membership, eligibleProposals, attachmentSlots }: Props) {
     const [chairs, setChairs] = useState<string[]>(['']);
 
     if (!membership) {
@@ -224,6 +227,14 @@ export default function CreateReport({ membership, eligibleProposals }: Props) {
                                 />
                                 <InputError message={errors.participant_count} />
                             </div>
+
+                            {attachmentSlots.map((slot) => (
+                                <AttachmentSlotField
+                                    key={slot.key}
+                                    slot={slot}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            ))}
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Submit for Review</Button>

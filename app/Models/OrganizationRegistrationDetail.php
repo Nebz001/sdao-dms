@@ -20,10 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $email_address
  * @property CarbonInterface $date_organized
  * @property int|null $adviser_id
- * @property array<int, string>|null $roster
  * @property string|null $academic_year
  */
-#[Fillable(['document_id', 'organization_type', 'purpose_of_organization', 'contact_person', 'contact_no', 'email_address', 'date_organized', 'adviser_id', 'roster', 'academic_year'])]
+#[Fillable(['document_id', 'organization_type', 'purpose_of_organization', 'contact_person', 'contact_no', 'email_address', 'date_organized', 'adviser_id', 'academic_year'])]
 class OrganizationRegistrationDetail extends Model
 {
     /** @use HasFactory<OrganizationRegistrationDetailFactory> */
@@ -32,7 +31,6 @@ class OrganizationRegistrationDetail extends Model
     protected $casts = [
         'organization_type' => OrganizationType::class,
         'date_organized' => 'date',
-        'roster' => 'array',
     ];
 
     /** @return BelongsTo<Document, $this> */

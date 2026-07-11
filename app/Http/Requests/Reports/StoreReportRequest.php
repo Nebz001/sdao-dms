@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Reports;
 
+use App\Attachments\AttachmentSlots;
+use App\Enums\FormType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -30,6 +32,9 @@ class StoreReportRequest extends FormRequest
             'prepared_by' => ['required', 'string', 'max:255'],
             'event_program' => ['required', 'string', 'max:10000'],
             'target_participants_percentage' => ['required', 'integer', 'min:0', 'max:100'],
+            // Phase 2 item 8 — Photos, Sample Evaluation Form, Attendance
+            // Sheet all required, no conditionals.
+            ...AttachmentSlots::validationRules(FormType::AfterActivityReport, requiredAtWrite: true),
         ];
     }
 
@@ -44,6 +49,7 @@ class StoreReportRequest extends FormRequest
             'prepared_by' => 'Prepared By',
             'event_program' => 'Program',
             'target_participants_percentage' => '% Target Participants',
+            ...AttachmentSlots::validationAttributes(FormType::AfterActivityReport),
         ];
     }
 }

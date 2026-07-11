@@ -6,6 +6,7 @@ use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
+use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
@@ -192,10 +193,11 @@ class ActivityProposalController extends Controller
     {
         Gate::authorize('view', $document);
 
-        $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user', 'attachments']);
 
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('activity-proposals/show', [
             'document' => [
@@ -234,6 +236,8 @@ class ActivityProposalController extends Controller
                 'start_time' => $activity->start_time,
                 'end_time' => $activity->end_time,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
@@ -254,9 +258,10 @@ class ActivityProposalController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['organization', 'activityProposal.calendarActivity']);
+        $document->load(['organization', 'activityProposal.calendarActivity', 'attachments']);
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('activity-proposals/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -303,6 +308,8 @@ class ActivityProposalController extends Controller
                 'value' => $s->value,
                 'label' => $s->number().'. '.$s->label(),
             ]),
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
         ]);
     }
 
@@ -315,9 +322,10 @@ class ActivityProposalController extends Controller
             abort(403);
         }
 
-        $document->load(['organization', 'activityProposal.calendarActivity']);
+        $document->load(['organization', 'activityProposal.calendarActivity', 'attachments']);
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('activity-proposals/step-two', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -343,6 +351,8 @@ class ActivityProposalController extends Controller
                 'start_time' => $activity->start_time,
                 'end_time' => $activity->end_time,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
         ]);
     }
 

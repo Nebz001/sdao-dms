@@ -1,5 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { useRef } from 'react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,10 +39,12 @@ type Props = {
     document: DocumentData;
     proposal: ProposalData;
     activity: ActivitySummary;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     errors?: Record<string, string>;
 };
 
-export default function StepTwo({ document: doc, proposal, activity, errors = {} }: Props) {
+export default function StepTwo({ document: doc, proposal, activity, attachmentSlots, attachments, errors = {} }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const narrativeRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
@@ -186,6 +190,15 @@ clearTimeout(saveTimer.current);
                             />
                             <InputError message={errors.expenses} />
                         </div>
+
+                        {attachmentSlots.map((slot) => (
+                            <ImmediateAttachmentUpload
+                                key={slot.key}
+                                documentId={doc.id}
+                                slot={slot}
+                                existing={attachments[slot.key]?.[0] ?? null}
+                            />
+                        ))}
 
                         <InputError message={errors.activity} />
 

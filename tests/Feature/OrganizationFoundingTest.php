@@ -35,7 +35,7 @@ function foundingOrgPayload(array $overrides = []): array
         'contactNo' => '09170000000',
         'emailAddress' => 'contact@example.test',
         'dateOrganized' => '2020-06-01',
-        'roster' => ['Member One'],
+        'attachmentFiles' => registrationAttachmentFiles(),
     ], $overrides);
 }
 
@@ -134,7 +134,6 @@ test('return-for-revision preserves the ability to pick a new adviser and resubm
         contactNo: '09170000000',
         emailAddress: 'contact@example.test',
         dateOrganized: '2020-06-01',
-        roster: ['Member One'],
         adviserId: $goodAdviser->id,
     );
 
@@ -221,7 +220,6 @@ test('adviser and founding student remain unbound through every non-terminal sta
         contactNo: '09170000000',
         emailAddress: 'contact@example.test',
         dateOrganized: '2020-06-01',
-        roster: ['Member One'],
     );
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);

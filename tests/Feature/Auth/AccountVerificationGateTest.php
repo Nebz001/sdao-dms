@@ -167,6 +167,7 @@ test('an unverified officer is forbidden from proposing a new organization', fun
         'contact_no' => '09170000000',
         'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
+        'attachments' => registrationAttachmentFiles(),
     ]);
 
     $response->assertForbidden();
@@ -186,6 +187,7 @@ test('a rejected officer is forbidden from proposing a new organization', functi
         'contact_no' => '09170000000',
         'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
+        'attachments' => registrationAttachmentFiles(),
     ]);
 
     $response->assertForbidden();
@@ -285,7 +287,6 @@ test('an unverified officer is forbidden from submitting a renewal', function ()
         'email_address' => 'original@example.test',
         'date_organized' => '2020-06-01',
         'adviser_id' => null,
-        'roster' => ['Member One'],
     ]);
     $engine = app(ApprovalEngine::class);
     $engine->submit($registration, $verifiedOfficer);
@@ -305,7 +306,7 @@ test('an unverified officer is forbidden from submitting a renewal', function ()
         'contact_no' => '09172222222',
         'email_address' => 'renewed@example.test',
         'date_organized' => '2020-06-01',
-        'roster' => ['Member One'],
+        'attachments' => renewalAttachmentFiles(),
     ]);
 
     $response->assertForbidden();
@@ -384,6 +385,7 @@ test('an unverified officer is forbidden from submitting an after-activity repor
         'prepared_by' => 'Preparer Name',
         'event_program' => 'Program details.',
         'target_participants_percentage' => 80,
+        'attachments' => reportAttachmentFiles(),
     ]);
 
     $response->assertForbidden();

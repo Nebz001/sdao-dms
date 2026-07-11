@@ -51,7 +51,6 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
         'contactNo' => '09171111111',
         'emailAddress' => 'original@example.test',
         'dateOrganized' => '2020-06-01',
-        'roster' => ['Member One'],
     ], $overrides);
 
     // Built directly (not via SubmitOrganizationRegistration): renewal tests
@@ -81,7 +80,6 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
         'email_address' => $p['emailAddress'],
         'date_organized' => $p['dateOrganized'],
         'adviser_id' => null,
-        'roster' => $p['roster'],
     ]);
 
     $engine = app(ApprovalEngine::class);
@@ -107,7 +105,6 @@ function renewalPayload(array $overrides = []): array
         'contactNo' => '09172222222',
         'emailAddress' => 'renewed@example.test',
         'dateOrganized' => '2020-06-01',
-        'roster' => ['Member One'],
     ], $overrides);
 }
 
@@ -123,7 +120,7 @@ test('renewal requires a prior approved registration', function () {
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     ))->toThrow(ValidationException::class);
 });
 
@@ -141,7 +138,7 @@ test('unaffiliated user cannot submit a renewal even with a prior approved regis
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     ))->toThrow(AuthorizationException::class);
 });
 
@@ -158,7 +155,7 @@ test('affiliated officer can submit a renewal after an approved registration', f
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     expect($renewal->status)->toBe(DocumentStatus::InReview);
@@ -179,7 +176,7 @@ test('a second renewal for the same org+year is blocked while the first is non-r
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     expect(fn () => $this->renewalAction->execute(
@@ -191,7 +188,7 @@ test('a second renewal for the same org+year is blocked while the first is non-r
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     ))->toThrow(ValidationException::class);
 });
 
@@ -208,7 +205,7 @@ test('a rejected renewal frees the slot — a new renewal for the same year is a
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     $this->engine->reject($firstRenewal, $this->sdaoA, 'Incomplete.');
@@ -224,7 +221,7 @@ test('a rejected renewal frees the slot — a new renewal for the same year is a
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     expect($secondRenewal->status)->toBe(DocumentStatus::InReview);
@@ -244,7 +241,7 @@ test('the prior approved record is preserved — renewal creates a new row, neve
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     $reg->refresh()->load('registrationDetail');
@@ -270,7 +267,7 @@ test('academic_year is unchanged after a renewal is returned for revision and re
         contactNo: $p['contactNo'],
         emailAddress: $p['emailAddress'],
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     $originalAcademicYear = $renewal->registrationDetail->academic_year;
@@ -289,7 +286,6 @@ test('academic_year is unchanged after a renewal is returned for revision and re
         contactNo: '09179999999',
         emailAddress: 'revised@example.test',
         dateOrganized: $p['dateOrganized'],
-        roster: $p['roster'],
     );
 
     $renewal->refresh();
@@ -322,7 +318,7 @@ test('renewing an already-renewed org carries forward from the most recent renew
         contactNo: '09171111111',
         emailAddress: 'ay1@example.test',
         dateOrganized: '2020-06-01',
-        roster: ['Member One'],
+        attachmentFiles: renewalAttachmentFiles(),
     );
     $this->engine->approve($renewalAY1, $this->sdaoA);
     $renewalAY1->refresh();

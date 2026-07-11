@@ -153,6 +153,7 @@ test('Summary, Activity Chair/s, Prepared By, Program, and % Target Participants
         preparedBy: 'Preparer Name',
         eventProgram: '9:00 Opening remarks, 10:00 Main session, 11:00 Closing.',
         targetParticipantsPercentage: 85,
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $report = $document->afterActivityReport;
@@ -207,6 +208,7 @@ test('Date Submitted renders on the index list from the document\'s real created
         preparedBy: 'Preparer Name',
         eventProgram: 'Program details.',
         targetParticipantsPercentage: 90,
+        attachmentFiles: reportAttachmentFiles(),
     );
 
     $this->actingAs($this->studentAlpha)

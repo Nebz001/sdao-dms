@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Review\ReviewActionRequest;
@@ -46,9 +47,11 @@ class AfterActivityReportReviewController extends Controller
             'afterActivityReport.activityProposal.calendarActivity',
             'transitions.actor',
             'stepApprovals.user',
+            'attachments',
         ]);
 
         $report = $document->afterActivityReport;
+        $attachments = AttachmentSlots::presentForDocument($document);
         $user = Auth::user();
 
         $currentStepApprovals = $document->stepApprovals
@@ -86,6 +89,8 @@ class AfterActivityReportReviewController extends Controller
                     'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,

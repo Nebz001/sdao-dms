@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Http\Requests\Renewals\StoreRenewalRequest;
@@ -71,6 +72,7 @@ class RenewalController extends Controller
                 'alreadyRenewed' => false,
                 'academicYear' => AcademicYear::current(),
                 'organizationTypes' => $organizationTypes,
+                'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRenewal),
             ]);
         }
 
@@ -100,11 +102,11 @@ class RenewalController extends Controller
                 'contact_no' => $detail->contact_no,
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
-                'roster' => $detail->roster,
             ] : null,
             'alreadyRenewed' => $alreadyRenewed,
             'academicYear' => $academicYear,
             'organizationTypes' => $organizationTypes,
+            'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRenewal),
         ]);
     }
 
@@ -128,7 +130,7 @@ class RenewalController extends Controller
             contactNo: $request->string('contact_no')->toString(),
             emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
-            roster: $request->input('roster'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRenewal),
         );
 
         return redirect()->route('renewals.show', $document)
@@ -139,9 +141,10 @@ class RenewalController extends Controller
     {
         Gate::authorize('view', $document);
 
-        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user', 'attachments']);
 
         $detail = $document->registrationDetail;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('renewals/show', [
             'document' => [
@@ -167,9 +170,10 @@ class RenewalController extends Controller
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
-                'roster' => $detail->roster,
                 'academic_year' => $detail->academic_year,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
@@ -187,8 +191,9 @@ class RenewalController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['organization.school', 'organization.program', 'registrationDetail']);
+        $document->load(['organization.school', 'organization.program', 'registrationDetail', 'attachments']);
         $detail = $document->registrationDetail;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('renewals/edit', [
             'document' => [
@@ -208,12 +213,13 @@ class RenewalController extends Controller
                 'contact_no' => $detail->contact_no,
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
-                'roster' => $detail->roster,
             ] : null,
             'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
         ]);
     }
 
@@ -230,7 +236,7 @@ class RenewalController extends Controller
             contactNo: $request->string('contact_no')->toString(),
             emailAddress: $request->string('email_address')->toString(),
             dateOrganized: $request->string('date_organized')->toString(),
-            roster: $request->input('roster'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRenewal),
         );
 
         return redirect()->route('renewals.show', $document)

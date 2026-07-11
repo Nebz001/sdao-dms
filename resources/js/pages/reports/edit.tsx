@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
+import AttachmentSlotField from '@/components/attachment-slot-field';
+import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -30,9 +32,11 @@ type DetailData = {
 type Props = {
     document: DocumentData;
     detail: DetailData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
 };
 
-export default function EditReport({ document, detail }: Props) {
+export default function EditReport({ document, detail, attachmentSlots, attachments }: Props) {
     const [chairs, setChairs] = useState<string[]>(detail?.activity_chairs?.length ? detail.activity_chairs : ['']);
 
     return (
@@ -195,6 +199,15 @@ export default function EditReport({ document, detail }: Props) {
                                 />
                                 <InputError message={errors.participant_count} />
                             </div>
+
+                            {attachmentSlots.map((slot) => (
+                                <AttachmentSlotField
+                                    key={slot.key}
+                                    slot={slot}
+                                    existing={attachments[slot.key]}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            ))}
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Save &amp; Resubmit</Button>

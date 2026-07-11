@@ -1,5 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import AfterActivityReportReviewController from '@/actions/App/Http/Controllers/AfterActivityReportReviewController';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,8 @@ type StepApproval = { user_id: number; name: string };
 type Props = {
     document: DocumentData;
     report: ReportData;
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
@@ -64,11 +68,13 @@ function actionLabel(action: string): string {
 export default function ReviewReportShow({
     document,
     report,
+    attachmentSlots,
+    attachments,
     history,
     currentStepApprovals,
     hasApproved,
 }: Props) {
-    useDocumentUpdates(['document', 'report', 'history', 'currentStepApprovals', 'hasApproved']);
+    useDocumentUpdates(['document', 'report', 'attachments', 'history', 'currentStepApprovals', 'hasApproved']);
 
     const isInReview = document.status === 'in_review';
 
@@ -181,6 +187,8 @@ export default function ReviewReportShow({
                         </CardContent>
                     </Card>
                 )}
+
+                <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Review actions */}
                 {isInReview && !hasApproved && (

@@ -55,6 +55,7 @@ function registrationStorePayload(array $overrides = []): array
         'contact_no' => '09171234567',
         'email_address' => 'contact@example.test',
         'date_organized' => '2020-06-01',
+        'attachments' => registrationAttachmentFiles(),
     ], $overrides);
 }
 
@@ -186,7 +187,6 @@ test('a Senior High School organization shows College with no Program (no progra
         'email_address' => 'shs@example.test',
         'date_organized' => '2020-06-01',
         'adviser_id' => null,
-        'roster' => null,
     ]);
     $engine->submit($registration, $shsStudent);
     $registration->refresh();
@@ -203,6 +203,7 @@ test('a Senior High School organization shows College with no Program (no progra
         contactNo: '09170000000',
         emailAddress: 'shs@example.test',
         dateOrganized: '2020-06-01',
+        attachmentFiles: renewalAttachmentFiles(),
     );
 
     $this->actingAs($shsStudent)

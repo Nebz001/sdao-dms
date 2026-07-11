@@ -57,7 +57,7 @@ test('officer can edit and resubmit a returned registration', function () {
         contactNo: '09171234567',
         emailAddress: 'cs@sdao.test',
         dateOrganized: '2020-06-01',
-        roster: ['Student Alpha'],
+        attachmentFiles: registrationAttachmentFiles(),
     );
 
     $resubmitted->refresh();
@@ -80,6 +80,7 @@ test('resubmit resumes at SDAO step and both must re-approve', function () {
         contactNo: '09171234567',
         emailAddress: 'cs@sdao.test',
         dateOrganized: '2020-06-01',
+        attachmentFiles: registrationAttachmentFiles(),
     );
     $doc->refresh();
 

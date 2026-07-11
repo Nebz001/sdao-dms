@@ -84,6 +84,7 @@ test('a self-registered, verified user CAN propose a new organization (Phase 2 i
         'contact_no' => '09170000000',
         'email_address' => 'someone@example.test',
         'date_organized' => '2020-06-01',
+        'attachments' => registrationAttachmentFiles(),
     ]);
     $response->assertRedirect();
     expect(Organization::where('name', 'Bare User Founded Org')->exists())->toBeTrue();

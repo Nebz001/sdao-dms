@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -43,11 +42,5 @@ class AfterActivityReport extends Model
     public function activityProposal(): BelongsTo
     {
         return $this->belongsTo(ActivityProposal::class);
-    }
-
-    /** @return HasMany<AfterActivityReportAttachment, $this> */
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(AfterActivityReportAttachment::class);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Registrations;
 
+use App\Attachments\AttachmentSlots;
+use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Models\Program;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -32,8 +34,9 @@ class StoreRegistrationRequest extends FormRequest
             'contact_no' => ['required', 'string', 'max:50'],
             'email_address' => ['required', 'email', 'max:255'],
             'date_organized' => ['required', 'date'],
-            'roster' => ['nullable', 'array'],
-            'roster.*' => ['string', 'max:255'],
+            // Phase 2 item 8 — every attachment listed on the client's real
+            // form is required, no conditionals on Organization Type.
+            ...AttachmentSlots::validationRules(FormType::OrganizationRegistration, requiredAtWrite: true),
         ];
     }
 
@@ -51,6 +54,7 @@ class StoreRegistrationRequest extends FormRequest
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',
             'school_id' => 'College',
+            ...AttachmentSlots::validationAttributes(FormType::OrganizationRegistration),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Reports\StoreReportRequest;
@@ -109,6 +110,7 @@ class AfterActivityReportController extends Controller
                 ],
             ],
             'eligibleProposals' => $eligibleProposals,
+            'attachmentSlots' => AttachmentSlots::slotsFor(FormType::AfterActivityReport),
         ]);
     }
 
@@ -132,6 +134,7 @@ class AfterActivityReportController extends Controller
             preparedBy: $request->string('prepared_by')->toString(),
             eventProgram: $request->string('event_program')->toString(),
             targetParticipantsPercentage: $request->integer('target_participants_percentage'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::AfterActivityReport),
         );
 
         return redirect()->route('reports.show', $document)
@@ -147,9 +150,11 @@ class AfterActivityReportController extends Controller
             'afterActivityReport.activityProposal.calendarActivity',
             'transitions.actor',
             'stepApprovals.user',
+            'attachments',
         ]);
 
         $report = $document->afterActivityReport;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('reports/show', [
             'document' => [
@@ -181,6 +186,8 @@ class AfterActivityReportController extends Controller
                     'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
             'history' => $document->transitions->map(fn ($t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
@@ -198,8 +205,9 @@ class AfterActivityReportController extends Controller
     {
         Gate::authorize('edit', $document);
 
-        $document->load(['afterActivityReport.activityProposal.calendarActivity']);
+        $document->load(['afterActivityReport.activityProposal.calendarActivity', 'attachments']);
         $report = $document->afterActivityReport;
+        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('reports/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -219,6 +227,8 @@ class AfterActivityReportController extends Controller
                     'end_time' => $report->activityProposal->calendarActivity?->end_time,
                 ] : null,
             ] : null,
+            'attachmentSlots' => $attachments['slots'],
+            'attachments' => $attachments['files'],
         ]);
     }
 
@@ -236,6 +246,7 @@ class AfterActivityReportController extends Controller
             preparedBy: $request->string('prepared_by')->toString(),
             eventProgram: $request->string('event_program')->toString(),
             targetParticipantsPercentage: $request->integer('target_participants_percentage'),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::AfterActivityReport),
         );
 
         return redirect()->route('reports.show', $document)

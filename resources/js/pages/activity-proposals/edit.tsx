@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +46,8 @@ type Props = {
     activityNatures: OptionItem[];
     activityTypes: OptionItem[];
     sdgs: OptionItem[];
+    attachmentSlots: AttachmentSlotDef[];
+    attachments: Record<string, ExistingAttachment[]>;
     errors?: Record<string, string>;
 };
 
@@ -54,6 +58,8 @@ export default function EditActivityProposal({
     activityNatures,
     activityTypes,
     sdgs,
+    attachmentSlots,
+    attachments,
     errors = {},
 }: Props) {
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
@@ -321,6 +327,15 @@ export default function EditActivityProposal({
                             />
                             <InputError message={errors.budget_source} />
                         </div>
+
+                        {attachmentSlots.map((slot) => (
+                            <ImmediateAttachmentUpload
+                                key={slot.key}
+                                documentId={doc.id}
+                                slot={slot}
+                                existing={attachments[slot.key]?.[0] ?? null}
+                            />
+                        ))}
 
                         <InputError message={errors.activity} />
 
