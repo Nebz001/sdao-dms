@@ -58,7 +58,24 @@ type Props = {
 export default function CreateActivityCalendar({ membership, current_term_label, sdgs }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>([emptyRow()]);
     const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    function submit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setProcessing(true);
+        setErrors({});
+
+        router.post(
+            '/activity-calendars',
+            { activities },
+            {
+                onError: (errs) => setErrors(errs as Record<string, string>),
+                onFinish: () => setProcessing(false),
+            },
+        );
+    }
 
     function updateActivity(index: number, field: keyof ActivityRow, value: string) {
         setActivities((prev) => {
@@ -126,17 +143,13 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                     description={`Submitting for ${membership.organization.name} as ${membership.position_label}`}
                 />
 
-                <form
-                    method="POST"
-                    action="/activity-calendars"
-                    className="space-y-8"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        const form = e.currentTarget;
-                        const data = new FormData(form);
-                        router.post('/activity-calendars', Object.fromEntries(data as any));
-                    }}
-                >
+                <form onSubmit={submit} className="space-y-8">
+                    {errors.activities && (
+                        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                            {errors.activities}
+                        </div>
+                    )}
+
                     {/* Term is a global, admin-controlled setting — shown read-only. */}
                     <div className="grid gap-2">
                         <Label>Term</Label>
@@ -197,22 +210,26 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                                 <div className="grid gap-2">
                                     <Label>Activity Name</Label>
                                     <Input
-                                        name={`activities[${i}][name]`}
                                         value={activity.name}
                                         onChange={(e) => updateActivity(i, 'name', e.target.value)}
                                         required
                                     />
+                                    {errors[`activities.${i}.name`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.name`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
                                     <Label>Venue</Label>
                                     <Input
-                                        name={`activities[${i}][venue]`}
                                         value={activity.venue}
                                         onChange={(e) => updateActivity(i, 'venue', e.target.value)}
                                         placeholder="Exact venue name (case-sensitive)"
                                         required
                                     />
+                                    {errors[`activities.${i}.venue`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.venue`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
@@ -220,38 +237,43 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                                         <Label>Date</Label>
                                         <Input
                                             type="date"
-                                            name={`activities[${i}][activity_date]`}
                                             value={activity.activity_date}
                                             onChange={(e) => updateActivity(i, 'activity_date', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.activity_date`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.activity_date`]}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>Start Time</Label>
                                         <Input
                                             type="time"
-                                            name={`activities[${i}][start_time]`}
                                             value={activity.start_time}
                                             onChange={(e) => updateActivity(i, 'start_time', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.start_time`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.start_time`]}</p>
+                                        )}
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>End Time</Label>
                                         <Input
                                             type="time"
-                                            name={`activities[${i}][end_time]`}
                                             value={activity.end_time}
                                             onChange={(e) => updateActivity(i, 'end_time', e.target.value)}
                                             required
                                         />
+                                        {errors[`activities.${i}.end_time`] && (
+                                            <p className="text-sm text-destructive">{errors[`activities.${i}.end_time`]}</p>
+                                        )}
                                     </div>
                                 </div>
 
                                 <div className="grid gap-2">
                                     <Label htmlFor={`sdg-${i}`}>SDG</Label>
                                     <Select
-                                        name={`activities[${i}][sdg]`}
                                         value={activity.sdg}
                                         onValueChange={(value) => updateActivity(i, 'sdg', value)}
                                         required
@@ -267,17 +289,24 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {errors[`activities.${i}.sdg`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.sdg`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
                                     <Label>Participant/Program Assigned</Label>
                                     <Input
-                                        name={`activities[${i}][participant_program_assigned]`}
                                         value={activity.participant_program_assigned}
                                         onChange={(e) => updateActivity(i, 'participant_program_assigned', e.target.value)}
                                         placeholder="e.g. BSCS — All Year Levels"
                                         required
                                     />
+                                    {errors[`activities.${i}.participant_program_assigned`] && (
+                                        <p className="text-sm text-destructive">
+                                            {errors[`activities.${i}.participant_program_assigned`]}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -286,27 +315,33 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        name={`activities[${i}][budget]`}
                                         value={activity.budget}
                                         onChange={(e) => updateActivity(i, 'budget', e.target.value)}
                                         required
                                     />
+                                    {errors[`activities.${i}.budget`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.budget`]}</p>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
                                     <Label>Description (optional)</Label>
                                     <Textarea
-                                        name={`activities[${i}][description]`}
                                         value={activity.description}
                                         onChange={(e) => updateActivity(i, 'description', e.target.value)}
                                         rows={2}
                                     />
+                                    {errors[`activities.${i}.description`] && (
+                                        <p className="text-sm text-destructive">{errors[`activities.${i}.description`]}</p>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <Button type="submit">Submit for Review</Button>
+                    <Button type="submit" disabled={processing}>
+                        {processing ? 'Submitting…' : 'Submit for Review'}
+                    </Button>
                 </form>
             </div>
         </>
