@@ -3,6 +3,7 @@ import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
+import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -34,9 +35,10 @@ type Props = {
     detail: DetailData;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
+    flaggedSections: string[];
 };
 
-export default function EditReport({ document, detail, attachmentSlots, attachments }: Props) {
+export default function EditReport({ document, detail, attachmentSlots, attachments, flaggedSections }: Props) {
     const [chairs, setChairs] = useState<string[]>(detail?.activity_chairs?.length ? detail.activity_chairs : ['']);
 
     return (
@@ -49,7 +51,14 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                     description="Update the details below and resubmit for SDAO review."
                 />
 
+                {flaggedSections.includes('general') && (
+                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
+                        General revisions requested — see the reviewer's comment in Revision History below.
+                    </div>
+                )}
+
                 {detail?.activity && (
+                    <FlaggedSectionWrapper sectionKey="event_details" flagged={flaggedSections}>
                     <div className="rounded-md border p-4 text-sm text-muted-foreground">
                         <p>
                             <span className="font-medium text-foreground">Name of Event:</span>{' '}
@@ -63,6 +72,7 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                             </p>
                         )}
                     </div>
+                    </FlaggedSectionWrapper>
                 )}
 
                 <Form
@@ -71,6 +81,8 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                 >
                     {({ processing, errors }) => (
                         <>
+                            <FlaggedSectionWrapper sectionKey="summary_program" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {/* Summary */}
                             <div className="grid gap-2">
                                 <Label htmlFor="summary">Summary</Label>
@@ -157,7 +169,11 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                                 />
                                 <InputError message={errors.event_program} />
                             </div>
+                            </div>
+                            </FlaggedSectionWrapper>
 
+                            <FlaggedSectionWrapper sectionKey="evaluation" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {/* % Target Participants */}
                             <div className="grid gap-2">
                                 <Label htmlFor="target_participants_percentage">
@@ -199,7 +215,11 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                                 />
                                 <InputError message={errors.participant_count} />
                             </div>
+                            </div>
+                            </FlaggedSectionWrapper>
 
+                            <FlaggedSectionWrapper sectionKey="attachments" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {attachmentSlots.map((slot) => (
                                 <AttachmentSlotField
                                     key={slot.key}
@@ -208,6 +228,8 @@ export default function EditReport({ document, detail, attachmentSlots, attachme
                                     error={errors[`attachments.${slot.key}`]}
                                 />
                             ))}
+                            </div>
+                            </FlaggedSectionWrapper>
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Save &amp; Resubmit</Button>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -195,9 +196,11 @@ class AfterActivityReportController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
+            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
         ]);
     }
 
@@ -208,6 +211,7 @@ class AfterActivityReportController extends Controller
         $document->load(['afterActivityReport.activityProposal.calendarActivity', 'attachments']);
         $report = $document->afterActivityReport;
         $attachments = AttachmentSlots::presentForDocument($document);
+        $flaggedSections = SectionFlags::currentlyFlagged($document);
 
         return Inertia::render('reports/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -229,6 +233,7 @@ class AfterActivityReportController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
+            'flaggedSections' => $flaggedSections,
         ]);
     }
 

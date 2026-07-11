@@ -171,14 +171,21 @@ class ApprovalEngine
      * the student resubmits. Approvals below this step are preserved; only the
      * current step's partials are cleared (invariant #2).
      *
+     * $flaggedSections (Phase 2 item 9) is purely informational structured
+     * metadata on the transition — it does not affect resume position,
+     * approval persistence, or any other part of this method's behavior, and
+     * is never validated against old/new field values (no enforcement).
+     *
+     * @param  array<int, string>|null  $flaggedSections
+     *
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      */
-    public function returnForRevision(Document $document, User $actor, ?string $comment = null): void
+    public function returnForRevision(Document $document, User $actor, ?string $comment = null, ?array $flaggedSections = null): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'return');
 
-        DB::transaction(function () use ($document, $actor, $comment) {
+        DB::transaction(function () use ($document, $actor, $comment, $flaggedSections) {
             $step = $this->resolveCurrentStep($document);
             $approvers = $this->approverResolver->approversFor($step, $document);
 
@@ -198,7 +205,7 @@ class ApprovalEngine
             $document->status = DocumentStatus::Returned;
             $document->save();
 
-            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment);
+            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections);
         });
     }
 
@@ -303,6 +310,9 @@ class ApprovalEngine
         }
     }
 
+    /**
+     * @param  array<int, string>|null  $flaggedSections
+     */
     private function recordTransition(
         Document $document,
         ?User $actor,
@@ -311,6 +321,7 @@ class ApprovalEngine
         DocumentStatus $toStatus,
         ?int $stepPosition = null,
         ?string $comment = null,
+        ?array $flaggedSections = null,
     ): void {
         DocumentTransition::create([
             'document_id' => $document->id,
@@ -320,6 +331,7 @@ class ApprovalEngine
             'to_status' => $toStatus,
             'step_position' => $stepPosition,
             'comment' => $comment,
+            'flagged_sections' => $flaggedSections,
             'created_at' => now(),
         ]);
     }

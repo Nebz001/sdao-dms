@@ -3,6 +3,8 @@ import ActivityProposalReviewController from '@/actions/App/Http/Controllers/Act
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
+import SectionFlagFields from '@/components/section-flag-fields';
+import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +53,7 @@ type TransitionEntry = {
     to_status: string;
     step_position: number | null;
     comment: string | null;
+    flagged_sections: string[] | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -66,6 +69,8 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
+    flaggedSectionLabels: Record<string, string>;
+    sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
     currentStepRole: string | null;
@@ -106,6 +111,8 @@ export default function ReviewActivityProposalShow({
     attachmentSlots,
     attachments,
     history,
+    flaggedSectionLabels,
+    sectionFlags,
     currentStepApprovals,
     hasApproved,
     currentStepRole,
@@ -294,12 +301,15 @@ export default function ReviewActivityProposalShow({
                                 <Form
                                     action={ActivityProposalReviewController.return({ document: doc.id }).url}
                                     method="post"
-                                    className="flex gap-2"
+                                    className="w-full space-y-2 sm:w-auto"
                                 >
-                                    <Textarea name="comment" placeholder="Return comment (required)…" rows={2} className="w-64" />
-                                    <Button type="submit" variant="outline">
-                                        Return for Revision
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Textarea name="comment" placeholder="Return comment (required)…" rows={2} className="w-64" />
+                                        <Button type="submit" variant="outline">
+                                            Return for Revision
+                                        </Button>
+                                    </div>
+                                    <SectionFlagFields sections={sectionFlags} />
                                 </Form>
 
                                 {/* Reject */}
@@ -337,6 +347,11 @@ export default function ReviewActivityProposalShow({
                                     </div>
                                     {entry.comment && (
                                         <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
+                                    )}
+                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
+                                        </p>
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

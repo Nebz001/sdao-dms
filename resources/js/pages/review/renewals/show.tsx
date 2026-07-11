@@ -3,6 +3,8 @@ import RenewalReviewController from '@/actions/App/Http/Controllers/RenewalRevie
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import InputError from '@/components/input-error';
+import SectionFlagFields from '@/components/section-flag-fields';
+import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +41,7 @@ type TransitionEntry = {
     to_status: string;
     step_position: number | null;
     comment: string | null;
+    flagged_sections: string[] | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -51,6 +54,8 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
+    flaggedSectionLabels: Record<string, string>;
+    sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
 };
@@ -65,6 +70,8 @@ export default function ReviewRenewalShow({
     attachmentSlots,
     attachments,
     history,
+    flaggedSectionLabels,
+    sectionFlags,
     currentStepApprovals,
     hasApproved,
 }: Props) {
@@ -176,6 +183,7 @@ export default function ReviewRenewalShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
+                                        <SectionFlagFields sections={sectionFlags} />
                                         <Button
                                             type="submit"
                                             variant="outline"
@@ -244,6 +252,11 @@ export default function ReviewRenewalShow({
                                     {entry.comment && (
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             "{entry.comment}"
+                                        </p>
+                                    )}
+                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
                                         </p>
                                     )}
                                     <time className="text-xs text-muted-foreground">

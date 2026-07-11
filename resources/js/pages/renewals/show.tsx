@@ -37,6 +37,7 @@ type TransitionEntry = {
     to_status: string;
     step_position: number | null;
     comment: string | null;
+    flagged_sections: string[] | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -47,6 +48,7 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
+    flaggedSectionLabels: Record<string, string>;
 };
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -65,7 +67,7 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ShowRenewal({ document, detail, attachmentSlots, attachments, history }: Props) {
+export default function ShowRenewal({ document, detail, attachmentSlots, attachments, history, flaggedSectionLabels }: Props) {
     useDocumentUpdates(['document', 'detail', 'attachments', 'history']);
 
     const isReturned = document.status === 'returned';
@@ -151,6 +153,11 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
                                     {entry.comment && (
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             "{entry.comment}"
+                                        </p>
+                                    )}
+                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
                                         </p>
                                     )}
                                     <time className="text-xs text-muted-foreground">

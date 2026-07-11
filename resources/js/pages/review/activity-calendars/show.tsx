@@ -1,4 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
+import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ type TransitionEntry = {
     from_status: string | null;
     to_status: string;
     comment: string | null;
+    flagged_sections: string[] | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -62,6 +64,17 @@ type Props = {
 
 function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Activity Calendar has no static section registry (see App\Approval\
+ * SectionFlags) — raw "activity_N" keys are resolved to "Activity N+1"
+ * directly here instead of a server-side label lookup.
+ */
+function calendarFlagLabel(key: string): string {
+    const match = key.match(/^activity_(\d+)$/);
+
+    return match ? `Activity ${Number(match[1]) + 1}` : key;
 }
 
 export default function ReviewActivityCalendarShow({
@@ -199,6 +212,7 @@ export default function ReviewActivityCalendarShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
+                                        <CalendarSectionFlagFields activities={calendar?.activities ?? []} />
                                         <Button type="submit" variant="outline" disabled={processing}>
                                             Return
                                         </Button>
@@ -257,6 +271,11 @@ export default function ReviewActivityCalendarShow({
                                     </div>
                                     {entry.comment && (
                                         <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
+                                    )}
+                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
+                                        </p>
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

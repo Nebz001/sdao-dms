@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -202,9 +203,11 @@ class RegistrationController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
+            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
         ]);
     }
 
@@ -215,6 +218,7 @@ class RegistrationController extends Controller
         $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'attachments']);
         $detail = $document->registrationDetail;
         $attachments = AttachmentSlots::presentForDocument($document);
+        $flaggedSections = SectionFlags::currentlyFlagged($document);
 
         return Inertia::render('registrations/edit', [
             'document' => [
@@ -242,6 +246,7 @@ class RegistrationController extends Controller
             ]),
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
+            'flaggedSections' => $flaggedSections,
         ]);
     }
 

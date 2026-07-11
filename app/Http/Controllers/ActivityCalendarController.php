@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\SectionFlags;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Calendar\VenueConflictChecker;
@@ -157,6 +158,10 @@ class ActivityCalendarController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                // Phase 2 item 9 — no static label registry for Calendar;
+                // raw "activity_N" keys resolve to "Activity N+1" on the
+                // frontend directly.
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
@@ -169,6 +174,7 @@ class ActivityCalendarController extends Controller
 
         $document->load(['organization', 'activityCalendar.activities']);
         $calendar = $document->activityCalendar;
+        $flaggedSections = SectionFlags::currentlyFlagged($document);
 
         return Inertia::render('activity-calendars/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -194,6 +200,10 @@ class ActivityCalendarController extends Controller
                 'value' => $s->value,
                 'label' => $s->number().'. '.$s->label(),
             ]),
+            // Section-based revision flagging (Phase 2 item 9) — keys are
+            // "activity_{index}", one per row at the time of the return that
+            // put this document in its current Returned state.
+            'flaggedSections' => $flaggedSections,
         ]);
     }
 

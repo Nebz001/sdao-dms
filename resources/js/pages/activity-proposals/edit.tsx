@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ type Props = {
     sdgs: OptionItem[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
+    flaggedSections: string[];
     errors?: Record<string, string>;
 };
 
@@ -60,6 +62,7 @@ export default function EditActivityProposal({
     sdgs,
     attachmentSlots,
     attachments,
+    flaggedSections,
     errors = {},
 }: Props) {
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
@@ -75,7 +78,14 @@ export default function EditActivityProposal({
                 <h1 className="text-xl font-semibold">Edit Proposal</h1>
                 <p className="text-sm text-muted-foreground">{doc.title}</p>
 
+                {flaggedSections.includes('general') && (
+                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
+                        General revisions requested — see the reviewer's comment in Revision History below.
+                    </div>
+                )}
+
                 {activity && (
+                    <FlaggedSectionWrapper sectionKey="schedule_venue" flagged={flaggedSections}>
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Current Activity</CardTitle>
@@ -87,6 +97,7 @@ export default function EditActivityProposal({
                             </p>
                         </CardContent>
                     </Card>
+                    </FlaggedSectionWrapper>
                 )}
 
                 <Form action={activityProposals.update({ document: doc.id }).url} method="put">
@@ -94,11 +105,15 @@ export default function EditActivityProposal({
                         {/* Off-calendar: allow editing activity details */}
                         {isOffCalendar && (
                             <>
+                                <FlaggedSectionWrapper sectionKey="rso_info" flagged={flaggedSections}>
                                 <div className="space-y-1">
                                     <Label htmlFor="title">Title of Activity</Label>
                                     <Input id="title" name="title" defaultValue={proposal?.title ?? ''} />
                                     <InputError message={errors.title} />
                                 </div>
+                                </FlaggedSectionWrapper>
+                                <FlaggedSectionWrapper sectionKey="schedule_venue" flagged={flaggedSections}>
+                                <div className="space-y-4">
                                 <div className="space-y-1">
                                     <Label htmlFor="venue">Venue</Label>
                                     <Input id="venue" name="venue" defaultValue={activity?.venue ?? ''} />
@@ -136,9 +151,12 @@ export default function EditActivityProposal({
                                         <InputError message={errors.end_time} />
                                     </div>
                                 </div>
+                                </div>
+                                </FlaggedSectionWrapper>
                             </>
                         )}
 
+                        <FlaggedSectionWrapper sectionKey="objectives" flagged={flaggedSections}>
                         <div className="space-y-1">
                             <Label htmlFor="objectives">Objectives</Label>
                             <Textarea
@@ -149,7 +167,10 @@ export default function EditActivityProposal({
                             />
                             <InputError message={errors.objectives} />
                         </div>
+                        </FlaggedSectionWrapper>
 
+                        <FlaggedSectionWrapper sectionKey="activity_description" flagged={flaggedSections}>
+                        <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="narrative">Narrative / Description</Label>
                             <Textarea
@@ -183,7 +204,11 @@ export default function EditActivityProposal({
                             />
                             <InputError message={errors.program_flow} />
                         </div>
+                        </div>
+                        </FlaggedSectionWrapper>
 
+                        <FlaggedSectionWrapper sectionKey="budget" flagged={flaggedSections}>
+                        <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="source_of_funding">Source of Funding</Label>
                             <Textarea
@@ -206,8 +231,34 @@ export default function EditActivityProposal({
                             <InputError message={errors.expenses} />
                         </div>
 
-                        {/* Exact field corrections (Phase 2 item 7 slice 4a) —
-                            editable on resubmission, same as Proposed Budget. */}
+                        <div className="space-y-1">
+                            <Label htmlFor="proposed_budget">Proposed Budget</Label>
+                            <Input
+                                id="proposed_budget"
+                                name="proposed_budget"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                defaultValue={proposal?.proposed_budget ?? ''}
+                            />
+                            <InputError message={errors.proposed_budget} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label htmlFor="budget_source">Budget Source</Label>
+                            <Input
+                                id="budget_source"
+                                name="budget_source"
+                                defaultValue={proposal?.budget_source ?? ''}
+                                placeholder="e.g. Org funds, sponsorship…"
+                            />
+                            <InputError message={errors.budget_source} />
+                        </div>
+                        </div>
+                        </FlaggedSectionWrapper>
+
+                        <FlaggedSectionWrapper sectionKey="activity_details" flagged={flaggedSections}>
+                        <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="activity_nature">Nature of Activity</Label>
                             <Select name="activity_nature" defaultValue={proposal?.activity_nature ?? undefined}>
@@ -241,7 +292,11 @@ export default function EditActivityProposal({
                             </Select>
                             <InputError message={errors.activity_type} />
                         </div>
+                        </div>
+                        </FlaggedSectionWrapper>
 
+                        <FlaggedSectionWrapper sectionKey="partner_orgs_sdg" flagged={flaggedSections}>
+                        <div className="space-y-4">
                         <div className="space-y-1">
                             <div className="flex items-center justify-between">
                                 <Label>Partner Organization(s)/School(s)/RSO</Label>
@@ -303,31 +358,11 @@ export default function EditActivityProposal({
                             </Select>
                             <InputError message={errors.target_sdg} />
                         </div>
-
-                        <div className="space-y-1">
-                            <Label htmlFor="proposed_budget">Proposed Budget</Label>
-                            <Input
-                                id="proposed_budget"
-                                name="proposed_budget"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                defaultValue={proposal?.proposed_budget ?? ''}
-                            />
-                            <InputError message={errors.proposed_budget} />
                         </div>
+                        </FlaggedSectionWrapper>
 
-                        <div className="space-y-1">
-                            <Label htmlFor="budget_source">Budget Source</Label>
-                            <Input
-                                id="budget_source"
-                                name="budget_source"
-                                defaultValue={proposal?.budget_source ?? ''}
-                                placeholder="e.g. Org funds, sponsorship…"
-                            />
-                            <InputError message={errors.budget_source} />
-                        </div>
-
+                        <FlaggedSectionWrapper sectionKey="resource_person" flagged={flaggedSections}>
+                        <div className="space-y-4">
                         {attachmentSlots.map((slot) => (
                             <ImmediateAttachmentUpload
                                 key={slot.key}
@@ -336,6 +371,8 @@ export default function EditActivityProposal({
                                 existing={attachments[slot.key]?.[0] ?? null}
                             />
                         ))}
+                        </div>
+                        </FlaggedSectionWrapper>
 
                         <InputError message={errors.activity} />
 

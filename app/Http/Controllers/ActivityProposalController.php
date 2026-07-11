@@ -6,6 +6,7 @@ use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\ActivityNature;
@@ -245,9 +246,11 @@ class ActivityProposalController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
+            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
         ]);
     }
 
@@ -262,6 +265,7 @@ class ActivityProposalController extends Controller
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
         $attachments = AttachmentSlots::presentForDocument($document);
+        $flaggedSections = SectionFlags::currentlyFlagged($document);
 
         return Inertia::render('activity-proposals/edit', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -310,6 +314,7 @@ class ActivityProposalController extends Controller
             ]),
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
+            'flaggedSections' => $flaggedSections,
         ]);
     }
 

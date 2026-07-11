@@ -115,6 +115,11 @@ class ActivityCalendarReviewController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                // Phase 2 item 9 — Activity Calendar has no static section
+                // registry (see App\Approval\SectionFlags); raw "activity_N"
+                // keys are resolved to "Activity N+1" directly on the
+                // frontend instead of a server-side label lookup.
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
@@ -177,7 +182,12 @@ class ActivityCalendarReviewController extends Controller
     {
         Gate::authorize('review', $document);
 
-        $engine->returnForRevision($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        $engine->returnForRevision(
+            $document,
+            Auth::user(),
+            $request->string('comment')->toString() ?: null,
+            $request->input('sections'),
+        );
 
         return redirect()->route('review.activity-calendars.show', $document)
             ->with('flash', ['message' => 'Document returned for revision.']);

@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ type Props = {
     document: { id: number; title: string };
     calendar: CalendarData;
     sdgs: SdgOption[];
+    flaggedSections: string[];
 };
 
 type ActivityRow = {
@@ -63,7 +65,7 @@ const emptyRow = (): ActivityRow => ({
     budget: '',
 });
 
-export default function EditActivityCalendar({ document, calendar, sdgs }: Props) {
+export default function EditActivityCalendar({ document, calendar, sdgs, flaggedSections }: Props) {
     const [activities, setActivities] = useState<ActivityRow[]>(
         calendar?.activities.map((a) => ({
             name: a.name,
@@ -130,7 +132,8 @@ export default function EditActivityCalendar({ document, calendar, sdgs }: Props
                         </div>
 
                         {activities.map((activity, i) => (
-                            <div key={i} className="rounded-lg border p-4 space-y-3">
+                            <FlaggedSectionWrapper key={i} sectionKey={`activity_${i}`} flagged={flaggedSections}>
+                            <div className="rounded-lg border p-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-muted-foreground">Activity {i + 1}</span>
                                     {activities.length > 1 && (
@@ -245,6 +248,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs }: Props
                                     />
                                 </div>
                             </div>
+                            </FlaggedSectionWrapper>
                         ))}
                     </div>
 

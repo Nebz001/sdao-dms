@@ -42,6 +42,7 @@ type TransitionEntry = {
     to_status: string;
     step_position: number | null;
     comment: string | null;
+    flagged_sections: string[] | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -66,6 +67,17 @@ function statusLabel(status: string): string {
 
 function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Activity Calendar has no static section registry (see App\Approval\
+ * SectionFlags) — raw "activity_N" keys are resolved to "Activity N+1"
+ * directly here instead of a server-side label lookup.
+ */
+function calendarFlagLabel(key: string): string {
+    const match = key.match(/^activity_(\d+)$/);
+
+    return match ? `Activity ${Number(match[1]) + 1}` : key;
 }
 
 export default function ShowActivityCalendar({ document, calendar, history }: Props) {
@@ -166,6 +178,11 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                                     </div>
                                     {entry.comment && (
                                         <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
+                                    )}
+                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
+                                        </p>
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

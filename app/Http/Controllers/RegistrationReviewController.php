@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -112,9 +113,14 @@ class RegistrationReviewController extends Controller
                 'to_status' => $t->to_status->value,
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
+                'flagged_sections' => $t->flagged_sections,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
+            // Phase 2 item 9 — resolves the raw flagged_sections keys above
+            // into client-facing labels for the Revision History card.
+            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
+            'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,
         ]);
@@ -157,7 +163,12 @@ class RegistrationReviewController extends Controller
     {
         Gate::authorize('review', $document);
 
-        $engine->returnForRevision($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        $engine->returnForRevision(
+            $document,
+            Auth::user(),
+            $request->string('comment')->toString() ?: null,
+            $request->input('sections'),
+        );
 
         return redirect()->route('review.registrations.show', $document)
             ->with('flash', ['message' => 'Document returned for revision.']);

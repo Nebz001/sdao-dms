@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
+import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -42,9 +43,10 @@ type Props = {
     organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
+    flaggedSections: string[];
 };
 
-export default function EditRenewal({ document, detail, organizationTypes, attachmentSlots, attachments }: Props) {
+export default function EditRenewal({ document, detail, organizationTypes, attachmentSlots, attachments, flaggedSections }: Props) {
     return (
         <>
             <Head title="Edit Renewal" />
@@ -71,12 +73,20 @@ export default function EditRenewal({ document, detail, organizationTypes, attac
                     )}
                 </div>
 
+                {flaggedSections.includes('general') && (
+                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
+                        General revisions requested — see the reviewer's comment in Revision History below.
+                    </div>
+                )}
+
                 <Form
                     {...RenewalController.update.form({ document: document.id })}
                     className="space-y-6"
                 >
                     {({ processing, errors }) => (
                         <>
+                            <FlaggedSectionWrapper sectionKey="organization_details" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {/* Organization type */}
                             <div className="grid gap-2">
                                 <Label htmlFor="organization_type">Type of Organization</Label>
@@ -99,6 +109,36 @@ export default function EditRenewal({ document, detail, organizationTypes, attac
                                 <InputError message={errors.organization_type} />
                             </div>
 
+                            {/* Date organized */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="date_organized">Date Organized</Label>
+                                <Input
+                                    id="date_organized"
+                                    type="date"
+                                    name="date_organized"
+                                    defaultValue={detail?.date_organized}
+                                    required
+                                />
+                                <InputError message={errors.date_organized} />
+                            </div>
+
+                            {/* Purpose of organization */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
+                                <Textarea
+                                    id="purpose_of_organization"
+                                    name="purpose_of_organization"
+                                    defaultValue={detail?.purpose_of_organization}
+                                    rows={4}
+                                    required
+                                />
+                                <InputError message={errors.purpose_of_organization} />
+                            </div>
+                            </div>
+                            </FlaggedSectionWrapper>
+
+                            <FlaggedSectionWrapper sectionKey="contact_information" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {/* Contact person */}
                             <div className="grid gap-2">
                                 <Label htmlFor="contact_person">Contact Person</Label>
@@ -135,33 +175,11 @@ export default function EditRenewal({ document, detail, organizationTypes, attac
                                 />
                                 <InputError message={errors.email_address} />
                             </div>
-
-                            {/* Date organized */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="date_organized">Date Organized</Label>
-                                <Input
-                                    id="date_organized"
-                                    type="date"
-                                    name="date_organized"
-                                    defaultValue={detail?.date_organized}
-                                    required
-                                />
-                                <InputError message={errors.date_organized} />
                             </div>
+                            </FlaggedSectionWrapper>
 
-                            {/* Purpose of organization */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
-                                <Textarea
-                                    id="purpose_of_organization"
-                                    name="purpose_of_organization"
-                                    defaultValue={detail?.purpose_of_organization}
-                                    rows={4}
-                                    required
-                                />
-                                <InputError message={errors.purpose_of_organization} />
-                            </div>
-
+                            <FlaggedSectionWrapper sectionKey="attachments" flagged={flaggedSections}>
+                            <div className="space-y-6">
                             {attachmentSlots.map((slot) => (
                                 <AttachmentSlotField
                                     key={slot.key}
@@ -170,6 +188,8 @@ export default function EditRenewal({ document, detail, organizationTypes, attac
                                     error={errors[`attachments.${slot.key}`]}
                                 />
                             ))}
+                            </div>
+                            </FlaggedSectionWrapper>
 
                             <div className="flex items-center gap-4">
                                 <Button disabled={processing}>Save &amp; Resubmit</Button>
