@@ -11,14 +11,17 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * RealRosterSeeder (real, admin-provisioned staff) replaces IdentitySeeder
+     * here. IdentitySeeder — along with MembershipSeeder, CalendarSeeder, and
+     * ProposalSeeder, which all depend on IdentitySeeder's placeholder
+     * students/organizations — is retained solely as the test fixture; the
+     * real roster is staff-only and seeds no students or organizations.
      */
     public function run(): void
     {
         $this->call(SettingsSeeder::class);
-        $this->call(IdentitySeeder::class);
+        $this->call(RealRosterSeeder::class);
         $this->call(WorkflowTemplateSeeder::class);
-        $this->call(MembershipSeeder::class);
-        $this->call(CalendarSeeder::class);
-        $this->call(ProposalSeeder::class);
     }
 }
