@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
 
 type QueueEntry = {
     id: number;
@@ -52,7 +53,7 @@ export default function ReviewActivityCalendarsIndex({ queue }: Props) {
                                     <div className="flex items-center gap-2">
                                         <Badge variant="secondary">In Review</Badge>
                                         <Button asChild size="sm">
-                                            <Link href={`/review/activity-calendars/${doc.id}`}>Review</Link>
+                                            <Link href={reviewActivityCalendars.show(doc.id)}>Review</Link>
                                         </Button>
                                     </div>
                                 </div>

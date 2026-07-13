@@ -1,4 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
+import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/ActivityCalendarReviewController';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
@@ -7,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
+import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
 
 type DocumentData = {
     id: number;
@@ -92,7 +95,7 @@ export default function ReviewActivityCalendarShow({
     const isInReview = document.status === 'in_review';
 
     function handleApprove() {
-        router.post(`/review/activity-calendars/${document.id}/approve`);
+        router.post(reviewActivityCalendars.approve.url(document.id));
     }
 
     return (
@@ -155,7 +158,7 @@ export default function ReviewActivityCalendarShow({
                                     <div key={a.id} className="py-3 space-y-1">
                                         <p className="font-medium">{a.name}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {a.venue} · {a.activity_date} · {a.start_time}–{a.end_time}
+                                            {a.venue} · {formatCalendarDate(a.activity_date)} · {formatTimeRange(a.start_time, a.end_time)}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
                                             {a.sdg_label && <>SDG: {a.sdg_label} · </>}
@@ -203,8 +206,7 @@ export default function ReviewActivityCalendarShow({
 
                             {/* Return for revision */}
                             <Form
-                                action={`/review/activity-calendars/${document.id}/return`}
-                                method="post"
+                                {...ActivityCalendarReviewController.return.form({ document: document.id })}
                                 className="space-y-2 border-t pt-4"
                             >
                                 {({ processing, errors }) => (
@@ -227,8 +229,7 @@ export default function ReviewActivityCalendarShow({
 
                             {/* Reject */}
                             <Form
-                                action={`/review/activity-calendars/${document.id}/reject`}
-                                method="post"
+                                {...ActivityCalendarReviewController.reject.form({ document: document.id })}
                                 id={`reject-form-${document.id}`}
                                 className="space-y-2 border-t pt-4"
                             >
@@ -309,7 +310,7 @@ export default function ReviewActivityCalendarShow({
 ReviewActivityCalendarShow.layout = {
     breadcrumbs: [
         { title: 'Review' },
-        { title: 'Activity Calendars', href: '/review/activity-calendars' },
+        { title: 'Activity Calendars', href: reviewActivityCalendars.index() },
         { title: 'Review' },
     ],
 };

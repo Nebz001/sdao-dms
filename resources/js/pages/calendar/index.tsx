@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
 
 type ActivityEntry = {
     id: number;
@@ -70,7 +71,9 @@ export default function CalendarIndex({ activities }: Props) {
                                     .sort()
                                     .map((date) => (
                                         <div key={date}>
-                                            <p className="mb-2 text-sm font-medium text-muted-foreground">{date}</p>
+                                            <p className="mb-2 text-sm font-medium text-muted-foreground">
+                                                {formatCalendarDate(date)}
+                                            </p>
                                             <div className="space-y-2">
                                                 {grouped[venue][date].map((a) => (
                                                     <div
@@ -80,7 +83,7 @@ export default function CalendarIndex({ activities }: Props) {
                                                         <div>
                                                             <p className="text-sm font-medium">{a.name}</p>
                                                             <p className="text-xs text-muted-foreground">
-                                                                {a.organization} · {a.start_time}–{a.end_time}
+                                                                {a.organization} · {formatTimeRange(a.start_time, a.end_time)}
                                                             </p>
                                                         </div>
                                                         <Badge

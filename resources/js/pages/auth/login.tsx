@@ -22,6 +22,12 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
+            {status && (
+                <div className="mb-4 text-center text-sm font-medium text-green-600">
+                    {status}
+                </div>
+            )}
+
             <PasskeyVerify />
 
             <Form
@@ -101,12 +107,6 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }
