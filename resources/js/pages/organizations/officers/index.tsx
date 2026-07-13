@@ -2,6 +2,7 @@ import { Form, Head, router } from '@inertiajs/react';
 import {  useState } from 'react';
 import type {FormEvent} from 'react';
 import OrganizationOfficerController from '@/actions/App/Http/Controllers/OrganizationOfficerController';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,13 +96,18 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                             {m.user.email} · {m.position_label} · {m.academic_year}
                                         </p>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => deactivate(m.id)}
-                                    >
-                                        Deactivate
-                                    </Button>
+                                    <ConfirmDialog
+                                        trigger={
+                                            <Button size="sm" variant="outline">
+                                                Deactivate
+                                            </Button>
+                                        }
+                                        title={`Deactivate ${m.user.name}?`}
+                                        description="This removes their ability to submit or act on documents for this organization. Their history is retained, and the adviser can bind a replacement afterward."
+                                        confirmLabel="Deactivate"
+                                        confirmVariant="destructive"
+                                        onConfirm={() => deactivate(m.id)}
+                                    />
                                 </div>
                             ))
                         )}

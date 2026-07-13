@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import ActivityProposalReviewController from '@/actions/App/Http/Controllers/ActivityProposalReviewController';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
@@ -291,10 +292,20 @@ export default function ReviewActivityProposalShow({
                                 <Form
                                     action={ActivityProposalReviewController.approve({ document: doc.id }).url}
                                     method="post"
+                                    id={`approve-form-${doc.id}`}
                                 >
-                                    <Button type="submit" disabled={hasApproved || hasConfirmedConflict}>
-                                        {hasApproved ? 'Already Approved' : 'Approve'}
-                                    </Button>
+                                    <ConfirmDialog
+                                        trigger={
+                                            <Button type="button" disabled={hasApproved || hasConfirmedConflict}>
+                                                {hasApproved ? 'Already Approved' : 'Approve'}
+                                            </Button>
+                                        }
+                                        title="Approve this proposal?"
+                                        description="This action is irreversible once all required approvals are met."
+                                        confirmLabel="Confirm Approval"
+                                        confirmForm={`approve-form-${doc.id}`}
+                                        confirmDisabled={hasApproved || hasConfirmedConflict}
+                                    />
                                 </Form>
 
                                 {/* Return */}
@@ -317,13 +328,23 @@ export default function ReviewActivityProposalShow({
                                 <Form
                                     action={ActivityProposalReviewController.reject({ document: doc.id }).url}
                                     method="post"
+                                    id={`reject-form-${doc.id}`}
                                     className="w-full space-y-2 sm:w-auto"
                                 >
                                     <div className="flex gap-2">
                                         <Textarea name="comment" placeholder="Rejection reason (required)…" rows={2} className="w-64" />
-                                        <Button type="submit" variant="destructive">
-                                            Reject
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button type="button" variant="destructive">
+                                                    Reject
+                                                </Button>
+                                            }
+                                            title="Reject this proposal?"
+                                            description="This is permanent — the submitter cannot revive this document. They must file a brand-new proposal."
+                                            confirmLabel="Reject"
+                                            confirmVariant="destructive"
+                                            confirmForm={`reject-form-${doc.id}`}
+                                        />
                                     </div>
                                     <InputError message={errors.comment} />
                                 </Form>

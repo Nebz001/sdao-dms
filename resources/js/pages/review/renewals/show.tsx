@@ -2,6 +2,7 @@ import { Form, Head, router } from '@inertiajs/react';
 import RenewalReviewController from '@/actions/App/Http/Controllers/RenewalReviewController';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
@@ -164,9 +165,13 @@ export default function ReviewRenewalShow({
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Approve */}
-                            <Button onClick={handleApprove} className="w-full sm:w-auto">
-                                Approve
-                            </Button>
+                            <ConfirmDialog
+                                trigger={<Button className="w-full sm:w-auto">Approve</Button>}
+                                title="Approve this renewal?"
+                                description="This action is irreversible once the SDAO quorum is met — the renewal becomes final for this academic year."
+                                confirmLabel="Confirm Approval"
+                                onConfirm={handleApprove}
+                            />
 
                             {/* Return for revision */}
                             <Form
@@ -198,6 +203,7 @@ export default function ReviewRenewalShow({
                             {/* Reject */}
                             <Form
                                 {...RenewalReviewController.reject.form({ document: document.id })}
+                                id={`reject-form-${document.id}`}
                                 className="space-y-2 border-t pt-4"
                             >
                                 {({ processing, errors }) => (
@@ -212,13 +218,19 @@ export default function ReviewRenewalShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            disabled={processing}
-                                        >
-                                            Reject
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button type="button" variant="destructive" disabled={processing}>
+                                                    Reject
+                                                </Button>
+                                            }
+                                            title="Reject this renewal?"
+                                            description="This is permanent — the student cannot revive this document. They must file a brand-new renewal."
+                                            confirmLabel="Reject"
+                                            confirmVariant="destructive"
+                                            confirmForm={`reject-form-${document.id}`}
+                                            confirmDisabled={processing}
+                                        />
                                     </>
                                 )}
                             </Form>

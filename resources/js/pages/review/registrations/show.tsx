@@ -2,21 +2,13 @@ import { Form, Head, router, usePage } from '@inertiajs/react';
 import RegistrationReviewController from '@/actions/App/Http/Controllers/RegistrationReviewController';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRegistrations from '@/routes/review/registrations';
@@ -181,29 +173,13 @@ export default function ReviewRegistrationShow({
                                     Return the document so the student can pick a different adviser.
                                 </div>
                             ) : (
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full sm:w-auto">Approve</Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>Approve this registration?</DialogTitle>
-                                        <DialogDescription>
-                                            This action is irreversible once the SDAO quorum is met — the
-                                            organization becomes real, the adviser is bound, and the founding
-                                            student is locked to this organization going forward.
-                                        </DialogDescription>
-                                        <DialogFooter className="gap-2">
-                                            <DialogClose asChild>
-                                                <Button type="button" variant="secondary">
-                                                    Cancel
-                                                </Button>
-                                            </DialogClose>
-                                            <Button type="button" onClick={handleApprove}>
-                                                Confirm Approval
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
+                                <ConfirmDialog
+                                    trigger={<Button className="w-full sm:w-auto">Approve</Button>}
+                                    title="Approve this registration?"
+                                    description="This action is irreversible once the SDAO quorum is met — the organization becomes real, the adviser is bound, and the founding student is locked to this organization going forward."
+                                    confirmLabel="Confirm Approval"
+                                    onConfirm={handleApprove}
+                                />
                             )}
 
                             {/* Return for revision */}
@@ -236,6 +212,7 @@ export default function ReviewRegistrationShow({
                             {/* Reject */}
                             <Form
                                 {...RegistrationReviewController.reject.form({ document: document.id })}
+                                id={`reject-form-${document.id}`}
                                 className="space-y-2 border-t pt-4"
                             >
                                 {({ processing, errors }) => (
@@ -250,13 +227,19 @@ export default function ReviewRegistrationShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            disabled={processing}
-                                        >
-                                            Reject
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button type="button" variant="destructive" disabled={processing}>
+                                                    Reject
+                                                </Button>
+                                            }
+                                            title="Reject this registration?"
+                                            description="This is permanent — the student cannot revive this document. They must file a brand-new registration."
+                                            confirmLabel="Reject"
+                                            confirmVariant="destructive"
+                                            confirmForm={`reject-form-${document.id}`}
+                                            confirmDisabled={processing}
+                                        />
                                     </>
                                 )}
                             </Form>

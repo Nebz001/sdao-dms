@@ -1,5 +1,6 @@
 import { Form, Head, router } from '@inertiajs/react';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -191,9 +192,13 @@ export default function ReviewActivityCalendarShow({
                                     booking. Return the document to the submitter to resolve.
                                 </div>
                             ) : (
-                                <Button onClick={handleApprove} className="w-full sm:w-auto">
-                                    Approve
-                                </Button>
+                                <ConfirmDialog
+                                    trigger={<Button className="w-full sm:w-auto">Approve</Button>}
+                                    title="Approve this activity calendar?"
+                                    description="This action is irreversible once the SDAO quorum is met — every listed activity becomes an approved, venue-blocking booking."
+                                    confirmLabel="Confirm Approval"
+                                    onConfirm={handleApprove}
+                                />
                             )}
 
                             {/* Return for revision */}
@@ -224,6 +229,7 @@ export default function ReviewActivityCalendarShow({
                             <Form
                                 action={`/review/activity-calendars/${document.id}/reject`}
                                 method="post"
+                                id={`reject-form-${document.id}`}
                                 className="space-y-2 border-t pt-4"
                             >
                                 {({ processing, errors }) => (
@@ -236,9 +242,19 @@ export default function ReviewActivityCalendarShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
-                                        <Button type="submit" variant="destructive" disabled={processing}>
-                                            Reject
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button type="button" variant="destructive" disabled={processing}>
+                                                    Reject
+                                                </Button>
+                                            }
+                                            title="Reject this activity calendar?"
+                                            description="This is permanent — the submitter cannot revive this document. They must file a brand-new calendar submission."
+                                            confirmLabel="Reject"
+                                            confirmVariant="destructive"
+                                            confirmForm={`reject-form-${document.id}`}
+                                            confirmDisabled={processing}
+                                        />
                                     </>
                                 )}
                             </Form>

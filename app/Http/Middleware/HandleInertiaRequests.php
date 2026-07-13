@@ -36,9 +36,23 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        /** @var array{message?: string, type?: string, warnings?: array<int, mixed>}|null $flash */
+        $flash = $request->session()->get('flash');
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // Normalizes the uniform ['message' => ..., 'warnings' => ...] shape
+            // that every controller already flashes into a toast-ready prop, so
+            // no controller needs to change to emit a { type, message } pair.
+            'flash' => $flash ? [
+                'toast' => [
+                    'type' => $flash['type'] ?? 'success',
+                    'message' => $flash['message'] ?? '',
+                ],
+                'warnings' => $flash['warnings'] ?? null,
+                'message' => $flash['message'] ?? null,
+            ] : null,
             'auth' => [
                 'user' => $request->user(),
                 'roles' => $request->user()?->roleAssignments->map(fn (RoleAssignment $ra) => [

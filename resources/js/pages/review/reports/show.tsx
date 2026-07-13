@@ -2,6 +2,7 @@ import { Form, Head, router } from '@inertiajs/react';
 import AfterActivityReportReviewController from '@/actions/App/Http/Controllers/AfterActivityReportReviewController';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
@@ -205,9 +206,13 @@ export default function ReviewReportShow({
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Approve */}
-                            <Button onClick={handleApprove} className="w-full sm:w-auto">
-                                Approve
-                            </Button>
+                            <ConfirmDialog
+                                trigger={<Button className="w-full sm:w-auto">Approve</Button>}
+                                title="Approve this report?"
+                                description="This action is irreversible once the SDAO quorum is met."
+                                confirmLabel="Confirm Approval"
+                                onConfirm={handleApprove}
+                            />
 
                             {/* Return for revision */}
                             <Form
@@ -239,6 +244,7 @@ export default function ReviewReportShow({
                             {/* Reject */}
                             <Form
                                 {...AfterActivityReportReviewController.reject.form({ document: document.id })}
+                                id={`reject-form-${document.id}`}
                                 className="space-y-2 border-t pt-4"
                             >
                                 {({ processing, errors }) => (
@@ -253,13 +259,19 @@ export default function ReviewReportShow({
                                             required
                                         />
                                         <InputError message={errors.comment} />
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            disabled={processing}
-                                        >
-                                            Reject
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button type="button" variant="destructive" disabled={processing}>
+                                                    Reject
+                                                </Button>
+                                            }
+                                            title="Reject this report?"
+                                            description="This is permanent — the student cannot revive this document. They must file a brand-new report."
+                                            confirmLabel="Reject"
+                                            confirmVariant="destructive"
+                                            confirmForm={`reject-form-${document.id}`}
+                                            confirmDisabled={processing}
+                                        />
                                     </>
                                 )}
                             </Form>
