@@ -44,7 +44,6 @@ type Props = {
     activityNatures: OptionItem[];
     activityTypes: OptionItem[];
     sdgs: OptionItem[];
-    errors?: Record<string, string>;
 };
 
 export default function CreateActivityProposal({
@@ -54,7 +53,6 @@ export default function CreateActivityProposal({
     activityNatures,
     activityTypes,
     sdgs,
-    errors = {},
 }: Props) {
     const [calendarMode, setCalendarMode] = useState('');
     const [onCalendarActivities, setOnCalendarActivities] = useState<OnCalendarActivity[]>([]);
@@ -143,6 +141,7 @@ clearTimeout(conflictTimer.current);
                 </p>
 
                 <Form action={activityProposals.store().url} method="post">
+                    {({ processing, errors }) => (
                     <div className="space-y-4">
                         {/* Calendar mode */}
                         <div className="space-y-1">
@@ -290,13 +289,13 @@ clearTimeout(conflictTimer.current);
                                     </Card>
                                 )}
                                 {tentativeConflicts.length > 0 && confirmedConflicts.length === 0 && (
-                                    <Card className="border-amber-500 bg-amber-50">
+                                    <Card className="border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-950/40">
                                         <CardContent className="pt-4">
-                                            <p className="mb-2 text-sm font-medium text-amber-700">
+                                            <p className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                                                 Possible conflict — another pending activity overlaps this slot:
                                             </p>
                                             {tentativeConflicts.map((c, i) => (
-                                                <p key={i} className="text-sm text-amber-700">
+                                                <p key={i} className="text-sm text-amber-700 dark:text-amber-400">
                                                     {c.name} ({c.organization}) · {c.start_time}–{c.end_time}
                                                 </p>
                                             ))}
@@ -430,10 +429,17 @@ clearTimeout(conflictTimer.current);
 
                         <InputError message={errors.activity} />
 
-                        <Button type="submit" disabled={!calendarMode} className="w-full">
+                        <Button
+                            type="submit"
+                            disabled={!calendarMode}
+                            loading={processing}
+                            loadingText="Continuing…"
+                            className="w-full"
+                        >
                             Continue to Narrative
                         </Button>
                     </div>
+                    )}
                 </Form>
             </div>
         </>

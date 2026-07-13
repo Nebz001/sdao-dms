@@ -186,7 +186,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                         <InputError message={errors.position} />
                                     </div>
 
-                                    <Button disabled={processing}>Bind Officer</Button>
+                                    <Button loading={processing} loadingText="Binding…">Bind Officer</Button>
                                 </>
                             )}
                         </Form>

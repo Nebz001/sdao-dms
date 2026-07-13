@@ -137,7 +137,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             )}
 
                             <div className="flex items-center gap-4">
-                                <Button disabled={processing}>Create Approver</Button>
+                                <Button loading={processing} loadingText="Creating…">Create Approver</Button>
                             </div>
                         </>
                     )}

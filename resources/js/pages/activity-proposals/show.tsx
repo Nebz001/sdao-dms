@@ -135,9 +135,9 @@ export default function ShowActivityProposal({
 
                 {/* Flash warnings */}
                 {flash?.warnings && flash.warnings.length > 0 && (
-                    <Card className="border-amber-500 bg-amber-50">
+                    <Card className="border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-950/40">
                         <CardContent className="pt-4">
-                            <p className="text-sm font-medium text-amber-700">
+                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
                                 Submitted, but a possible venue conflict was detected:
                             </p>
                         </CardContent>

@@ -50,7 +50,6 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     flaggedSections: string[];
-    errors?: Record<string, string>;
 };
 
 export default function EditActivityProposal({
@@ -63,7 +62,6 @@ export default function EditActivityProposal({
     attachmentSlots,
     attachments,
     flaggedSections,
-    errors = {},
 }: Props) {
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
     const [partnerOrgs, setPartnerOrgs] = useState<string[]>(
@@ -101,6 +99,7 @@ export default function EditActivityProposal({
                 )}
 
                 <Form action={activityProposals.update({ document: doc.id }).url} method="put">
+                    {({ processing, errors }) => (
                     <div className="space-y-4">
                         {/* Off-calendar: allow editing activity details */}
                         {isOffCalendar && (
@@ -376,10 +375,11 @@ export default function EditActivityProposal({
 
                         <InputError message={errors.activity} />
 
-                        <Button type="submit" className="w-full">
+                        <Button type="submit" loading={processing} loadingText="Resubmitting…" className="w-full">
                             Resubmit for Review
                         </Button>
                     </div>
+                    )}
                 </Form>
             </div>
         </>

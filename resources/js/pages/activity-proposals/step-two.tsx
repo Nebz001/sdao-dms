@@ -41,10 +41,9 @@ type Props = {
     activity: ActivitySummary;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    errors?: Record<string, string>;
 };
 
-export default function StepTwo({ document: doc, proposal, activity, attachmentSlots, attachments, errors = {} }: Props) {
+export default function StepTwo({ document: doc, proposal, activity, attachmentSlots, attachments }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const narrativeRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +111,7 @@ clearTimeout(saveTimer.current);
                 )}
 
                 <Form action={activityProposals.submit({ document: doc.id }).url} method="post">
+                    {({ processing, errors }) => (
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="objectives">Objectives</Label>
@@ -202,10 +202,11 @@ clearTimeout(saveTimer.current);
 
                         <InputError message={errors.activity} />
 
-                        <Button type="submit" className="w-full">
+                        <Button type="submit" loading={processing} loadingText="Submitting…" className="w-full">
                             Submit for Review
                         </Button>
                     </div>
+                    )}
                 </Form>
             </div>
         </>

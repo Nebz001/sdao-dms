@@ -224,7 +224,7 @@ export default function CreateRenewal({
                             ))}
 
                             <div className="flex items-center gap-4">
-                                <Button disabled={processing}>Submit for Review</Button>
+                                <Button loading={processing} loadingText="Submitting…">Submit for Review</Button>
                             </div>
                         </>
                     )}
