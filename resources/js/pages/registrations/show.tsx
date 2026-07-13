@@ -91,7 +91,7 @@ export default function ShowRegistration({ document, detail, attachmentSlots, at
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={registrations.edit(document.id)}>
-                                    Edit &amp; Resubmit
+                                    Edit & Resubmit
                                 </Link>
                             </Button>
                         )}

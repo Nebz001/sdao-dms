@@ -103,7 +103,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={`/activity-calendars/${document.id}/edit`}>
-                                    Edit &amp; Resubmit
+                                    Edit & Resubmit
                                 </Link>
                             </Button>
                         )}

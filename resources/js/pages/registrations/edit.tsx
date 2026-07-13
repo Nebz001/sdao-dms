@@ -279,7 +279,7 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                             </FlaggedSectionWrapper>
 
                             <div className="flex items-center gap-4">
-                                <Button disabled={processing}>Save &amp; Resubmit</Button>
+                                <Button disabled={processing}>Save & Resubmit</Button>
                             </div>
                         </>
                     )}

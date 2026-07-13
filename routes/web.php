@@ -11,6 +11,7 @@ use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
@@ -18,10 +19,14 @@ use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\RenewalReviewController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// No marketing page for an internal university system — send visitors
+// straight to where they're going (Phase 2 item 11 Group B).
+Route::get('/', function () {
+    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Attachments (Phase 2 item 8) — generic across every form type.
     // store/destroy are Mode B (attach-to-existing-document, e.g. Activity

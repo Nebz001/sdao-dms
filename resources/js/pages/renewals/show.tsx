@@ -92,7 +92,7 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={renewals.edit(document.id)}>
-                                    Edit &amp; Resubmit
+                                    Edit & Resubmit
                                 </Link>
                             </Button>
                         )}

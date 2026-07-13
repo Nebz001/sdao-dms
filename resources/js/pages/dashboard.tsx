@@ -1,10 +1,25 @@
-import { Head, usePage } from '@inertiajs/react';
-import { Ban, Hourglass } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Ban, Hourglass, UserCog } from 'lucide-react';
+import DashboardStatCard from '@/components/dashboard-stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import { dashboard } from '@/routes';
+import * as calendar from '@/routes/calendar';
 
-export default function Dashboard() {
+type OrgDocItem = { id: number; title: string; status: string; href: string };
+type QueueCountRow = { label: string; count: number; href: string };
+type ProposalItem = { id: number; title: string; href: string };
+
+type Props = {
+    myOrganization: { id: number; name: string; count: number; items: OrgDocItem[] } | null;
+    sdaoQueueCounts: QueueCountRow[] | null;
+    proposalsAtMyStep: { count: number; items: ProposalItem[]; href: string } | null;
+};
+
+function statusLabel(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAtMyStep }: Props) {
     const { auth } = usePage().props;
     const accountStatus = auth.user.account_status;
 
@@ -47,24 +62,78 @@ export default function Dashboard() {
         );
     }
 
+    const hasAnyCard = Boolean(myOrganization || sdaoQueueCounts || proposalsAtMyStep);
+
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+                {!hasAnyCard ? (
+                    <div className="mx-auto w-full max-w-2xl">
+                        <Alert>
+                            <UserCog />
+                            <AlertTitle>Nothing to do yet</AlertTitle>
+                            <AlertDescription>
+                                <p>
+                                    Your account is verified, but you aren&apos;t bound to an organization
+                                    or an approval role yet.
+                                </p>
+                                <p>
+                                    Ask your organization&apos;s adviser to add you as an officer, or check
+                                    the{' '}
+                                    <Link href={calendar.index()} className="underline">
+                                        Venue Calendar
+                                    </Link>{' '}
+                                    in the meantime.
+                                </p>
+                            </AlertDescription>
+                        </Alert>
                     </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                ) : (
+                    <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+                        {myOrganization && (
+                            <DashboardStatCard
+                                title={`Your Organization — ${myOrganization.name}`}
+                                headlineCount={myOrganization.count}
+                                emptyLabel="Nothing needs your attention right now."
+                                rows={myOrganization.items.map((d) => ({
+                                    key: d.id,
+                                    label: d.title,
+                                    href: d.href,
+                                    badge: statusLabel(d.status),
+                                }))}
+                            />
+                        )}
+
+                        {sdaoQueueCounts && (
+                            <DashboardStatCard
+                                title="Awaiting Your Review"
+                                headlineCount={sdaoQueueCounts.reduce((sum, r) => sum + r.count, 0)}
+                                emptyLabel="Nothing is awaiting SDAO review."
+                                rows={sdaoQueueCounts.map((r) => ({
+                                    key: r.label,
+                                    label: r.label,
+                                    href: r.href,
+                                    count: r.count,
+                                }))}
+                            />
+                        )}
+
+                        {proposalsAtMyStep && (
+                            <DashboardStatCard
+                                title="Proposals At Your Step"
+                                headlineCount={proposalsAtMyStep.count}
+                                emptyLabel="No proposals are waiting on you."
+                                viewAllHref={proposalsAtMyStep.count > 0 ? proposalsAtMyStep.href : undefined}
+                                rows={proposalsAtMyStep.items.map((p) => ({
+                                    key: p.id,
+                                    label: p.title,
+                                    href: p.href,
+                                }))}
+                            />
+                        )}
                     </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
+                )}
             </div>
         </>
     );

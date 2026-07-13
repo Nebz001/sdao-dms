@@ -98,7 +98,7 @@ export default function ShowReport({ document, report, attachmentSlots, attachme
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={reports.edit(document.id)}>
-                                    Edit &amp; Resubmit
+                                    Edit & Resubmit
                                 </Link>
                             </Button>
                         )}

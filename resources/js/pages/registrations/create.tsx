@@ -344,7 +344,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button type="button" disabled={!formValid || processing}>
-                                Review &amp; Submit
+                                Review & Submit
                             </Button>
                         </DialogTrigger>
                         <DialogContent>

@@ -126,7 +126,7 @@ export default function ShowActivityProposal({
                         {isReturned && isOwnDoc && (
                             <Button asChild size="sm">
                                 <Link href={activityProposals.edit({ document: doc.id }).url}>
-                                    Edit &amp; Resubmit
+                                    Edit & Resubmit
                                 </Link>
                             </Button>
                         )}

@@ -192,7 +192,7 @@ export default function EditRenewal({ document, detail, organizationTypes, attac
                             </FlaggedSectionWrapper>
 
                             <div className="flex items-center gap-4">
-                                <Button loading={processing} loadingText="Resubmitting…">Save &amp; Resubmit</Button>
+                                <Button loading={processing} loadingText="Resubmitting…">Save & Resubmit</Button>
                             </div>
                         </>
                     )}
