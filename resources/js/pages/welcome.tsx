@@ -37,7 +37,9 @@ export default function Welcome() {
                     <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
                         <div className="flex items-center gap-2">
                             <AppLogoIcon className="size-6 fill-current text-foreground" />
-                            <span className="text-sm font-semibold tracking-tight">SDAO-DMS</span>
+                            <span className="text-sm font-semibold tracking-tight">
+                                {import.meta.env.VITE_APP_NAME || 'SDAO-DMS'}
+                            </span>
                         </div>
                         <Button variant="ghost" size="sm" asChild>
                             <Link href={login()}>Log in</Link>

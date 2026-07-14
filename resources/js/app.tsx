@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'SDAO-DMS';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

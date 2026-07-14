@@ -1,12 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BookOpen,
     CalendarCog,
     CalendarDays,
     FilePlus2,
     FileText,
     Files,
-    FolderGit2,
     Inbox,
     LayoutGrid,
     UserCheck,
@@ -14,7 +12,6 @@ import {
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -43,19 +40,6 @@ import * as reviewRegistrations from '@/routes/review/registrations';
 import * as reviewRenewals from '@/routes/review/renewals';
 import * as reviewReports from '@/routes/review/reports';
 import type { NavItem, RoleAssignment } from '@/types';
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
 
 /** Roles that take part in the activity-proposal approval chain (CLAUDE.md #8). */
 const PROPOSAL_APPROVER_ROLES = new Set([
@@ -190,7 +174,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
