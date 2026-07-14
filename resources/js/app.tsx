@@ -1,5 +1,4 @@
 import { createInertiaApp } from '@inertiajs/react';
-import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
@@ -23,13 +22,17 @@ createInertiaApp({
         }
     },
     strictMode: true,
+    // NOTE: `app` here is the raw, unrendered <App/> element — Inertia's own
+    // PageContext.Provider lives INSIDE App's render output, so anything
+    // mounted here as a sibling (like Toaster previously was) sits outside
+    // that context and crashes any hook needing usePage() (e.g. useFlashToast)
+    // during both SSR and client hydration. Toaster is mounted per-layout
+    // instead (see app-sidebar-layout.tsx / auth-simple-layout.tsx) — the only
+    // two layout templates any real page uses, guaranteed to render inside
+    // App's context. TooltipProvider itself needs no Inertia context, so it's
+    // fine to stay here.
     withApp(app) {
-        return (
-            <TooltipProvider delayDuration={0}>
-                {app}
-                <Toaster />
-            </TooltipProvider>
-        );
+        return <TooltipProvider delayDuration={0}>{app}</TooltipProvider>;
     },
     progress: {
         color: '#4B5563',
