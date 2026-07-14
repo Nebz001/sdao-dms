@@ -1,11 +1,12 @@
 <?php
 
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
-test('guests visiting home are redirected to login', function () {
-    $response = $this->get(route('home'));
-
-    $response->assertRedirect(route('login'));
+test('guests visiting home see the public landing page', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('welcome'));
 });
 
 test('authenticated users visiting home are redirected to the dashboard', function () {

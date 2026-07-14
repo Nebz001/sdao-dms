@@ -18,11 +18,16 @@ use App\Http\Controllers\RegistrationReviewController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\RenewalReviewController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-// No marketing page for an internal university system — send visitors
-// straight to where they're going (Phase 2 item 11 Group B).
+// Guests see the public landing page; authenticated users are bounced to
+// their dashboard before it ever renders (reverses Phase 2 item 11 Group B).
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return Inertia::render('welcome');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
