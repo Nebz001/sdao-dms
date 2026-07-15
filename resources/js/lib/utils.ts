@@ -12,6 +12,13 @@ export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
 }
 
 /**
+ * Formats a snake_case document status for display, e.g. "in_review" -> "In Review".
+ */
+export function statusLabel(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
  * Formats a "YYYY-MM-DD" date string for display, e.g. "Jul 13, 2026".
  * Parses by splitting rather than `new Date(date)` to avoid the UTC-midnight
  * timezone shift that can roll the date back a day in negative-UTC-offset zones.

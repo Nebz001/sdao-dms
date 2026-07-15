@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -67,18 +67,6 @@ type Props = {
     flash?: { message?: string; warnings?: { conflicts: object[] }[] };
 };
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -115,7 +103,7 @@ export default function ShowActivityProposal({
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant[doc.status] ?? 'outline'}>{statusLabel(doc.status)}</Badge>
+                        <StatusBadge status={doc.status} />
                         {isDraft && isOwnDoc && (
                             <Button asChild size="sm">
                                 <Link href={activityProposals.continueMethod({ document: doc.id }).url}>
@@ -135,9 +123,9 @@ export default function ShowActivityProposal({
 
                 {/* Flash warnings */}
                 {flash?.warnings && flash.warnings.length > 0 && (
-                    <Card className="border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-950/40">
+                    <Card className="border-warning/40 bg-warning/10">
                         <CardContent className="pt-4">
-                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                            <p className="text-sm font-medium text-warning-foreground">
                                 Submitted, but a possible venue conflict was detected:
                             </p>
                         </CardContent>

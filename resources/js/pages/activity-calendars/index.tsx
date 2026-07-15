@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import * as activityCalendars from '@/routes/activity-calendars';
@@ -15,18 +15,6 @@ type ActivityCalendarEntry = {
 type Props = {
     calendars: ActivityCalendarEntry[];
 };
-
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export default function ActivityCalendarsIndex({ calendars }: Props) {
     return (
@@ -60,9 +48,7 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={statusVariant[c.status] ?? 'outline'}>
-                                                {statusLabel(c.status)}
-                                            </Badge>
+                                            <StatusBadge status={c.status} />
                                             {c.status === 'returned' ? (
                                                 <Button asChild size="sm" variant="outline">
                                                     <Link href={activityCalendars.edit({ document: c.id }).url}>

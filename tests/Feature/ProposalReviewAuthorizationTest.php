@@ -197,3 +197,44 @@ test('DocumentPolicy::review updates when the document advances to the next step
     expect($this->chair->can('review', $doc))->toBeTrue();
     expect($this->adviser->can('review', $doc))->toBeFalse(); // no longer the current step
 });
+
+// ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
+
+test('HTTP: mid-chain approve (adviser, step 1) redirects back to the review show page', function () {
+    $doc = authSubmittedProposal($this->startDraft, $this->submitProposal, $this->student, $this->org);
+
+    $this->actingAs($this->adviser)
+        ->withoutVite()
+        ->post(route('review.activity-proposals.approve', $doc))
+        ->assertRedirect(route('review.activity-proposals.show', $doc));
+});
+
+test('HTTP: final approver (executive director) approving redirects to the queue, not a 403', function () {
+    $doc = authSubmittedProposal($this->startDraft, $this->submitProposal, $this->student, $this->org);
+
+    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $asstDirector = User::where('email', 'asst-director@sdao.test')->firstOrFail();
+    $academicDirector = User::where('email', 'academic-director@sdao.test')->firstOrFail();
+    $executiveDirector = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+
+    // Drive the chain to its last step (7): adviser, chair, dean, SDAO (both), asst director, academic director.
+    foreach ([$this->adviser, $this->chair, $this->dean, $this->sdaoA, $sdaoB, $asstDirector, $academicDirector] as $approver) {
+        $this->engine->approve($doc, $approver);
+        $doc->refresh();
+    }
+    expect($doc->current_step_position)->toBe(7);
+
+    $this->actingAs($executiveDirector)
+        ->withoutVite()
+        ->post(route('review.activity-proposals.approve', $doc))
+        ->assertRedirect(route('review.activity-proposals.index'));
+
+    // Following the redirect must succeed, not a 403 — the actual regression.
+    $this->actingAs($executiveDirector)
+        ->withoutVite()
+        ->get(route('review.activity-proposals.index'))
+        ->assertOk();
+
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Approved);
+});

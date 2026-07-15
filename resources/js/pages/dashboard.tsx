@@ -15,10 +15,6 @@ type Props = {
     proposalsAtMyStep: { count: number; items: ProposalItem[]; href: string } | null;
 };
 
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAtMyStep }: Props) {
     const { auth } = usePage().props;
     const accountStatus = auth.user.account_status;
@@ -100,7 +96,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
                                     key: d.id,
                                     label: d.title,
                                     href: d.href,
-                                    badge: statusLabel(d.status),
+                                    status: d.status,
                                 }))}
                             />
                         )}

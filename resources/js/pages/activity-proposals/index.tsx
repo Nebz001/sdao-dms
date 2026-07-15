@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import * as activityProposals from '@/routes/activity-proposals';
@@ -17,18 +17,6 @@ type Proposal = {
 type Props = {
     proposals: Proposal[];
 };
-
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function modeLabel(mode: string | null): string {
     if (mode === 'on_calendar') {
@@ -74,9 +62,7 @@ export default function ActivityProposalsIndex({ proposals }: Props) {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={statusVariant[p.status] ?? 'outline'}>
-                                                {statusLabel(p.status)}
-                                            </Badge>
+                                            <StatusBadge status={p.status} />
                                             {p.status === 'draft' ? (
                                                 <Button asChild size="sm" variant="outline">
                                                     <Link href={activityProposals.continueMethod({ document: p.id }).url}>

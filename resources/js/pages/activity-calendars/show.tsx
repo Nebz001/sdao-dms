@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -53,18 +53,6 @@ type Props = {
     history: TransitionEntry[];
 };
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -97,9 +85,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                         <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant[document.status] ?? 'outline'}>
-                            {statusLabel(document.status)}
-                        </Badge>
+                        <StatusBadge status={document.status} />
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={`/activity-calendars/${document.id}/edit`}>

@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -51,18 +51,6 @@ type Props = {
     flaggedSectionLabels: Record<string, string>;
 };
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -86,9 +74,7 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant[document.status] ?? 'outline'}>
-                            {statusLabel(document.status)}
-                        </Badge>
+                        <StatusBadge status={document.status} />
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={renewals.edit(document.id)}>

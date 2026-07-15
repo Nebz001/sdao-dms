@@ -167,3 +167,33 @@ test('review show endpoint returns the report with its linked activity and histo
             ->has('history')
         );
 });
+
+// ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
+
+test('HTTP: first SDAO approve redirects back to the review show page', function () {
+    $doc = submittedReportForComputingSociety();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.reports.approve', $doc))
+        ->assertRedirect(route('review.reports.show', $doc));
+});
+
+test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
+    $doc = submittedReportForComputingSociety();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.reports.approve', $doc));
+
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->post(route('review.reports.approve', $doc))
+        ->assertRedirect(route('review.reports.index'));
+
+    // Following the redirect must succeed, not 403 — the actual regression.
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->get(route('review.reports.index'))
+        ->assertOk();
+});

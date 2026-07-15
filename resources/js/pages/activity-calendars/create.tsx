@@ -198,7 +198,7 @@ export default function CreateActivityCalendar({ membership, current_term_label,
                                             </div>
                                         )}
                                         {conflicts[i].tentative.length > 0 && (
-                                            <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                                            <div className="rounded-md bg-warning/10 p-3 text-sm text-warning-foreground">
                                                 ⚠ Tentative overlap with pending booking:{' '}
                                                 {conflicts[i].tentative.map((c) => `"${c.name}" (${c.organization})`).join(', ')}
                                                 {' '}— warning only, you can still submit.

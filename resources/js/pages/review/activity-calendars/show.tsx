@@ -3,7 +3,7 @@ import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/Act
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -109,9 +109,7 @@ export default function ReviewActivityCalendarShow({
                         <h1 className="text-xl font-semibold">{document.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
                     </div>
-                    <Badge variant="secondary">
-                        {document.status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
+                    <StatusBadge status={document.status} />
                 </div>
 
                 {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,

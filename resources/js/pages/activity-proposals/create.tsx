@@ -289,13 +289,13 @@ clearTimeout(conflictTimer.current);
                                     </Card>
                                 )}
                                 {tentativeConflicts.length > 0 && confirmedConflicts.length === 0 && (
-                                    <Card className="border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-950/40">
+                                    <Card className="border-warning/40 bg-warning/10">
                                         <CardContent className="pt-4">
-                                            <p className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                                            <p className="mb-2 text-sm font-medium text-warning-foreground">
                                                 Possible conflict — another pending activity overlaps this slot:
                                             </p>
                                             {tentativeConflicts.map((c, i) => (
-                                                <p key={i} className="text-sm text-amber-700 dark:text-amber-400">
+                                                <p key={i} className="text-sm text-warning-foreground">
                                                     {c.name} ({c.organization}) · {c.start_time}–{c.end_time}
                                                 </p>
                                             ))}

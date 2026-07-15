@@ -6,7 +6,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,18 +81,6 @@ type Props = {
     errors?: Record<string, string>;
 };
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(s: string): string {
-    return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function actionLabel(a: string): string {
     return a.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -140,7 +128,7 @@ export default function ReviewActivityProposalShow({
                             <span className="font-medium">Name of RSO:</span> {doc.organization.name}
                         </p>
                     </div>
-                    <Badge variant={statusVariant[doc.status] ?? 'outline'}>{statusLabel(doc.status)}</Badge>
+                    <StatusBadge status={doc.status} />
                 </div>
 
                 {/* Off-calendar conflict warning */}

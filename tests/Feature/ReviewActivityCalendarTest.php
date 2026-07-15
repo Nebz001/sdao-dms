@@ -174,3 +174,33 @@ test('approve is refused when a confirmed conflict exists at review time (race)'
     $doc->refresh();
     expect($doc->status)->toBe(DocumentStatus::InReview);
 });
+
+// ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
+
+test('HTTP: first SDAO approve redirects back to the review show page', function () {
+    $doc = submittedCalendar();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.activity-calendars.approve', $doc))
+        ->assertRedirect(route('review.activity-calendars.show', $doc));
+});
+
+test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
+    $doc = submittedCalendar();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.activity-calendars.approve', $doc));
+
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->post(route('review.activity-calendars.approve', $doc))
+        ->assertRedirect(route('review.activity-calendars.index'));
+
+    // Following the redirect must succeed, not 403 — the actual regression.
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->get(route('review.activity-calendars.index'))
+        ->assertOk();
+});

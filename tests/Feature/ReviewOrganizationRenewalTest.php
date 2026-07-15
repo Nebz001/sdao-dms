@@ -144,3 +144,33 @@ test('review show endpoint returns the renewal with detail and history', functio
             ->has('history')
         );
 });
+
+// ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
+
+test('HTTP: first SDAO approve redirects back to the review show page', function () {
+    $doc = submittedRenewal();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.renewals.approve', $doc))
+        ->assertRedirect(route('review.renewals.show', $doc));
+});
+
+test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
+    $doc = submittedRenewal();
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.renewals.approve', $doc));
+
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->post(route('review.renewals.approve', $doc))
+        ->assertRedirect(route('review.renewals.index'));
+
+    // Following the redirect must succeed, not 403 — the actual regression.
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->get(route('review.renewals.index'))
+        ->assertOk();
+});

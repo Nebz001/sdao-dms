@@ -160,7 +160,7 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                                                     {a.name} <span className="text-muted-foreground">({a.email})</span>
                                                 </span>
                                                 {!a.is_available && (
-                                                    <span className="text-xs text-yellow-700 dark:text-yellow-400">
+                                                    <span className="text-xs text-warning-foreground">
                                                         Assigned elsewhere
                                                     </span>
                                                 )}

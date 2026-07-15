@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -66,7 +66,7 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="secondary">In Review</Badge>
+                                        <StatusBadge status="in_review" />
                                         <Button asChild size="sm">
                                             <Link href={reviewActivityProposals.show({ document: item.id }).url}>
                                                 Review

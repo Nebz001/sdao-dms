@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -8,7 +9,9 @@ type StatRow = {
     href: string;
     /** Shown at the row's end, e.g. a per-form-type queue count. */
     count?: number;
-    /** Shown at the row's end, e.g. a document's status. */
+    /** Shown at the row's end, rendered via StatusBadge, e.g. a document's status. */
+    status?: string;
+    /** Shown at the row's end for non-status badges. Ignored when `status` is set. */
     badge?: string;
 };
 
@@ -60,7 +63,11 @@ export default function DashboardStatCard({
                                 {row.label}
                             </Link>
                             <div className="flex items-center gap-2">
-                                {row.badge && <Badge variant="secondary">{row.badge}</Badge>}
+                                {row.status ? (
+                                    <StatusBadge status={row.status} />
+                                ) : (
+                                    row.badge && <Badge variant="secondary">{row.badge}</Badge>
+                                )}
                                 {row.count !== undefined && (
                                     <span className="text-sm text-muted-foreground tabular-nums">{row.count}</span>
                                 )}

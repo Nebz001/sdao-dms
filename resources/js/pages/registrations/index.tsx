@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import * as registrations from '@/routes/registrations';
@@ -15,18 +15,6 @@ type Registration = {
 type Props = {
     registrations: Registration[];
 };
-
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'outline',
-    in_review: 'secondary',
-    returned: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-};
-
-function statusLabel(status: string): string {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export default function RegistrationsIndex({ registrations: items }: Props) {
     return (
@@ -57,9 +45,7 @@ export default function RegistrationsIndex({ registrations: items }: Props) {
                                             <p className="text-sm text-muted-foreground">{r.organization.name}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={statusVariant[r.status] ?? 'outline'}>
-                                                {statusLabel(r.status)}
-                                            </Badge>
+                                            <StatusBadge status={r.status} />
                                             {r.status === 'returned' ? (
                                                 <Button asChild size="sm" variant="outline">
                                                     <Link href={registrations.edit({ document: r.id }).url}>

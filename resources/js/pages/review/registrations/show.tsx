@@ -6,7 +6,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -99,9 +99,7 @@ export default function ReviewRegistrationShow({
                             {document.organization.name}
                         </p>
                     </div>
-                    <Badge variant="secondary">
-                        {document.status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
+                    <StatusBadge status={document.status} />
                 </div>
 
                 {/* Dual-SDAO quorum state */}

@@ -116,6 +116,14 @@ class AfterActivityReportReviewController extends Controller
 
         $engine->approve($document, Auth::user());
 
+        if ($document->current_step_position === null) {
+            // This was the finalizing approval — the document has no current
+            // step anymore, so DocumentPolicy::review() would 403 a redirect
+            // back to .show. Send the approver to the queue instead.
+            return redirect()->route('review.reports.index')
+                ->with('flash', ['message' => 'Report approved.']);
+        }
+
         return redirect()->route('review.reports.show', $document)
             ->with('flash', ['message' => 'Approval recorded.']);
     }

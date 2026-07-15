@@ -164,6 +164,14 @@ class ActivityCalendarReviewController extends Controller
 
         $engine->approve($document, Auth::user());
 
+        if ($document->current_step_position === null) {
+            // This was the finalizing approval — the document has no current
+            // step anymore, so DocumentPolicy::review() would 403 a redirect
+            // back to .show. Send the approver to the queue instead.
+            return redirect()->route('review.activity-calendars.index')
+                ->with('flash', ['message' => 'Activity calendar approved.']);
+        }
+
         return redirect()->route('review.activity-calendars.show', $document)
             ->with('flash', ['message' => 'Approval recorded.']);
     }

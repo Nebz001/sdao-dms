@@ -137,6 +137,14 @@ class RegistrationReviewController extends Controller
         // any other validation failure.
         $action->execute($document, Auth::user());
 
+        if ($document->current_step_position === null) {
+            // This was the finalizing approval — the document has no current
+            // step anymore, so DocumentPolicy::review() would 403 a redirect
+            // back to .show. Send the approver to the queue instead.
+            return redirect()->route('review.registrations.index')
+                ->with('flash', ['message' => 'Registration approved.']);
+        }
+
         return redirect()->route('review.registrations.show', $document)
             ->with('flash', ['message' => 'Approval recorded.']);
     }

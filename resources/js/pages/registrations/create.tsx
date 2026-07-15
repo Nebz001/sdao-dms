@@ -234,14 +234,14 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                             {a.name} <span className="text-muted-foreground">({a.email})</span>
                                         </span>
                                         {!a.is_available && (
-                                            <span className="text-xs text-yellow-700 dark:text-yellow-400">Assigned elsewhere</span>
+                                            <span className="text-xs text-warning-foreground">Assigned elsewhere</span>
                                         )}
                                     </button>
                                 ))}
                             </div>
                         )}
                         {selectedAdviser && !selectedAdviser.is_available && (
-                            <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                            <div className="rounded-md bg-warning/10 p-3 text-sm text-warning-foreground">
                                 ⚠ This adviser is already assigned to another organization — you may still
                                 submit, but SDAO will need a different adviser to approve this.
                             </div>

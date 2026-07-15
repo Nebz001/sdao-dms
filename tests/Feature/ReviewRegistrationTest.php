@@ -100,3 +100,33 @@ test('non-SDAO user cannot review a registration', function () {
     expect(fn () => $this->engine->approve($doc, $adviser))
         ->toThrow(UnauthorizedApproverException::class);
 });
+
+// ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
+
+test('HTTP: first SDAO approve redirects back to the review show page', function () {
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.registrations.approve', $doc))
+        ->assertRedirect(route('review.registrations.show', $doc));
+});
+
+test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
+    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.registrations.approve', $doc));
+
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->post(route('review.registrations.approve', $doc))
+        ->assertRedirect(route('review.registrations.index'));
+
+    // Following the redirect must succeed, not 403 — the actual regression.
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->get(route('review.registrations.index'))
+        ->assertOk();
+});
