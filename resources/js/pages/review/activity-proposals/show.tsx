@@ -6,7 +6,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -123,7 +123,7 @@ export default function ReviewActivityProposalShow({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-semibold">{doc.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{doc.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             <span className="font-medium">Name of RSO:</span> {doc.organization.name}
                         </p>
@@ -152,7 +152,7 @@ export default function ReviewActivityProposalShow({
 
                 {/* Activity */}
                 {activity && proposal && (
-                    <Card>
+                    <Card className={`border-l-4 ${statusBorderClass(doc.status)}`}>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Activity{' '}

@@ -1,7 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
+import { Files } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import * as activityCalendars from '@/routes/activity-calendars';
 
 type ActivityCalendarEntry = {
@@ -23,7 +25,9 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
 
             <div className="mx-auto max-w-3xl space-y-6 p-8">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold">Activity Calendars</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Activity Calendars
+                    </h1>
                     <Button asChild>
                         <Link href={activityCalendars.create().url}>New Activity Calendar</Link>
                     </Button>
@@ -35,19 +39,31 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
                     </CardHeader>
                     <CardContent>
                         {calendars.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No activity calendars yet.</p>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <Files />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No activity calendars yet</EmptyTitle>
+                                    <EmptyDescription>
+                                        Once you submit an activity calendar, it'll show up here.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="divide-y">
                                 {calendars.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between py-3">
-                                        <div>
-                                            <p className="font-medium">{c.title}</p>
-                                            <p className="text-sm text-muted-foreground">{c.organization.name}</p>
+                                    <div key={c.id} className="flex items-center justify-between gap-4 py-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{c.title}</p>
+                                            <p className="truncate text-sm text-muted-foreground">
+                                                {c.organization.name}
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
                                                 Date Received: {new Date(c.created_at).toLocaleDateString()}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2">
                                             <StatusBadge status={c.status} />
                                             {c.status === 'returned' ? (
                                                 <Button asChild size="sm" variant="outline">

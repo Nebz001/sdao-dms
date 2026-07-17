@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
+import { UserRoundCheck } from 'lucide-react';
 import PendingAccountController from '@/actions/App/Http/Controllers/Admin/PendingAccountController';
+import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -11,6 +13,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 
 type PendingAccount = {
@@ -25,13 +28,17 @@ type Props = {
 };
 
 export default function PendingAccountsIndex({ accounts }: Props) {
+    const oldest = accounts.length > 0
+        ? new Date(Math.min(...accounts.map((a) => new Date(a.created_at).getTime()))).toLocaleDateString()
+        : '—';
+
     return (
         <>
             <Head title="Pending Accounts" />
 
             <div className="mx-auto max-w-3xl space-y-6 p-8">
                 <div>
-                    <h1 className="text-xl font-semibold">Pending Accounts</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Pending Accounts</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Self-registered students awaiting SDAO review. Verified accounts can submit
                         documents and be adviser-bound as officers; Rejected accounts permanently
@@ -39,13 +46,30 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                     </p>
                 </div>
 
+                <QueueStatStrip
+                    stats={[
+                        { label: 'Pending', value: String(accounts.length) },
+                        { label: 'Oldest waiting', value: oldest },
+                    ]}
+                />
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Awaiting Review</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {accounts.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No pending accounts right now.</p>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <UserRoundCheck />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No pending accounts</EmptyTitle>
+                                    <EmptyDescription>
+                                        Self-registered students awaiting review will show up here.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="divide-y">
                                 {accounts.map((account) => (
@@ -53,15 +77,15 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                         key={account.id}
                                         className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
                                     >
-                                        <div>
-                                            <p className="font-medium">{account.name}</p>
-                                            <p className="text-sm text-muted-foreground">{account.email}</p>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{account.name}</p>
+                                            <p className="truncate text-sm text-muted-foreground">{account.email}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 Registered {new Date(account.created_at).toLocaleDateString()}
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2">
                                             <Form
                                                 {...PendingAccountController.verify.form(account.id)}
                                                 options={{ preserveScroll: true }}

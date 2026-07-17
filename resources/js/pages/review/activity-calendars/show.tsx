@@ -3,7 +3,7 @@ import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/Act
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,7 +106,7 @@ export default function ReviewActivityCalendarShow({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-semibold">{document.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
                     </div>
                     <StatusBadge status={document.status} />
@@ -142,7 +142,7 @@ export default function ReviewActivityCalendarShow({
 
                 {/* Activities with per-row conflict state */}
                 {calendar && (
-                    <Card>
+                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 {calendar.term_label} {calendar.academic_year} — Activities

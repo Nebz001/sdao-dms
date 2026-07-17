@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -81,7 +81,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-semibold">{document.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
 
                 {/* Activities table */}
                 {calendar && (
-                    <Card>
+                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 {calendar.term_label} {calendar.academic_year} — Activities

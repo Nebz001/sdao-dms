@@ -9,6 +9,24 @@ const statusStyles: Record<string, string> = {
     rejected: 'bg-destructive/10 text-destructive-foreground border-destructive/20',
 };
 
+/**
+ * Left-border accent classes keyed by status, sharing `statusStyles`'
+ * color mapping so a card's accent border always agrees with its badge.
+ * Only meaningful for single-status contexts (a review queue's wrapper
+ * card, a document show page) — never a mixed-status list.
+ */
+const statusBorderStyles: Record<string, string> = {
+    draft: 'border-l-muted-foreground',
+    in_review: 'border-l-info',
+    returned: 'border-l-warning',
+    approved: 'border-l-success',
+    rejected: 'border-l-destructive',
+};
+
+export function statusBorderClass(status: string): string {
+    return statusBorderStyles[status] ?? statusBorderStyles.draft;
+}
+
 type StatusBadgeProps = {
     status: string;
     className?: string;

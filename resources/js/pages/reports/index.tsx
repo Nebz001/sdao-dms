@@ -1,7 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
+import { Files } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import * as reports from '@/routes/reports';
 
 type ReportEntry = {
@@ -23,7 +25,9 @@ export default function ReportsIndex({ reports: items }: Props) {
 
             <div className="mx-auto max-w-3xl space-y-6 p-8">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold">After-Activity Reports</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        After-Activity Reports
+                    </h1>
                     <Button asChild>
                         <Link href={reports.create().url}>New Report</Link>
                     </Button>
@@ -35,19 +39,31 @@ export default function ReportsIndex({ reports: items }: Props) {
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No reports yet.</p>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <Files />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No reports yet</EmptyTitle>
+                                    <EmptyDescription>
+                                        Once you submit an after-activity report, it'll show up here.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="divide-y">
                                 {items.map((r) => (
-                                    <div key={r.id} className="flex items-center justify-between py-3">
-                                        <div>
-                                            <p className="font-medium">{r.title}</p>
-                                            <p className="text-sm text-muted-foreground">{r.organization.name}</p>
+                                    <div key={r.id} className="flex items-center justify-between gap-4 py-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{r.title}</p>
+                                            <p className="truncate text-sm text-muted-foreground">
+                                                {r.organization.name}
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
                                                 Date Submitted: {new Date(r.created_at).toLocaleDateString()}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2">
                                             <StatusBadge status={r.status} />
                                             {r.status === 'returned' ? (
                                                 <Button asChild size="sm" variant="outline">

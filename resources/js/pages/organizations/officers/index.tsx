@@ -1,4 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
+import { Users } from 'lucide-react';
 import {  useState } from 'react';
 import type {FormEvent} from 'react';
 import OrganizationOfficerController from '@/actions/App/Http/Controllers/OrganizationOfficerController';
@@ -6,6 +7,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -65,7 +67,9 @@ export default function OfficersIndex({ organization, memberships, students, sea
 
             <div className="mx-auto max-w-2xl space-y-6 p-8">
                 <div>
-                    <h1 className="text-xl font-semibold">Officers — {organization.name}</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Officers — {organization.name}
+                    </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Manage active officers for the current academic year.
                     </p>
@@ -81,18 +85,26 @@ export default function OfficersIndex({ organization, memberships, students, sea
                             <p className="pb-3 text-sm text-destructive">{deactivateError}</p>
                         )}
                         {memberships.length === 0 ? (
-                            <p className="py-2 text-sm text-muted-foreground">
-                                No active officers bound yet.
-                            </p>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <Users />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No active officers bound yet</EmptyTitle>
+                                    <EmptyDescription>
+                                        Bind a president or secretary below to get started.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             memberships.map((m) => (
                                 <div
                                     key={m.id}
-                                    className="flex items-center justify-between py-3"
+                                    className="flex items-center justify-between gap-4 py-3"
                                 >
-                                    <div>
-                                        <p className="font-medium">{m.user.name}</p>
-                                        <p className="text-sm text-muted-foreground">
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium">{m.user.name}</p>
+                                        <p className="truncate text-sm text-muted-foreground">
                                             {m.user.email} · {m.position_label} · {m.academic_year}
                                         </p>
                                     </div>

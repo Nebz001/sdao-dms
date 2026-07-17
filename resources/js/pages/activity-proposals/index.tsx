@@ -1,7 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
+import { Files } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import * as activityProposals from '@/routes/activity-proposals';
 
 type Proposal = {
@@ -37,7 +39,9 @@ export default function ActivityProposalsIndex({ proposals }: Props) {
 
             <div className="mx-auto max-w-3xl space-y-6 p-8">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold">Activity Proposals</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Activity Proposals
+                    </h1>
                     <Button asChild>
                         <Link href={activityProposals.create().url}>New Proposal</Link>
                     </Button>
@@ -49,19 +53,29 @@ export default function ActivityProposalsIndex({ proposals }: Props) {
                     </CardHeader>
                     <CardContent>
                         {proposals.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No proposals yet.</p>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <Files />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No proposals yet</EmptyTitle>
+                                    <EmptyDescription>
+                                        Once you submit an activity proposal, it'll show up here.
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         ) : (
                             <div className="divide-y">
                                 {proposals.map((p) => (
-                                    <div key={p.id} className="flex items-center justify-between py-3">
-                                        <div>
-                                            <p className="font-medium">{p.title}</p>
-                                            <p className="text-sm text-muted-foreground">
+                                    <div key={p.id} className="flex items-center justify-between gap-4 py-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{p.title}</p>
+                                            <p className="truncate text-sm text-muted-foreground">
                                                 {p.organization.name}
                                                 {p.calendar_mode && ` · ${modeLabel(p.calendar_mode)}`}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2">
                                             <StatusBadge status={p.status} />
                                             {p.status === 'draft' ? (
                                                 <Button asChild size="sm" variant="outline">

@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
-import { StatusBadge } from '@/components/status-badge';
+import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -68,7 +68,7 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-xl font-semibold">{document.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {document.organization.name}
                         </p>
@@ -87,7 +87,7 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
 
                 {/* Detail card */}
                 {detail && (
-                    <Card>
+                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
                         <CardHeader>
                             <CardTitle className="text-base">Renewal Details</CardTitle>
                         </CardHeader>

@@ -162,3 +162,20 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Used by LandingFlowDiagram's dash-draw entrance (resources/js/components/
+ * landing-flow-diagram.tsx). Gated behind `motion-safe:` at the call site,
+ * so prefers-reduced-motion users never see these run.
+ */
+@keyframes dash {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes fade-in {
+    to {
+        opacity: 1;
+    }
+}
