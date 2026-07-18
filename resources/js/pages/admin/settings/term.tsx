@@ -33,7 +33,7 @@ export default function CurrentTermSettings({ current, terms }: Props) {
         <>
             <Head title="Current Term" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <div>
                     <h1 className="text-xl font-semibold">Current Term</h1>
                     <p className="mt-1 text-sm text-muted-foreground">

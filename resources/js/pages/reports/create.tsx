@@ -47,7 +47,7 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         You are not bound as an officer of any organization. Contact your
                         adviser to be bound before submitting a report.
@@ -61,7 +61,7 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         {membership.organization.name} has no approved activities awaiting a
                         report. A report can only be filed against an approved activity
@@ -76,7 +76,7 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         <>
             <Head title="Submit After-Activity Report" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <Heading
                     title="After-Activity Report"
                     description={`Reporting for ${membership.organization.name} as ${membership.position_label}`}

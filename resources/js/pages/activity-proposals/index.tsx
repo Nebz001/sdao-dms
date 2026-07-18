@@ -37,7 +37,7 @@ export default function ActivityProposalsIndex({ proposals }: Props) {
         <>
             <Head title="Activity Proposals" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold tracking-tight text-balance">
                         Activity Proposals

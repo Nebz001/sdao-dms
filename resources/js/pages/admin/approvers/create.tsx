@@ -35,7 +35,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
         <>
             <Head title="Provision Approver" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Provision Approver"
                     description="Creates the account and sends a password-reset link so the approver sets their own password."

@@ -24,7 +24,7 @@ export default function AdminApproversIndex({ approvers: items }: Props) {
         <>
             <Head title="Approvers" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold tracking-tight text-balance">Approver Accounts</h1>
                     <Button asChild>

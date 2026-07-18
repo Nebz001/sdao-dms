@@ -72,7 +72,7 @@ export default function EditActivityProposal({
         <>
             <Head title={`Edit — ${doc.title}`} />
 
-            <div className="mx-auto max-w-xl space-y-6 p-8">
+            <div className="max-w-xl space-y-6">
                 <h1 className="text-xl font-semibold">Edit Proposal</h1>
                 <p className="text-sm text-muted-foreground">{doc.title}</p>
 

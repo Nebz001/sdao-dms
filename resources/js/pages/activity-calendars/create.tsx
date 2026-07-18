@@ -123,7 +123,7 @@ export default function CreateActivityCalendar({ membership, current_term_label,
         return (
             <>
                 <Head title="Submit Activity Calendar" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         You are not bound as an officer of any organization. Contact your adviser
                         before submitting a calendar.
@@ -137,7 +137,7 @@ export default function CreateActivityCalendar({ membership, current_term_label,
         <>
             <Head title="Submit Activity Calendar" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="max-w-3xl space-y-6">
                 <Heading
                     title="Activity Calendar"
                     description={`Submitting for ${membership.organization.name} as ${membership.position_label}`}

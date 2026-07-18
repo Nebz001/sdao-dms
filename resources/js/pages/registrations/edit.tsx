@@ -94,7 +94,7 @@ export default function EditRegistration({ document, detail, organizationTypes, 
         <>
             <Head title="Edit Registration" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Edit & Resubmit Registration"
                     description="Update the details below and resubmit for SDAO review."

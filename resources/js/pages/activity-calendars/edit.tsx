@@ -113,7 +113,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
         <>
             <Head title="Edit Activity Calendar" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="max-w-3xl space-y-6">
                 <Heading
                     title="Edit & Resubmit Activity Calendar"
                     description="Update the activities below and resubmit for SDAO review."

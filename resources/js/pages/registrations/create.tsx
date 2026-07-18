@@ -126,7 +126,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         return (
             <>
                 <Head title="Submit Registration" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         You already have an active organization or an in-progress registration.
                         You cannot propose another organization at this time.
@@ -153,7 +153,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         <>
             <Head title="Submit Registration" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Propose a New Organization"
                     description="Found a brand-new student organization. SDAO reviews and approves your choice of adviser."

@@ -23,7 +23,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
         return (
             <>
                 <Head title="Dashboard" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <Alert>
                         <Hourglass />
                         <AlertTitle>Pending SDAO verification</AlertTitle>
@@ -44,7 +44,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
         return (
             <>
                 <Head title="Dashboard" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <Alert variant="destructive">
                         <Ban />
                         <AlertTitle>Account not approved</AlertTitle>
@@ -63,7 +63,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+            <div className="flex h-full flex-1 flex-col gap-4">
                 {!hasAnyCard ? (
                     <div className="mx-auto w-full max-w-2xl">
                         <Alert>

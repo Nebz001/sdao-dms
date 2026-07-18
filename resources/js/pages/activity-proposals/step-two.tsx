@@ -77,7 +77,7 @@ clearTimeout(saveTimer.current);
         <>
             <Head title={`Narrative — ${doc.title}`} />
 
-            <div className="mx-auto max-w-xl space-y-6 p-8">
+            <div className="max-w-xl space-y-6">
                 <div>
                     <h1 className="text-xl font-semibold">Activity Proposal — Narrative</h1>
                     <p className="mt-1 text-sm text-muted-foreground">{doc.title}</p>

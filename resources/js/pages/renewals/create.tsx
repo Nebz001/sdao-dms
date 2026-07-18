@@ -59,7 +59,7 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         You are not bound as an officer of any organization. Contact your
                         adviser to be bound before submitting a renewal.
@@ -73,7 +73,7 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         {membership.organization.name} has no prior approved registration to
                         renew. Submit an organization registration first.
@@ -87,7 +87,7 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <div className="mx-auto max-w-2xl p-8">
+                <div className="mx-auto w-full max-w-2xl">
                     <p className="text-sm text-muted-foreground">
                         {membership.organization.name} already has a renewal on file for{' '}
                         {academicYear}. Check{' '}
@@ -105,7 +105,7 @@ export default function CreateRenewal({
         <>
             <Head title="Submit Renewal" />
 
-            <div className="mx-auto max-w-2xl space-y-6 p-8">
+            <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Organization Renewal"
                     description={`Renewing ${membership.organization.name} for ${academicYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}

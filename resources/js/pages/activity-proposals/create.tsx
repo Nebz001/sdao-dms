@@ -122,7 +122,7 @@ clearTimeout(conflictTimer.current);
 
     if (!membership) {
         return (
-            <div className="mx-auto max-w-xl p-8">
+            <div className="mx-auto w-full max-w-xl">
                 <p className="text-muted-foreground">
                     You must be an active officer of an organization to submit a proposal.
                 </p>
@@ -134,7 +134,7 @@ clearTimeout(conflictTimer.current);
         <>
             <Head title="New Activity Proposal" />
 
-            <div className="mx-auto max-w-xl space-y-6 p-8">
+            <div className="max-w-xl space-y-6">
                 <h1 className="text-xl font-semibold">New Activity Proposal</h1>
                 <p className="text-sm text-muted-foreground">
                     <span className="font-medium">Name of RSO:</span> {membership.organization.name}

@@ -32,7 +32,7 @@ export default function ReviewActivityCalendarsIndex({ queue }: Props) {
         <>
             <Head title="Review: Activity Calendars" />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="space-y-6">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight text-balance">
                         Activity Calendar Review Queue

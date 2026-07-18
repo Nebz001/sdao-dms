@@ -64,7 +64,7 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
         <>
             <Head title={document.title} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-8">
+            <div className="max-w-3xl space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>

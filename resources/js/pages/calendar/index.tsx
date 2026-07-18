@@ -48,7 +48,7 @@ export default function CalendarIndex({ activities }: Props) {
         <>
             <Head title="Venue Calendar" />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-8">
+            <div className="space-y-6">
                 <div>
                     <h1 className="text-xl font-semibold">Venue Calendar</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
