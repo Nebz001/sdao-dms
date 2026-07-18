@@ -120,7 +120,8 @@ class ActivityProposalController extends Controller
             data: $request->validated(),
         );
 
-        return redirect()->route('activity-proposals.continue', $document);
+        return redirect()->route('activity-proposals.continue', $document)
+            ->with('flash', ['message' => 'Draft saved — continue with the proposal narrative.']);
     }
 
     /**

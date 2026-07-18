@@ -25,6 +25,26 @@ modals before destructive or hard-to-reverse actions (approve, reject,
 deactivate an officer, submit for review). This is a permanent standard, not a
 one-time cleanup.
 
+Every save/update/change action in the app must show clear success feedback
+when it completes. Use the app's existing flash-toast convention:
+`redirect(...)->with('flash', ['message' => '...'])` (read server-side from the
+session `flash` key by `HandleInertiaRequests::share()`, and consumed
+client-side via `useFlashToast()` / `usePage().props.flash.toast`) — the same
+pattern used by every approve/reject/return-for-revision action. Never call
+Inertia's native `Inertia::flash(...)`/`->flash(...)` helper for this: it
+writes to a different, unread response key (`page.flash`, a sibling of
+`page.props`) and produces a silently-successful action with no confirmation.
+Fortify-driven flows (2FA, passkeys) may instead use their own inline/modal
+`onSuccess` feedback, which is equally acceptable. This is a permanent
+standard, not a one-time cleanup — apply it to every new save/update/change
+action going forward.
+
+Every UI/UX-related task — a bug fix, a new feature, or a polish pass alike —
+must explicitly consult the `frontend-design` skill (and any other installed,
+relevant UI/UX skill, e.g. `web-design-guidelines`) before implementation, not
+only when the user asks for it. This is a permanent standard, not a one-time
+cleanup.
+
 Dev login is removed entirely once real authentication is in active use — not
 just production-gated. Delete the dev login routes, controller, and pages. All
 testing from this point forward uses real registration and login exclusively.

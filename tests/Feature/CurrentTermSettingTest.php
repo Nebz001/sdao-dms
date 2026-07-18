@@ -160,7 +160,11 @@ test('an SDAO member can update the current term via the settings screen', funct
         'term' => Term::ThirdTerm->value,
     ]);
 
-    $response->assertRedirect(route('admin.settings.term.edit'));
+    $response
+        ->assertRedirect(route('admin.settings.term.edit'))
+        ->assertSessionHas('flash', [
+            'message' => 'Current term updated to '.Term::ThirdTerm->label().'. Already-submitted calendars are unchanged.',
+        ]);
     expect(CurrentTerm::get())->toBe(Term::ThirdTerm);
 });
 

@@ -24,7 +24,7 @@ test('guests are redirected to the login page', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('a bare verified user with no role or org sees no dashboard sections', function () {
+test('a bare verified user with no role or org sees no dashboard sections, but is offered the founding flow', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -34,7 +34,33 @@ test('a bare verified user with no role or org sees no dashboard sections', func
             ->where('myOrganization', null)
             ->where('sdaoQueueCounts', null)
             ->where('proposalsAtMyStep', null)
+            ->where('auth.canProposeOrganization', true)
         );
+});
+
+test('auth.canProposeOrganization mirrors DocumentPolicy::propose exactly — true for any verified, unaffiliated user regardless of role', function () {
+    // SDAO/adviser/etc. roles are RoleAssignment rows, not OrganizationMembership
+    // rows, so DocumentPolicy::propose() (which only checks membership) is true
+    // for them too — a pre-existing, intentionally out-of-scope looseness. The
+    // sidebar is what keeps "Submit Registration" student-only, by additionally
+    // checking isSdao/reviewsProposals before showing the item — see
+    // app-sidebar.tsx's canFoundOrganization. This test documents that the
+    // shared prop itself is a verbatim, role-agnostic mirror of the Gate.
+    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+
+    $this->actingAs($sdaoA)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('auth.canProposeOrganization', true));
+});
+
+test('a student officer is not offered the founding flow (they already have an organization)', function () {
+    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+
+    $this->actingAs($studentAlpha)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('auth.canProposeOrganization', false));
 });
 
 test('an SDAO member sees queue counts for the short-chain form types', function () {

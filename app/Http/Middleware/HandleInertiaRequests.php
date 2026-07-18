@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Organization;
 use App\Models\RoleAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -66,6 +68,13 @@ class HandleInertiaRequests extends Middleware
                 // on turnover, unlike the role_assignments table (no status
                 // column at all, never updated once created).
                 'isActiveOfficer' => $request->user()?->organizationMemberships()->active()->exists() ?? false,
+                // Drives the "Submit Registration" founding-flow CTA (sidebar
+                // + dashboard empty state) for a verified student with no
+                // organization yet — reuses DocumentPolicy::propose(), the
+                // same Gate RegistrationController::create()/store() already
+                // authorize against, so eligibility is computed once, in
+                // Laravel, and never re-derived on the client.
+                'canProposeOrganization' => Gate::allows('propose', Organization::class),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

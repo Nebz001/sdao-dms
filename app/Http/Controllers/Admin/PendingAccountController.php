@@ -34,17 +34,15 @@ class PendingAccountController extends Controller
     {
         $action->execute(Auth::user(), $account);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$account->name}'s account has been verified."]);
-
-        return redirect()->route('admin.pending-accounts.index');
+        return redirect()->route('admin.pending-accounts.index')
+            ->with('flash', ['message' => "{$account->name}'s account has been verified."]);
     }
 
     public function reject(User $account, RejectAccount $action): RedirectResponse
     {
         $action->execute(Auth::user(), $account);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$account->name}'s account has been rejected."]);
-
-        return redirect()->route('admin.pending-accounts.index');
+        return redirect()->route('admin.pending-accounts.index')
+            ->with('flash', ['message' => "{$account->name}'s account has been rejected."]);
     }
 }

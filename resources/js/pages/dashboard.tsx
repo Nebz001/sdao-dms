@@ -1,9 +1,11 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Ban, Hourglass, UserCog } from 'lucide-react';
+import { Ban, FilePlus2, Hourglass, UserCog } from 'lucide-react';
 import DashboardStatCard from '@/components/dashboard-stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import * as calendar from '@/routes/calendar';
+import * as registrations from '@/routes/registrations';
 
 type OrgDocItem = { id: number; title: string; status: string; href: string };
 type QueueCountRow = { label: string; count: number; href: string };
@@ -66,24 +68,47 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
             <div className="flex h-full flex-1 flex-col gap-4">
                 {!hasAnyCard ? (
                     <div className="mx-auto w-full max-w-2xl">
-                        <Alert>
-                            <UserCog />
-                            <AlertTitle>Nothing to do yet</AlertTitle>
-                            <AlertDescription>
-                                <p>
-                                    Your account is verified, but you aren&apos;t bound to an organization
-                                    or an approval role yet.
-                                </p>
-                                <p>
-                                    Ask your organization&apos;s adviser to add you as an officer, or check
-                                    the{' '}
-                                    <Link href={calendar.index()} className="underline">
-                                        Venue Calendar
-                                    </Link>{' '}
-                                    in the meantime.
-                                </p>
-                            </AlertDescription>
-                        </Alert>
+                        {auth.canProposeOrganization ? (
+                            <Alert>
+                                <FilePlus2 />
+                                <AlertTitle>Ready to register your organization?</AlertTitle>
+                                <AlertDescription>
+                                    <p>
+                                        Your account is verified and you aren&apos;t affiliated with an
+                                        organization yet. If your organization isn&apos;t registered in
+                                        the system, you can submit its registration now — SDAO will review
+                                        it, and you&apos;ll be bound as its president once it&apos;s
+                                        approved.
+                                    </p>
+                                    <p>
+                                        Already part of an existing organization? Ask its adviser to add
+                                        you as an officer instead.
+                                    </p>
+                                    <Button asChild className="mt-2">
+                                        <Link href={registrations.create()}>Submit Registration</Link>
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Alert>
+                                <UserCog />
+                                <AlertTitle>Nothing to do yet</AlertTitle>
+                                <AlertDescription>
+                                    <p>
+                                        Your account is verified, but you aren&apos;t bound to an
+                                        organization or an approval role yet.
+                                    </p>
+                                    <p>
+                                        Ask your organization&apos;s adviser to add you as an officer, or
+                                        check the{' '}
+                                        <Link href={calendar.index()} className="underline">
+                                            Venue Calendar
+                                        </Link>{' '}
+                                        in the meantime.
+                                    </p>
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </div>
                 ) : (
                     <div className="grid auto-rows-min gap-4 md:grid-cols-3">

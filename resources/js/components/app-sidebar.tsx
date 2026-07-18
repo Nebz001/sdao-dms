@@ -66,6 +66,15 @@ export function AppSidebar() {
     const reviewsProposals = roles.some((r) => PROPOSAL_APPROVER_ROLES.has(r.role));
     const adviserRole = roles.find((r) => r.role === 'adviser' && r.organization_id !== null);
 
+    // A verified student with no org and no approver role yet — eligible to
+    // found a new organization (DocumentPolicy::propose, shared server-side
+    // as auth.canProposeOrganization). Guarded against isSdao/reviewsProposals
+    // too: those roles use RoleAssignment, not OrganizationMembership, so
+    // they'd also read as "no active org" without this extra check — the
+    // founding flow is student-only.
+    const canFoundOrganization =
+        !isStudentOfficer && !isSdao && !reviewsProposals && (auth?.canProposeOrganization ?? false);
+
     const sections: { label: string; items: NavItem[] }[] = [
         {
             label: 'Platform',
@@ -97,6 +106,11 @@ export function AppSidebar() {
                 { title: 'My Proposals', href: activityProposals.index(), icon: Files },
                 { title: 'My Reports', href: reports.index(), icon: Files },
             ],
+        });
+    } else if (canFoundOrganization) {
+        sections.push({
+            label: 'Submit',
+            items: [{ title: 'Submit Registration', href: registrations.create(), icon: FilePlus2 }],
         });
     }
 

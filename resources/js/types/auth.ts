@@ -24,6 +24,7 @@ export type Auth = {
     user: User;
     roles: RoleAssignment[] | null;
     isActiveOfficer: boolean;
+    canProposeOrganization: boolean;
 };
 
 /* @chisel-passkeys */

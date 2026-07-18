@@ -32,8 +32,7 @@ class CurrentTermController extends Controller
         $term = Term::from($request->string('term')->toString());
         CurrentTerm::set($term);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "Current term updated to {$term->label()}. Already-submitted calendars are unchanged."]);
-
-        return redirect()->route('admin.settings.term.edit');
+        return redirect()->route('admin.settings.term.edit')
+            ->with('flash', ['message' => "Current term updated to {$term->label()}. Already-submitted calendars are unchanged."]);
     }
 }

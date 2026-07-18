@@ -73,7 +73,9 @@ test('an SDAO member can verify an account end-to-end via HTTP', function () {
 
     $response = $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.verify', $account));
 
-    $response->assertRedirect(route('admin.pending-accounts.index'));
+    $response
+        ->assertRedirect(route('admin.pending-accounts.index'))
+        ->assertSessionHas('flash', ['message' => "{$account->name}'s account has been verified."]);
     expect($account->fresh()->account_status)->toBe(AccountStatus::Verified);
 });
 
@@ -82,7 +84,9 @@ test('an SDAO member can reject an account end-to-end via HTTP', function () {
 
     $response = $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.reject', $account));
 
-    $response->assertRedirect(route('admin.pending-accounts.index'));
+    $response
+        ->assertRedirect(route('admin.pending-accounts.index'))
+        ->assertSessionHas('flash', ['message' => "{$account->name}'s account has been rejected."]);
     expect($account->fresh()->account_status)->toBe(AccountStatus::Rejected);
 });
 
