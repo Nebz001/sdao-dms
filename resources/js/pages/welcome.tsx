@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { Bell, ClipboardCheck, FileCheck2, SendHorizonal, UserPlus, Users } from 'lucide-react';
+import { Bell, ClipboardCheck, FileCheck2, Moon, SendHorizonal, Sun, UserPlus, Users } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import LandingFlowDiagram from '@/components/landing-flow-diagram';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAppearance } from '@/hooks/use-appearance';
 import { login, register } from '@/routes';
 
 const audiences = [
@@ -37,6 +38,8 @@ const steps: { icon: typeof UserPlus; label: string; accent: StepAccent }[] = [
 ];
 
 export default function Welcome() {
+    const { resolvedAppearance, updateAppearance } = useAppearance();
+
     return (
         <>
             <Head title="Welcome" />
@@ -50,9 +53,21 @@ export default function Welcome() {
                                 {import.meta.env.VITE_APP_NAME || 'SDAO-DMS'}
                             </span>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href={login()}>Log in</Link>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={resolvedAppearance === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                                title={resolvedAppearance === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                                onClick={() => updateAppearance(resolvedAppearance === 'dark' ? 'light' : 'dark')}
+                            >
+                                {resolvedAppearance === 'dark' ? <Sun /> : <Moon />}
+                                <span className="sr-only">Toggle theme</span>
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href={login()}>Log in</Link>
+                            </Button>
+                        </div>
                     </div>
                 </header>
 
