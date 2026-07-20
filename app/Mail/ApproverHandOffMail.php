@@ -12,13 +12,20 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sent synchronously to an approver the moment ApprovalEngine::activateStep
- * hands a document to them (invariant #9's actual delivery channel — the
- * trigger itself lives in RecordingApproverNotifier, unchanged).
+ * Queued to an approver the moment ApprovalEngine::activateStep hands a
+ * document to them (invariant #9's actual delivery channel — the trigger
+ * itself lives in RecordingApproverNotifier, unchanged). Dispatched via
+ * ->queue() rather than ->send() so mail-provider latency/rate-limits are
+ * never on the request path; $tries/backoff() retry a transient provider
+ * failure (e.g. Mailtrap's per-second rate limit) with spacing before giving
+ * up to failed_jobs.
  */
 class ApproverHandOffMail extends Mailable
 {
     use Queueable, SerializesModels;
+
+    /** Retry attempts for a transient mail-provider failure (rate limits, timeouts). */
+    public int $tries = 3;
 
     public function __construct(
         public readonly User $approver,
@@ -26,6 +33,17 @@ class ApproverHandOffMail extends Mailable
         public readonly int $stepPosition,
     ) {
         $this->document->loadMissing('organization');
+    }
+
+    /**
+     * Seconds to wait before each retry, spacing attempts past a transient
+     * provider rate limit.
+     *
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        return [10, 30, 60];
     }
 
     public function envelope(): Envelope

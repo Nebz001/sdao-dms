@@ -7,15 +7,18 @@ use App\Mail\ApproverHandOffMail;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
  * Records a row in approval_notifications so the engine trigger is testable,
- * AND sends the approver a real, synchronous email (Phase 2 item 3 — the
- * actual delivery channel for invariant #9; the trigger itself is unchanged
- * from Slice 1, still fired once per approver from
- * ApprovalEngine::activateStep). Sent synchronously (not queued) so delivery
- * never silently depends on a queue worker running.
+ * AND queues the approver a real email (Phase 2 item 3 — the actual delivery
+ * channel for invariant #9; the trigger itself is unchanged from Slice 1,
+ * still fired once per approver from ApprovalEngine::activateStep). Queued
+ * (not sent inline) so a slow or rate-limited mail provider can never take
+ * down the approval transition that triggered it; dispatch failures are
+ * caught and logged rather than propagated, since notification delivery is
+ * best-effort and must not block the underlying document transition.
  */
 class RecordingApproverNotifier implements ApproverNotifier
 {
@@ -28,6 +31,15 @@ class RecordingApproverNotifier implements ApproverNotifier
             'created_at' => now(),
         ]);
 
-        Mail::to($approver)->send(new ApproverHandOffMail($approver, $document, $stepPosition));
+        try {
+            Mail::to($approver)->queue(new ApproverHandOffMail($approver, $document, $stepPosition));
+        } catch (\Throwable $e) {
+            Log::error('Approver hand-off notification failed to dispatch', [
+                'document_id' => $document->id,
+                'user_id' => $approver->id,
+                'step_position' => $stepPosition,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -10,6 +10,8 @@ use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Mail\PendingMail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -34,7 +36,7 @@ test('submitting sends a real email to the step-1 approver', function () {
 
     $this->engine->submit($doc, $this->adviser);
 
-    Mail::assertSent(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) use ($doc) {
+    Mail::assertQueued(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) use ($doc) {
         return $mail->hasTo($this->adviser->email)
             && $mail->document->id === $doc->id
             && $mail->stepPosition === 1;
@@ -50,9 +52,9 @@ test('submitting a short-chain document emails both SDAO members', function () {
 
     $this->engine->submit($doc, $this->sdaoA);
 
-    Mail::assertSent(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->sdaoA->email));
-    Mail::assertSent(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->sdaoB->email));
-    Mail::assertSent(ApproverHandOffMail::class, 2);
+    Mail::assertQueued(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->sdaoA->email));
+    Mail::assertQueued(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->sdaoB->email));
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
 });
 
 test('advancing to step 2 emails the chair', function () {
@@ -66,7 +68,7 @@ test('advancing to step 2 emails the chair', function () {
 
     $this->engine->approve($doc, $this->adviser);
 
-    Mail::assertSent(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) {
+    Mail::assertQueued(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) {
         return $mail->hasTo($this->chair->email) && $mail->stepPosition === 2;
     });
 });
@@ -85,8 +87,8 @@ test('resubmit emails the resuming step approver again', function () {
     $this->engine->resubmit($doc, $this->adviser);
 
     // Once on submit, once on resubmit — both to the adviser.
-    Mail::assertSent(ApproverHandOffMail::class, 2);
-    Mail::assertSent(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->adviser->email));
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
+    Mail::assertQueued(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->hasTo($this->adviser->email));
 });
 
 test('rejecting a document sends no email', function () {
@@ -96,12 +98,12 @@ test('rejecting a document sends no email', function () {
         'status' => DocumentStatus::Draft,
     ]);
     $this->engine->submit($doc, $this->sdaoA);
-    Mail::assertSent(ApproverHandOffMail::class, 2); // both SDAO members notified on submit
+    Mail::assertQueued(ApproverHandOffMail::class, 2); // both SDAO members notified on submit
 
     $this->engine->reject($doc, $this->sdaoA);
 
     // No additional mail beyond the initial submit hand-off.
-    Mail::assertSent(ApproverHandOffMail::class, 2);
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
 });
 
 test('a non-quorum SDAO partial approval sends no next-step email', function () {
@@ -111,10 +113,36 @@ test('a non-quorum SDAO partial approval sends no next-step email', function () 
         'status' => DocumentStatus::Draft,
     ]);
     $this->engine->submit($doc, $this->sdaoA);
-    Mail::assertSent(ApproverHandOffMail::class, 2);
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
 
     // First of two required SDAO approvals — should not advance/notify further.
     $this->engine->approve($doc, $this->sdaoA);
 
-    Mail::assertSent(ApproverHandOffMail::class, 2);
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
+});
+
+test('a mail dispatch failure is logged but does not prevent the submission from succeeding', function () {
+    Log::spy();
+
+    $pending = Mockery::mock(PendingMail::class);
+    $pending->shouldReceive('queue')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
+    Mail::shouldReceive('to')->andReturn($pending);
+
+    $doc = Document::factory()->create([
+        'form_type' => FormType::ActivityProposal,
+        'variant' => ProposalVariant::RegularOnCalendar,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Draft,
+    ]);
+
+    // Must not throw, even though every mail dispatch fails.
+    $this->engine->submit($doc, $this->adviser);
+
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::InReview)
+        ->and($doc->current_step_position)->toBe(1);
+
+    Log::shouldHaveReceived('error')
+        ->withArgs(fn (string $message) => $message === 'Approver hand-off notification failed to dispatch')
+        ->atLeast()->once();
 });

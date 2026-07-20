@@ -8,6 +8,7 @@ use App\Mail\AccountRejectedMail;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -36,7 +37,14 @@ class RejectAccount
 
         $account->update(['account_status' => AccountStatus::Rejected]);
 
-        Mail::to($account)->send(new AccountRejectedMail($account));
+        try {
+            Mail::to($account)->queue(new AccountRejectedMail($account));
+        } catch (\Throwable $e) {
+            Log::error('Account-rejected notification failed to dispatch', [
+                'user_id' => $account->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         return $account;
     }
