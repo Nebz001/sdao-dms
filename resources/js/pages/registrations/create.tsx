@@ -53,7 +53,10 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const [adviserQuery, setAdviserQuery] = useState('');
     const [adviserResults, setAdviserResults] = useState<AdviserResult[]>([]);
     const [selectedAdviser, setSelectedAdviser] = useState<AdviserResult | null>(null);
+    const [adviserSearchStatus, setAdviserSearchStatus] = useState<'idle' | 'searching' | 'done'>('idle');
+    const [adviserSearchFailed, setAdviserSearchFailed] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const latestAdviserQuery = useRef('');
 
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,19 +67,42 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const searchAdvisers = useCallback((query: string) => {
         if (query.trim() === '') {
             setAdviserResults([]);
+            setAdviserSearchStatus('idle');
+            setAdviserSearchFailed(false);
 
             return;
         }
+
+        setAdviserSearchStatus('searching');
+        setAdviserSearchFailed(false);
 
         fetch(registrations.adviserSearch.url({ query: { q: query } }), {
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         })
             .then((res) => res.json())
-            .then((data) => setAdviserResults(data.advisers ?? []))
-            .catch(() => {});
+            .then((data) => {
+                // Stale-response guard: ignore a slow reply for a query the
+                // student has since changed or cleared.
+                if (latestAdviserQuery.current !== query) {
+                    return;
+                }
+
+                setAdviserResults(data.advisers ?? []);
+                setAdviserSearchStatus('done');
+            })
+            .catch(() => {
+                if (latestAdviserQuery.current !== query) {
+                    return;
+                }
+
+                setAdviserSearchFailed(true);
+                setAdviserSearchStatus('done');
+            });
     }, []);
 
     useEffect(() => {
+        latestAdviserQuery.current = adviserQuery;
+
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
@@ -93,6 +119,8 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     function selectAdviser(adviser: AdviserResult) {
         setSelectedAdviser(adviser);
         setAdviserResults([]);
+        setAdviserSearchStatus('idle');
+        setAdviserSearchFailed(false);
         setAdviserQuery(adviser.name);
     }
 
@@ -221,6 +249,23 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             }}
                             autoComplete="off"
                         />
+                        {adviserQuery.trim() !== '' && adviserSearchStatus === 'searching' && (
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Spinner className="size-3.5" /> Searching advisers…
+                            </p>
+                        )}
+                        {adviserSearchStatus === 'done' && adviserSearchFailed && (
+                            <p className="text-sm text-destructive">Couldn't search advisers just now. Try again.</p>
+                        )}
+                        {adviserSearchStatus === 'done' &&
+                            !adviserSearchFailed &&
+                            adviserResults.length === 0 &&
+                            !selectedAdviser && (
+                                <p className="text-sm text-muted-foreground">
+                                    No matching adviser found. Check the spelling, or contact SDAO if this adviser
+                                    should be listed.
+                                </p>
+                            )}
                         {adviserResults.length > 0 && (
                             <div className="rounded-md border divide-y">
                                 {adviserResults.map((a) => (

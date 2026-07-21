@@ -5,6 +5,7 @@ namespace App\Http\Requests\Registrations;
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Enums\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,8 +30,12 @@ class UpdateRegistrationRequest extends FormRequest
             'email_address' => ['required', 'email', 'max:255'],
             'date_organized' => ['required', 'date'],
             // Optional: Phase 2 item 5 — the student may pick a different
-            // adviser when resubmitting after a return-for-revision.
-            'adviser_id' => ['nullable', 'integer', 'exists:users,id'],
+            // adviser when resubmitting after a return-for-revision. Left
+            // null, the existing adviser is kept (see
+            // UpdateOrganizationRegistration). Role-scoped so a valid-but-
+            // non-adviser user id is rejected here, not just deeper in
+            // UpdateOrganizationRegistration.
+            'adviser_id' => ['nullable', 'integer', Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value)],
             // Phase 2 item 8 — every slot nullable at Update; already-uploaded
             // required attachments aren't forced to be re-uploaded on every
             // resubmit (AttachmentStorage::assertRequiredSlotsFilled is the
@@ -52,6 +57,16 @@ class UpdateRegistrationRequest extends FormRequest
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',
             ...AttachmentSlots::validationAttributes(FormType::OrganizationRegistration),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'adviser_id.exists' => 'Select an adviser from the search list. If none appear, contact SDAO.',
         ];
     }
 }

@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import * as registrations from '@/routes/registrations';
 
@@ -59,24 +60,54 @@ export default function EditRegistration({ document, detail, organizationTypes, 
     const [adviserQuery, setAdviserQuery] = useState(detail?.adviser?.name ?? '');
     const [adviserResults, setAdviserResults] = useState<AdviserResult[]>([]);
     const [selectedAdviserId, setSelectedAdviserId] = useState<number | null>(null);
+    // Only shown once the student actually edits the field — the initial
+    // background search against the pre-filled current adviser name must
+    // stay silent, not flash "no results"/"searching" over a valid value.
+    const [adviserTouched, setAdviserTouched] = useState(false);
+    const [adviserSearchStatus, setAdviserSearchStatus] = useState<'idle' | 'searching' | 'done'>('idle');
+    const [adviserSearchFailed, setAdviserSearchFailed] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const latestAdviserQuery = useRef(adviserQuery);
 
     const searchAdvisers = useCallback((query: string) => {
         if (query.trim() === '') {
             setAdviserResults([]);
+            setAdviserSearchStatus('idle');
+            setAdviserSearchFailed(false);
 
             return;
         }
+
+        setAdviserSearchStatus('searching');
+        setAdviserSearchFailed(false);
 
         fetch(registrations.adviserSearch.url({ query: { q: query } }), {
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         })
             .then((res) => res.json())
-            .then((data) => setAdviserResults(data.advisers ?? []))
-            .catch(() => {});
+            .then((data) => {
+                // Stale-response guard: ignore a slow reply for a query the
+                // student has since changed or cleared.
+                if (latestAdviserQuery.current !== query) {
+                    return;
+                }
+
+                setAdviserResults(data.advisers ?? []);
+                setAdviserSearchStatus('done');
+            })
+            .catch(() => {
+                if (latestAdviserQuery.current !== query) {
+                    return;
+                }
+
+                setAdviserSearchFailed(true);
+                setAdviserSearchStatus('done');
+            });
     }, []);
 
     useEffect(() => {
+        latestAdviserQuery.current = adviserQuery;
+
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
@@ -139,10 +170,29 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                                     onChange={(e) => {
                                         setAdviserQuery(e.target.value);
                                         setSelectedAdviserId(null);
+                                        setAdviserTouched(true);
                                     }}
                                     autoComplete="off"
                                 />
                                 <input type="hidden" name="adviser_id" value={selectedAdviserId ?? ''} />
+                                {adviserTouched && adviserQuery.trim() !== '' && adviserSearchStatus === 'searching' && (
+                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Spinner className="size-3.5" /> Searching advisers…
+                                    </p>
+                                )}
+                                {adviserTouched && adviserSearchStatus === 'done' && adviserSearchFailed && (
+                                    <p className="text-sm text-destructive">Couldn't search advisers just now. Try again.</p>
+                                )}
+                                {adviserTouched &&
+                                    adviserSearchStatus === 'done' &&
+                                    !adviserSearchFailed &&
+                                    adviserResults.length === 0 &&
+                                    selectedAdviserId === null && (
+                                        <p className="text-sm text-muted-foreground">
+                                            No matching adviser found. Check the spelling, or contact SDAO if this
+                                            adviser should be listed.
+                                        </p>
+                                    )}
                                 {adviserResults.length > 0 && (
                                     <div className="rounded-md border divide-y">
                                         {adviserResults.map((a) => (
@@ -152,6 +202,8 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                                                 onClick={() => {
                                                     setSelectedAdviserId(a.id);
                                                     setAdviserResults([]);
+                                                    setAdviserSearchStatus('idle');
+                                                    setAdviserSearchFailed(false);
                                                     setAdviserQuery(a.name);
                                                 }}
                                                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"

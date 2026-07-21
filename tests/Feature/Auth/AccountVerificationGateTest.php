@@ -26,6 +26,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
 });
 
 /**
@@ -156,11 +157,13 @@ test('an unverified officer is forbidden from proposing a new organization', fun
 
     // Phase 2 item 5: registration is now a founding proposal — the payload
     // must be schema-valid so the block comes from Gate::authorize('propose')
-    // (isVerifiedAccount), not incidental FormRequest validation noise.
+    // (isVerifiedAccount), not incidental FormRequest validation noise. Must
+    // be a real adviser (not just any user) now that adviser_id is
+    // role-scoped.
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
         'name' => 'Should Never Be Created',
         'school_id' => $this->org->school_id,
-        'adviser_id' => $this->sdaoA->id,
+        'adviser_id' => $this->adviser->id,
         'organization_type' => 'co_curricular',
         'purpose_of_organization' => 'Should never be created.',
         'contact_person' => 'Someone',
@@ -180,7 +183,7 @@ test('a rejected officer is forbidden from proposing a new organization', functi
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
         'name' => 'Should Never Be Created Either',
         'school_id' => $this->org->school_id,
-        'adviser_id' => $this->sdaoA->id,
+        'adviser_id' => $this->adviser->id,
         'organization_type' => 'co_curricular',
         'purpose_of_organization' => 'Should never be created.',
         'contact_person' => 'Someone',
