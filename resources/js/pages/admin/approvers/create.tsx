@@ -113,8 +113,8 @@ export default function CreateApprover({ roles, schools, programs, organizations
 
                             {scopeType === 'organization' && (
                                 <div className="grid gap-2">
-                                    <Label htmlFor="organization_id">Organization</Label>
-                                    <Select name="organization_id" required>
+                                    <Label htmlFor="organization_id">Organization (optional)</Label>
+                                    <Select name="organization_id">
                                         <SelectTrigger id="organization_id" className="w-full">
                                             <SelectValue placeholder="Select organization…" />
                                         </SelectTrigger>
@@ -126,6 +126,10 @@ export default function CreateApprover({ roles, schools, programs, organizations
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-sm text-muted-foreground">
+                                        Leave blank to create an available adviser. They&apos;ll be bound to an
+                                        organization automatically once a registration naming them is approved.
+                                    </p>
                                     <InputError message={errors.organization_id} />
                                 </div>
                             )}

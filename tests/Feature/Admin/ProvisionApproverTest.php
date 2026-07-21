@@ -174,6 +174,20 @@ test('provisioning sends a real password-reset notification and never sets a usa
     Notification::assertSentTo($user, ResetPassword::class);
 });
 
+test('the store endpoint provisions an adviser with no organization_id — the unbound available-pool path', function () {
+    $response = $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
+        'name' => 'Available Via HTTP',
+        'email' => 'available-via-http@sdao.test',
+        'role' => Role::Adviser->value,
+    ]);
+
+    $response->assertRedirect(route('admin.approvers.index'));
+
+    $newUser = User::where('email', 'available-via-http@sdao.test')->firstOrFail();
+    $ra = RoleAssignment::where('user_id', $newUser->id)->where('role', Role::Adviser->value)->firstOrFail();
+    expect($ra->organization_id)->toBeNull();
+});
+
 test('an SDAO member can reach the admin routes end-to-end via HTTP', function () {
     $this->actingAs($this->sdaoA)
         ->withoutVite()
