@@ -121,6 +121,51 @@ test('HTTP: adviser reject terminates a proposal at step 1 and the rejecting adv
         ->assertOk();
 });
 
+// QA test-plan gap (2.3): registration reject had HTTP coverage that the
+// reject POST itself succeeds (OneOrgPerStudentTest.php), but nothing ever
+// re-visited .show afterward — so nothing caught the "rejecting approver
+// loses view access" half of the original bug for this specific form type.
+test('HTTP: SDAO reject terminates a registration and the rejecting member can still view it', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->post(route('review.registrations.reject', $doc), ['comment' => 'Incomplete documentation.'])
+        ->assertRedirect(route('review.registrations.index'));
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Rejected);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('review.registrations.show', $doc))
+        ->assertOk();
+});
+
+// QA test-plan gap (5.2): the proposal reject test above only covers the
+// on-calendar variant (step 1 = adviser). Off-calendar relocates SDAO to
+// step 1 (invariant #8) — a different resolved role, never exercised by a
+// reject test.
+test('HTTP: SDAO reject terminates an off-calendar proposal at step 1 and the rejecting member can still view it', function () {
+    $draft = startOffCalendarDraft($this->studentAlpha, $this->org);
+
+    $doc = $this->submitProposal->execute(
+        actor: $this->studentAlpha,
+        document: $draft,
+        objectives: 'Objectives',
+        narrative: 'Narrative',
+    )['document'];
+
+    expect($doc->current_step_position)->toBe(1);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->post(route('review.activity-proposals.reject', $doc), ['comment' => 'Not approved.'])
+        ->assertRedirect(route('review.activity-proposals.index'));
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Rejected);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('review.activity-proposals.show', $doc))
+        ->assertOk();
+});
+
 // ── 2. HTTP return, following the redirect — for all five document types ────
 // Existing coverage (SectionFlagValidationTest) never follows the redirect.
 
