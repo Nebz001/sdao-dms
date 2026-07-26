@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import * as officers from '@/routes/officers';
 
 type Organization = { id: number; name: string };
@@ -44,6 +45,15 @@ type Props = {
 export default function OfficersIndex({ organization, memberships, students, search, positions }: Props) {
     const [searchValue, setSearchValue] = useState(search);
     const [deactivateError, setDeactivateError] = useState<string | null>(null);
+    // Officer search is an explicit-submit round trip (not a live typeahead
+    // like the adviser search), so without this the box appears to do
+    // nothing while the request is in flight, and an empty result gives no
+    // explanation at all — the exact gap QA reported. Mirrors the
+    // searching/done status pattern already established for adviser search
+    // (registrations/create.tsx). Starts as 'done' when the page itself
+    // loaded with a search term already applied (e.g. a refresh), so the
+    // empty-state message is correct immediately, not just after a fresh click.
+    const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'done'>(search !== '' ? 'done' : 'idle');
 
     function deactivate(membershipId: number) {
         setDeactivateError(null);
@@ -54,10 +64,15 @@ export default function OfficersIndex({ organization, memberships, students, sea
 
     function runSearch(e: FormEvent) {
         e.preventDefault();
+        setSearchStatus('searching');
         router.get(
             officers.index({ organization: organization.id }).url,
             { search: searchValue },
-            { preserveState: true, only: ['students', 'search'] },
+            {
+                preserveState: true,
+                only: ['students', 'search'],
+                onFinish: () => setSearchStatus('done'),
+            },
         );
     }
 
@@ -138,7 +153,10 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                 <Input
                                     id="student-search"
                                     value={searchValue}
-                                    onChange={(e) => setSearchValue(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchValue(e.target.value);
+                                        setSearchStatus('idle');
+                                    }}
                                     placeholder="e.g. juan@student.nu-lipa.edu.ph"
                                 />
                             </div>
@@ -146,6 +164,18 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                 Search
                             </Button>
                         </form>
+
+                        {searchStatus === 'searching' && (
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Spinner className="size-3.5" /> Searching students…
+                            </p>
+                        )}
+                        {searchStatus === 'done' && searchValue.trim() !== '' && students.length === 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                No matching students found. Only Verified accounts can be bound — if this student
+                                just registered, ask SDAO to verify them from Pending Accounts first.
+                            </p>
+                        )}
 
                         <Form
                             {...OrganizationOfficerController.store.form({

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Enums\OfficerPosition;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -31,6 +32,40 @@ test('a self-registered bare student is findable via the officer search', functi
         ->has('students', 1)
         ->where('students.0.email', 'fresh@example.test')
     );
+});
+
+// Regression: this is the real-world scenario behind the "officer search
+// doesn't work" QA report. The query itself was always correct — an
+// unverified self-registered student is correctly excluded until SDAO
+// verifies them — but nothing previously exercised that exact transition
+// (existing tests above use User::factory()->create(), whose default
+// account_status is Verified). Proves both halves explicitly: excluded
+// while Unverified, found immediately once Verified.
+test('an unverified self-registered student is not findable until SDAO verifies them', function () {
+    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $freshStudent = User::factory()->unverifiedAccount()->create([
+        'name' => 'Just Registered',
+        'email' => 'just-registered@example.test',
+    ]);
+
+    // Not yet findable — correctly excluded while Unverified.
+    $this->actingAs($this->adviser)
+        ->withoutVite()
+        ->get(route('officers.index', $this->org).'?search=just-registered@example.test')
+        ->assertInertia(fn ($page) => $page->has('students', 0));
+
+    // SDAO verifies the account via the real Pending Accounts flow.
+    $this->actingAs($sdaoA)->post(route('admin.pending-accounts.verify', $freshStudent));
+    expect($freshStudent->fresh()->account_status)->toBe(AccountStatus::Verified);
+
+    // Now findable — the same search, no other change.
+    $this->actingAs($this->adviser)
+        ->withoutVite()
+        ->get(route('officers.index', $this->org).'?search=just-registered@example.test')
+        ->assertInertia(fn ($page) => $page
+            ->has('students', 1)
+            ->where('students.0.email', 'just-registered@example.test')
+        );
 });
 
 test('binding a self-registered bare student grants an OrganizationMembership and creates NO RoleAssignment', function () {
