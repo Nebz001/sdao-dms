@@ -15,7 +15,6 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Sdg;
-use App\Enums\Term;
 use App\Http\Requests\Proposals\ConflictCheckRequest;
 use App\Http\Requests\Proposals\StoreProposalStepOneRequest;
 use App\Http\Requests\Proposals\SubmitProposalRequest;
@@ -24,6 +23,7 @@ use App\Http\Requests\Proposals\UpdateProposalDraftRequest;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Support\CurrentTerm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -76,10 +76,9 @@ class ActivityProposalController extends Controller
                     'name' => $membership->organization->name,
                 ],
             ] : null,
-            'terms' => collect(Term::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
+            // Term is a global, admin-controlled setting (Phase 2 item 6) —
+            // shown read-only for the off-calendar branch, never selectable.
+            'current_term_label' => CurrentTerm::get()->label(),
             'calendarModes' => collect(ProposalCalendarMode::cases())->map(fn ($m) => [
                 'value' => $m->value,
                 'label' => $m->label(),
@@ -297,10 +296,6 @@ class ActivityProposalController extends Controller
                 'start_time' => $activity->start_time,
                 'end_time' => $activity->end_time,
             ] : null,
-            'terms' => collect(Term::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
             'activityNatures' => collect(ActivityNature::cases())->map(fn ($n) => [
                 'value' => $n->value,
                 'label' => $n->label(),

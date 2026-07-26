@@ -6,7 +6,6 @@ use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Sdg;
-use App\Enums\Term;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -43,7 +42,9 @@ class StoreProposalStepOneRequest extends FormRequest
             'activity_date' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date'],
             'start_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i'],
             'end_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i', 'after:start_time'],
-            'term' => [Rule::requiredIf($isOffCalendar), 'nullable', Rule::enum(Term::class)],
+            // Term is NOT a per-submission field (Phase 2 item 6) — it's a
+            // global, admin-controlled setting read via CurrentTerm::get()
+            // in StartProposalDraft, same as Activity Calendar. No rule here.
 
             // Exact field corrections (Phase 2 item 7 slice 4a) — apply
             // regardless of calendar_mode; proposal-level classification/

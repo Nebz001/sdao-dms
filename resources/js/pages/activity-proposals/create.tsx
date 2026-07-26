@@ -15,7 +15,6 @@ type Membership = {
     organization: { id: number; name: string };
 } | null;
 
-type Term = { value: string; label: string };
 type CalendarMode = { value: string; label: string };
 type OptionItem = { value: string; label: string };
 
@@ -39,7 +38,7 @@ type ConflictItem = {
 
 type Props = {
     membership: Membership;
-    terms: Term[];
+    current_term_label: string;
     calendarModes: CalendarMode[];
     activityNatures: OptionItem[];
     activityTypes: OptionItem[];
@@ -48,7 +47,7 @@ type Props = {
 
 export default function CreateActivityProposal({
     membership,
-    terms,
+    current_term_label,
     calendarModes,
     activityNatures,
     activityTypes,
@@ -256,21 +255,12 @@ clearTimeout(conflictTimer.current);
                                     </div>
                                 </div>
 
+                                {/* Term is a global, admin-controlled setting — shown read-only. */}
                                 <div className="space-y-1">
-                                    <Label htmlFor="term">Term</Label>
-                                    <Select name="term">
-                                        <SelectTrigger id="term">
-                                            <SelectValue placeholder="Select term…" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {terms.map((t) => (
-                                                <SelectItem key={t.value} value={t.value}>
-                                                    {t.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={errors.term} />
+                                    <Label>Term</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        {current_term_label} <span className="text-xs">(set by SDAO — not selectable here)</span>
+                                    </p>
                                 </div>
 
                                 {/* Live conflict preview */}

@@ -1,7 +1,9 @@
 <?php
 
+use App\ActivityProposals\StartProposalDraft;
 use App\Calendar\SubmitActivityCalendar;
 use App\Enums\FormType;
+use App\Enums\ProposalCalendarMode;
 use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
@@ -11,6 +13,7 @@ use App\Support\CurrentTerm;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
@@ -175,4 +178,78 @@ test('a non-SDAO authenticated user is forbidden on the current-term settings ro
     $this->actingAs($adviser)->put(route('admin.settings.term.update'), [
         'term' => Term::ThirdTerm->value,
     ])->assertForbidden();
+});
+
+// --- Off-calendar proposal regression: term dropdown removal (bug fix) --
+//
+// QA found the off-calendar Activity Proposal form still showed a
+// per-submission Term dropdown — Phase 2 item 6 never reached this screen.
+// StartProposalDraft::startOffCalendar() now sources term from
+// CurrentTerm::get(), same as SubmitActivityCalendar, and
+// StoreProposalStepOneRequest no longer validates a 'term' input.
+
+test('a new off-calendar proposal automatically uses the current term with no user input', function () {
+    CurrentTerm::set(Term::SecondTerm);
+
+    $document = app(StartProposalDraft::class)->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: [
+            'title' => 'Off Calendar Term Test',
+            'venue' => 'Room 101',
+            'activity_date' => '2026-11-01',
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+            // Deliberately no 'term' key — proves it's no longer read from input.
+        ],
+    );
+
+    $document->load('activityProposal.calendarActivity.calendar');
+    expect($document->activityProposal->calendarActivity->calendar->term)->toBe(Term::SecondTerm);
+});
+
+test('POST /activity-proposals succeeds with no term field for off-calendar and stores the current term', function () {
+    CurrentTerm::set(Term::ThirdTerm);
+
+    $response = $this->actingAs($this->studentAlpha)->post(route('activity-proposals.store'), [
+        'calendar_mode' => 'off_calendar',
+        'title' => 'HTTP Off Calendar Term Test',
+        'venue' => 'Room 200',
+        'activity_date' => '2026-11-05',
+        'start_time' => '10:00',
+        'end_time' => '12:00',
+        // No 'term' field at all — matches the "no term field" HTTP
+        // convention already proven for activity-calendars.store above.
+        'activity_nature' => 'co_curricular',
+        'activity_type' => 'seminar_workshop',
+        'partner_organizations' => ['Partner Org'],
+        'target_sdg' => 'quality_education',
+        'proposed_budget' => '10000.00',
+        'budget_source' => 'Org funds',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect();
+
+    $doc = Document::where('form_type', FormType::ActivityProposal->value)
+        ->where('organization_id', $this->org->id)
+        ->latest('id')
+        ->firstOrFail();
+    $doc->load('activityProposal.calendarActivity.calendar');
+    expect($doc->activityProposal->calendarActivity->calendar->term)->toBe(Term::ThirdTerm);
+});
+
+test('the off-calendar proposal create page does not render a term selector and shows the current term read-only', function () {
+    CurrentTerm::set(Term::SecondTerm);
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-proposals.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('activity-proposals/create')
+            ->where('current_term_label', Term::SecondTerm->label())
+            ->missing('terms')
+        );
 });
