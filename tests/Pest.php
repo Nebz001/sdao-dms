@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Fortify\Fortify;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /*
@@ -115,6 +118,21 @@ function reportAttachmentFiles(): array
         'evaluation_form' => UploadedFile::fake()->create('evaluation-form.pdf', 100, 'application/pdf'),
         'attendance_sheet' => UploadedFile::fake()->create('attendance-sheet.pdf', 100, 'application/pdf'),
     ];
+}
+
+/**
+ * Generates the current, correctly-valid 6-digit TOTP code for a user's
+ * confirmed-or-unconfirmed 2FA secret — for HTTP-level tests that must
+ * drive Fortify's real confirm endpoint rather than pre-seed
+ * two_factor_confirmed_at. Reads $user->fresh() since the caller typically
+ * just enabled 2FA via an HTTP call, and the in-memory $user instance won't
+ * reflect the secret Fortify wrote.
+ */
+function currentTwoFactorCodeFor(User $user): string
+{
+    return app(Google2FA::class)->getCurrentOtp(
+        Fortify::currentEncrypter()->decrypt($user->fresh()->two_factor_secret)
+    );
 }
 
 function something()

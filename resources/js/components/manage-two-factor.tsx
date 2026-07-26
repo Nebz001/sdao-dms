@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
@@ -12,6 +13,14 @@ export type Props = {
     canManageTwoFactor?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
+    /**
+     * False once the server has cleaned up an in-progress setup left
+     * unconfirmed past the grace period (see TwoFactorAuthenticationRequest
+     * ::CONFIRMATION_GRACE_SECONDS). Undefined-safe: treated as "still
+     * pending" until the server says otherwise, since a page that has never
+     * fetched setup data has nothing to expire.
+     */
+    twoFactorPendingConfirmation?: boolean;
 };
 
 export default function ManageTwoFactor(props: Props) {
@@ -31,6 +40,8 @@ export default function ManageTwoFactor(props: Props) {
     } = useTwoFactorAuth();
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
     const prevTwoFactorEnabled = useRef(twoFactorEnabled);
+    const twoFactorPendingConfirmation =
+        props.twoFactorPendingConfirmation ?? true;
 
     useEffect(() => {
         if (prevTwoFactorEnabled.current && !twoFactorEnabled) {
@@ -39,6 +50,23 @@ export default function ManageTwoFactor(props: Props) {
 
         prevTwoFactorEnabled.current = twoFactorEnabled;
     }, [twoFactorEnabled, clearTwoFactorAuthData]);
+
+    // The server cleans up an in-progress setup once it's sat unconfirmed
+    // past the grace period. If this client already fetched QR/setup data
+    // (hasSetupData) but the server now reports nothing pending and 2FA
+    // still isn't enabled, that cleanup already ran and the QR on screen is
+    // stale — no authenticator-app confirmation can ever succeed against it.
+    const isSetupStale =
+        hasSetupData && !twoFactorEnabled && !twoFactorPendingConfirmation;
+
+    useEffect(() => {
+        if (isSetupStale) {
+            clearTwoFactorAuthData();
+            toast.error(
+                'Your two-factor setup expired. Please start again.',
+            );
+        }
+    }, [isSetupStale, clearTwoFactorAuthData]);
 
     if (!(props.canManageTwoFactor ?? false)) {
         return null;
@@ -111,7 +139,7 @@ export default function ManageTwoFactor(props: Props) {
             )}
 
             <TwoFactorSetupModal
-                isOpen={showSetupModal}
+                isOpen={showSetupModal && !isSetupStale}
                 onClose={() => setShowSetupModal(false)}
                 requiresConfirmation={requiresConfirmation}
                 twoFactorEnabled={twoFactorEnabled}

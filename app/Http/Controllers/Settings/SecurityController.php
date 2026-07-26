@@ -45,6 +45,13 @@ class SecurityController extends Controller
 
             $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
+            // Lets the frontend detect that an in-progress setup was cleaned
+            // up server-side (abandoned past the grace period — see
+            // TwoFactorAuthenticationRequest::CONFIRMATION_GRACE_SECONDS) so
+            // it can clear the stale QR/setup modal instead of silently
+            // continuing to show data that no longer matches the server.
+            $props['twoFactorPendingConfirmation'] = ! is_null($request->user()->two_factor_secret)
+                && is_null($request->user()->two_factor_confirmed_at);
         }
 
         return Inertia::render('settings/security', $props);
