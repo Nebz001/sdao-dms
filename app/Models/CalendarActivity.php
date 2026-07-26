@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Sdg;
 use Database\Factories\CalendarActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,5 +40,30 @@ class CalendarActivity extends Model
     public function calendar(): BelongsTo
     {
         return $this->belongsTo(ActivityCalendar::class, 'activity_calendar_id');
+    }
+
+    /**
+     * start_time/end_time are native SQL TIME columns with no Eloquent
+     * cast; PostgreSQL's driver returns them as "H:i:s" (e.g. "09:00:00"),
+     * not the bare "H:i" every form's `date_format:H:i` validation rule
+     * requires. Read-only accessors normalize this at the single point
+     * every controller/frontend already reads through — mirroring how
+     * `activity_date` is normalized via its own cast above — so a
+     * previously-stored value redisplayed on an edit/resubmit form always
+     * round-trips cleanly. Writes are untouched: validated "H:i" input
+     * still goes straight to the column as-is.
+     */
+    protected function startTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value !== null ? Carbon::parse($value)->format('H:i') : null,
+        );
+    }
+
+    protected function endTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value !== null ? Carbon::parse($value)->format('H:i') : null,
+        );
     }
 }

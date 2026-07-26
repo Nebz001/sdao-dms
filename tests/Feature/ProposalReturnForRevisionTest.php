@@ -271,3 +271,81 @@ test('return at dean (step 3) keeps steps 1–2 and resumes at step 3', function
     expect($doc->current_step_position)->toBe(3);
     expect($doc->status)->toBe(DocumentStatus::InReview);
 });
+
+// ── Regression: resubmit time-format mismatch ───────────────────────────────
+//
+// CalendarActivity.start_time/end_time have no Eloquent cast, so reading them
+// returns whatever the DB driver's native TIME serialization produces.
+// PostgreSQL (this app's real DB) returns "H:i:s" (e.g. "09:00:00"), which
+// then fails the strict `date_format:H:i` rule on resubmit if the student
+// leaves the field untouched. The test suite runs on SQLite, which has no
+// native TIME type and never adds seconds on its own — so the seconds-
+// bearing value must be forced here to actually simulate what a real
+// Postgres round-trip produces; a natural insert-then-read cycle would not
+// reproduce the bug at all under this suite's own database.
+test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored time passes validation', function () {
+    $draft = $this->startDraft->execute(
+        actor: $this->student,
+        organization: $this->org,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: [
+            'title' => 'Time Format Test Activity',
+            'venue' => 'Room 400',
+            'activity_date' => '2026-12-10',
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+        ],
+    );
+
+    ['document' => $doc] = $this->submitProposal->execute(
+        actor: $this->student,
+        document: $draft,
+        objectives: 'Objectives',
+        narrative: 'Narrative',
+    );
+
+    // Off-calendar: SDAO is first (invariant #8).
+    expect($doc->current_step_position)->toBe(1);
+
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please fix the schedule.');
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Returned);
+
+    // Force exactly what PostgreSQL's native TIME column hands back on
+    // read — seconds included — simulating the real round-trip.
+    $doc->load('activityProposal.calendarActivity');
+    $activity = $doc->activityProposal->calendarActivity;
+    $activity->forceFill(['start_time' => '09:00:00', 'end_time' => '11:00:00'])->save();
+
+    // The edit page must prefill clean H:i values, not the raw stored ones.
+    $this->actingAs($this->student)
+        ->withoutVite()
+        ->get(route('activity-proposals.edit', $doc))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('activity.start_time', '09:00')
+            ->where('activity.end_time', '11:00')
+        );
+
+    // Resubmitting with that same clean, unmodified value — exactly what a
+    // browser would resend if the student left the field untouched — must
+    // pass validation. This is the exact symptom QA reported.
+    $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $doc), [
+        'objectives' => 'Updated objectives',
+        'narrative' => 'Updated narrative',
+        'criteria_mechanics' => 'Criteria',
+        'program_flow' => 'Program flow',
+        'source_of_funding' => 'Org funds',
+        'expenses' => 'Expenses',
+        'title' => 'Time Format Test Activity',
+        'venue' => 'Room 400',
+        'activity_date' => '2026-12-10',
+        'start_time' => '09:00',
+        'end_time' => '11:00',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect();
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::InReview);
+});
