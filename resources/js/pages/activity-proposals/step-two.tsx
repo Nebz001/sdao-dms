@@ -1,4 +1,4 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
@@ -52,24 +52,44 @@ export default function StepTwo({ document: doc, proposal, activity, attachmentS
     const expensesRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    function xsrfToken(): string {
+        return decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+    }
+
     function scheduleSave() {
         if (saveTimer.current) {
 clearTimeout(saveTimer.current);
 }
 
         saveTimer.current = setTimeout(() => {
-            router.patch(
-                activityProposals.draft({ document: doc.id }).url,
-                {
+            // Plain fetch, not router.patch — this is a debounced,
+            // idempotent background ping (see the controller's own doc
+            // comment: "never enters chain"), not a page visit. The
+            // endpoint deliberately returns raw JSON, not an Inertia
+            // response; routing it through Inertia's router previously
+            // made its client reject that response and flash its built-in
+            // "invalid response" error dialog. Same pattern as
+            // ImmediateAttachmentUpload's uploads.
+            fetch(activityProposals.draft({ document: doc.id }).url, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': xsrfToken(),
+                },
+                body: JSON.stringify({
                     objectives: objectivesRef.current?.value ?? null,
                     narrative: narrativeRef.current?.value ?? null,
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
                     source_of_funding: sourceOfFundingRef.current?.value ?? null,
                     expenses: expensesRef.current?.value ?? null,
-                },
-                { preserveState: true, preserveScroll: true },
-            );
+                }),
+            }).catch(() => {
+                // Best-effort autosave — a failed ping is silently retried
+                // on the next keystroke or covered by the final validated
+                // "Submit for Review" action.
+            });
         }, 1500);
     }
 

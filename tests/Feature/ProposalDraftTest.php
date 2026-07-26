@@ -172,3 +172,35 @@ test('saved narrative is available for resume via the model', function () {
     expect($loaded->activityProposal->objectives)->toBe('Remembered objectives');
     expect($loaded->status)->toBe(DocumentStatus::Draft);
 });
+
+// Regression: autosave must return a response a plain fetch() caller can
+// consume, and must NOT carry an X-Inertia header. The frontend
+// (step-two.tsx) calls this endpoint via fetch(), not Inertia's router —
+// if this ever starts returning Inertia::render(...) or a redirect instead
+// of raw JSON, a real Inertia visit hitting it would be fine, but this
+// endpoint's actual caller expects plain JSON and this test would catch the
+// mismatch. See the investigation: routing this call through Inertia's
+// router (as it originally did) makes Inertia's client reject the JSON
+// body and flash its built-in "invalid response" error dialog.
+test('HTTP: draft auto-save returns a plain JSON response, not an Inertia response', function () {
+    $document = $this->startDraft->execute(
+        actor: $this->student,
+        organization: $this->org,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: draftOffCalendarData(),
+    );
+
+    $response = $this->actingAs($this->student)
+        ->patch(route('activity-proposals.draft', $document), [
+            'objectives' => 'HTTP autosave objectives',
+            'narrative' => 'HTTP autosave narrative',
+        ]);
+
+    $response->assertOk();
+    $response->assertExactJson(['saved' => true]);
+    $response->assertHeaderMissing('X-Inertia');
+
+    $document->refresh()->load('activityProposal');
+    expect($document->activityProposal->objectives)->toBe('HTTP autosave objectives');
+    expect($document->activityProposal->narrative)->toBe('HTTP autosave narrative');
+});
