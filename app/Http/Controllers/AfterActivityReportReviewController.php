@@ -7,6 +7,7 @@ use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class AfterActivityReportReviewController extends Controller
 {
+    use HandlesReviewActions;
+
     public function index(): Response
     {
         $documents = Document::query()
@@ -41,7 +44,7 @@ class AfterActivityReportReviewController extends Controller
 
     public function show(Document $document): Response
     {
-        Gate::authorize('review', $document);
+        Gate::authorize('reviewView', $document);
 
         $document->load([
             'organization',
@@ -112,9 +115,13 @@ class AfterActivityReportReviewController extends Controller
 
     public function approve(Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.reports.index')) {
+            return $stale;
+        }
 
-        $engine->approve($document, Auth::user());
+        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.reports.index')) {
+            return $stale;
+        }
 
         if ($document->current_step_position === null) {
             // This was the finalizing approval — the document has no current
@@ -130,9 +137,16 @@ class AfterActivityReportReviewController extends Controller
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.reports.index')) {
+            return $stale;
+        }
 
-        $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        if ($stale = $this->runReviewAction(
+            fn () => $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
+            'review.reports.index',
+        )) {
+            return $stale;
+        }
 
         return redirect()->route('review.reports.index')
             ->with('flash', ['message' => 'Report rejected.']);
@@ -140,14 +154,18 @@ class AfterActivityReportReviewController extends Controller
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.reports.index')) {
+            return $stale;
+        }
 
-        $engine->returnForRevision(
+        if ($stale = $this->runReviewAction(fn () => $engine->returnForRevision(
             $document,
             Auth::user(),
             $request->string('comment')->toString() ?: null,
             $request->input('sections'),
-        );
+        ), 'review.reports.index')) {
+            return $stale;
+        }
 
         return redirect()->route('review.reports.show', $document)
             ->with('flash', ['message' => 'Document returned for revision.']);

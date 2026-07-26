@@ -65,6 +65,26 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Remediation-phase fix: approvers now retain read access to a renewal
+ * after it leaves In Review (rejected, approved, or returned) instead of
+ * hitting a 403 — see DocumentPolicy::hasActedOn(). This explains why no
+ * review actions appear, mirroring the existing "already approved, waiting"
+ * note below rather than leaving the page silent once status changes.
+ */
+function reviewOnlyStatusNote(status: string): string {
+    switch (status) {
+        case 'approved':
+            return 'This renewal has been approved. No further action is available.';
+        case 'rejected':
+            return 'This renewal was rejected and is now closed. The organization must submit a new renewal to proceed.';
+        case 'returned':
+            return 'This renewal was returned for revision. It will reappear here once the student resubmits.';
+        default:
+            return 'This renewal is no longer awaiting your review.';
+    }
+}
+
 export default function ReviewRenewalShow({
     document,
     detail,
@@ -240,6 +260,10 @@ export default function ReviewRenewalShow({
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the other SDAO member.
                     </p>
+                )}
+
+                {!isInReview && (
+                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(document.status)}</p>
                 )}
 
                 {/* History */}

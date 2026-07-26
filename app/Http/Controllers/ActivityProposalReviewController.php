@@ -10,6 +10,7 @@ use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,8 @@ use Inertia\Response;
 
 class ActivityProposalReviewController extends Controller
 {
+    use HandlesReviewActions;
+
     /**
      * Queue: InReview proposals where the actor is the current-step approver.
      */
@@ -59,7 +62,7 @@ class ActivityProposalReviewController extends Controller
 
     public function show(Document $document, VenueConflictChecker $checker, StepApproverResolver $resolver): Response
     {
-        Gate::authorize('review', $document);
+        Gate::authorize('reviewView', $document);
 
         $document->load(['organization', 'activityProposal.calendarActivity', 'transitions.actor', 'stepApprovals.user', 'workflowTemplate.steps', 'attachments']);
 
@@ -159,7 +162,9 @@ class ActivityProposalReviewController extends Controller
 
     public function approve(Document $document, ApprovalEngine $engine, VenueConflictChecker $checker): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
+            return $stale;
+        }
 
         // Race re-check for off-calendar: a rival proposal may have been Approved since this one
         // entered review, claiming the same venue/date/time slot.
@@ -187,7 +192,9 @@ class ActivityProposalReviewController extends Controller
             }
         }
 
-        $engine->approve($document, Auth::user());
+        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.activity-proposals.index')) {
+            return $stale;
+        }
 
         if ($document->current_step_position === null) {
             // This was the finalizing approval — the document has no current
@@ -203,9 +210,16 @@ class ActivityProposalReviewController extends Controller
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
+            return $stale;
+        }
 
-        $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        if ($stale = $this->runReviewAction(
+            fn () => $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
+            'review.activity-proposals.index',
+        )) {
+            return $stale;
+        }
 
         return redirect()->route('review.activity-proposals.index')
             ->with('flash', ['message' => 'Proposal rejected.']);
@@ -213,14 +227,18 @@ class ActivityProposalReviewController extends Controller
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
+            return $stale;
+        }
 
-        $engine->returnForRevision(
+        if ($stale = $this->runReviewAction(fn () => $engine->returnForRevision(
             $document,
             Auth::user(),
             $request->string('comment')->toString() ?: null,
             $request->input('sections'),
-        );
+        ), 'review.activity-proposals.index')) {
+            return $stale;
+        }
 
         return redirect()->route('review.activity-proposals.show', $document)
             ->with('flash', ['message' => 'Proposal returned for revision.']);

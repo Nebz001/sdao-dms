@@ -8,6 +8,7 @@ use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
+use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use App\Models\RoleAssignment;
@@ -20,6 +21,8 @@ use Inertia\Response;
 
 class RegistrationReviewController extends Controller
 {
+    use HandlesReviewActions;
+
     public function index(): Response
     {
         $documents = Document::query()
@@ -44,7 +47,7 @@ class RegistrationReviewController extends Controller
 
     public function show(Document $document): Response
     {
-        Gate::authorize('review', $document);
+        Gate::authorize('reviewView', $document);
 
         $document->load(['organization.school', 'organization.program', 'registrationDetail.adviser', 'transitions.actor', 'stepApprovals.user', 'attachments']);
 
@@ -128,14 +131,19 @@ class RegistrationReviewController extends Controller
 
     public function approve(Document $document, ApproveOrganizationRegistration $action): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.registrations.index')) {
+            return $stale;
+        }
 
         // ApproveOrganizationRegistration wraps ApprovalEngine::approve() with
         // the founding-flow race-condition re-check + bind-on-quorum side
         // effects (Phase 2 item 5). A thrown ValidationException redirects
         // back with `errors.approve` via Laravel's default handling, same as
-        // any other validation failure.
-        $action->execute($document, Auth::user());
+        // any other validation failure — not caught by runReviewAction(),
+        // which only handles the engine's own RuntimeException family.
+        if ($stale = $this->runReviewAction(fn () => $action->execute($document, Auth::user()), 'review.registrations.index')) {
+            return $stale;
+        }
 
         if ($document->current_step_position === null) {
             // This was the finalizing approval — the document has no current
@@ -151,9 +159,9 @@ class RegistrationReviewController extends Controller
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
-
-        $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.registrations.index')) {
+            return $stale;
+        }
 
         // No membership deactivation needed here (Phase 2 item 5 superseded
         // item 4's original design): a founding registration only ever gets
@@ -162,6 +170,12 @@ class RegistrationReviewController extends Controller
         // that branch, so there is never a membership to deactivate. This is
         // unlike RenewalReviewController, where the org was already
         // legitimately Approved earlier and the membership is real.
+        if ($stale = $this->runReviewAction(
+            fn () => $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
+            'review.registrations.index',
+        )) {
+            return $stale;
+        }
 
         return redirect()->route('review.registrations.index')
             ->with('flash', ['message' => 'Registration rejected.']);
@@ -169,14 +183,18 @@ class RegistrationReviewController extends Controller
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.registrations.index')) {
+            return $stale;
+        }
 
-        $engine->returnForRevision(
+        if ($stale = $this->runReviewAction(fn () => $engine->returnForRevision(
             $document,
             Auth::user(),
             $request->string('comment')->toString() ?: null,
             $request->input('sections'),
-        );
+        ), 'review.registrations.index')) {
+            return $stale;
+        }
 
         return redirect()->route('review.registrations.show', $document)
             ->with('flash', ['message' => 'Document returned for revision.']);

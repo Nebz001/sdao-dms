@@ -93,6 +93,26 @@ return 'Approver';
     return role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Remediation-phase fix: approvers now retain read access to a proposal
+ * after it leaves In Review (rejected, approved, or after the chain
+ * advances past their step) instead of hitting a 403 — see
+ * DocumentPolicy::hasActedOn(). This explains why no review actions appear
+ * once the document moves on.
+ */
+function reviewOnlyStatusNote(status: string): string {
+    switch (status) {
+        case 'approved':
+            return 'This proposal has been approved. No further action is available.';
+        case 'rejected':
+            return 'This proposal was rejected and is now closed. The organization must submit a new proposal to proceed.';
+        case 'returned':
+            return 'This proposal was returned for revision. It will reappear here once the student resubmits.';
+        default:
+            return 'This proposal is no longer awaiting your review.';
+    }
+}
+
 export default function ReviewActivityProposalShow({
     document: doc,
     proposal,
@@ -339,6 +359,10 @@ export default function ReviewActivityProposalShow({
                             </div>
                         </CardContent>
                     </Card>
+                )}
+
+                {!isInReview && (
+                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(doc.status)}</p>
                 )}
 
                 {/* Revision history */}

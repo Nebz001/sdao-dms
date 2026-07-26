@@ -71,6 +71,26 @@ function actionLabel(action: string): string {
     return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Remediation-phase fix: approvers now retain read access to a report
+ * after it leaves In Review (rejected, approved, or returned) instead of
+ * hitting a 403 — see DocumentPolicy::hasActedOn(). This explains why no
+ * review actions appear, mirroring the existing "already approved, waiting"
+ * note below rather than leaving the page silent once status changes.
+ */
+function reviewOnlyStatusNote(status: string): string {
+    switch (status) {
+        case 'approved':
+            return 'This report has been approved. No further action is available.';
+        case 'rejected':
+            return 'This report was rejected and is now closed. The organization must submit a new report to proceed.';
+        case 'returned':
+            return 'This report was returned for revision. It will reappear here once the student resubmits.';
+        default:
+            return 'This report is no longer awaiting your review.';
+    }
+}
+
 export default function ReviewReportShow({
     document,
     report,
@@ -281,6 +301,10 @@ export default function ReviewReportShow({
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the other SDAO member.
                     </p>
+                )}
+
+                {!isInReview && (
+                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(document.status)}</p>
                 )}
 
                 {/* History */}

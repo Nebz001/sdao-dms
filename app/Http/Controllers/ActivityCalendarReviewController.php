@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,8 @@ use Inertia\Response;
 
 class ActivityCalendarReviewController extends Controller
 {
+    use HandlesReviewActions;
+
     public function index(): Response
     {
         $documents = Document::query()
@@ -40,7 +43,7 @@ class ActivityCalendarReviewController extends Controller
 
     public function show(Document $document, VenueConflictChecker $checker): Response
     {
-        Gate::authorize('review', $document);
+        Gate::authorize('reviewView', $document);
 
         $document->load(['organization', 'activityCalendar.activities', 'transitions.actor', 'stepApprovals.user']);
 
@@ -132,7 +135,9 @@ class ActivityCalendarReviewController extends Controller
 
     public function approve(Document $document, ApprovalEngine $engine, VenueConflictChecker $checker): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-calendars.index')) {
+            return $stale;
+        }
 
         // Re-check for confirmed conflicts at approve time (race condition: a
         // rival calendar may have been approved since this one was submitted).
@@ -162,7 +167,9 @@ class ActivityCalendarReviewController extends Controller
             }
         }
 
-        $engine->approve($document, Auth::user());
+        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.activity-calendars.index')) {
+            return $stale;
+        }
 
         if ($document->current_step_position === null) {
             // This was the finalizing approval — the document has no current
@@ -178,9 +185,16 @@ class ActivityCalendarReviewController extends Controller
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-calendars.index')) {
+            return $stale;
+        }
 
-        $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null);
+        if ($stale = $this->runReviewAction(
+            fn () => $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
+            'review.activity-calendars.index',
+        )) {
+            return $stale;
+        }
 
         return redirect()->route('review.activity-calendars.index')
             ->with('flash', ['message' => 'Activity calendar rejected.']);
@@ -188,14 +202,18 @@ class ActivityCalendarReviewController extends Controller
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
-        Gate::authorize('review', $document);
+        if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-calendars.index')) {
+            return $stale;
+        }
 
-        $engine->returnForRevision(
+        if ($stale = $this->runReviewAction(fn () => $engine->returnForRevision(
             $document,
             Auth::user(),
             $request->string('comment')->toString() ?: null,
             $request->input('sections'),
-        );
+        ), 'review.activity-calendars.index')) {
+            return $stale;
+        }
 
         return redirect()->route('review.activity-calendars.show', $document)
             ->with('flash', ['message' => 'Document returned for revision.']);

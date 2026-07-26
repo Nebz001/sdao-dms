@@ -81,6 +81,26 @@ function calendarFlagLabel(key: string): string {
     return match ? `Activity ${Number(match[1]) + 1}` : key;
 }
 
+/**
+ * Remediation-phase fix: approvers now retain read access to a calendar
+ * after it leaves In Review (rejected, approved, or returned) instead of
+ * hitting a 403 — see DocumentPolicy::hasActedOn(). This explains why no
+ * review actions appear, mirroring the existing "already approved, waiting"
+ * note below rather than leaving the page silent once status changes.
+ */
+function reviewOnlyStatusNote(status: string): string {
+    switch (status) {
+        case 'approved':
+            return 'This activity calendar has been approved. No further action is available.';
+        case 'rejected':
+            return 'This activity calendar was rejected and is now closed. The organization must submit a new calendar to proceed.';
+        case 'returned':
+            return 'This activity calendar was returned for revision. It will reappear here once the student resubmits.';
+        default:
+            return 'This activity calendar is no longer awaiting your review.';
+    }
+}
+
 export default function ReviewActivityCalendarShow({
     document,
     calendar,
@@ -265,6 +285,10 @@ export default function ReviewActivityCalendarShow({
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the other SDAO member.
                     </p>
+                )}
+
+                {!isInReview && (
+                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(document.status)}</p>
                 )}
 
                 {/* History */}
