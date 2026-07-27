@@ -1,7 +1,9 @@
-import { Form } from '@inertiajs/react';
+import { Form, router } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
@@ -88,17 +90,24 @@ export default function ManageTwoFactor(props: Props) {
                     </p>
 
                     <div className="relative inline">
-                        <Form {...disable.form()}>
-                            {({ processing }) => (
-                                <Button
-                                    variant="destructive"
-                                    type="submit"
-                                    disabled={processing}
-                                >
+                        <ConfirmDialog
+                            trigger={
+                                <Button variant="destructive" type="button">
                                     Disable 2FA
                                 </Button>
-                            )}
-                        </Form>
+                            }
+                            title="Disable two-factor authentication?"
+                            description="Your account will no longer require a second factor to sign in — anyone with just your password will be able to access it. If you change your mind, you'll need to go through setup again, including scanning a new QR code and confirming a new pin."
+                            confirmLabel="Disable 2FA"
+                            confirmVariant="destructive"
+                            onConfirm={({ close, stopProcessing }: ConfirmActions) =>
+                                router.delete(disable.url(), {
+                                    preserveScroll: true,
+                                    onSuccess: close,
+                                    onFinish: stopProcessing,
+                                })
+                            }
+                        />
                     </div>
 
                     <TwoFactorRecoveryCodes
