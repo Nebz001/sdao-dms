@@ -53,6 +53,29 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
+// ── Login error specificity (deliberate departure from Fortify's default
+// vague message — see PLAN.md for the tradeoff and decision) ────────────────
+
+test('login shows an email-specific error when no account exists for that email', function () {
+    $this->post(route('login.store'), [
+        'email' => 'nobody@sdao.test',
+        'password' => 'password',
+    ])->assertInvalid(['email' => "We can't find a user with that email address."]);
+
+    $this->assertGuest();
+});
+
+test('login shows a password-specific error when the email is correct but the password is wrong', function () {
+    $user = User::factory()->create();
+
+    $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ])->assertInvalid(['password' => 'The provided password is incorrect.']);
+
+    $this->assertGuest();
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 
