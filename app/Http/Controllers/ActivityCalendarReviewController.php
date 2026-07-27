@@ -27,6 +27,14 @@ class ActivityCalendarReviewController extends Controller
             ->where('status', DocumentStatus::InReview->value)
             ->orderBy('created_at')
             ->get()
+            // Authorization boundary: only documents the actor is currently
+            // the approver for (DocumentPolicy::review(), derived from the
+            // workflow template's configured steps — never hardcode "SDAO"
+            // here, per invariant #1). Without this, any authenticated,
+            // email-verified user could enumerate every organization's
+            // in-review documents (security gap fix).
+            ->filter(fn (Document $d) => Gate::allows('review', $d))
+            ->values()
             ->map(fn (Document $d) => [
                 'id' => $d->id,
                 'title' => $d->title,

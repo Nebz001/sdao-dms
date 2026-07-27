@@ -89,10 +89,17 @@ test('a self-registered, verified user CAN propose a new organization (Phase 2 i
     $response->assertRedirect();
     expect(Organization::where('name', 'Bare User Founded Org')->exists())->toBeTrue();
 
-    // Cannot reach an SDAO review queue.
-    $this->actingAs($user)->get(route('review.registrations.index'))->assertOk(); // queue itself has no gate…
-    // …but cannot approve anything on it (no document exists to act on is implicit; the
-    // real gate is exercised in ReviewOrganizationRenewalTest et al. via DocumentPolicy).
+    // Cannot reach an SDAO review queue: the page loads (it's SDAO's own
+    // queue view, not a 403 boundary — see ReviewQueueAuthorizationTest for
+    // the full authorization matrix), but the queue itself is empty even
+    // though this very test just put a document InReview — this user is not
+    // a current-step approver for it, so DocumentPolicy::review() filters it
+    // out (security gap fix).
+    $this->actingAs($user)
+        ->withoutVite()
+        ->get(route('review.registrations.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('queue', 0));
 
     // Cannot reach the admin provisioning area.
     $this->actingAs($user)->get(route('admin.approvers.index'))->assertForbidden();
