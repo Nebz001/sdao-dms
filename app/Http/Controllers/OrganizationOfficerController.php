@@ -29,6 +29,8 @@ class OrganizationOfficerController extends Controller
 
     public function index(Request $request, Organization $organization): Response
     {
+        Gate::authorize('manageOfficers', $organization);
+
         $memberships = OrganizationMembership::query()
             ->with('user')
             ->where('organization_id', $organization->id)
@@ -104,6 +106,8 @@ class OrganizationOfficerController extends Controller
 
     public function store(BindOfficerRequest $request, Organization $organization, BindOrganizationOfficer $action): RedirectResponse
     {
+        Gate::authorize('manageOfficers', $organization);
+
         $student = User::findOrFail($request->integer('user_id'));
         $position = OfficerPosition::from($request->string('position')->toString());
 
@@ -121,6 +125,7 @@ class OrganizationOfficerController extends Controller
     public function destroy(Organization $organization, OrganizationMembership $membership): RedirectResponse
     {
         Gate::authorize('manageOfficers', $organization);
+        abort_unless($membership->organization_id === $organization->id, 404);
 
         $membership->update(['is_active' => false]);
 

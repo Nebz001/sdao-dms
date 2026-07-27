@@ -74,10 +74,11 @@ class DocumentPolicy
     }
 
     /**
-     * Can the user manage (bind/deactivate) officers for this organization?
-     * The org's adviser only — the same check BindOrganizationOfficer
-     * performs before binding, reused (not duplicated) here for the
-     * deactivation path via RoleDirectory::isAdviserOf().
+     * Can the user manage this organization's officers — view the roster and
+     * student picker, bind, or deactivate? The org's adviser only — the same
+     * check BindOrganizationOfficer performs before binding, reused (not
+     * duplicated) here for the view/bind/deactivate paths via
+     * RoleDirectory::isAdviserOf().
      */
     public function manageOfficers(User $user, Organization $organization): bool
     {

@@ -201,3 +201,100 @@ test('a DIFFERENT org\'s adviser cannot deactivate this org\'s officer', functio
     $response->assertForbidden();
     expect($membership->fresh()->is_active)->toBeTrue();
 });
+
+// ── officers.index / officers.store authorization (Security gap fix) ───────
+//
+// index() and store() previously carried no authorization call at all —
+// only destroy() had a Gate::authorize. index() was genuinely exploitable
+// (roster + student-directory PII disclosure to ANY authenticated,
+// email-verified user); store() was already blocked indirectly by
+// BindOrganizationOfficer::execute()'s own isAdviserOf() check, but lacked
+// the controller-level gate destroy() has, so the rule lived in two places.
+// These tests lock all three actions to the org's own adviser via the same
+// `manageOfficers` gate.
+
+test('a plain student cannot view, search, or bind officers for an org they are not the adviser of', function () {
+    // student-alpha is an active officer of Computing Society, not IT Guild —
+    // an authenticated, legitimate account with zero relationship to IT Guild.
+    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $target = User::factory()->create();
+
+    $this->actingAs($student)
+        ->withoutVite()
+        ->get(route('officers.index', $this->itGuild))
+        ->assertForbidden();
+
+    $this->actingAs($student)
+        ->post(route('officers.store', $this->itGuild), [
+            'user_id' => $target->id,
+            'position' => OfficerPosition::Secretary->value,
+        ])
+        ->assertForbidden();
+
+    expect(OrganizationMembership::where('user_id', $target->id)->exists())->toBeFalse();
+
+    $itGuildMembership = OrganizationMembership::where('organization_id', $this->itGuild->id)
+        ->where('is_active', true)
+        ->firstOrFail();
+
+    $this->actingAs($student)
+        ->delete(route('officers.destroy', [$this->itGuild, $itGuildMembership]))
+        ->assertForbidden();
+
+    expect($itGuildMembership->fresh()->is_active)->toBeTrue();
+});
+
+test('a DIFFERENT org\'s adviser cannot view, search, or bind officers for this org', function () {
+    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+    $target = User::factory()->create();
+
+    $this->actingAs($itGuildAdviser)
+        ->withoutVite()
+        ->get(route('officers.index', $this->org))
+        ->assertForbidden();
+
+    $this->actingAs($itGuildAdviser)
+        ->post(route('officers.store', $this->org), [
+            'user_id' => $target->id,
+            'position' => OfficerPosition::Secretary->value,
+        ])
+        ->assertForbidden();
+
+    expect(OrganizationMembership::where('user_id', $target->id)->exists())->toBeFalse();
+
+    $orgMembership = OrganizationMembership::where('organization_id', $this->org->id)
+        ->where('is_active', true)
+        ->firstOrFail();
+
+    $this->actingAs($itGuildAdviser)
+        ->delete(route('officers.destroy', [$this->org, $orgMembership]))
+        ->assertForbidden();
+
+    expect($orgMembership->fresh()->is_active)->toBeTrue();
+});
+
+// ── officers.destroy cross-org IDOR (audit finding, not in the original report) ──
+//
+// Gate::authorize('manageOfficers', $organization) proves the actor advises
+// $organization, but never checked that $membership actually BELONGS to
+// $organization — the two route-bound models were independently resolved.
+// An adviser could pair their OWN org with a foreign membership ID and
+// deactivate another organization's officer. 404 (not 403) is correct here:
+// the actor is legitimately authorized for the org they passed, so the
+// failure is "no such membership under this org," not "forbidden."
+
+test('an adviser cannot deactivate another org\'s officer by pairing their own org with a foreign membership id', function () {
+    // student-alpha is Computing Society's seeded active President (MembershipSeeder).
+    $foreignMembership = OrganizationMembership::where('organization_id', $this->org->id)
+        ->where('is_active', true)
+        ->where('position', OfficerPosition::President->value)
+        ->firstOrFail();
+
+    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+
+    $response = $this->actingAs($itGuildAdviser)
+        ->delete(route('officers.destroy', [$this->itGuild, $foreignMembership]));
+
+    $response->assertNotFound();
+    expect($foreignMembership->fresh()->is_active)->toBeTrue();
+});
