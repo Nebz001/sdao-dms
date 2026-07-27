@@ -44,6 +44,7 @@ type TransitionEntry = {
     step_position: number | null;
     comment: string | null;
     flagged_sections: string[] | null;
+    section_comments: Record<string, string> | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -319,6 +320,15 @@ export default function ReviewRegistrationShow({
                                         <p className="mt-1 text-xs text-destructive">
                                             Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
                                         </p>
+                                    )}
+                                    {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
+                                        <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                            {Object.entries(entry.section_comments).map(([key, note]) => (
+                                                <li key={key}>
+                                                    <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

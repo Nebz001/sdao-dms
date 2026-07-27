@@ -5,6 +5,7 @@ namespace App\Approval;
 use App\Enums\FormType;
 use App\Enums\TransitionAction;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 
 /**
  * Static registry of flaggable sections per form type (Phase 2 item 9),
@@ -108,24 +109,60 @@ class SectionFlags
     }
 
     /**
-     * The sections flagged by the return that put this document in its
-     * CURRENT Returned state — i.e. the most recent Returned transition, not
-     * a union across every return this document has ever had. Used by every
-     * student-facing edit() to drive resubmit-screen highlighting.
+     * The return transition that put this document in its CURRENT Returned
+     * state — i.e. the most recent Returned transition, not a union across
+     * every return this document has ever had. Shared by currentlyFlagged(),
+     * currentComment(), and currentSectionComments() below so a resubmit-
+     * screen edit() load only needs the one query, not three.
      *
      * Document::transitions() carries its own baked-in `orderBy('id')`
      * (ascending, for chronological display elsewhere) — appending
      * `latest('id')` on top would just add a second, ineffective ORDER BY
      * clause behind the first. `reorder()` clears it before sorting
      * descending, so `first()` actually returns the most recent row.
+     */
+    private static function latestReturnTransition(Document $document): ?DocumentTransition
+    {
+        return $document->transitions()
+            ->where('action', TransitionAction::Returned->value)
+            ->reorder('id', 'desc')
+            ->first();
+    }
+
+    /**
+     * The sections flagged by the return that put this document in its
+     * current Returned state. Used by every student-facing edit() to drive
+     * resubmit-screen highlighting.
      *
      * @return array<int, string>
      */
     public static function currentlyFlagged(Document $document): array
     {
-        return $document->transitions()
-            ->where('action', TransitionAction::Returned->value)
-            ->reorder('id', 'desc')
-            ->first()?->flagged_sections ?? [];
+        return self::latestReturnTransition($document)?->flagged_sections ?? [];
+    }
+
+    /**
+     * The general comment on the return that put this document in its
+     * current Returned state — the same text shown in Revision History,
+     * surfaced here so edit() pages can show it in context next to the
+     * flagged sections themselves, not only on the separate history card.
+     */
+    public static function currentComment(Document $document): ?string
+    {
+        return self::latestReturnTransition($document)?->comment;
+    }
+
+    /**
+     * Optional per-section notes on the return that put this document in its
+     * current Returned state — a key => note map for whichever flagged
+     * sections the approver chose to add something more specific to.
+     * Flagging a section never guarantees an entry here; the shared
+     * currentComment() above always covers the general case.
+     *
+     * @return array<string, string>
+     */
+    public static function currentSectionComments(Document $document): array
+    {
+        return self::latestReturnTransition($document)?->section_comments ?? [];
     }
 }

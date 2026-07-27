@@ -50,9 +50,20 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     flaggedSections: string[];
+    flaggedComment: string | null;
+    flaggedSectionComments: Record<string, string>;
 };
 
-export default function EditRegistration({ document, detail, organizationTypes, attachmentSlots, attachments, flaggedSections }: Props) {
+export default function EditRegistration({
+    document,
+    detail,
+    organizationTypes,
+    attachmentSlots,
+    attachments,
+    flaggedSections,
+    flaggedComment,
+    flaggedSectionComments,
+}: Props) {
     // Return-for-revision preserves the ability to pick a NEW adviser (Phase
     // 2 item 5). Left untouched, the existing adviser is kept — this is a
     // separate, small controlled-state island alongside the rest of the
@@ -149,7 +160,9 @@ export default function EditRegistration({ document, detail, organizationTypes, 
 
                 {flaggedSections.includes('general') && (
                     <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
-                        General revisions requested — see the reviewer's comment in Revision History below.
+                        <p className="font-medium">General revisions requested</p>
+                        {flaggedSectionComments.general && <p className="mt-1">{flaggedSectionComments.general}</p>}
+                        {flaggedComment && <p className="mt-1 text-destructive/80">{flaggedComment}</p>}
                     </div>
                 )}
 
@@ -160,7 +173,12 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                     {({ processing, errors }) => (
                         <>
                             {/* Adviser (Phase 2 item 5) — untouched keeps the current adviser */}
-                            <FlaggedSectionWrapper sectionKey="adviser_selection" flagged={flaggedSections}>
+                            <FlaggedSectionWrapper
+                                sectionKey="adviser_selection"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.adviser_selection}
+                            >
                             <div className="grid gap-2">
                                 <Label htmlFor="adviser">Adviser</Label>
                                 <Input
@@ -224,7 +242,12 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                             </div>
                             </FlaggedSectionWrapper>
 
-                            <FlaggedSectionWrapper sectionKey="organization_details" flagged={flaggedSections}>
+                            <FlaggedSectionWrapper
+                                sectionKey="organization_details"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.organization_details}
+                            >
                             <div className="space-y-6">
                             {/* Organization type */}
                             <div className="grid gap-2">
@@ -276,7 +299,12 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                             </div>
                             </FlaggedSectionWrapper>
 
-                            <FlaggedSectionWrapper sectionKey="contact_information" flagged={flaggedSections}>
+                            <FlaggedSectionWrapper
+                                sectionKey="contact_information"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.contact_information}
+                            >
                             <div className="space-y-6">
                             {/* Contact person */}
                             <div className="grid gap-2">
@@ -317,7 +345,12 @@ export default function EditRegistration({ document, detail, organizationTypes, 
                             </div>
                             </FlaggedSectionWrapper>
 
-                            <FlaggedSectionWrapper sectionKey="attachments" flagged={flaggedSections}>
+                            <FlaggedSectionWrapper
+                                sectionKey="attachments"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.attachments}
+                            >
                             <div className="space-y-6">
                             {attachmentSlots.map((slot) => (
                                 <AttachmentSlotField

@@ -83,6 +83,46 @@ test('return without flaggedSections still works and stores null', function () {
     expect($transition->flagged_sections)->toBeNull();
 });
 
+// --- Section-comments redesign: additive per-section notes alongside the
+// shared comment and the flat flagged_sections array (see PLAN.md / the
+// section-comments design notes). ------------------------------------------
+
+test('section comments persist on the transition alongside flagged sections', function () {
+    $doc = sectionFlagTestSubmittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $this->engine->returnForRevision(
+        $doc,
+        $this->sdaoA,
+        'Fix contact info and attachments.',
+        ['contact_information', 'attachments'],
+        ['contact_information' => 'Phone number is missing.'],
+    );
+
+    $transition = DocumentTransition::where('document_id', $doc->id)
+        ->where('action', 'returned')
+        ->latest('id')
+        ->first();
+
+    expect($transition->flagged_sections)->toBe(['contact_information', 'attachments']);
+    // Only one of the two flagged sections got a specific note — that's
+    // allowed; the shared comment above still covers the other.
+    expect($transition->section_comments)->toBe(['contact_information' => 'Phone number is missing.']);
+});
+
+test('return without sectionComments still works and stores null', function () {
+    $doc = sectionFlagTestSubmittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please revise.', ['contact_information']);
+
+    $transition = DocumentTransition::where('document_id', $doc->id)
+        ->where('action', 'returned')
+        ->latest('id')
+        ->first();
+
+    expect($transition->flagged_sections)->toBe(['contact_information']);
+    expect($transition->section_comments)->toBeNull();
+});
+
 test('flagging sections does not change resume-at-requester or lower-step-approval persistence', function () {
     // Mirrors ReturnAndResubmitTest's "resubmit resumes at SDAO step" scenario,
     // but with flagged sections attached — the only difference from the

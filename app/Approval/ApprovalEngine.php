@@ -176,16 +176,25 @@ class ApprovalEngine
      * approval persistence, or any other part of this method's behavior, and
      * is never validated against old/new field values (no enforcement).
      *
+     * $sectionComments (section-comments redesign) is likewise purely
+     * informational: an optional key => note map for whichever flagged
+     * sections the approver chose to add something more specific to.
+     * Flagging a section never requires a corresponding entry here — the
+     * shared $comment always covers the general case. Not enforced to be a
+     * subset of $flaggedSections at this layer (that's validated one layer
+     * up, in ReviewActionRequest); this method persists whatever it's given.
+     *
      * @param  array<int, string>|null  $flaggedSections
+     * @param  array<string, string>|null  $sectionComments
      *
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      */
-    public function returnForRevision(Document $document, User $actor, ?string $comment = null, ?array $flaggedSections = null): void
+    public function returnForRevision(Document $document, User $actor, ?string $comment = null, ?array $flaggedSections = null, ?array $sectionComments = null): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'return');
 
-        DB::transaction(function () use ($document, $actor, $comment, $flaggedSections) {
+        DB::transaction(function () use ($document, $actor, $comment, $flaggedSections, $sectionComments) {
             $step = $this->resolveCurrentStep($document);
             $approvers = $this->approverResolver->approversFor($step, $document);
 
@@ -205,7 +214,7 @@ class ApprovalEngine
             $document->status = DocumentStatus::Returned;
             $document->save();
 
-            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections);
+            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections, $sectionComments);
         });
     }
 
@@ -322,6 +331,7 @@ class ApprovalEngine
         ?int $stepPosition = null,
         ?string $comment = null,
         ?array $flaggedSections = null,
+        ?array $sectionComments = null,
     ): void {
         DocumentTransition::create([
             'document_id' => $document->id,
@@ -332,6 +342,7 @@ class ApprovalEngine
             'step_position' => $stepPosition,
             'comment' => $comment,
             'flagged_sections' => $flaggedSections,
+            'section_comments' => $sectionComments,
             'created_at' => now(),
         ]);
     }

@@ -50,6 +50,8 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     flaggedSections: string[];
+    flaggedComment: string | null;
+    flaggedSectionComments: Record<string, string>;
 };
 
 export default function EditActivityProposal({
@@ -62,6 +64,8 @@ export default function EditActivityProposal({
     attachmentSlots,
     attachments,
     flaggedSections,
+    flaggedComment,
+    flaggedSectionComments,
 }: Props) {
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
     const [partnerOrgs, setPartnerOrgs] = useState<string[]>(
@@ -78,12 +82,19 @@ export default function EditActivityProposal({
 
                 {flaggedSections.includes('general') && (
                     <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
-                        General revisions requested — see the reviewer's comment in Revision History below.
+                        <p className="font-medium">General revisions requested</p>
+                        {flaggedSectionComments.general && <p className="mt-1">{flaggedSectionComments.general}</p>}
+                        {flaggedComment && <p className="mt-1 text-destructive/80">{flaggedComment}</p>}
                     </div>
                 )}
 
                 {activity && (
-                    <FlaggedSectionWrapper sectionKey="schedule_venue" flagged={flaggedSections}>
+                    <FlaggedSectionWrapper
+                                sectionKey="schedule_venue"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.schedule_venue}
+                            >
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Current Activity</CardTitle>
@@ -104,14 +115,24 @@ export default function EditActivityProposal({
                         {/* Off-calendar: allow editing activity details */}
                         {isOffCalendar && (
                             <>
-                                <FlaggedSectionWrapper sectionKey="rso_info" flagged={flaggedSections}>
+                                <FlaggedSectionWrapper
+                                sectionKey="rso_info"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.rso_info}
+                            >
                                 <div className="space-y-1">
                                     <Label htmlFor="title">Title of Activity</Label>
                                     <Input id="title" name="title" defaultValue={proposal?.title ?? ''} />
                                     <InputError message={errors.title} />
                                 </div>
                                 </FlaggedSectionWrapper>
-                                <FlaggedSectionWrapper sectionKey="schedule_venue" flagged={flaggedSections}>
+                                <FlaggedSectionWrapper
+                                sectionKey="schedule_venue"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.schedule_venue}
+                            >
                                 <div className="space-y-4">
                                 <div className="space-y-1">
                                     <Label htmlFor="venue">Venue</Label>
@@ -155,7 +176,12 @@ export default function EditActivityProposal({
                             </>
                         )}
 
-                        <FlaggedSectionWrapper sectionKey="objectives" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="objectives"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.objectives}
+                            >
                         <div className="space-y-1">
                             <Label htmlFor="objectives">Objectives</Label>
                             <Textarea
@@ -168,7 +194,12 @@ export default function EditActivityProposal({
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper sectionKey="activity_description" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="activity_description"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.activity_description}
+                            >
                         <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="narrative">Narrative / Description</Label>
@@ -206,7 +237,12 @@ export default function EditActivityProposal({
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper sectionKey="budget" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="budget"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.budget}
+                            >
                         <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="source_of_funding">Source of Funding</Label>
@@ -256,7 +292,12 @@ export default function EditActivityProposal({
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper sectionKey="activity_details" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="activity_details"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.activity_details}
+                            >
                         <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="activity_nature">Nature of Activity</Label>
@@ -294,7 +335,12 @@ export default function EditActivityProposal({
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper sectionKey="partner_orgs_sdg" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="partner_orgs_sdg"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.partner_orgs_sdg}
+                            >
                         <div className="space-y-4">
                         <div className="space-y-1">
                             <div className="flex items-center justify-between">
@@ -360,7 +406,12 @@ export default function EditActivityProposal({
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper sectionKey="resource_person" flagged={flaggedSections}>
+                        <FlaggedSectionWrapper
+                                sectionKey="resource_person"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.resource_person}
+                            >
                         <div className="space-y-4">
                         {attachmentSlots.map((slot) => (
                             <ImmediateAttachmentUpload

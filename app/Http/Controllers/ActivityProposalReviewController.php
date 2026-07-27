@@ -146,6 +146,7 @@ class ActivityProposalReviewController extends Controller
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
                 'flagged_sections' => $t->flagged_sections,
+                'section_comments' => $t->section_comments,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
@@ -236,6 +237,7 @@ class ActivityProposalReviewController extends Controller
             Auth::user(),
             $request->string('comment')->toString() ?: null,
             $request->input('sections'),
+            $request->input('section_comments'),
         ), 'review.activity-proposals.index')) {
             return $stale;
         }

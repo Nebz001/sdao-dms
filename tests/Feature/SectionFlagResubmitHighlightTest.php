@@ -100,3 +100,48 @@ test('edit page flaggedSections is empty when the return had no flagged sections
             ->where('flaggedSections', [])
         );
 });
+
+// --- Section-comments redesign: edit() also exposes the general comment and
+// any per-section notes from the latest return, in context (see PLAN.md). --
+
+test('edit page exposes flaggedComment and flaggedSectionComments from the latest return', function () {
+    $doc = highlightTestSubmittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $this->engine->returnForRevision(
+        $doc,
+        $this->sdaoA,
+        'Fix these two things.',
+        ['contact_information', 'attachments'],
+        ['contact_information' => 'Phone number is missing.'],
+    );
+    $doc->refresh();
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('registrations.edit', $doc))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('registrations/edit')
+            ->where('flaggedComment', 'Fix these two things.')
+            ->where('flaggedSectionComments', ['contact_information' => 'Phone number is missing.'])
+        );
+});
+
+test('edit page flaggedSectionComments is empty when no section-specific notes were given — the backward-compatible case every pre-existing return falls into', function () {
+    $doc = highlightTestSubmittedRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    // No $sectionComments argument at all — exactly the shape of every
+    // transition that predates this feature.
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'General comment only.', ['contact_information']);
+    $doc->refresh();
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('registrations.edit', $doc))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('registrations/edit')
+            ->where('flaggedComment', 'General comment only.')
+            ->where('flaggedSectionComments', [])
+        );
+});

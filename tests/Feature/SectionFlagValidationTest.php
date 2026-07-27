@@ -10,6 +10,7 @@ use App\Enums\ProposalCalendarMode;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
@@ -234,6 +235,58 @@ test('return accepts activity_0 and activity_1 for a 2-row Activity Calendar', f
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('review.activity-calendars.show', $doc));
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
+});
+
+// --- section_comments must be a subset of the flagged sections in the same
+// request (section-comments redesign — see PLAN.md) -------------------------
+
+test('return rejects a section comment for a section that was not flagged', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.registrations.return', $doc), [
+            'comment' => 'Fix this.',
+            'sections' => ['contact_information'],
+            'section_comments' => ['attachments' => 'Missing the by-laws PDF.'],
+        ])
+        ->assertInvalid(['section_comments']);
+});
+
+test('return accepts a section comment for a section that was flagged, and persists it', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.registrations.return', $doc), [
+            'comment' => 'Fix these two things.',
+            'sections' => ['contact_information', 'attachments'],
+            'section_comments' => ['contact_information' => 'Phone number is missing.'],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('review.registrations.show', $doc));
+
+    $transition = DocumentTransition::where('document_id', $doc->id)
+        ->where('action', 'returned')
+        ->latest('id')
+        ->first();
+
+    expect($transition->section_comments)->toBe(['contact_information' => 'Phone number is missing.']);
+    // Attachments was flagged but got no specific note — allowed; the shared
+    // comment above still covers it.
+    expect($transition->flagged_sections)->toBe(['contact_information', 'attachments']);
+});
+
+test('return works with no section_comments at all, even when sections are flagged', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.registrations.return', $doc), [
+            'comment' => 'Fix these.',
+            'sections' => ['contact_information', 'attachments'],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('review.registrations.show', $doc));
 
     expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
 });

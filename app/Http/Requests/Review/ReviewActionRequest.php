@@ -7,6 +7,7 @@ use App\Models\Document;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ReviewActionRequest extends FormRequest
 {
@@ -41,8 +42,45 @@ class ReviewActionRequest extends FormRequest
 
             $rules['sections'] = ['nullable', 'array'];
             $rules['sections.*'] = ['string', Rule::in($validKeys)];
+
+            // Section-comments redesign — optional per-section notes,
+            // additive alongside the shared `comment` above. Each entry is
+            // itself optional (checking a box never requires filling this
+            // in); key-level validity (must be a real section key AND must
+            // be one of the sections actually flagged in this same request)
+            // is enforced in withValidator() below, since Laravel's `.*`
+            // rule syntax validates array VALUES, not KEYS.
+            $rules['section_comments'] = ['nullable', 'array'];
+            $rules['section_comments.*'] = ['nullable', 'string', 'max:2000'];
         }
 
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        if ($this->route()->getActionMethod() !== 'return') {
+            return;
+        }
+
+        $validator->after(function (Validator $validator) {
+            $sectionComments = $this->input('section_comments', []);
+
+            if (! is_array($sectionComments) || $sectionComments === []) {
+                return;
+            }
+
+            $flaggedKeys = $this->input('sections', []);
+            $flaggedKeys = is_array($flaggedKeys) ? $flaggedKeys : [];
+
+            $unflagged = array_diff(array_keys($sectionComments), $flaggedKeys);
+
+            if ($unflagged !== []) {
+                $validator->errors()->add(
+                    'section_comments',
+                    'A section comment was given for a section that was not flagged: '.implode(', ', $unflagged).'.',
+                );
+            }
+        });
     }
 }

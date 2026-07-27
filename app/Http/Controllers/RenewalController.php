@@ -183,6 +183,7 @@ class RenewalController extends Controller
                 'step_position' => $t->step_position,
                 'comment' => $t->comment,
                 'flagged_sections' => $t->flagged_sections,
+                'section_comments' => $t->section_comments,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
@@ -200,6 +201,8 @@ class RenewalController extends Controller
         $flaggedSections = SectionFlags::currentlyFlagged($document);
 
         return Inertia::render('renewals/edit', [
+            'flaggedComment' => SectionFlags::currentComment($document),
+            'flaggedSectionComments' => SectionFlags::currentSectionComments($document),
             'document' => [
                 'id' => $document->id,
                 'title' => $document->title,
