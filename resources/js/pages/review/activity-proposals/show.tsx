@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
 type Organization = { id: number; name: string };
 
@@ -49,19 +50,6 @@ type ActivityData = {
     end_time: string;
 } | null;
 
-type TransitionEntry = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string;
-    step_position: number | null;
-    comment: string | null;
-    flagged_sections: string[] | null;
-    section_comments: Record<string, string> | null;
-    actor: { name: string } | null;
-    created_at: string;
-};
-
 type StepApproval = { user_id: number; name: string };
 
 type ConflictInfo = { confirmed: { name: string; organization: string }[] } | null;
@@ -73,7 +61,7 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
-    flaggedSectionLabels: Record<string, string>;
+    flaggedSectionLabels: FlaggedSectionLabels;
     sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;

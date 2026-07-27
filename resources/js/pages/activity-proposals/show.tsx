@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as activityProposals from '@/routes/activity-proposals';
+import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
 type DocumentData = {
     id: number;
@@ -44,19 +45,6 @@ type ActivityData = {
     end_time: string;
 } | null;
 
-type TransitionEntry = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string;
-    step_position: number | null;
-    comment: string | null;
-    flagged_sections: string[] | null;
-    section_comments: Record<string, string> | null;
-    actor: { name: string } | null;
-    created_at: string;
-};
-
 type Props = {
     document: DocumentData;
     proposal: ProposalData;
@@ -64,7 +52,7 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
-    flaggedSectionLabels: Record<string, string>;
+    flaggedSectionLabels: FlaggedSectionLabels;
     flash?: { message?: string; warnings?: { conflicts: object[] }[] };
 };
 

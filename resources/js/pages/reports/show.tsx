@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reports from '@/routes/reports';
+import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
 type Organization = { id: number; name: string };
 
@@ -36,26 +37,13 @@ type ReportData = {
     } | null;
 } | null;
 
-type TransitionEntry = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string;
-    step_position: number | null;
-    comment: string | null;
-    flagged_sections: string[] | null;
-    section_comments: Record<string, string> | null;
-    actor: { name: string } | null;
-    created_at: string;
-};
-
 type Props = {
     document: DocumentData;
     report: ReportData;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
-    flaggedSectionLabels: Record<string, string>;
+    flaggedSectionLabels: FlaggedSectionLabels;
 };
 
 function actionLabel(action: string): string {

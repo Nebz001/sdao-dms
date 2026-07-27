@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { FlaggedRevisionProps } from '@/types';
 
 type DocumentData = { id: number; title: string };
 
@@ -35,10 +36,7 @@ type Props = {
     detail: DetailData;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    flaggedSections: string[];
-    flaggedComment: string | null;
-    flaggedSectionComments: Record<string, string>;
-};
+} & FlaggedRevisionProps;
 
 export default function EditReport({
     document,

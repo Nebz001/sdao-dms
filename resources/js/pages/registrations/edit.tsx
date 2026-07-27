@@ -19,6 +19,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import * as registrations from '@/routes/registrations';
+import type { FlaggedRevisionProps } from '@/types';
 
 type OrganizationTypeOption = {
     value: string;
@@ -49,10 +50,7 @@ type Props = {
     organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    flaggedSections: string[];
-    flaggedComment: string | null;
-    flaggedSectionComments: Record<string, string>;
-};
+} & FlaggedRevisionProps;
 
 export default function EditRegistration({
     document,

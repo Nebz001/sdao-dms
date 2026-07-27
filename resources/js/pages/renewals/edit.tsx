@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { FlaggedRevisionProps } from '@/types';
 
 type OrganizationTypeOption = {
     value: string;
@@ -43,10 +44,7 @@ type Props = {
     organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    flaggedSections: string[];
-    flaggedComment: string | null;
-    flaggedSectionComments: Record<string, string>;
-};
+} & FlaggedRevisionProps;
 
 export default function EditRenewal({
     document,

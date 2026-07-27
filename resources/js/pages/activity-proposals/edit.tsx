@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import * as activityProposals from '@/routes/activity-proposals';
+import type { FlaggedRevisionProps } from '@/types';
 
 type OptionItem = { value: string; label: string };
 
@@ -49,10 +50,7 @@ type Props = {
     sdgs: OptionItem[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    flaggedSections: string[];
-    flaggedComment: string | null;
-    flaggedSectionComments: Record<string, string>;
-};
+} & FlaggedRevisionProps;
 
 export default function EditActivityProposal({
     document: doc,

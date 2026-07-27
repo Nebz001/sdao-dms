@@ -14,6 +14,7 @@ import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewReports from '@/routes/review/reports';
+import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
 type Organization = { id: number; name: string };
 
@@ -43,19 +44,6 @@ type ReportData = {
     } | null;
 } | null;
 
-type TransitionEntry = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string;
-    step_position: number | null;
-    comment: string | null;
-    flagged_sections: string[] | null;
-    section_comments: Record<string, string> | null;
-    actor: { name: string } | null;
-    created_at: string;
-};
-
 type StepApproval = { user_id: number; name: string };
 
 type Props = {
@@ -64,7 +52,7 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
     history: TransitionEntry[];
-    flaggedSectionLabels: Record<string, string>;
+    flaggedSectionLabels: FlaggedSectionLabels;
     sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
