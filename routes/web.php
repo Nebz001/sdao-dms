@@ -66,7 +66,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Student — activity calendar lifecycle
     Route::get('/activity-calendars', [ActivityCalendarController::class, 'index'])->name('activity-calendars.index');
-    Route::post('/activity-calendars/conflict-check', [ActivityCalendarController::class, 'conflictCheck'])->name('activity-calendars.conflict-check');
+    Route::post('/activity-calendars/conflict-check', [ActivityCalendarController::class, 'conflictCheck'])->middleware('throttle:30,1')->name('activity-calendars.conflict-check');
     Route::get('/activity-calendars/create', [ActivityCalendarController::class, 'create'])->name('activity-calendars.create');
     Route::post('/activity-calendars', [ActivityCalendarController::class, 'store'])->name('activity-calendars.store');
     Route::get('/activity-calendars/{document}', [ActivityCalendarController::class, 'show'])->name('activity-calendars.show');
@@ -84,7 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/activity-proposals', [ActivityProposalController::class, 'index'])->name('activity-proposals.index');
     Route::get('/activity-proposals/create', [ActivityProposalController::class, 'create'])->name('activity-proposals.create');
     Route::post('/activity-proposals', [ActivityProposalController::class, 'store'])->name('activity-proposals.store');
-    Route::post('/activity-proposals/conflict-check', [ActivityProposalController::class, 'conflictCheck'])->name('activity-proposals.conflict-check');
+    Route::post('/activity-proposals/conflict-check', [ActivityProposalController::class, 'conflictCheck'])->middleware('throttle:30,1')->name('activity-proposals.conflict-check');
     Route::get('/activity-proposals/on-calendar-activities', [ActivityProposalController::class, 'onCalendarActivities'])->name('activity-proposals.on-calendar-activities');
     Route::get('/activity-proposals/{document}', [ActivityProposalController::class, 'show'])->name('activity-proposals.show');
     Route::get('/activity-proposals/{document}/edit', [ActivityProposalController::class, 'edit'])->name('activity-proposals.edit');

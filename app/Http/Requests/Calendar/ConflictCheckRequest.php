@@ -21,7 +21,11 @@ class ConflictCheckRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'activities' => ['required', 'array', 'min:1'],
+            // Hardening: cap batch size so a single request can't fan out
+            // into an unbounded number of VenueConflictChecker queries — 20
+            // comfortably covers a real activity calendar submission (a
+            // term's worth of activities).
+            'activities' => ['required', 'array', 'min:1', 'max:20'],
             'activities.*.venue' => ['required', 'string'],
             'activities.*.activity_date' => ['required', 'date'],
             'activities.*.start_time' => ['required', 'date_format:H:i'],
