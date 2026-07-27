@@ -131,6 +131,14 @@ class RegistrationController extends Controller
      */
     public function adviserSearch(Request $request): JsonResponse
     {
+        // Security gap fix: this was the only method on the class with no
+        // authorization call, reachable by any authenticated, email-verified
+        // account (including one still awaiting SDAO account verification) —
+        // returned every adviser's name/email with no search term required.
+        // Reuses the same ability store() already enforces on the submission
+        // this typeahead feeds, rather than inventing a new one.
+        Gate::authorize('propose', Organization::class);
+
         $search = $request->string('q')->trim()->toString();
 
         $advisers = User::query()

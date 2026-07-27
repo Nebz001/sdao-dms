@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Student — registration lifecycle (literal paths declared before {document} wildcard)
     Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
     Route::get('/registrations/create', [RegistrationController::class, 'create'])->name('registrations.create');
-    Route::get('/registrations/adviser-search', [RegistrationController::class, 'adviserSearch'])->name('registrations.adviser-search');
+    Route::get('/registrations/adviser-search', [RegistrationController::class, 'adviserSearch'])->middleware('throttle:30,1')->name('registrations.adviser-search');
     Route::post('/registrations', [RegistrationController::class, 'store'])->name('registrations.store');
     Route::get('/registrations/{document}', [RegistrationController::class, 'show'])->name('registrations.show');
     Route::get('/registrations/{document}/edit', [RegistrationController::class, 'edit'])->name('registrations.edit');
