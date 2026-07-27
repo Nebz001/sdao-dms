@@ -243,23 +243,23 @@ export default function EditReport({
                             </div>
                             </FlaggedSectionWrapper>
 
-                            <FlaggedSectionWrapper
-                                sectionKey="attachments"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.attachments}
-                            >
                             <div className="space-y-6">
                             {attachmentSlots.map((slot) => (
-                                <AttachmentSlotField
+                                <FlaggedSectionWrapper
                                     key={slot.key}
-                                    slot={slot}
-                                    existing={attachments[slot.key]}
-                                    error={errors[`attachments.${slot.key}`]}
-                                />
+                                    sectionKey={slot.key}
+                                    flagged={flaggedSections}
+                                    comment={flaggedComment}
+                                    sectionComment={flaggedSectionComments[slot.key]}
+                                >
+                                    <AttachmentSlotField
+                                        slot={slot}
+                                        existing={attachments[slot.key]}
+                                        error={errors[`attachments.${slot.key}`]}
+                                    />
+                                </FlaggedSectionWrapper>
                             ))}
                             </div>
-                            </FlaggedSectionWrapper>
 
                             <div className="flex items-center gap-4">
                                 <Button loading={processing} loadingText="Resubmitting…">Save & Resubmit</Button>

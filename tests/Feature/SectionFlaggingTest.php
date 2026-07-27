@@ -1,6 +1,8 @@
 <?php
 
 use App\Approval\ApprovalEngine;
+use App\Approval\SectionFlags;
+use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -162,4 +164,51 @@ test('flagging sections does not change resume-at-requester or lower-step-approv
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
     expect($doc->status)->toBe(DocumentStatus::Approved);
+});
+
+// --- Attachment-flagging-by-slot: the registry now emits one flaggable
+// section per attachment slot, derived from App\Attachments\AttachmentSlots,
+// instead of a single generic "attachments" entry (see PLAN.md). -----------
+
+test('SectionFlags::for() emits one entry per attachment slot instead of a generic "attachments" key', function () {
+    $registrationKeys = collect(SectionFlags::for(FormType::OrganizationRegistration))->pluck('key')->all();
+    $renewalKeys = collect(SectionFlags::for(FormType::OrganizationRenewal))->pluck('key')->all();
+    $reportKeys = collect(SectionFlags::for(FormType::AfterActivityReport))->pluck('key')->all();
+
+    // The old umbrella key no longer exists.
+    expect($registrationKeys)->not->toContain('attachments');
+    expect($renewalKeys)->not->toContain('attachments');
+    expect($reportKeys)->not->toContain('attachments');
+
+    // Every attachment slot key is present instead, sourced from the same
+    // registry AttachmentSlotField/AttachmentsCard already use.
+    foreach (AttachmentSlots::for(FormType::OrganizationRegistration) as $slot) {
+        expect($registrationKeys)->toContain($slot->key);
+    }
+    foreach (AttachmentSlots::for(FormType::OrganizationRenewal) as $slot) {
+        expect($renewalKeys)->toContain($slot->key);
+    }
+    foreach (AttachmentSlots::for(FormType::AfterActivityReport) as $slot) {
+        expect($reportKeys)->toContain($slot->key);
+    }
+
+    // Exact counts: 3 form-field sections + N attachment slots + general.
+    expect($registrationKeys)->toHaveCount(3 + 6 + 1);
+    expect($renewalKeys)->toHaveCount(3 + 9 + 1);
+    expect($reportKeys)->toHaveCount(3 + 3 + 1);
+});
+
+test('SectionFlags::labelsFor() reuses AttachmentSlots labels verbatim, not a second hand-written copy', function () {
+    $labels = SectionFlags::labelsFor(FormType::OrganizationRegistration);
+
+    foreach (AttachmentSlots::for(FormType::OrganizationRegistration) as $slot) {
+        expect($labels[$slot->key])->toBe($slot->label);
+    }
+});
+
+test('Activity Proposal is unaffected — its resource_person key already existed and is untouched', function () {
+    $keys = collect(SectionFlags::for(FormType::ActivityProposal))->pluck('key')->all();
+
+    expect($keys)->toContain('resource_person');
+    expect($keys)->toHaveCount(9); // unchanged from before this feature
 });

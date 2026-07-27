@@ -2,6 +2,8 @@
 
 namespace App\Approval;
 
+use App\Attachments\AttachmentSlot;
+use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\TransitionAction;
 use App\Models\Document;
@@ -31,7 +33,7 @@ class SectionFlags
                 new SectionFlag('contact_information', 'Contact Information'),
                 new SectionFlag('organization_details', 'Organization Details'),
                 new SectionFlag('adviser_selection', 'Adviser Selection'),
-                new SectionFlag('attachments', 'Attachments'),
+                ...self::attachmentSlotFlags($formType),
                 new SectionFlag('general', 'General'),
             ],
             FormType::ActivityProposal => [
@@ -55,11 +57,38 @@ class SectionFlags
                 new SectionFlag('event_details', 'Event Details'),
                 new SectionFlag('summary_program', 'Summary/Program'),
                 new SectionFlag('evaluation', 'Evaluation'),
-                new SectionFlag('attachments', 'Attachments'),
+                ...self::attachmentSlotFlags($formType),
                 new SectionFlag('general', 'General'),
             ],
             FormType::ActivityCalendar => [], // dynamic — see calendarKeysFor()
         };
+    }
+
+    /**
+     * Per-slot attachment flags (attachment-flagging-by-slot) — one
+     * flaggable section per required document, derived from
+     * App\Attachments\AttachmentSlots::for() rather than a second,
+     * hand-written list that could drift out of sync with it. Registration
+     * and Renewal share a match arm above but still get the right slot
+     * count each (6 vs 9) — $formType inside a shared match arm is still
+     * the real parameter, not a rebound case literal, so this resolves
+     * per-call.
+     *
+     * Deliberately keyed by slot_key, not by DocumentAttachment id — a
+     * slot_key is a stable, hand-written literal that survives a
+     * return/resubmit cycle exactly like every other section key; an
+     * attachment id is not; see the multi-file "photos" slot note below.
+     * Flagging "photos" as a whole still only means "something in Photos
+     * needs attention," not "this specific photo" — an accepted, unchanged
+     * limitation of this tier, not a regression.
+     *
+     * @return array<int, SectionFlag>
+     */
+    private static function attachmentSlotFlags(FormType $formType): array
+    {
+        return collect(AttachmentSlots::for($formType))
+            ->map(fn (AttachmentSlot $slot) => new SectionFlag($slot->key, $slot->label))
+            ->all();
     }
 
     /**

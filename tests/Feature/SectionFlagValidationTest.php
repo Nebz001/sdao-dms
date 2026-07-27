@@ -120,6 +120,43 @@ test('return rejects an activity index beyond the current row count for Activity
         ->assertInvalid(['sections.0']);
 });
 
+// --- Attachment-flagging-by-slot: the old generic "attachments" key no
+// longer exists — documents the intentional removal so it can't silently
+// come back (see PLAN.md). ---------------------------------------------------
+
+test('return rejects the old generic "attachments" key for Registration', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.registrations.return', $doc), [
+            'comment' => 'Fix this.',
+            'sections' => ['attachments'],
+        ])
+        ->assertInvalid(['sections.0']);
+});
+
+test('return rejects the old generic "attachments" key for Renewal', function () {
+    $doc = shortChainInReviewDoc(FormType::OrganizationRenewal, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.renewals.return', $doc), [
+            'comment' => 'Fix this.',
+            'sections' => ['attachments'],
+        ])
+        ->assertInvalid(['sections.0']);
+});
+
+test('return rejects the old generic "attachments" key for After-Activity Report', function () {
+    $doc = shortChainInReviewDoc(FormType::AfterActivityReport, $this->org, $this->engine, $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('review.reports.return', $doc), [
+            'comment' => 'Fix this.',
+            'sections' => ['attachments'],
+        ])
+        ->assertInvalid(['sections.0']);
+});
+
 // --- Every valid key is accepted --------------------------------------------
 
 test('return accepts every valid section key for Registration', function () {
@@ -249,7 +286,7 @@ test('return rejects a section comment for a section that was not flagged', func
         ->post(route('review.registrations.return', $doc), [
             'comment' => 'Fix this.',
             'sections' => ['contact_information'],
-            'section_comments' => ['attachments' => 'Missing the by-laws PDF.'],
+            'section_comments' => ['by_laws' => 'Missing the by-laws PDF.'],
         ])
         ->assertInvalid(['section_comments']);
 });
@@ -260,7 +297,7 @@ test('return accepts a section comment for a section that was flagged, and persi
     $this->actingAs($this->sdaoA)
         ->post(route('review.registrations.return', $doc), [
             'comment' => 'Fix these two things.',
-            'sections' => ['contact_information', 'attachments'],
+            'sections' => ['contact_information', 'by_laws'],
             'section_comments' => ['contact_information' => 'Phone number is missing.'],
         ])
         ->assertSessionHasNoErrors()
@@ -272,9 +309,9 @@ test('return accepts a section comment for a section that was flagged, and persi
         ->first();
 
     expect($transition->section_comments)->toBe(['contact_information' => 'Phone number is missing.']);
-    // Attachments was flagged but got no specific note — allowed; the shared
+    // By-Laws was flagged but got no specific note — allowed; the shared
     // comment above still covers it.
-    expect($transition->flagged_sections)->toBe(['contact_information', 'attachments']);
+    expect($transition->flagged_sections)->toBe(['contact_information', 'by_laws']);
 });
 
 test('return works with no section_comments at all, even when sections are flagged', function () {
@@ -283,7 +320,7 @@ test('return works with no section_comments at all, even when sections are flagg
     $this->actingAs($this->sdaoA)
         ->post(route('review.registrations.return', $doc), [
             'comment' => 'Fix these.',
-            'sections' => ['contact_information', 'attachments'],
+            'sections' => ['contact_information', 'by_laws'],
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('review.registrations.show', $doc));
