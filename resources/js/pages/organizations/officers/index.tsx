@@ -4,6 +4,7 @@ import {  useState } from 'react';
 import type {FormEvent} from 'react';
 import OrganizationOfficerController from '@/actions/App/Http/Controllers/OrganizationOfficerController';
 import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +45,12 @@ type Props = {
 
 export default function OfficersIndex({ organization, memberships, students, search, positions }: Props) {
     const [searchValue, setSearchValue] = useState(search);
-    const [deactivateError, setDeactivateError] = useState<string | null>(null);
+    // Scoped to the membership that failed, not a single page-wide flag — the
+    // dialog now stays open on failure (see confirm-dialog.tsx), so this
+    // renders inside that specific row's dialog rather than a banner behind
+    // an overlay. Keying it just to "an error exists" would also leak a
+    // stale message into a different row's dialog on next open.
+    const [deactivateError, setDeactivateError] = useState<{ membershipId: number; message: string } | null>(null);
     // Officer search is an explicit-submit round trip (not a live typeahead
     // like the adviser search), so without this the box appears to do
     // nothing while the request is in flight, and an empty result gives no
@@ -55,10 +61,17 @@ export default function OfficersIndex({ organization, memberships, students, sea
     // empty-state message is correct immediately, not just after a fresh click.
     const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'done'>(search !== '' ? 'done' : 'idle');
 
-    function deactivate(membershipId: number) {
+    function deactivate(membershipId: number, { close, stopProcessing }: ConfirmActions) {
         setDeactivateError(null);
         router.delete(officers.destroy(organization.id, membershipId), {
-            onError: () => setDeactivateError('Could not deactivate this officer. Please try again.'),
+            preserveScroll: true,
+            onSuccess: close,
+            onError: () =>
+                setDeactivateError({
+                    membershipId,
+                    message: 'Could not deactivate this officer. Please try again.',
+                }),
+            onFinish: stopProcessing,
         });
     }
 
@@ -96,9 +109,6 @@ export default function OfficersIndex({ organization, memberships, students, sea
                         <CardTitle className="text-base">Active Officers</CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y">
-                        {deactivateError && (
-                            <p className="pb-3 text-sm text-destructive">{deactivateError}</p>
-                        )}
                         {memberships.length === 0 ? (
                             <Empty>
                                 <EmptyHeader>
@@ -130,10 +140,21 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                             </Button>
                                         }
                                         title={`Deactivate ${m.user.name}?`}
-                                        description="This removes their ability to submit or act on documents for this organization. Their history is retained, and the adviser can bind a replacement afterward."
+                                        description={
+                                            <>
+                                                This removes their ability to submit or act on documents for this
+                                                organization. Their history is retained, and the adviser can bind a
+                                                replacement afterward.
+                                                {deactivateError?.membershipId === m.id && (
+                                                    <span className="mt-2 block text-destructive">
+                                                        {deactivateError.message}
+                                                    </span>
+                                                )}
+                                            </>
+                                        }
                                         confirmLabel="Deactivate"
                                         confirmVariant="destructive"
-                                        onConfirm={() => deactivate(m.id)}
+                                        onConfirm={(actions) => deactivate(m.id, actions)}
                                     />
                                 </div>
                             ))

@@ -15,86 +15,124 @@ import {
 
 type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
 
+/**
+ * Handed to `onConfirm` so the caller can drive the dialog from the actual
+ * request lifecycle instead of the click event. Call `close` from the
+ * request's onSuccess (closes the dialog and clears the in-flight state).
+ * Call `stopProcessing` from onFinish (or onError, if there's no separate
+ * onFinish) so the confirm button re-enables and the dialog stays open to
+ * show the error — without this, a failed request would leave the button
+ * disabled forever.
+ */
+export type ConfirmActions = {
+    close: () => void;
+    stopProcessing: () => void;
+};
+
 type ConfirmDialogProps = {
     /** The element that opens the dialog, e.g. a <Button>Approve</Button>. */
     trigger: ReactNode;
     title: string;
     description: ReactNode;
-    confirmLabel: string;
-    confirmVariant?: ButtonVariant;
     /** Disables the trigger itself (e.g. while a related mutation is in flight). */
     triggerDisabled?: boolean;
-    /**
-     * Programmatic confirm path (e.g. router.post/router.delete). Mutually
-     * exclusive with confirmForm — provide exactly one.
-     */
-    onConfirm?: () => void;
-    /**
-     * Confirm by submitting an existing <form id="…"> elsewhere on the page
-     * (e.g. an Inertia <Form>). The HTML `form` attribute on the submit
-     * button works across the Radix dialog portal since it targets by id,
-     * not DOM nesting.
-     */
-    confirmForm?: string;
+    confirmLabel?: string;
+    confirmVariant?: ButtonVariant;
     /** Disables the confirm button itself (e.g. a required field is invalid). */
     confirmDisabled?: boolean;
+    /**
+     * Programmatic confirm path (e.g. router.post/router.delete). The dialog
+     * only closes when the caller calls `close` — normally from the
+     * request's onSuccess — so a failed request leaves the dialog open with
+     * its error visible instead of closing as if it had worked. Mutually
+     * exclusive with `children` — provide exactly one.
+     */
+    onConfirm?: (actions: ConfirmActions) => void;
+    /**
+     * Fully custom body — e.g. an Inertia <Form> with its own fields and
+     * footer (used for actions that need input, like a rejection reason).
+     * Receives `close`, to be passed to the form's onSuccess. Mutually
+     * exclusive with `onConfirm`/`confirmLabel` — provide exactly one.
+     */
+    children?: (close: () => void) => ReactNode;
 };
 
 /**
  * Confirmation modal for destructive or hard-to-reverse actions (approve,
  * reject, deactivate). Standard per CLAUDE.md — every such action must
  * confirm before firing.
+ *
+ * Dismissal is tied to the request lifecycle, not to the click that starts
+ * it: closing happens only once the caller reports success. This is
+ * deliberate — a synchronous close on click made the dialog lie about
+ * whether the action actually happened.
  */
 export default function ConfirmDialog({
     trigger,
     title,
     description,
+    triggerDisabled = false,
     confirmLabel,
     confirmVariant = 'default',
-    triggerDisabled = false,
-    onConfirm,
-    confirmForm,
     confirmDisabled = false,
+    onConfirm,
+    children,
 }: ConfirmDialogProps) {
     const [open, setOpen] = useState(false);
+    const [processing, setProcessing] = useState(false);
+
+    const close = () => {
+        setProcessing(false);
+        setOpen(false);
+    };
+
+    const stopProcessing = () => setProcessing(false);
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                // Ignore dismiss attempts (Escape, outside click) while a
+                // request from the built-in confirm button is in flight —
+                // `close`/`stopProcessing` are the only way out until it
+                // resolves. Custom `children` content manages its own
+                // processing state and isn't affected by this guard.
+                if (processing && !next) {
+                    return;
+                }
+
+                setOpen(next);
+            }}
+        >
             <DialogTrigger asChild disabled={triggerDisabled}>
                 {trigger}
             </DialogTrigger>
             <DialogContent>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>{description}</DialogDescription>
-                <DialogFooter className="gap-2">
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary">
-                            Cancel
-                        </Button>
-                    </DialogClose>
-                    {onConfirm ? (
+                {children ? (
+                    children(close)
+                ) : (
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary" disabled={processing}>
+                                Cancel
+                            </Button>
+                        </DialogClose>
                         <Button
                             type="button"
                             variant={confirmVariant}
                             disabled={confirmDisabled}
+                            loading={processing}
                             onClick={() => {
-                                onConfirm();
-                                setOpen(false);
+                                setProcessing(true);
+                                onConfirm?.({ close, stopProcessing });
                             }}
                         >
                             {confirmLabel}
                         </Button>
-                    ) : (
-                        <Button
-                            type="submit"
-                            form={confirmForm}
-                            variant={confirmVariant}
-                            disabled={confirmDisabled}
-                        >
-                            {confirmLabel}
-                        </Button>
-                    )}
-                </DialogFooter>
+                    </DialogFooter>
+                )}
             </DialogContent>
         </Dialog>
     );

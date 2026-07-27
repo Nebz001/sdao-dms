@@ -2,10 +2,12 @@ import { Form, Head, router } from '@inertiajs/react';
 import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/ActivityCalendarReviewController';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
@@ -64,6 +66,7 @@ type Props = {
     hasApproved: boolean;
     activityConflicts: Record<number, ConflictState>;
     hasConfirmedConflict: boolean;
+    errors?: Record<string, string>;
 };
 
 function actionLabel(action: string): string {
@@ -109,13 +112,18 @@ export default function ReviewActivityCalendarShow({
     hasApproved,
     activityConflicts,
     hasConfirmedConflict,
+    errors = {},
 }: Props) {
     useDocumentUpdates(['document', 'calendar', 'history', 'currentStepApprovals', 'hasApproved', 'activityConflicts', 'hasConfirmedConflict']);
 
     const isInReview = document.status === 'in_review';
 
-    function handleApprove() {
-        router.post(reviewActivityCalendars.approve.url(document.id));
+    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+        router.post(reviewActivityCalendars.approve.url(document.id), {}, {
+            preserveScroll: true,
+            onSuccess: close,
+            onFinish: stopProcessing,
+        });
     }
 
     return (
@@ -216,7 +224,15 @@ export default function ReviewActivityCalendarShow({
                                 <ConfirmDialog
                                     trigger={<Button className="w-full sm:w-auto">Approve</Button>}
                                     title="Approve this activity calendar?"
-                                    description="This action is irreversible once the SDAO quorum is met — every listed activity becomes an approved, venue-blocking booking."
+                                    description={
+                                        <>
+                                            This action is irreversible once the SDAO quorum is met — every listed
+                                            activity becomes an approved, venue-blocking booking.
+                                            {errors.approve && (
+                                                <span className="mt-2 block text-destructive">{errors.approve}</span>
+                                            )}
+                                        </>
+                                    }
                                     confirmLabel="Confirm Approval"
                                     onConfirm={handleApprove}
                                 />
@@ -245,38 +261,52 @@ export default function ReviewActivityCalendarShow({
                                 )}
                             </Form>
 
-                            {/* Reject */}
-                            <Form
-                                {...ActivityCalendarReviewController.reject.form({ document: document.id })}
-                                id={`reject-form-${document.id}`}
-                                className="space-y-2 border-t pt-4"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <p className="text-sm font-medium text-destructive">Reject (permanent)</p>
-                                        <Textarea
-                                            name="comment"
-                                            placeholder="Reason for rejection…"
-                                            rows={3}
-                                            required
-                                        />
-                                        <InputError message={errors.comment} />
-                                        <ConfirmDialog
-                                            trigger={
-                                                <Button type="button" variant="destructive" disabled={processing}>
-                                                    Reject
-                                                </Button>
-                                            }
-                                            title="Reject this activity calendar?"
-                                            description="This is permanent — the submitter cannot revive this document. They must file a brand-new calendar submission."
-                                            confirmLabel="Reject"
-                                            confirmVariant="destructive"
-                                            confirmForm={`reject-form-${document.id}`}
-                                            confirmDisabled={processing}
-                                        />
-                                    </>
-                                )}
-                            </Form>
+                            {/* Reject — the reason field lives inside the dialog (not
+                                crossing the Radix portal via a form id) so a blank-comment
+                                validation error is visible while the dialog is still open,
+                                instead of rendering behind it. */}
+                            <div className="border-t pt-4">
+                                <p className="mb-2 text-sm font-medium text-destructive">Reject (permanent)</p>
+                                <ConfirmDialog
+                                    trigger={
+                                        <Button type="button" variant="destructive">
+                                            Reject
+                                        </Button>
+                                    }
+                                    title="Reject this activity calendar?"
+                                    description="This is permanent — the submitter cannot revive this document. They must file a brand-new calendar submission."
+                                >
+                                    {(close) => (
+                                        <Form
+                                            {...ActivityCalendarReviewController.reject.form({ document: document.id })}
+                                            options={{ preserveScroll: true }}
+                                            onSuccess={close}
+                                        >
+                                            {({ processing, errors }) => (
+                                                <>
+                                                    <Textarea
+                                                        name="comment"
+                                                        placeholder="Reason for rejection…"
+                                                        rows={3}
+                                                        required
+                                                    />
+                                                    <InputError message={errors.comment} />
+                                                    <DialogFooter className="mt-4 gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button type="button" variant="secondary" disabled={processing}>
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button type="submit" variant="destructive" loading={processing}>
+                                                            Reject
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    )}
+                                </ConfirmDialog>
+                            </div>
                         </CardContent>
                     </Card>
                 )}

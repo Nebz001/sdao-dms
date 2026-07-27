@@ -3,12 +3,14 @@ import AfterActivityReportReviewController from '@/actions/App/Http/Controllers/
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewReports from '@/routes/review/reports';
@@ -106,8 +108,12 @@ export default function ReviewReportShow({
 
     const isInReview = document.status === 'in_review';
 
-    function handleApprove() {
-        router.post(reviewReports.approve.url(document.id));
+    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+        router.post(reviewReports.approve.url(document.id), {}, {
+            preserveScroll: true,
+            onSuccess: close,
+            onFinish: stopProcessing,
+        });
     }
 
     return (
@@ -259,40 +265,52 @@ export default function ReviewReportShow({
                                 )}
                             </Form>
 
-                            {/* Reject */}
-                            <Form
-                                {...AfterActivityReportReviewController.reject.form({ document: document.id })}
-                                id={`reject-form-${document.id}`}
-                                className="space-y-2 border-t pt-4"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <p className="text-sm font-medium text-destructive">
-                                            Reject (permanent)
-                                        </p>
-                                        <Textarea
-                                            name="comment"
-                                            placeholder="Reason for rejection…"
-                                            rows={3}
-                                            required
-                                        />
-                                        <InputError message={errors.comment} />
-                                        <ConfirmDialog
-                                            trigger={
-                                                <Button type="button" variant="destructive" disabled={processing}>
-                                                    Reject
-                                                </Button>
-                                            }
-                                            title="Reject this report?"
-                                            description="This is permanent — the student cannot revive this document. They must file a brand-new report."
-                                            confirmLabel="Reject"
-                                            confirmVariant="destructive"
-                                            confirmForm={`reject-form-${document.id}`}
-                                            confirmDisabled={processing}
-                                        />
-                                    </>
-                                )}
-                            </Form>
+                            {/* Reject — the reason field lives inside the dialog (not
+                                crossing the Radix portal via a form id) so a blank-comment
+                                validation error is visible while the dialog is still open,
+                                instead of rendering behind it. */}
+                            <div className="border-t pt-4">
+                                <p className="mb-2 text-sm font-medium text-destructive">Reject (permanent)</p>
+                                <ConfirmDialog
+                                    trigger={
+                                        <Button type="button" variant="destructive">
+                                            Reject
+                                        </Button>
+                                    }
+                                    title="Reject this report?"
+                                    description="This is permanent — the student cannot revive this document. They must file a brand-new report."
+                                >
+                                    {(close) => (
+                                        <Form
+                                            {...AfterActivityReportReviewController.reject.form({ document: document.id })}
+                                            options={{ preserveScroll: true }}
+                                            onSuccess={close}
+                                        >
+                                            {({ processing, errors }) => (
+                                                <>
+                                                    <Textarea
+                                                        name="comment"
+                                                        placeholder="Reason for rejection…"
+                                                        rows={3}
+                                                        required
+                                                    />
+                                                    <InputError message={errors.comment} />
+                                                    <DialogFooter className="mt-4 gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button type="button" variant="secondary" disabled={processing}>
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button type="submit" variant="destructive" loading={processing}>
+                                                            Reject
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    )}
+                                </ConfirmDialog>
+                            </div>
                         </CardContent>
                     </Card>
                 )}

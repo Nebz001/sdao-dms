@@ -1,18 +1,11 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 import { UserRoundCheck } from 'lucide-react';
+import { useState } from 'react';
 import PendingAccountController from '@/actions/App/Http/Controllers/Admin/PendingAccountController';
+import ConfirmDialog from '@/components/confirm-dialog';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -28,6 +21,11 @@ type Props = {
 };
 
 export default function PendingAccountsIndex({ accounts }: Props) {
+    // Scoped to the account that failed, not a page-wide flag — mirrors
+    // organizations/officers/index.tsx's deactivateError. A flat flag would
+    // leak a stale message into a different account's dialog on next open.
+    const [rejectError, setRejectError] = useState<{ accountId: number; message: string } | null>(null);
+
     const oldest = accounts.length > 0
         ? new Date(Math.min(...accounts.map((a) => new Date(a.created_at).getTime()))).toLocaleDateString()
         : '—';
@@ -103,49 +101,47 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                                 )}
                                             </Form>
 
-                                            <Dialog>
-                                                <DialogTrigger asChild>
+                                            <ConfirmDialog
+                                                trigger={
                                                     <Button type="button" size="sm" variant="destructive">
                                                         Reject
                                                     </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogTitle>Reject {account.name}&apos;s account?</DialogTitle>
-                                                    <DialogDescription>
+                                                }
+                                                title={`Reject ${account.name}'s account?`}
+                                                description={
+                                                    <>
                                                         This is permanent. {account.name} will never be able to
                                                         submit documents or be bound as an officer. Their account
                                                         is not deleted.
-                                                    </DialogDescription>
-
-                                                    <Form
-                                                        {...PendingAccountController.reject.form(account.id)}
-                                                        options={{ preserveScroll: true }}
-                                                    >
-                                                        {({ processing }) => (
-                                                            <DialogFooter className="gap-2">
-                                                                <DialogClose asChild>
-                                                                    <Button type="button" variant="secondary">
-                                                                        Cancel
-                                                                    </Button>
-                                                                </DialogClose>
-                                                                <Button
-                                                                    type="submit"
-                                                                    variant="destructive"
-                                                                    disabled={processing}
-                                                                >
-                                                                    {processing ? (
-                                                                        <>
-                                                                            <Spinner /> Rejecting…
-                                                                        </>
-                                                                    ) : (
-                                                                        'Reject Account'
-                                                                    )}
-                                                                </Button>
-                                                            </DialogFooter>
+                                                        {rejectError?.accountId === account.id && (
+                                                            <span className="mt-2 block text-destructive">
+                                                                {rejectError.message}
+                                                            </span>
                                                         )}
-                                                    </Form>
-                                                </DialogContent>
-                                            </Dialog>
+                                                    </>
+                                                }
+                                                confirmLabel="Reject Account"
+                                                confirmVariant="destructive"
+                                                onConfirm={({ close, stopProcessing }) => {
+                                                    setRejectError(null);
+                                                    router.post(
+                                                        PendingAccountController.reject.url(account.id),
+                                                        {},
+                                                        {
+                                                            preserveScroll: true,
+                                                            onSuccess: close,
+                                                            onError: (errors) =>
+                                                                setRejectError({
+                                                                    accountId: account.id,
+                                                                    message:
+                                                                        errors.account ??
+                                                                        'Could not reject this account. Please try again.',
+                                                                }),
+                                                            onFinish: stopProcessing,
+                                                        },
+                                                    );
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 ))}

@@ -116,3 +116,37 @@ test('after a split and resubmit both SDAO members must approve again', function
     $this->doc->refresh();
     expect($this->doc->current_step_position)->toBe(5);
 });
+
+// ── HTTP: redirect target at the SDAO step (drives whether the review show
+// page's React component remounts — see resources/js/components/confirm-dialog.tsx
+// and PLAN.md "modal auto-dismiss"). SDAO is step 4 of 7 on this chain, so
+// unlike the short-chain forms (registration/renewal/report/calendar, where
+// SDAO is the sole and final step), quorum completion here only advances to
+// step 5 — it never finalizes the whole chain. Both approvals redirect to
+// `.show`, not just the first. A modal-dismissal fix that only worked because
+// the second approver "got lucky" landing on a different page component would
+// still be broken here. ──────────────────────────────────────────────────────
+
+test('HTTP: first SDAO approval on a proposal redirects back to the review show page', function () {
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.activity-proposals.approve', $this->doc))
+        ->assertRedirect(route('review.activity-proposals.show', $this->doc));
+
+    $this->doc->refresh();
+    expect($this->doc->current_step_position)->toBe(4);
+});
+
+test('HTTP: quorum-completing SDAO approval on a proposal also redirects to the show page, not the queue', function () {
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->post(route('review.activity-proposals.approve', $this->doc));
+
+    $this->actingAs($this->sdaoB)
+        ->withoutVite()
+        ->post(route('review.activity-proposals.approve', $this->doc))
+        ->assertRedirect(route('review.activity-proposals.show', $this->doc));
+
+    $this->doc->refresh();
+    expect($this->doc->current_step_position)->toBe(5);
+});

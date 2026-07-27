@@ -1,14 +1,16 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 import ActivityProposalReviewController from '@/actions/App/Http/Controllers/ActivityProposalReviewController';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 
@@ -293,69 +295,104 @@ export default function ReviewActivityProposalShow({
                                 </p>
                             )}
 
-                            <InputError message={errors.approve} />
-
                             <div className="flex flex-wrap gap-3">
                                 {/* Approve */}
-                                <Form
-                                    action={ActivityProposalReviewController.approve({ document: doc.id }).url}
-                                    method="post"
-                                    id={`approve-form-${doc.id}`}
-                                >
-                                    <ConfirmDialog
-                                        trigger={
-                                            <Button type="button" disabled={hasApproved || hasConfirmedConflict}>
-                                                {hasApproved ? 'Already Approved' : 'Approve'}
-                                            </Button>
-                                        }
-                                        title="Approve this proposal?"
-                                        description="This action is irreversible once all required approvals are met."
-                                        confirmLabel="Confirm Approval"
-                                        confirmForm={`approve-form-${doc.id}`}
-                                        confirmDisabled={hasApproved || hasConfirmedConflict}
-                                    />
-                                </Form>
+                                <ConfirmDialog
+                                    trigger={
+                                        <Button type="button" disabled={hasApproved || hasConfirmedConflict}>
+                                            {hasApproved ? 'Already Approved' : 'Approve'}
+                                        </Button>
+                                    }
+                                    title="Approve this proposal?"
+                                    description={
+                                        <>
+                                            This action is irreversible once all required approvals are met.
+                                            {errors.approve && (
+                                                <span className="mt-2 block text-destructive">{errors.approve}</span>
+                                            )}
+                                        </>
+                                    }
+                                    confirmLabel="Confirm Approval"
+                                    confirmDisabled={hasApproved || hasConfirmedConflict}
+                                    onConfirm={({ close, stopProcessing }: ConfirmActions) =>
+                                        router.post(
+                                            ActivityProposalReviewController.approve({ document: doc.id }).url,
+                                            {},
+                                            {
+                                                preserveScroll: true,
+                                                onSuccess: close,
+                                                onFinish: stopProcessing,
+                                            },
+                                        )
+                                    }
+                                />
 
                                 {/* Return */}
                                 <Form
-                                    action={ActivityProposalReviewController.return({ document: doc.id }).url}
-                                    method="post"
+                                    {...ActivityProposalReviewController.return.form({ document: doc.id })}
                                     className="w-full space-y-2 sm:w-auto"
                                 >
-                                    <div className="flex gap-2">
-                                        <Textarea name="comment" placeholder="Return comment (required)…" rows={2} className="w-64" />
-                                        <Button type="submit" variant="outline">
-                                            Return for Revision
-                                        </Button>
-                                    </div>
-                                    <InputError message={errors.comment} />
-                                    <SectionFlagFields sections={sectionFlags} />
+                                    {({ processing, errors: formErrors }) => (
+                                        <>
+                                            <div className="flex gap-2">
+                                                <Textarea name="comment" placeholder="Return comment (required)…" rows={2} className="w-64" />
+                                                <Button type="submit" variant="outline" disabled={processing}>
+                                                    Return for Revision
+                                                </Button>
+                                            </div>
+                                            <InputError message={formErrors.comment} />
+                                            <SectionFlagFields sections={sectionFlags} />
+                                        </>
+                                    )}
                                 </Form>
 
-                                {/* Reject */}
-                                <Form
-                                    action={ActivityProposalReviewController.reject({ document: doc.id }).url}
-                                    method="post"
-                                    id={`reject-form-${doc.id}`}
-                                    className="w-full space-y-2 sm:w-auto"
+                                {/* Reject — the reason field lives inside the dialog (not
+                                    crossing the Radix portal via a form id) so a blank-comment
+                                    validation error is visible while the dialog is still open,
+                                    instead of rendering behind it. */}
+                                <ConfirmDialog
+                                    trigger={
+                                        <Button type="button" variant="destructive">
+                                            Reject
+                                        </Button>
+                                    }
+                                    title="Reject this proposal?"
+                                    description="This is permanent — the submitter cannot revive this document. They must file a brand-new proposal."
                                 >
-                                    <div className="flex gap-2">
-                                        <Textarea name="comment" placeholder="Rejection reason (required)…" rows={2} className="w-64" />
-                                        <ConfirmDialog
-                                            trigger={
-                                                <Button type="button" variant="destructive">
-                                                    Reject
-                                                </Button>
-                                            }
-                                            title="Reject this proposal?"
-                                            description="This is permanent — the submitter cannot revive this document. They must file a brand-new proposal."
-                                            confirmLabel="Reject"
-                                            confirmVariant="destructive"
-                                            confirmForm={`reject-form-${doc.id}`}
-                                        />
-                                    </div>
-                                    <InputError message={errors.comment} />
-                                </Form>
+                                    {(close) => (
+                                        <Form
+                                            {...ActivityProposalReviewController.reject.form({ document: doc.id })}
+                                            options={{ preserveScroll: true }}
+                                            onSuccess={close}
+                                        >
+                                            {({ processing, errors: formErrors }) => (
+                                                <>
+                                                    <Textarea
+                                                        name="comment"
+                                                        placeholder="Rejection reason…"
+                                                        rows={3}
+                                                        required
+                                                    />
+                                                    <InputError message={formErrors.comment} />
+                                                    <DialogFooter className="mt-4 gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button type="button" variant="secondary" disabled={processing}>
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button
+                                                            type="submit"
+                                                            variant="destructive"
+                                                            loading={processing}
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    )}
+                                </ConfirmDialog>
                             </div>
                         </CardContent>
                     </Card>

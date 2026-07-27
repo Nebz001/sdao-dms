@@ -90,6 +90,24 @@ test('an SDAO member can reject an account end-to-end via HTTP', function () {
     expect($account->fresh()->account_status)->toBe(AccountStatus::Rejected);
 });
 
+// ── Rejecting an already-acted-on account (two admins racing the same target)
+// must round-trip through the standard validation-error flash, not a redirect
+// success or a raw 500 — this is the exact path the pending-accounts Reject
+// dialog's onError now depends on to stay open and show why (see
+// resources/js/pages/admin/pending-accounts/index.tsx and PLAN.md "modal
+// auto-dismiss" / Bug 5). The unit-level equivalent already exists above
+// ("an already-verified account cannot be re-verified or rejected"); this
+// pins the same failure at the HTTP layer the frontend actually observes.
+test('HTTP: rejecting an already-acted-on account returns a validation error, not a redirect success', function () {
+    $account = User::factory()->create(); // factory default: Verified — already acted on
+
+    $this->actingAs($this->sdaoA)
+        ->post(route('admin.pending-accounts.reject', $account))
+        ->assertSessionHasErrors('account');
+
+    expect($account->fresh()->account_status)->toBe(AccountStatus::Verified);
+});
+
 test('a non-SDAO authenticated user gets 403 on every pending-accounts route', function () {
     $account = User::factory()->unverifiedAccount()->create();
 
