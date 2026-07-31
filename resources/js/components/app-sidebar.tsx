@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Archive,
     CalendarCog,
     CalendarDays,
     FilePlus2,
@@ -27,6 +28,7 @@ import { dashboard } from '@/routes';
 import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
 import * as approvers from '@/routes/admin/approvers';
+import * as archive from '@/routes/admin/archive';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentTermSettings from '@/routes/admin/settings/term';
 import * as calendar from '@/routes/calendar';
@@ -154,6 +156,11 @@ export function AppSidebar() {
                 title: 'Pending Accounts',
                 href: pendingAccounts.index(),
                 icon: UserCheck,
+            },
+            {
+                title: 'Document Archive',
+                href: archive.index(),
+                icon: Archive,
             },
             {
                 title: 'Current Term',

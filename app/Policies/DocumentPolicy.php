@@ -70,7 +70,31 @@ class DocumentPolicy
      */
     public function reviewView(User $user, Document $document): bool
     {
-        return $this->review($user, $document) || $this->hasActedOn($user, $document);
+        return $this->review($user, $document)
+            || $this->hasActedOn($user, $document)
+            || $this->viewArchive($user, $document);
+    }
+
+    /**
+     * Can the user read this document as an archive record — i.e. it has
+     * left the review queues entirely (Approved or Rejected, per
+     * DocumentStatus::isTerminal()) and the reader is SDAO?
+     *
+     * Exists because `hasActedOn()` only incidentally covers SDAO for
+     * approved documents (every SDAO step requires both members, so both
+     * always have an acted-on row once a document is Approved). That
+     * coincidence does NOT cover a document rejected before it ever reached
+     * the SDAO step, nor a newly provisioned SDAO member with no historical
+     * rows — both would otherwise 403 out of the admin document archive.
+     *
+     * Deliberately terminal-only: this grants nothing over an in-review or
+     * returned document, so the "approver, but not their turn yet" 403
+     * boundary pinned by DocumentViewAuthorizationTest is untouched.
+     */
+    public function viewArchive(User $user, Document $document): bool
+    {
+        return $document->status->isTerminal()
+            && $this->roleDirectory->sdaoMembers()->contains('id', $user->id);
     }
 
     /**
