@@ -41,6 +41,19 @@ class HandleInertiaRequests extends Middleware
         /** @var array{message?: string, type?: string, warnings?: array<int, mixed>}|null $flash */
         $flash = $request->session()->get('flash');
 
+        // useDocumentUpdates() polls every 5s via router.reload({ only: [...],
+        // async: true }) so it can't interrupt an in-flight approve/reject/
+        // return submit. But a poll tick can land between that submit's
+        // redirect and the browser's own follow-up GET of the redirect
+        // target — an ordinary partial-reload request that never asks for
+        // `flash`. Session flash data ages on every request regardless of
+        // whether it's rendered, so without this the toast is silently
+        // discarded before the page it belongs to ever loads. Reflash it
+        // here so it survives to that next request instead.
+        if ($flash && $request->header('X-Inertia-Partial-Data')) {
+            $request->session()->reflash();
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
