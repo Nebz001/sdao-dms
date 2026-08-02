@@ -3,6 +3,7 @@
 namespace App\Approval\Notifications;
 
 use App\Approval\Contracts\ApproverNotifier;
+use App\Enums\TransitionAction;
 use App\Mail\ApproverHandOffMail;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\Mail;
  */
 class RecordingApproverNotifier implements ApproverNotifier
 {
-    public function notify(User $approver, Document $document, int $stepPosition): void
+    public function notify(User $approver, Document $document, int $stepPosition, TransitionAction $triggerAction): void
     {
         ApprovalNotification::create([
             'document_id' => $document->id,
@@ -32,7 +33,7 @@ class RecordingApproverNotifier implements ApproverNotifier
         ]);
 
         try {
-            Mail::to($approver)->queue(new ApproverHandOffMail($approver, $document, $stepPosition));
+            Mail::to($approver)->queue(new ApproverHandOffMail($approver, $document, $stepPosition, $triggerAction));
         } catch (\Throwable $e) {
             Log::error('Approver hand-off notification failed to dispatch', [
                 'document_id' => $document->id,

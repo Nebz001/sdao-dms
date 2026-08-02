@@ -4,6 +4,7 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalVariant;
+use App\Enums\TransitionAction;
 use App\Mail\ApproverHandOffMail;
 use App\Models\Document;
 use App\Models\Organization;
@@ -118,6 +119,90 @@ test('a non-quorum SDAO partial approval sends no next-step email', function () 
     // First of two required SDAO approvals — should not advance/notify further.
     $this->engine->approve($doc, $this->sdaoA);
 
+    Mail::assertQueued(ApproverHandOffMail::class, 2);
+});
+
+test('a first-time submission email reads as a fresh hand-off, not a resubmission', function () {
+    $doc = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Draft,
+    ]);
+
+    $this->engine->submit($doc, $this->sdaoA);
+
+    Mail::assertQueued(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) {
+        $mail->assertHasSubject("Action needed: {$mail->document->title}");
+        $mail->assertSeeInHtml('is waiting for your review', false);
+        $mail->assertDontSeeInHtml('previously returned', false);
+
+        return true;
+    });
+});
+
+test('advancing to the next step emails a fresh hand-off, not a resubmission', function () {
+    $doc = Document::factory()->create([
+        'form_type' => FormType::ActivityProposal,
+        'variant' => ProposalVariant::RegularOnCalendar,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Draft,
+    ]);
+    $this->engine->submit($doc, $this->adviser);
+
+    $this->engine->approve($doc, $this->adviser);
+
+    Mail::assertQueued(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) {
+        if (! $mail->hasTo($this->chair->email)) {
+            return false;
+        }
+
+        $mail->assertHasSubject("Action needed: {$mail->document->title}");
+        $mail->assertSeeInHtml('is waiting for your review', false);
+        $mail->assertDontSeeInHtml('previously returned', false);
+
+        return true;
+    });
+});
+
+test('a resubmission email clearly reads as a resubmission the approver already reviewed and returned', function () {
+    $doc = Document::factory()->create([
+        'form_type' => FormType::ActivityProposal,
+        'variant' => ProposalVariant::RegularOnCalendar,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Draft,
+    ]);
+    $this->engine->submit($doc, $this->adviser);
+    $this->engine->returnForRevision($doc, $this->adviser, 'Missing signature.');
+    $doc->refresh();
+
+    $this->engine->resubmit($doc, $this->adviser);
+
+    Mail::assertQueued(ApproverHandOffMail::class, function (ApproverHandOffMail $mail) use ($doc) {
+        if ($mail->stepPosition !== 1 || $mail->document->id !== $doc->id) {
+            return false;
+        }
+
+        // Distinguish this from the submit-triggered mail also queued for
+        // the adviser earlier in this test — only the resubmit one should
+        // carry the resubmission wording.
+        if ($mail->triggerAction !== TransitionAction::Resubmitted) {
+            return false;
+        }
+
+        $mail->assertHasSubject("Resubmitted for your review: {$mail->document->title}");
+        $mail->assertSeeInHtml('You previously returned this', false);
+        $mail->assertSeeInHtml('resubmitted and is ready for your review again', false);
+        $mail->assertDontSeeInHtml('is waiting for your review', false);
+
+        return true;
+    });
+
+    // The original submit-triggered mail (still queued, sent earlier) is
+    // untouched — subject/body distinguish the two despite same recipient
+    // and step.
+    Mail::assertQueued(ApproverHandOffMail::class, fn (ApproverHandOffMail $mail) => $mail->triggerAction === TransitionAction::Submitted
+        && $mail->stepPosition === 1
+    );
     Mail::assertQueued(ApproverHandOffMail::class, 2);
 });
 

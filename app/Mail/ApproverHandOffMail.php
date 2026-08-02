@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Enums\FormType;
+use App\Enums\TransitionAction;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -19,6 +20,11 @@ use Illuminate\Queue\SerializesModels;
  * never on the request path; $tries/backoff() retry a transient provider
  * failure (e.g. Mailtrap's per-second rate limit) with spacing before giving
  * up to failed_jobs.
+ *
+ * $triggerAction distinguishes a genuine first hand-off (Submitted, Advanced)
+ * from a Resubmitted reactivation of the SAME step the recipient already
+ * reviewed and returned (invariant #2: current_step_position holds at the
+ * returning step). Wording-only — see mail.approver-hand-off.
  */
 class ApproverHandOffMail extends Mailable
 {
@@ -31,6 +37,7 @@ class ApproverHandOffMail extends Mailable
         public readonly User $approver,
         public readonly Document $document,
         public readonly int $stepPosition,
+        public readonly TransitionAction $triggerAction,
     ) {
         $this->document->loadMissing('organization');
     }
@@ -48,9 +55,11 @@ class ApproverHandOffMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: "Action needed: {$this->document->title}",
-        );
+        $subject = $this->triggerAction === TransitionAction::Resubmitted
+            ? "Resubmitted for your review: {$this->document->title}"
+            : "Action needed: {$this->document->title}";
+
+        return new Envelope(subject: $subject);
     }
 
     public function content(): Content
@@ -63,6 +72,7 @@ class ApproverHandOffMail extends Mailable
                 'organizationName' => $this->document->organization->name,
                 'documentTitle' => $this->document->title,
                 'reviewUrl' => $this->reviewUrl(),
+                'isResubmission' => $this->triggerAction === TransitionAction::Resubmitted,
             ],
         );
     }

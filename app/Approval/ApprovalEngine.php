@@ -71,7 +71,7 @@ class ApprovalEngine
             $document->save();
 
             $this->recordTransition($document, $actor, TransitionAction::Submitted, $fromStatus, DocumentStatus::InReview, 1);
-            $this->activateStep($document, 1);
+            $this->activateStep($document, 1, TransitionAction::Submitted);
         });
     }
 
@@ -138,7 +138,7 @@ class ApprovalEngine
                 $document->save();
 
                 $this->recordTransition($document, $actor, TransitionAction::Advanced, $fromStatus, DocumentStatus::InReview, $nextPosition);
-                $this->activateStep($document, $nextPosition);
+                $this->activateStep($document, $nextPosition, TransitionAction::Advanced);
             }
         });
     }
@@ -249,7 +249,7 @@ class ApprovalEngine
             $document->save();
 
             $this->recordTransition($document, $actor, TransitionAction::Resubmitted, $fromStatus, DocumentStatus::InReview, $resumePosition);
-            $this->activateStep($document, $resumePosition);
+            $this->activateStep($document, $resumePosition, TransitionAction::Resubmitted);
         });
     }
 
@@ -260,14 +260,21 @@ class ApprovalEngine
     /**
      * Fire notifications to every approver who must act at the given step.
      * This is the single hand-off point for invariant #9.
+     *
+     * $triggerAction is the same TransitionAction just written to
+     * recordTransition() by the caller (Submitted, Advanced, or Resubmitted —
+     * the only three actions that ever activate a step) — threaded through so
+     * the notification wording can distinguish a genuine first hand-off from
+     * a resubmission the approver already reviewed and returned. Not
+     * persisted anywhere; wording-only context for ApproverHandOffMail.
      */
-    private function activateStep(Document $document, int $position): void
+    private function activateStep(Document $document, int $position, TransitionAction $triggerAction): void
     {
         $step = $this->resolveStep($document, $position);
         $approvers = $this->approverResolver->approversFor($step, $document);
 
         foreach ($approvers as $approver) {
-            $this->notifier->notify($approver, $document, $position);
+            $this->notifier->notify($approver, $document, $position, $triggerAction);
         }
     }
 
