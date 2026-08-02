@@ -5,13 +5,20 @@ namespace App\ActivityProposals;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 
 class UpdateProposalDraft
 {
+    public function __construct(
+        private readonly OrganizationMembershipService $membershipService,
+    ) {}
+
     /**
      * Auto-save step-2 narrative fields without entering the approval chain.
-     * Only callable by the submitter while the document is Draft.
+     * Only callable by an active officer of the org (or the submitter, for
+     * the founding-registration edge case — see canActOnDocument()) while
+     * the document is Draft.
      *
      * @param  array<string, mixed>  $data
      *
@@ -19,8 +26,8 @@ class UpdateProposalDraft
      */
     public function execute(User $actor, Document $document, array $data): Document
     {
-        if ($document->status !== DocumentStatus::Draft || $document->submitted_by !== $actor->id) {
-            throw new AuthorizationException('Only the submitter can auto-save their own draft.');
+        if ($document->status !== DocumentStatus::Draft || ! $this->membershipService->canActOnDocument($actor, $document)) {
+            throw new AuthorizationException('Only an active officer of this organization can auto-save this draft.');
         }
 
         $proposal = $document->activityProposal;

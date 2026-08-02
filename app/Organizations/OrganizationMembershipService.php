@@ -2,9 +2,11 @@
 
 namespace App\Organizations;
 
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Single source for "can this student submit for this org." Every form-type
@@ -31,6 +33,42 @@ class OrganizationMembershipService
             ->where('organization_id', $organization->id)
             ->where('is_active', true)
             ->first();
+    }
+
+    /**
+     * Both active officers (President and Secretary — equal partners, per
+     * CLAUDE.md) of the given org. Used to fan out document-outcome
+     * notifications and, via canActOnDocument(), to widen document
+     * edit/resubmit authorization beyond the literal submitter.
+     *
+     * @return Collection<int, User>
+     */
+    public function activeOfficersFor(Organization $organization): Collection
+    {
+        return User::query()
+            ->whereHas('organizationMemberships', fn ($q) => $q
+                ->where('organization_id', $organization->id)
+                ->where('is_active', true))
+            ->get();
+    }
+
+    /**
+     * Can this user act on (view/edit/resubmit) this document as an officer
+     * of its org? True for any active officer (President OR Secretary — the
+     * only two OfficerPosition cases, so "active membership" already IS
+     * "president or secretary") of the document's organization, OR the
+     * document's original submitter.
+     *
+     * The submitted_by clause is NOT redundant with membership: a founding
+     * student proposing a brand-new organization has no OrganizationMembership
+     * row yet on their own pending registration (that binding only happens at
+     * SDAO approval — see ApproveOrganizationRegistration) — see
+     * DocumentPolicy::view()'s docblock for the same edge case.
+     */
+    public function canActOnDocument(User $user, Document $document): bool
+    {
+        return $document->submitted_by === $user->id
+            || $this->activeMembershipFor($user, $document->organization) !== null;
     }
 
     /**

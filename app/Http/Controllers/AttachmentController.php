@@ -9,6 +9,7 @@ use App\Enums\DocumentStatus;
 use App\Http\Requests\Attachments\StoreAttachmentRequest;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class AttachmentController extends Controller
 {
+    public function __construct(
+        private readonly OrganizationMembershipService $membershipService,
+    ) {}
+
     public function store(StoreAttachmentRequest $request, AttachmentStorage $attachmentStorage): JsonResponse
     {
         $document = Document::findOrFail($request->integer('document_id'));
@@ -67,16 +72,18 @@ class AttachmentController extends Controller
     }
 
     /**
-     * Only the original submitter, and only while the document is still
-     * editable (Draft — step-2 in progress — or Returned — resubmitting),
-     * same as the Draft/Returned checks already used inline elsewhere for
-     * this document (e.g. ActivityProposalController::draft()/submit()).
+     * Only an active officer of the document's org (or the submitter, for
+     * the founding-registration edge case — see canActOnDocument()), and
+     * only while the document is still editable (Draft — step-2 in progress
+     * — or Returned — resubmitting), same as the Draft/Returned checks
+     * already used inline elsewhere for this document (e.g.
+     * ActivityProposalController::draft()/submit()).
      */
     private function authorizeMutation(Document $document): void
     {
         $isEditable = in_array($document->status, [DocumentStatus::Draft, DocumentStatus::Returned], true);
 
-        if ($document->submitted_by !== Auth::id() || ! $isEditable) {
+        if (! $this->membershipService->canActOnDocument(Auth::user(), $document) || ! $isEditable) {
             abort(403);
         }
     }

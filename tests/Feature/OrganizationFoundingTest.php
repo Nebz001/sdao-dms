@@ -176,6 +176,51 @@ test('the chosen adviser is bound only after Approval, never before', function (
         ->toBe($document->organization_id);
 });
 
+// Investigation (reported gap: "founding adviser missing Manage Officers in
+// their nav"): the sidebar's gate — app-sidebar.tsx's `adviserRole = roles
+// .find(r => r.role === 'adviser' && r.organization_id !== null)` — is
+// correct, and ApproveOrganizationRegistration.php:57 binds organization_id
+// synchronously, inside the approval transaction, before quorum's redirect
+// is even sent. No prior test proved the founding adviser's OWN next page
+// load reflects this — every test above stops at the raw RoleAssignment row.
+// $adviser is acted-as for the FIRST time only after approval below —
+// deliberately never used as an actor beforehand, so this can't pass via a
+// stale cached Eloquent relation on a reused actor (SessionGuard::user()
+// caches the resolved user per guard instance; reusing an already-acted-as
+// object across a before/after comparison would silently paper over a real
+// regression here).
+test('a founding adviser sees Manage Officers in their nav immediately after their org\'s registration is approved', function () {
+    $student = User::factory()->create();
+    $adviser = User::factory()->create();
+    RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);
+
+    $document = $this->submitAction->execute(
+        ...foundingOrgPayload(),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser->id,
+    );
+
+    $this->actingAs($this->sdaoA)->post(route('review.registrations.approve', $document));
+    $this->actingAs($this->sdaoB)->post(route('review.registrations.approve', $document));
+    $document->refresh();
+    expect($document->status)->toBe(DocumentStatus::Approved);
+
+    $this->actingAs($adviser)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('auth.roles', fn ($roles) => $roles->contains(
+                fn ($r) => $r['role'] === 'adviser' && $r['organization_id'] === $document->organization_id
+            ))
+        );
+
+    // The nav item's actual consequence: the route it points to is reachable.
+    $this->actingAs($adviser)
+        ->get(route('officers.index', $document->organization_id))
+        ->assertOk();
+});
+
 test('adviser and founding student remain unbound through every non-terminal state, and both bind together the moment quorum is met', function () {
     $student = User::factory()->create();
     $adviser = User::factory()->create();

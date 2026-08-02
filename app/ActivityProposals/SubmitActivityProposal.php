@@ -9,6 +9,7 @@ use App\Enums\ProposalCalendarMode;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,7 @@ class SubmitActivityProposal
         private readonly ApprovalEngine $engine,
         private readonly VenueConflictChecker $conflictChecker,
         private readonly ProposalVariantResolver $variantResolver,
+        private readonly OrganizationMembershipService $membershipService,
     ) {}
 
     /**
@@ -47,8 +49,8 @@ class SubmitActivityProposal
             throw new AuthorizationException('Only Draft documents can be submitted to the chain.');
         }
 
-        if ($document->submitted_by !== $actor->id) {
-            throw new AuthorizationException('Only the original submitter may submit this document.');
+        if (! $this->membershipService->canActOnDocument($actor, $document)) {
+            throw new AuthorizationException('Only an active officer of this organization may submit this document.');
         }
 
         $document->load(['organization', 'activityProposal.calendarActivity']);

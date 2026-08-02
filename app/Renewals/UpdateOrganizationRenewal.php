@@ -8,6 +8,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\OrganizationType;
 use App\Models\Document;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class UpdateOrganizationRenewal
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly AttachmentStorage $attachmentStorage,
+        private readonly OrganizationMembershipService $membershipService,
     ) {}
 
     /**
@@ -39,8 +41,8 @@ class UpdateOrganizationRenewal
             throw new AuthorizationException('Only returned documents can be edited.');
         }
 
-        if ($document->submitted_by !== $actor->id) {
-            throw new AuthorizationException('Only the original submitter may edit this document.');
+        if (! $this->membershipService->canActOnDocument($actor, $document)) {
+            throw new AuthorizationException('Only an active officer of this organization may edit this document.');
         }
 
         return DB::transaction(function () use (

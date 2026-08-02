@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,7 @@ class UpdateActivityCalendar
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly VenueConflictChecker $conflictChecker,
+        private readonly OrganizationMembershipService $membershipService,
     ) {}
 
     /**
@@ -34,8 +36,8 @@ class UpdateActivityCalendar
             throw new AuthorizationException('Only returned documents can be edited.');
         }
 
-        if ($document->submitted_by !== $actor->id) {
-            throw new AuthorizationException('Only the original submitter may edit this document.');
+        if (! $this->membershipService->canActOnDocument($actor, $document)) {
+            throw new AuthorizationException('Only an active officer of this organization may edit this document.');
         }
 
         // Intra-calendar self-overlap check

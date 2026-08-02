@@ -3,6 +3,7 @@
 namespace App\Approval;
 
 use App\Approval\Contracts\ApproverNotifier;
+use App\Approval\Contracts\SubmitterNotifier;
 use App\Approval\Exceptions\DuplicateApprovalException;
 use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
@@ -13,6 +14,7 @@ use App\Models\DocumentStepApproval;
 use App\Models\DocumentTransition;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +38,8 @@ class ApprovalEngine
         private readonly WorkflowTemplateResolver $templateResolver,
         private readonly StepApproverResolver $approverResolver,
         private readonly ApproverNotifier $notifier,
+        private readonly SubmitterNotifier $submitterNotifier,
+        private readonly OrganizationMembershipService $membershipService,
     ) {}
 
     // -------------------------------------------------------------------------
@@ -125,6 +129,7 @@ class ApprovalEngine
                 $document->save();
 
                 $this->recordTransition($document, $actor, TransitionAction::Completed, $fromStatus, DocumentStatus::Approved, $step->position);
+                $this->notifySubmitter($document, DocumentStatus::Approved);
             } else {
                 // Advance to the next step.
                 $fromStatus = $document->status;
@@ -160,7 +165,10 @@ class ApprovalEngine
             $document->save();
 
             $this->recordTransition($document, $actor, TransitionAction::Rejected, $fromStatus, DocumentStatus::Rejected, $step->position, $comment);
-            // No notification: terminal action (invariant #2).
+            // No approver notification: terminal action (invariant #2). The
+            // submitter IS notified — this is the only way they'd learn a
+            // rejected document is dead and a brand-new one is required.
+            $this->notifySubmitter($document, DocumentStatus::Rejected, $comment);
         });
     }
 
@@ -215,6 +223,7 @@ class ApprovalEngine
             $document->save();
 
             $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections, $sectionComments);
+            $this->notifySubmitter($document, DocumentStatus::Returned, $comment);
         });
     }
 
@@ -259,6 +268,38 @@ class ApprovalEngine
 
         foreach ($approvers as $approver) {
             $this->notifier->notify($approver, $document, $position);
+        }
+    }
+
+    /**
+     * Notify the org's officers of an outcome (Approved, Rejected, or
+     * Returned) — the three transitions a student cannot otherwise see
+     * without opening the page. President and secretary are equal partners
+     * (CLAUDE.md) and both act on returned documents, so both are notified.
+     *
+     * Falls back to the original submitter alone when the org has no active
+     * officers yet — the founding-registration edge case, where
+     * ApproveOrganizationRegistration only creates the membership AFTER
+     * quorum, so a founding registration's Rejected/Returned outcome always
+     * hits this branch. Also a no-op if there is neither an officer nor a
+     * recorded submitter ($document->submitted_by is nullable).
+     */
+    private function notifySubmitter(Document $document, DocumentStatus $outcome, ?string $comment = null): void
+    {
+        $recipients = $this->membershipService->activeOfficersFor($document->organization);
+
+        if ($recipients->isEmpty()) {
+            $submitter = $document->submitter;
+
+            if ($submitter === null) {
+                return;
+            }
+
+            $recipients = collect([$submitter]);
+        }
+
+        foreach ($recipients as $recipient) {
+            $this->submitterNotifier->notify($recipient, $document, $outcome, $comment);
         }
     }
 

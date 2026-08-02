@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
@@ -70,13 +70,10 @@ export default function ShowActivityProposal({
     flaggedSectionLabels,
     flash,
 }: Props) {
-    const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
-
     useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'history']);
 
     const isDraft = doc.status === 'draft';
     const isReturned = doc.status === 'returned';
-    const isOwnDoc = doc.submitted_by === auth?.user?.id;
 
     return (
         <>
@@ -93,14 +90,14 @@ export default function ShowActivityProposal({
                     </div>
                     <div className="flex items-center gap-2">
                         <StatusBadge status={doc.status} />
-                        {isDraft && isOwnDoc && (
+                        {isDraft && (
                             <Button asChild size="sm">
                                 <Link href={activityProposals.continueMethod({ document: doc.id }).url}>
                                     Continue Narrative
                                 </Link>
                             </Button>
                         )}
-                        {isReturned && isOwnDoc && (
+                        {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={activityProposals.edit({ document: doc.id }).url}>
                                     Edit & Resubmit

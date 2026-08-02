@@ -41,23 +41,23 @@ class DocumentPolicy
     }
 
     /**
-     * Can the user view this document? Either the document's own submitter
-     * (a founding student has no membership yet on their own pending
-     * proposal — Phase 2 item 5 — so this must be checked independently of
-     * membership), an affiliated officer of the document's own organization,
-     * an approver whose current step in this document's chain is active
-     * right now (`review()`), or an approver who has already legitimately
-     * acted on this document (`hasActedOn()`) — so a document doesn't vanish
-     * on its own actor the moment it moves past their step (e.g. after they
-     * reject it, finalize it, or the chain advances beyond them).
+     * Can the user view this document? Either an officer who can act on it
+     * (the document's own submitter — a founding student has no membership
+     * yet on their own pending proposal, Phase 2 item 5 — or any active
+     * officer of the document's own organization, i.e. the president or
+     * secretary; see OrganizationMembershipService::canActOnDocument()), an
+     * approver whose current step in this document's chain is active right
+     * now (`review()`), or an approver who has already legitimately acted on
+     * this document (`hasActedOn()`) — so a document doesn't vanish on its
+     * own actor the moment it moves past their step (e.g. after they reject
+     * it, finalize it, or the chain advances beyond them).
      * Prevents any authenticated user from reading another organization's
      * document by guessing/enumerating IDs: an approver who never acted and
      * whose step isn't active matches none of these.
      */
     public function view(User $user, Document $document): bool
     {
-        return $document->submitted_by === $user->id
-            || $this->membershipService->activeMembershipFor($user, $document->organization) !== null
+        return $this->membershipService->canActOnDocument($user, $document)
             || $this->review($user, $document)
             || $this->hasActedOn($user, $document);
     }
@@ -110,12 +110,15 @@ class DocumentPolicy
     }
 
     /**
-     * Can the user edit this document? (Only when Returned, only the original submitter.)
+     * Can the user edit this document? Only when Returned, and only an
+     * officer who can act on it — the original submitter or any active
+     * officer (president/secretary — equal partners, per CLAUDE.md) of the
+     * document's organization. See OrganizationMembershipService::canActOnDocument().
      */
     public function edit(User $user, Document $document): bool
     {
         return $document->status === DocumentStatus::Returned
-            && $document->submitted_by === $user->id;
+            && $this->membershipService->canActOnDocument($user, $document);
     }
 
     /**

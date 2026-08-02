@@ -9,6 +9,7 @@ use App\Enums\ProposalCalendarMode;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +19,7 @@ class ResubmitActivityProposal
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly VenueConflictChecker $conflictChecker,
+        private readonly OrganizationMembershipService $membershipService,
     ) {}
 
     /**
@@ -39,8 +41,8 @@ class ResubmitActivityProposal
             throw new AuthorizationException('Only Returned documents can be resubmitted.');
         }
 
-        if ($document->submitted_by !== $actor->id) {
-            throw new AuthorizationException('Only the original submitter may resubmit this document.');
+        if (! $this->membershipService->canActOnDocument($actor, $document)) {
+            throw new AuthorizationException('Only an active officer of this organization may resubmit this document.');
         }
 
         $document->load(['activityProposal.calendarActivity']);

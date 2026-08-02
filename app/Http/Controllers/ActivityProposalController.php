@@ -23,6 +23,7 @@ use App\Http\Requests\Proposals\UpdateProposalDraftRequest;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentTerm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -33,14 +34,27 @@ use Inertia\Response;
 
 class ActivityProposalController extends Controller
 {
+    /**
+     * List: activity proposals belonging to any org the user is an active
+     * officer of (both president and secretary see the same list — equal
+     * partners). Every proposal Document is created via StartProposalDraft,
+     * which requires an active membership to begin with — unlike
+     * registration, there's no founding-flow edge case here needing a
+     * submitted_by fallback.
+     */
     public function index(): Response
     {
         $user = Auth::user();
 
+        $organizationIds = OrganizationMembership::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->pluck('organization_id');
+
         $documents = Document::query()
             ->with(['organization', 'activityProposal.calendarActivity'])
             ->where('form_type', FormType::ActivityProposal->value)
-            ->where('submitted_by', $user->id)
+            ->whereIn('organization_id', $organizationIds)
             ->orderBy('updated_at', 'desc')
             ->get()
             ->map(fn (Document $d) => [
@@ -320,9 +334,9 @@ class ActivityProposalController extends Controller
     /**
      * Step-2 narrative form (Draft documents — continue after step 1).
      */
-    public function continue(Document $document): Response
+    public function continue(Document $document, OrganizationMembershipService $membershipService): Response
     {
-        if ($document->submitted_by !== Auth::id() || $document->status !== DocumentStatus::Draft) {
+        if (! $membershipService->canActOnDocument(Auth::user(), $document) || $document->status !== DocumentStatus::Draft) {
             abort(403);
         }
 
@@ -363,9 +377,9 @@ class ActivityProposalController extends Controller
     /**
      * Auto-save step-2 narrative fields (debounced, idempotent, never enters chain).
      */
-    public function draft(UpdateProposalDraftRequest $request, Document $document, UpdateProposalDraft $action): JsonResponse
+    public function draft(UpdateProposalDraftRequest $request, Document $document, UpdateProposalDraft $action, OrganizationMembershipService $membershipService): JsonResponse
     {
-        if ($document->submitted_by !== Auth::id() || $document->status !== DocumentStatus::Draft) {
+        if (! $membershipService->canActOnDocument(Auth::user(), $document) || $document->status !== DocumentStatus::Draft) {
             abort(403);
         }
 
@@ -377,9 +391,9 @@ class ActivityProposalController extends Controller
     /**
      * Submit Draft proposal to the approval chain (step-2 completion).
      */
-    public function submit(SubmitProposalRequest $request, Document $document, SubmitActivityProposal $action): RedirectResponse
+    public function submit(SubmitProposalRequest $request, Document $document, SubmitActivityProposal $action, OrganizationMembershipService $membershipService): RedirectResponse
     {
-        if ($document->submitted_by !== Auth::id() || $document->status !== DocumentStatus::Draft) {
+        if (! $membershipService->canActOnDocument(Auth::user(), $document) || $document->status !== DocumentStatus::Draft) {
             abort(403);
         }
 

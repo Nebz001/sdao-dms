@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Approval\Contracts\ApproverNotifier;
+use App\Approval\Contracts\SubmitterNotifier;
+use App\Approval\Notifications\MailingSubmitterNotifier;
 use App\Approval\Notifications\RecordingApproverNotifier;
 use App\Enums\Role;
 use App\Models\Document;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ApproverNotifier::class, RecordingApproverNotifier::class);
+        $this->app->bind(SubmitterNotifier::class, MailingSubmitterNotifier::class);
     }
 
     /**
