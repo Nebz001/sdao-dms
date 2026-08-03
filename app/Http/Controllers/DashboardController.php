@@ -7,24 +7,13 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Models\Document;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    /**
-     * Short-chain form types reviewed by SDAO alone (CLAUDE.md "Short chains").
-     *
-     * @var array<int, FormType>
-     */
-    private const SDAO_QUEUE_FORM_TYPES = [
-        FormType::OrganizationRegistration,
-        FormType::OrganizationRenewal,
-        FormType::ActivityCalendar,
-        FormType::AfterActivityReport,
-    ];
-
     /**
      * Maps a document's form type to its student-facing "show" route name,
      * for building "needs attention" links (Phase 2 item 11 Group B).
@@ -39,28 +28,26 @@ class DashboardController extends Controller
         'after_activity_report' => 'reports.show',
     ];
 
-    /**
-     * Maps a short-chain form type to its SDAO review-queue route name.
-     *
-     * @var array<string, string>
-     */
-    private const REVIEW_INDEX_ROUTE_NAMES = [
-        'organization_registration' => 'review.registrations.index',
-        'organization_renewal' => 'review.renewals.index',
-        'activity_calendar' => 'review.activity-calendars.index',
-        'after_activity_report' => 'review.reports.index',
-    ];
-
-    public function index(StepApproverResolver $resolver): Response
+    public function index(StepApproverResolver $resolver): Response|RedirectResponse
     {
         $user = Auth::user();
         $roles = $user->roleAssignments;
 
         $isSdao = $roles->contains(fn ($r) => $r->role === Role::SdaoMember);
+
+        // SDAO gets the richer operational dashboard (AdminDashboardController)
+        // instead of this light multi-role page — one "Dashboard" entry point
+        // for everyone, not two. See admin.dashboard.index for the real content.
+        if ($isSdao) {
+            return redirect()->route('admin.dashboard.index');
+        }
+
         // Every non-Student role takes part in some activity-proposal chain
         // variant (CLAUDE.md #8 — SDAO appears once, everyone else is a
         // school/office-scoped approver). Mirrors app-sidebar.tsx's
         // PROPOSAL_APPROVER_ROLES set without re-hardcoding the same list.
+        // isSdao is already false here (redirected above), but the guard
+        // stays explicit for clarity rather than relying on that fact.
         $reviewsProposals = $roles->contains(fn ($r) => $r->role !== Role::Student);
         $membership = $user->organizationMemberships()->active()->with('organization')->first();
 
@@ -69,7 +56,6 @@ class DashboardController extends Controller
         // frontend Props type and Inertia's fluent test assertions.
         $data = [
             'myOrganization' => null,
-            'sdaoQueueCounts' => null,
             'proposalsAtMyStep' => null,
         ];
 
@@ -103,19 +89,6 @@ class DashboardController extends Controller
                         'href' => route(self::SHOW_ROUTE_NAMES[$d->form_type->value], $d),
                     ]),
             ];
-        }
-
-        if ($isSdao) {
-            $data['sdaoQueueCounts'] = collect(self::SDAO_QUEUE_FORM_TYPES)
-                ->map(fn (FormType $type) => [
-                    'label' => $type->label(),
-                    'count' => Document::query()
-                        ->where('form_type', $type->value)
-                        ->where('status', DocumentStatus::InReview->value)
-                        ->count(),
-                    'href' => route(self::REVIEW_INDEX_ROUTE_NAMES[$type->value]),
-                ])
-                ->values();
         }
 
         if ($reviewsProposals) {

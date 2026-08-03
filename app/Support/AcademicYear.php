@@ -35,4 +35,24 @@ class AcademicYear
 
         return "{$startYear}-".($startYear + 1);
     }
+
+    /**
+     * Returns [start, end) for the current academic year — a half-open date
+     * range dashboard queries can scope `created_at` against. Documents
+     * themselves have no `academic_year` column; this exists so "this
+     * academic year" is computed once, from the same rollover rule as
+     * current()/forDate(), rather than re-deriving August 1st elsewhere.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    public static function currentRange(): array
+    {
+        $now = Date::now();
+        $startYear = $now->month >= self::ROLLOVER_MONTH ? $now->year : $now->year - 1;
+
+        return [
+            Date::create($startYear, self::ROLLOVER_MONTH, 1)->startOfDay(),
+            Date::create($startYear + 1, self::ROLLOVER_MONTH, 1)->startOfDay(),
+        ];
+    }
 }

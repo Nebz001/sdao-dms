@@ -4,6 +4,8 @@ use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ApproverController;
 use App\Http\Controllers\Admin\CurrentTermController;
 use App\Http\Controllers\Admin\DocumentArchiveController;
@@ -133,6 +135,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // SDAO admin — approver provisioning + account verification
     Route::middleware('can:access-admin')->prefix('admin')->name('admin.')->group(function () {
+        // SDAO admin — operational overview: quick-link counts, status
+        // distribution, proposal funnel, recent activity, aging documents,
+        // and an organization compliance snapshot. DashboardController
+        // redirects SDAO members here from the shared /dashboard — one
+        // "Dashboard" entry point, not two.
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.index');
+
         Route::get('/approvers', [ApproverController::class, 'index'])->name('approvers.index');
         Route::get('/approvers/create', [ApproverController::class, 'create'])->name('approvers.create');
         Route::post('/approvers', [ApproverController::class, 'store'])->name('approvers.store');
@@ -145,6 +154,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // types). The review queues are deliberately InReview-only; this is
         // where a document goes once it leaves them.
         Route::get('/archive', [DocumentArchiveController::class, 'index'])->name('archive.index');
+
+        // SDAO admin — full, filterable document_transitions log. The
+        // dashboard's Recent Activity card is a tight, capped teaser; this
+        // is its "View all activity" destination for genuine browsing.
+        Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
         // SDAO admin — global settings (Phase 2 item 6: current term)
         Route::get('/settings/term', [CurrentTermController::class, 'edit'])->name('settings.term.edit');

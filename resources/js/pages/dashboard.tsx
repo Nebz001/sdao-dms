@@ -8,16 +8,14 @@ import * as calendar from '@/routes/calendar';
 import * as registrations from '@/routes/registrations';
 
 type OrgDocItem = { id: number; title: string; status: string; href: string };
-type QueueCountRow = { label: string; count: number; href: string };
 type ProposalItem = { id: number; title: string; href: string };
 
 type Props = {
     myOrganization: { id: number; name: string; count: number; items: OrgDocItem[] } | null;
-    sdaoQueueCounts: QueueCountRow[] | null;
     proposalsAtMyStep: { count: number; items: ProposalItem[]; href: string } | null;
 };
 
-export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAtMyStep }: Props) {
+export default function Dashboard({ myOrganization, proposalsAtMyStep }: Props) {
     const { auth } = usePage().props;
     const accountStatus = auth.user.account_status;
 
@@ -60,7 +58,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
         );
     }
 
-    const hasAnyCard = Boolean(myOrganization || sdaoQueueCounts || proposalsAtMyStep);
+    const hasAnyCard = Boolean(myOrganization || proposalsAtMyStep);
 
     return (
         <>
@@ -111,7 +109,7 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
                         )}
                     </div>
                 ) : (
-                    <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+                    <div className="grid auto-rows-min gap-4 md:grid-cols-2">
                         {myOrganization && (
                             <DashboardStatCard
                                 title={`Your Organization — ${myOrganization.name}`}
@@ -122,20 +120,6 @@ export default function Dashboard({ myOrganization, sdaoQueueCounts, proposalsAt
                                     label: d.title,
                                     href: d.href,
                                     status: d.status,
-                                }))}
-                            />
-                        )}
-
-                        {sdaoQueueCounts && (
-                            <DashboardStatCard
-                                title="Awaiting Your Review"
-                                headlineCount={sdaoQueueCounts.reduce((sum, r) => sum + r.count, 0)}
-                                emptyLabel="Nothing is awaiting SDAO review."
-                                rows={sdaoQueueCounts.map((r) => ({
-                                    key: r.label,
-                                    label: r.label,
-                                    href: r.href,
-                                    count: r.count,
                                 }))}
                             />
                         )}

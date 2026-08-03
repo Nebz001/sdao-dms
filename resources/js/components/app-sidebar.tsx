@@ -6,6 +6,7 @@ import {
     FilePlus2,
     FileText,
     Files,
+    History,
     Inbox,
     LayoutGrid,
     UserCheck,
@@ -27,6 +28,7 @@ import {
 import { dashboard } from '@/routes';
 import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
+import * as activityLog from '@/routes/admin/activity';
 import * as approvers from '@/routes/admin/approvers';
 import * as archive from '@/routes/admin/archive';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
@@ -161,6 +163,11 @@ export function AppSidebar() {
                 title: 'Document Archive',
                 href: archive.index(),
                 icon: Archive,
+            },
+            {
+                title: 'Activity Log',
+                href: activityLog.index(),
+                icon: History,
             },
             {
                 title: 'Current Term',

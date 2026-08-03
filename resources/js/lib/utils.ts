@@ -34,6 +34,38 @@ export function formatCalendarDate(date: string): string {
 }
 
 /**
+ * Formats an ISO timestamp as a short relative time for a live activity
+ * feed, e.g. "5m ago", "3h ago", "2d ago" — falling back to an absolute date
+ * past 30 days, where "relative" stops being useful at a glance.
+ */
+export function formatRelativeTime(dateString: string): string {
+    const date = new Date(dateString);
+    const diffMinutes = Math.round((Date.now() - date.getTime()) / 60000);
+
+    if (diffMinutes < 1) {
+        return 'just now';
+    }
+
+    if (diffMinutes < 60) {
+        return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.round(diffMinutes / 60);
+
+    if (diffHours < 24) {
+        return `${diffHours}h ago`;
+    }
+
+    const diffDays = Math.round(diffHours / 24);
+
+    if (diffDays < 30) {
+        return `${diffDays}d ago`;
+    }
+
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/**
  * Formats a "HH:MM[:SS]"-"HH:MM[:SS]" time pair for display,
  * e.g. "2:00 PM – 3:00 PM".
  */

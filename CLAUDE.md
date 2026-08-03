@@ -345,6 +345,13 @@ approximate these.
 - **Run dev server:** `composer run dev` (runs Vite + PHP server together)
 - **Format PHP:** `vendor/bin/pint --dirty --format agent`
 - **Lint JS:** `npm run lint`
+- **Regenerate Wayfinder routes/actions outside the dev server:** always
+  `php artisan wayfinder:generate --with-form --no-interaction`. `vite.config.ts` runs the Vite
+  plugin with `formVariants: true`; the bare artisan command defaults that off. Omitting
+  `--with-form` regenerates *every* action file project-wide without `.form()` helpers, silently
+  breaking every page that uses Inertia's `<Form>` with a Wayfinder action (login, 2FA, settings,
+  every document edit/review form, etc.) with an uncaught `TypeError: ...form is not a function`
+  — not just the route you meant to add.
 - Never commit secrets or `.env` files.
 
 ## Build order (vertical slices — see PLAN.md)

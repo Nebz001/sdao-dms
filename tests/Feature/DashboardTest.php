@@ -32,7 +32,6 @@ test('a bare verified user with no role or org sees no dashboard sections, but i
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('myOrganization', null)
-            ->where('sdaoQueueCounts', null)
             ->where('proposalsAtMyStep', null)
             ->where('auth.canProposeOrganization', true)
         );
@@ -46,10 +45,15 @@ test('auth.canProposeOrganization mirrors DocumentPolicy::propose exactly — tr
     // checking isSdao/reviewsProposals before showing the item — see
     // app-sidebar.tsx's canFoundOrganization. This test documents that the
     // shared prop itself is a verbatim, role-agnostic mirror of the Gate.
+    //
+    // Hits admin.dashboard.index rather than dashboard: an SDAO member now
+    // redirects away from /dashboard (see the redirect tests below), but
+    // auth.* props are shared globally by HandleInertiaRequests, so any page
+    // they can actually reach proves the same thing.
     $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
 
     $this->actingAs($sdaoA)
-        ->get(route('dashboard'))
+        ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('auth.canProposeOrganization', true));
 });
@@ -63,31 +67,21 @@ test('a student officer is not offered the founding flow (they already have an o
         ->assertInertia(fn ($page) => $page->where('auth.canProposeOrganization', false));
 });
 
-test('an SDAO member sees queue counts for the short-chain form types', function () {
-    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+test('an SDAO member visiting /dashboard is redirected to the admin dashboard', function () {
     $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
 
-    Document::create([
-        'form_type' => FormType::OrganizationRegistration,
-        'variant' => null,
-        'title' => 'Pending Registration',
-        'status' => DocumentStatus::InReview,
-        'current_step_position' => 1,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
+    $this->actingAs($sdaoA)
+        ->get(route('dashboard'))
+        ->assertRedirect(route('admin.dashboard.index'));
+});
 
-    $this->actingAs($sdaoA);
+test('a non-SDAO approver still sees the light dashboard, unaffected by the SDAO redirect', function () {
+    $adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
 
-    $this->get(route('dashboard'))
+    $this->actingAs($adviserOne)
+        ->get(route('dashboard'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('myOrganization', null)
-            ->has('sdaoQueueCounts', 4)
-            ->where('sdaoQueueCounts.0.label', 'Organization Registration')
-            ->where('sdaoQueueCounts.0.count', 1)
-        );
+        ->assertInertia(fn ($page) => $page->component('dashboard'));
 });
 
 test('a student officer sees their organization\'s documents needing attention', function () {

@@ -67,6 +67,21 @@ class Document extends Model
         return $this->hasMany(DocumentTransition::class)->orderBy('id');
     }
 
+    /**
+     * The most recent transition — the honest "last activity" clock.
+     * `documents.updated_at` is NOT reliable for this: a partial SDAO
+     * approval (first of two required) writes a DocumentTransition but
+     * ApprovalEngine::approve() returns early without saving the Document
+     * (invariant #3's split-decision handling), so updated_at can lag behind
+     * real activity.
+     *
+     * @return HasOne<DocumentTransition, $this>
+     */
+    public function latestTransition(): HasOne
+    {
+        return $this->hasOne(DocumentTransition::class)->latestOfMany('created_at');
+    }
+
     /** @return HasOne<OrganizationRegistrationDetail, $this> */
     public function registrationDetail(): HasOne
     {
