@@ -4,6 +4,7 @@ import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,7 +138,10 @@ export default function ReviewActivityCalendarShow({
                         <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
                         <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
                     </div>
-                    <StatusBadge status={document.status} />
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={document.status} />
+                        <PrintFormButton documentId={document.id} />
+                    </div>
                 </div>
 
                 {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,

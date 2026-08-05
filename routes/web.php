@@ -15,6 +15,7 @@ use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
@@ -42,6 +43,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
+
+    // Printable official forms — generic across every form type, same
+    // category as attachments above. See App\Printing\PrintableForms.
+    Route::get('/documents/{document}/print', DocumentPrintController::class)
+        ->middleware('throttle:20,1')
+        ->name('documents.print');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');

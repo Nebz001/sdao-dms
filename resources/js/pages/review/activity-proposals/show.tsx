@@ -5,6 +5,7 @@ import AttachmentsCard from '@/components/attachments-card';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
@@ -139,7 +140,10 @@ export default function ReviewActivityProposalShow({
                             <span className="font-medium">Name of RSO:</span> {doc.organization.name}
                         </p>
                     </div>
-                    <StatusBadge status={doc.status} />
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={doc.status} />
+                        <PrintFormButton documentId={doc.id} />
+                    </div>
                 </div>
 
                 {/* Off-calendar conflict warning */}

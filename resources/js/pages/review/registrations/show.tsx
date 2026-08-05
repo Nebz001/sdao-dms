@@ -5,6 +5,7 @@ import AttachmentsCard from '@/components/attachments-card';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type {SectionFlagDef} from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
@@ -114,7 +115,10 @@ export default function ReviewRegistrationShow({
                             {document.organization.name}
                         </p>
                     </div>
-                    <StatusBadge status={document.status} />
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={document.status} />
+                        <PrintFormButton documentId={document.id} />
+                    </div>
                 </div>
 
                 {/* Dual-SDAO quorum state */}

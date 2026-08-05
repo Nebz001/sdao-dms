@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +91,7 @@ export default function ShowActivityProposal({
                     </div>
                     <div className="flex items-center gap-2">
                         <StatusBadge status={doc.status} />
+                        <PrintFormButton documentId={doc.id} />
                         {isDraft && (
                             <Button asChild size="sm">
                                 <Link href={activityProposals.continueMethod({ document: doc.id }).url}>

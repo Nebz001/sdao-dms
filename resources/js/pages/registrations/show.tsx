@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +64,7 @@ export default function ShowRegistration({ document, detail, attachmentSlots, at
                     </div>
                     <div className="flex items-center gap-2">
                         <StatusBadge status={document.status} />
+                        <PrintFormButton documentId={document.id} />
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={registrations.edit(document.id)}>
