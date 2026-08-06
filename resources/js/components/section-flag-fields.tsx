@@ -43,11 +43,8 @@ export default function SectionFlagFields({ sections }: Props) {
             </span>
             <div className="space-y-2">
                 {sections.map((section) => (
-                    <div
-                        key={section.key}
-                        className="space-y-2 rounded-md border p-3"
-                    >
-                        <div className="flex items-center gap-2">
+                    <div key={section.key} className="rounded-md border p-3">
+                        <div className="flex gap-2">
                             <Checkbox
                                 id={`section-${section.key}`}
                                 name="sections[]"
@@ -59,23 +56,32 @@ export default function SectionFlagFields({ sections }: Props) {
                                         [section.key]: value === true,
                                     }))
                                 }
+                                className="mt-0.5"
                             />
-                            <Label
-                                htmlFor={`section-${section.key}`}
-                                className="font-normal"
-                            >
-                                {section.label}
-                            </Label>
+                            {/* This column, not a margin on the textarea, is what keeps
+                                the note inside the row: flex-1 gives it exactly the
+                                remaining width after the checkbox, so the Textarea's
+                                own `w-full` resolves against that width. `ml-*` on a
+                                `w-full` textarea would instead push it past the row's
+                                right padding — width:100% doesn't shrink to make room
+                                for a sibling's margin. */}
+                            <div className="flex-1 space-y-2">
+                                <Label
+                                    htmlFor={`section-${section.key}`}
+                                    className="font-normal"
+                                >
+                                    {section.label}
+                                </Label>
+                                {checked[section.key] && (
+                                    <Textarea
+                                        name={`section_comments[${section.key}]`}
+                                        placeholder={`Note specific to ${section.label} (optional)…`}
+                                        aria-label={`Note for ${section.label}`}
+                                        rows={2}
+                                    />
+                                )}
+                            </div>
                         </div>
-                        {checked[section.key] && (
-                            <Textarea
-                                name={`section_comments[${section.key}]`}
-                                placeholder={`Note specific to ${section.label} (optional)…`}
-                                aria-label={`Note for ${section.label}`}
-                                rows={2}
-                                className="ml-6"
-                            />
-                        )}
                     </div>
                 ))}
             </div>
