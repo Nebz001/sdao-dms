@@ -3,6 +3,7 @@ import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/Act
 import ApprovalActionsCard from '@/components/approval-actions-card';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -149,7 +150,10 @@ export default function ReviewActivityCalendarShow({
                             {document.organization.name}
                         </p>
                     </div>
-                    <StatusBadge status={document.status} />
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={document.status} />
+                        <PrintFormButton documentId={document.id} />
+                    </div>
                 </div>
 
                 {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,

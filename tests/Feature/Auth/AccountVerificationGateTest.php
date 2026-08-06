@@ -223,7 +223,7 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'source_of_funding' => 'Source of Funding',
-        'expenses' => 'Expenses',
+        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
     ]);
 
     $response->assertForbidden();
@@ -256,7 +256,7 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'source_of_funding' => 'Source of Funding',
-        'expenses' => 'Expenses',
+        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
     ]);
 
     $response->assertForbidden();

@@ -120,6 +120,11 @@ class ActivityProposalReviewController extends Controller
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
                 'source_of_funding' => $proposal->source_of_funding,
+                // Itemized expenses (client request, post-Part-2); `expenses`
+                // is the legacy free-text fallback for pre-existing
+                // proposals that never got rows — see the model docblock.
+                'expense_items' => $proposal->expense_items,
+                'expense_items_total' => $proposal->expenseItemsTotal,
                 'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a).

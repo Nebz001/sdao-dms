@@ -53,7 +53,12 @@ function step2NarrativeFields(array $overrides = []): array
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'source_of_funding' => 'Source of Funding',
-        'expenses' => 'Expenses',
+        // Itemized expenses (client request, post-Part-2) replaced the old
+        // free-text `expenses` field as the fourth required narrative field.
+        'expense_items' => [
+            ['label' => 'Venue rental', 'amount' => '5000.00'],
+            ['label' => 'Refreshments', 'amount' => '1500.50'],
+        ],
     ], $overrides);
 }
 
@@ -63,7 +68,7 @@ test('submit validation rejects a step-2 submission missing any of the four new 
     $document = $this->document;
     $base = step2NarrativeFields();
 
-    foreach (['criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses'] as $field) {
+    foreach (['criteria_mechanics', 'program_flow', 'source_of_funding', 'expense_items'] as $field) {
         $payload = $base;
         unset($payload[$field]);
 
@@ -71,6 +76,20 @@ test('submit validation rejects a step-2 submission missing any of the four new 
             ->post(route('activity-proposals.submit', $document), $payload);
 
         $response->assertInvalid([$field]);
+        expect($document->fresh()->status)->toBe(DocumentStatus::Draft);
+    }
+});
+
+test('submit validation rejects an expense item with a negative or non-numeric amount', function () {
+    $document = $this->document;
+
+    foreach (['-5', 'not-a-number'] as $badAmount) {
+        $response = $this->actingAs($this->studentAlpha)
+            ->post(route('activity-proposals.submit', $document), step2NarrativeFields([
+                'expense_items' => [['label' => 'Venue rental', 'amount' => $badAmount]],
+            ]));
+
+        $response->assertInvalid(['expense_items.0.amount']);
         expect($document->fresh()->status)->toBe(DocumentStatus::Draft);
     }
 });
@@ -91,7 +110,11 @@ test('the four new narrative fields round-trip through step-2 submission and eve
     expect($proposal->criteria_mechanics)->toBe('Criteria/Mechanics');
     expect($proposal->program_flow)->toBe('Program Flow');
     expect($proposal->source_of_funding)->toBe('Source of Funding');
-    expect($proposal->expenses)->toBe('Expenses');
+    expect($proposal->expense_items)->toBe([
+        ['label' => 'Venue rental', 'amount' => '5000.00'],
+        ['label' => 'Refreshments', 'amount' => '1500.50'],
+    ]);
+    expect($proposal->expenseItemsTotal)->toBe('6,500.50');
 
     // Student show page.
     $this->actingAs($this->studentAlpha)
@@ -103,7 +126,11 @@ test('the four new narrative fields round-trip through step-2 submission and eve
             ->where('proposal.criteria_mechanics', 'Criteria/Mechanics')
             ->where('proposal.program_flow', 'Program Flow')
             ->where('proposal.source_of_funding', 'Source of Funding')
-            ->where('proposal.expenses', 'Expenses')
+            ->where('proposal.expense_items', [
+                ['label' => 'Venue rental', 'amount' => '5000.00'],
+                ['label' => 'Refreshments', 'amount' => '1500.50'],
+            ])
+            ->where('proposal.expense_items_total', '6,500.50')
         );
 
     // Approver (current-step) review show page.
@@ -116,7 +143,7 @@ test('the four new narrative fields round-trip through step-2 submission and eve
             ->where('proposal.criteria_mechanics', 'Criteria/Mechanics')
             ->where('proposal.program_flow', 'Program Flow')
             ->where('proposal.source_of_funding', 'Source of Funding')
-            ->where('proposal.expenses', 'Expenses')
+            ->where('proposal.expense_items_total', '6,500.50')
         );
 });
 
@@ -130,7 +157,7 @@ test('autosave persists the four new narrative fields and keeps the document Dra
             'criteria_mechanics' => 'Autosaved Criteria',
             'program_flow' => 'Autosaved Flow',
             'source_of_funding' => 'Autosaved Funding',
-            'expenses' => 'Autosaved Expenses',
+            'expense_items' => [['label' => 'Autosaved Item', 'amount' => '250.00']],
         ]);
 
     $response->assertOk();
@@ -142,7 +169,7 @@ test('autosave persists the four new narrative fields and keeps the document Dra
     expect($proposal->criteria_mechanics)->toBe('Autosaved Criteria');
     expect($proposal->program_flow)->toBe('Autosaved Flow');
     expect($proposal->source_of_funding)->toBe('Autosaved Funding');
-    expect($proposal->expenses)->toBe('Autosaved Expenses');
+    expect($proposal->expense_items)->toBe([['label' => 'Autosaved Item', 'amount' => '250.00']]);
 
     // Step-2 continue view echoes the autosaved values back.
     $this->actingAs($this->studentAlpha)
@@ -154,8 +181,21 @@ test('autosave persists the four new narrative fields and keeps the document Dra
             ->where('proposal.criteria_mechanics', 'Autosaved Criteria')
             ->where('proposal.program_flow', 'Autosaved Flow')
             ->where('proposal.source_of_funding', 'Autosaved Funding')
-            ->where('proposal.expenses', 'Autosaved Expenses')
+            ->where('proposal.expense_items', [['label' => 'Autosaved Item', 'amount' => '250.00']])
         );
+});
+
+test('autosave tolerates a half-filled expense row (label typed, amount still empty)', function () {
+    $document = $this->document;
+
+    $response = $this->actingAs($this->studentAlpha)
+        ->patch(route('activity-proposals.draft', $document), [
+            'expense_items' => [['label' => 'Venue rental', 'amount' => '']],
+        ]);
+
+    $response->assertOk();
+    $document->refresh();
+    expect($document->status)->toBe(DocumentStatus::Draft);
 });
 
 // --- Resubmit: required, round-trips edited values ------------------------
@@ -183,7 +223,7 @@ test('resubmitting a Returned proposal round-trips edited values of the four new
                 'criteria_mechanics' => 'Revised Criteria',
                 'program_flow' => 'Revised Flow',
                 'source_of_funding' => 'Revised Funding',
-                'expenses' => 'Revised Expenses',
+                'expense_items' => [['label' => 'Revised Item', 'amount' => '999.99']],
             ],
         ));
 
@@ -195,5 +235,5 @@ test('resubmitting a Returned proposal round-trips edited values of the four new
     expect($proposal->criteria_mechanics)->toBe('Revised Criteria');
     expect($proposal->program_flow)->toBe('Revised Flow');
     expect($proposal->source_of_funding)->toBe('Revised Funding');
-    expect($proposal->expenses)->toBe('Revised Expenses');
+    expect($proposal->expense_items)->toBe([['label' => 'Revised Item', 'amount' => '999.99']]);
 });

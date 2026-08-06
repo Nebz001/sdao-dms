@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,6 +87,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                     </div>
                     <div className="flex items-center gap-2">
                         <StatusBadge status={document.status} />
+                        <PrintFormButton documentId={document.id} />
                         {isReturned && (
                             <Button asChild size="sm">
                                 <Link href={`/activity-calendars/${document.id}/edit`}>

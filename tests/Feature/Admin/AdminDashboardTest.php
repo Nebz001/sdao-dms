@@ -177,7 +177,7 @@ test('the proposal funnel groups an in-review proposal by variant and labels the
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         sourceOfFunding: 'Funding',
-        expenses: 'Expenses',
+        expenseItems: [['label' => 'Expenses', 'amount' => '100.00']],
     );
 
     $this->actingAs($this->sdaoA)->withoutVite()
