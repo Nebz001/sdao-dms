@@ -37,11 +37,16 @@ export default function SectionFlagFields({ sections }: Props) {
     }
 
     return (
-        <div className="grid gap-2">
-            <span className="text-sm font-medium">Flag sections needing revision (optional)</span>
-            <div className="grid gap-3">
+        <div className="space-y-2">
+            <span className="text-sm font-medium">
+                Flag sections needing revision (optional)
+            </span>
+            <div className="space-y-2">
                 {sections.map((section) => (
-                    <div key={section.key} className="grid gap-2">
+                    <div
+                        key={section.key}
+                        className="space-y-2 rounded-md border p-3"
+                    >
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 id={`section-${section.key}`}
@@ -49,10 +54,16 @@ export default function SectionFlagFields({ sections }: Props) {
                                 value={section.key}
                                 checked={checked[section.key] ?? false}
                                 onCheckedChange={(value) =>
-                                    setChecked((prev) => ({ ...prev, [section.key]: value === true }))
+                                    setChecked((prev) => ({
+                                        ...prev,
+                                        [section.key]: value === true,
+                                    }))
                                 }
                             />
-                            <Label htmlFor={`section-${section.key}`} className="font-normal">
+                            <Label
+                                htmlFor={`section-${section.key}`}
+                                className="font-normal"
+                            >
                                 {section.label}
                             </Label>
                         </div>

@@ -1,17 +1,16 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import ActivityProposalReviewController from '@/actions/App/Http/Controllers/ActivityProposalReviewController';
-import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import ApprovalActionsCard from '@/components/approval-actions-card';
+import type {
+    AttachmentSlotDef,
+    ExistingAttachment,
+} from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
-import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
-import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
-import type {SectionFlagDef} from '@/components/section-flag-fields';
+import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DialogClose, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
@@ -52,7 +51,9 @@ type ActivityData = {
 
 type StepApproval = { user_id: number; name: string };
 
-type ConflictInfo = { confirmed: { name: string; organization: string }[] } | null;
+type ConflictInfo = {
+    confirmed: { name: string; organization: string }[];
+} | null;
 
 type Props = {
     document: DocumentData;
@@ -78,8 +79,8 @@ function actionLabel(a: string): string {
 
 function roleLabel(role: string | null): string {
     if (!role) {
-return 'Approver';
-}
+        return 'Approver';
+    }
 
     return role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -121,7 +122,19 @@ export default function ReviewActivityProposalShow({
     hasConfirmedConflict,
     errors = {},
 }: Props) {
-    useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'history', 'currentStepApprovals', 'hasApproved', 'currentStepRole', 'requiredApprovals', 'activityConflict', 'hasConfirmedConflict']);
+    useDocumentUpdates([
+        'document',
+        'proposal',
+        'activity',
+        'attachments',
+        'history',
+        'currentStepApprovals',
+        'hasApproved',
+        'currentStepRole',
+        'requiredApprovals',
+        'activityConflict',
+        'hasConfirmedConflict',
+    ]);
 
     const isInReview = doc.status === 'in_review';
     const isSdaoStep = currentStepRole === 'sdao_member';
@@ -134,9 +147,12 @@ export default function ReviewActivityProposalShow({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{doc.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                            {doc.title}
+                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Name of RSO:</span> {doc.organization.name}
+                            <span className="font-medium">Name of RSO:</span>{' '}
+                            {doc.organization.name}
                         </p>
                     </div>
                     <StatusBadge status={doc.status} />
@@ -147,7 +163,8 @@ export default function ReviewActivityProposalShow({
                     <Card className="border-destructive bg-destructive/5">
                         <CardContent className="pt-4">
                             <p className="text-sm font-medium text-destructive">
-                                Venue conflict — this activity overlaps an already-approved booking:
+                                Venue conflict — this activity overlaps an
+                                already-approved booking:
                             </p>
                             {activityConflict.confirmed.map((c, i) => (
                                 <p key={i} className="text-sm text-destructive">
@@ -155,7 +172,8 @@ export default function ReviewActivityProposalShow({
                                 </p>
                             ))}
                             <p className="mt-2 text-sm text-destructive">
-                                Approval is blocked. Return this proposal to the submitter to resolve the conflict.
+                                Approval is blocked. Return this proposal to the
+                                submitter to resolve the conflict.
                             </p>
                         </CardContent>
                     </Card>
@@ -163,19 +181,26 @@ export default function ReviewActivityProposalShow({
 
                 {/* Activity */}
                 {activity && proposal && (
-                    <Card className={`border-l-4 ${statusBorderClass(doc.status)}`}>
+                    <Card
+                        className={`border-l-4 ${statusBorderClass(doc.status)}`}
+                    >
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Activity{' '}
                                 <span className="text-xs font-normal text-muted-foreground">
-                                    ({proposal.calendar_mode === 'on_calendar' ? 'On Calendar' : 'Off Calendar'})
+                                    (
+                                    {proposal.calendar_mode === 'on_calendar'
+                                        ? 'On Calendar'
+                                        : 'Off Calendar'}
+                                    )
                                 </span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm">
                             <p className="font-medium">{activity.name}</p>
                             <p className="text-muted-foreground">
-                                {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
+                                {activity.venue} · {activity.activity_date} ·{' '}
+                                {activity.start_time}–{activity.end_time}
                             </p>
                         </CardContent>
                     </Card>
@@ -185,32 +210,57 @@ export default function ReviewActivityProposalShow({
                 {proposal && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Activity Request Form</CardTitle>
+                            <CardTitle className="text-base">
+                                Activity Request Form
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
                             {proposal.activity_nature_label && (
-                                <Row label="Nature of Activity" value={proposal.activity_nature_label} />
+                                <Row
+                                    label="Nature of Activity"
+                                    value={proposal.activity_nature_label}
+                                />
                             )}
                             {proposal.activity_type_label && (
-                                <Row label="Type of Activity" value={proposal.activity_type_label} />
+                                <Row
+                                    label="Type of Activity"
+                                    value={proposal.activity_type_label}
+                                />
                             )}
-                            {proposal.partner_organizations && proposal.partner_organizations.length > 0 && (
-                                <div className="grid gap-1">
-                                    <span className="font-medium text-muted-foreground">
-                                        Partner Organization(s)/School(s)/RSO
-                                    </span>
-                                    <ul className="list-disc pl-4">
-                                        {proposal.partner_organizations.map((org, i) => (
-                                            <li key={i}>{org}</li>
-                                        ))}
-                                    </ul>
-                                </div>
+                            {proposal.partner_organizations &&
+                                proposal.partner_organizations.length > 0 && (
+                                    <div className="grid gap-1">
+                                        <span className="font-medium text-muted-foreground">
+                                            Partner
+                                            Organization(s)/School(s)/RSO
+                                        </span>
+                                        <ul className="list-disc pl-4">
+                                            {proposal.partner_organizations.map(
+                                                (org, i) => (
+                                                    <li key={i}>{org}</li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                            {proposal.target_sdg_label && (
+                                <Row
+                                    label="Target SDG"
+                                    value={proposal.target_sdg_label}
+                                />
                             )}
-                            {proposal.target_sdg_label && <Row label="Target SDG" value={proposal.target_sdg_label} />}
                             {proposal.proposed_budget && (
-                                <Row label="Proposed Budget" value={`₱${proposal.proposed_budget}`} />
+                                <Row
+                                    label="Proposed Budget"
+                                    value={`₱${proposal.proposed_budget}`}
+                                />
                             )}
-                            {proposal.budget_source && <Row label="Budget Source" value={proposal.budget_source} />}
+                            {proposal.budget_source && (
+                                <Row
+                                    label="Budget Source"
+                                    value={proposal.budget_source}
+                                />
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -219,43 +269,67 @@ export default function ReviewActivityProposalShow({
                 {proposal && (proposal.objectives || proposal.narrative) && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Proposal Narrative</CardTitle>
+                            <CardTitle className="text-base">
+                                Proposal Narrative
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
                             {proposal.objectives && (
                                 <div>
-                                    <p className="mb-1 font-medium">Objectives</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.objectives}</p>
+                                    <p className="mb-1 font-medium">
+                                        Objectives
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.objectives}
+                                    </p>
                                 </div>
                             )}
                             {proposal.narrative && (
                                 <div>
-                                    <p className="mb-1 font-medium">Narrative</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.narrative}</p>
+                                    <p className="mb-1 font-medium">
+                                        Narrative
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.narrative}
+                                    </p>
                                 </div>
                             )}
                             {proposal.criteria_mechanics && (
                                 <div>
-                                    <p className="mb-1 font-medium">Criteria/Mechanics</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.criteria_mechanics}</p>
+                                    <p className="mb-1 font-medium">
+                                        Criteria/Mechanics
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.criteria_mechanics}
+                                    </p>
                                 </div>
                             )}
                             {proposal.program_flow && (
                                 <div>
-                                    <p className="mb-1 font-medium">Program Flow</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.program_flow}</p>
+                                    <p className="mb-1 font-medium">
+                                        Program Flow
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.program_flow}
+                                    </p>
                                 </div>
                             )}
                             {proposal.source_of_funding && (
                                 <div>
-                                    <p className="mb-1 font-medium">Source of Funding</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.source_of_funding}</p>
+                                    <p className="mb-1 font-medium">
+                                        Source of Funding
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.source_of_funding}
+                                    </p>
                                 </div>
                             )}
                             {proposal.expenses && (
                                 <div>
                                     <p className="mb-1 font-medium">Expenses</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.expenses}</p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.expenses}
+                                    </p>
                                 </div>
                             )}
                         </CardContent>
@@ -266,142 +340,107 @@ export default function ReviewActivityProposalShow({
 
                 {/* Approver actions */}
                 {isInReview && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                {isSdaoStep ? 'SDAO Approval' : `${roleLabel(currentStepRole)} Approval`}
+                    <ApprovalActionsCard
+                        title={
+                            <>
+                                {isSdaoStep
+                                    ? 'SDAO Approval'
+                                    : `${roleLabel(currentStepRole)} Approval`}
                                 {isSdaoStep && (
                                     <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                        ({currentStepApprovals.length}/{requiredApprovals} approved)
+                                        ({currentStepApprovals.length}/
+                                        {requiredApprovals} approved)
                                     </span>
                                 )}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {isSdaoStep && currentStepApprovals.length > 0 && (
+                            </>
+                        }
+                        note={
+                            isSdaoStep && currentStepApprovals.length > 0 ? (
                                 <p className="text-sm text-muted-foreground">
-                                    Approved by: {currentStepApprovals.map((a) => a.name).join(', ')}
+                                    Approved by:{' '}
+                                    {currentStepApprovals
+                                        .map((a) => a.name)
+                                        .join(', ')}
                                 </p>
-                            )}
-
-                            <div className="flex flex-wrap gap-3">
-                                {/* Approve */}
-                                <ConfirmDialog
-                                    trigger={
-                                        <Button type="button" disabled={hasApproved || hasConfirmedConflict}>
-                                            {hasApproved ? 'Already Approved' : 'Approve'}
-                                        </Button>
-                                    }
-                                    title="Approve this proposal?"
-                                    description={
-                                        <>
-                                            This action is irreversible once all required approvals are met.
-                                            {errors.approve && (
-                                                <span className="mt-2 block text-destructive">{errors.approve}</span>
-                                            )}
-                                        </>
-                                    }
-                                    confirmLabel="Confirm Approval"
-                                    confirmDisabled={hasApproved || hasConfirmedConflict}
-                                    onConfirm={({ close, stopProcessing }: ConfirmActions) =>
-                                        router.post(
-                                            ActivityProposalReviewController.approve({ document: doc.id }).url,
-                                            {},
-                                            {
-                                                preserveScroll: true,
-                                                onSuccess: close,
-                                                onFinish: stopProcessing,
-                                            },
-                                        )
-                                    }
-                                />
-
-                                {/* Return */}
-                                <Form
-                                    {...ActivityProposalReviewController.return.form({ document: doc.id })}
-                                    className="w-full space-y-2 sm:w-auto"
-                                >
-                                    {({ processing, errors: formErrors }) => (
-                                        <>
-                                            <div className="flex gap-2">
-                                                <Textarea name="comment" placeholder="Return comment (required)…" rows={2} className="w-64" />
-                                                <Button type="submit" variant="outline" disabled={processing}>
-                                                    Return for Revision
-                                                </Button>
-                                            </div>
-                                            <InputError message={formErrors.comment} />
-                                            <SectionFlagFields sections={sectionFlags} />
-                                        </>
+                            ) : undefined
+                        }
+                        approve={{
+                            label: hasApproved ? 'Already Approved' : 'Approve',
+                            disabled: hasApproved || hasConfirmedConflict,
+                            confirmTitle: 'Approve this proposal?',
+                            confirmDescription: (
+                                <>
+                                    This action is irreversible once all
+                                    required approvals are met.
+                                    {errors.approve && (
+                                        <span className="mt-2 block text-destructive">
+                                            {errors.approve}
+                                        </span>
                                     )}
-                                </Form>
-
-                                {/* Reject — the reason field lives inside the dialog (not
-                                    crossing the Radix portal via a form id) so a blank-comment
-                                    validation error is visible while the dialog is still open,
-                                    instead of rendering behind it. */}
-                                <ConfirmDialog
-                                    trigger={
-                                        <Button type="button" variant="destructive">
-                                            Reject
-                                        </Button>
-                                    }
-                                    title="Reject this proposal?"
-                                    description="This is permanent — the submitter cannot revive this document. They must file a brand-new proposal."
-                                >
-                                    {(close) => (
-                                        <Form
-                                            {...ActivityProposalReviewController.reject.form({ document: doc.id })}
-                                            options={{ preserveScroll: true }}
-                                            onSuccess={close}
-                                        >
-                                            {({ processing, errors: formErrors }) => (
-                                                <>
-                                                    <Textarea
-                                                        name="comment"
-                                                        placeholder="Rejection reason…"
-                                                        rows={3}
-                                                        required
-                                                    />
-                                                    <InputError message={formErrors.comment} />
-                                                    <DialogFooter className="mt-4 gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button type="button" variant="secondary" disabled={processing}>
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-                                                        <Button
-                                                            type="submit"
-                                                            variant="destructive"
-                                                            loading={processing}
-                                                        >
-                                                            Reject
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </>
-                                            )}
-                                        </Form>
-                                    )}
-                                </ConfirmDialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </>
+                            ),
+                            confirmDisabled:
+                                hasApproved || hasConfirmedConflict,
+                            onConfirm: ({
+                                close,
+                                stopProcessing,
+                            }: ConfirmActions) =>
+                                router.post(
+                                    ActivityProposalReviewController.approve({
+                                        document: doc.id,
+                                    }).url,
+                                    {},
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: close,
+                                        onFinish: stopProcessing,
+                                    },
+                                ),
+                        }}
+                        return={{
+                            formProps:
+                                ActivityProposalReviewController.return.form({
+                                    document: doc.id,
+                                }),
+                            placeholder:
+                                'Explain what the student needs to revise…',
+                            flagFields: (
+                                <SectionFlagFields sections={sectionFlags} />
+                            ),
+                        }}
+                        reject={{
+                            formProps:
+                                ActivityProposalReviewController.reject.form({
+                                    document: doc.id,
+                                }),
+                            confirmTitle: 'Reject this proposal?',
+                            confirmDescription:
+                                'This is permanent — the submitter cannot revive this document. They must file a brand-new proposal.',
+                        }}
+                    />
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(doc.status)}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {reviewOnlyStatusNote(doc.status)}
+                    </p>
                 )}
 
                 {/* Revision history */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Revision History</CardTitle>
+                        <CardTitle className="text-base">
+                            Revision History
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ol className="relative border-l border-border pl-4">
                             {history.map((entry) => (
                                 <li key={entry.id} className="mb-4 ml-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium">{actionLabel(entry.action)}</span>
+                                        <span className="font-medium">
+                                            {actionLabel(entry.action)}
+                                        </span>
                                         {entry.actor && (
                                             <span className="text-sm text-muted-foreground">
                                                 — {entry.actor.name}
@@ -409,24 +448,47 @@ export default function ReviewActivityProposalShow({
                                         )}
                                     </div>
                                     {entry.comment && (
-                                        <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
-                                    )}
-                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-destructive">
-                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            "{entry.comment}"
                                         </p>
                                     )}
-                                    {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
-                                        <ul className="mt-1 space-y-0.5 text-xs text-destructive">
-                                            {Object.entries(entry.section_comments).map(([key, note]) => (
-                                                <li key={key}>
-                                                    <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                    {entry.flagged_sections &&
+                                        entry.flagged_sections.length > 0 && (
+                                            <p className="mt-1 text-xs text-destructive">
+                                                Flagged:{' '}
+                                                {entry.flagged_sections
+                                                    .map(
+                                                        (key) =>
+                                                            flaggedSectionLabels[
+                                                                key
+                                                            ] ?? key,
+                                                    )
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                    {entry.section_comments &&
+                                        Object.keys(entry.section_comments)
+                                            .length > 0 && (
+                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                                {Object.entries(
+                                                    entry.section_comments,
+                                                ).map(([key, note]) => (
+                                                    <li key={key}>
+                                                        <span className="font-medium">
+                                                            {flaggedSectionLabels[
+                                                                key
+                                                            ] ?? key}
+                                                            :
+                                                        </span>{' '}
+                                                        {note}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     <time className="text-xs text-muted-foreground">
-                                        {new Date(entry.created_at).toLocaleString()}
+                                        {new Date(
+                                            entry.created_at,
+                                        ).toLocaleString()}
                                     </time>
                                 </li>
                             ))}
@@ -449,7 +511,10 @@ function Row({ label, value }: { label: string; value: string }) {
 
 ReviewActivityProposalShow.layout = {
     breadcrumbs: [
-        { title: 'Review Activity Proposals', href: '/review/activity-proposals' },
+        {
+            title: 'Review Activity Proposals',
+            href: '/review/activity-proposals',
+        },
         { title: 'Review' },
     ],
 };

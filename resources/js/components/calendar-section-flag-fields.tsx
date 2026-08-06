@@ -21,15 +21,27 @@ export default function CalendarSectionFlagFields({ activities }: Props) {
 
     return (
         <div className="grid gap-2">
-            <span className="text-sm font-medium">Flag activities needing revision (optional)</span>
+            <span className="text-sm font-medium">
+                Flag activities needing revision (optional)
+            </span>
             <div className="grid gap-2 sm:grid-cols-2">
                 {activities.map((activity, index) => {
                     const key = `activity_${index}`;
 
                     return (
-                        <div key={key} className="flex items-center gap-2">
-                            <Checkbox id={`section-${key}`} name="sections[]" value={key} />
-                            <Label htmlFor={`section-${key}`} className="font-normal">
+                        <div
+                            key={key}
+                            className="flex items-center gap-2 rounded-md border p-3"
+                        >
+                            <Checkbox
+                                id={`section-${key}`}
+                                name="sections[]"
+                                value={key}
+                            />
+                            <Label
+                                htmlFor={`section-${key}`}
+                                className="font-normal"
+                            >
                                 Activity {index + 1}: {activity.name}
                             </Label>
                         </div>

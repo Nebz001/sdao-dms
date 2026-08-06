@@ -1,14 +1,10 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/ActivityCalendarReviewController';
+import ApprovalActionsCard from '@/components/approval-actions-card';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
-import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
-import InputError from '@/components/input-error';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DialogClose, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
 import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
@@ -114,16 +110,28 @@ export default function ReviewActivityCalendarShow({
     hasConfirmedConflict,
     errors = {},
 }: Props) {
-    useDocumentUpdates(['document', 'calendar', 'history', 'currentStepApprovals', 'hasApproved', 'activityConflicts', 'hasConfirmedConflict']);
+    useDocumentUpdates([
+        'document',
+        'calendar',
+        'history',
+        'currentStepApprovals',
+        'hasApproved',
+        'activityConflicts',
+        'hasConfirmedConflict',
+    ]);
 
     const isInReview = document.status === 'in_review';
 
     function handleApprove({ close, stopProcessing }: ConfirmActions) {
-        router.post(reviewActivityCalendars.approve.url(document.id), {}, {
-            preserveScroll: true,
-            onSuccess: close,
-            onFinish: stopProcessing,
-        });
+        router.post(
+            reviewActivityCalendars.approve.url(document.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: close,
+                onFinish: stopProcessing,
+            },
+        );
     }
 
     return (
@@ -134,8 +142,12 @@ export default function ReviewActivityCalendarShow({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                            {document.title}
+                        </h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {document.organization.name}
+                        </p>
                     </div>
                     <StatusBadge status={document.status} />
                 </div>
@@ -144,10 +156,15 @@ export default function ReviewActivityCalendarShow({
                     document-level values, shown once rather than per activity row. */}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
                     <span>
-                        <span className="font-medium text-foreground">RSO Name:</span> {document.rso_name}
+                        <span className="font-medium text-foreground">
+                            RSO Name:
+                        </span>{' '}
+                        {document.rso_name}
                     </span>
                     <span>
-                        <span className="font-medium text-foreground">Date Received:</span>{' '}
+                        <span className="font-medium text-foreground">
+                            Date Received:
+                        </span>{' '}
                         {new Date(document.date_received).toLocaleDateString()}
                     </span>
                 </div>
@@ -156,13 +173,22 @@ export default function ReviewActivityCalendarShow({
                 {isInReview && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Quorum Status</CardTitle>
+                            <CardTitle className="text-base">
+                                Quorum Status
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm">
                             {currentStepApprovals.length === 0 ? (
-                                <p className="text-muted-foreground">Neither SDAO member has approved yet.</p>
+                                <p className="text-muted-foreground">
+                                    Neither SDAO member has approved yet.
+                                </p>
                             ) : (
-                                <p>Approved by: {currentStepApprovals.map((a) => a.name).join(', ')}</p>
+                                <p>
+                                    Approved by:{' '}
+                                    {currentStepApprovals
+                                        .map((a) => a.name)
+                                        .join(', ')}
+                                </p>
                             )}
                         </CardContent>
                     </Card>
@@ -170,10 +196,13 @@ export default function ReviewActivityCalendarShow({
 
                 {/* Activities with per-row conflict state */}
                 {calendar && (
-                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
+                    <Card
+                        className={`border-l-4 ${statusBorderClass(document.status)}`}
+                    >
                         <CardHeader>
                             <CardTitle className="text-base">
-                                {calendar.term_label} {calendar.academic_year} — Activities
+                                {calendar.term_label} {calendar.academic_year} —
+                                Activities
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="divide-y">
@@ -181,23 +210,51 @@ export default function ReviewActivityCalendarShow({
                                 const conflict = activityConflicts[a.id];
 
                                 return (
-                                    <div key={a.id} className="py-3 space-y-1">
+                                    <div key={a.id} className="space-y-1 py-3">
                                         <p className="font-medium">{a.name}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {a.venue} · {formatCalendarDate(a.activity_date)} · {formatTimeRange(a.start_time, a.end_time)}
+                                            {a.venue} ·{' '}
+                                            {formatCalendarDate(
+                                                a.activity_date,
+                                            )}{' '}
+                                            ·{' '}
+                                            {formatTimeRange(
+                                                a.start_time,
+                                                a.end_time,
+                                            )}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            {a.sdg_label && <>SDG: {a.sdg_label} · </>}
-                                            {a.participant_program_assigned && (
-                                                <>Participant/Program Assigned: {a.participant_program_assigned} · </>
+                                            {a.sdg_label && (
+                                                <>SDG: {a.sdg_label} · </>
                                             )}
-                                            {a.budget && <>Budget: ₱{a.budget}</>}
+                                            {a.participant_program_assigned && (
+                                                <>
+                                                    Participant/Program
+                                                    Assigned:{' '}
+                                                    {
+                                                        a.participant_program_assigned
+                                                    }{' '}
+                                                    ·{' '}
+                                                </>
+                                            )}
+                                            {a.budget && (
+                                                <>Budget: ₱{a.budget}</>
+                                            )}
                                         </p>
-                                        {a.description && <p className="text-sm">{a.description}</p>}
+                                        {a.description && (
+                                            <p className="text-sm">
+                                                {a.description}
+                                            </p>
+                                        )}
                                         {conflict?.confirmed.length > 0 && (
                                             <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
                                                 ⛔ Confirmed conflict:{' '}
-                                                {conflict.confirmed.map((c) => `"${c.name}" (${c.organization})`).join(', ')}
+                                                {conflict.confirmed
+                                                    .map(
+                                                        (c) =>
+                                                            `"${c.name}" (${c.organization})`,
+                                                    )
+                                                    .join(', ')}
                                             </div>
                                         )}
                                     </div>
@@ -209,129 +266,85 @@ export default function ReviewActivityCalendarShow({
 
                 {/* Review actions */}
                 {isInReview && !hasApproved && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Review Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Approve */}
-                            {hasConfirmedConflict ? (
+                    <ApprovalActionsCard
+                        title="Review Actions"
+                        approve={{
+                            blocked: hasConfirmedConflict ? (
                                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                    ⛔ Cannot approve: one or more activities conflict with an already-approved
-                                    booking. Return the document to the submitter to resolve.
+                                    ⛔ Cannot approve: one or more activities
+                                    conflict with an already-approved booking.
+                                    Return the document to the submitter to
+                                    resolve.
                                 </div>
-                            ) : (
-                                <ConfirmDialog
-                                    trigger={<Button className="w-full sm:w-auto">Approve</Button>}
-                                    title="Approve this activity calendar?"
-                                    description={
-                                        <>
-                                            This action is irreversible once the SDAO quorum is met — every listed
-                                            activity becomes an approved, venue-blocking booking.
-                                            {errors.approve && (
-                                                <span className="mt-2 block text-destructive">{errors.approve}</span>
-                                            )}
-                                        </>
-                                    }
-                                    confirmLabel="Confirm Approval"
-                                    onConfirm={handleApprove}
-                                />
-                            )}
-
-                            {/* Return for revision */}
-                            <Form
-                                {...ActivityCalendarReviewController.return.form({ document: document.id })}
-                                className="space-y-2 border-t pt-4"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <p className="text-sm font-medium">Return for Revision</p>
-                                        <Textarea
-                                            name="comment"
-                                            placeholder="Explain what the submitter needs to revise…"
-                                            rows={3}
-                                            required
-                                        />
-                                        <InputError message={errors.comment} />
-                                        <CalendarSectionFlagFields activities={calendar?.activities ?? []} />
-                                        <Button type="submit" variant="outline" disabled={processing}>
-                                            Return
-                                        </Button>
-                                    </>
-                                )}
-                            </Form>
-
-                            {/* Reject — the reason field lives inside the dialog (not
-                                crossing the Radix portal via a form id) so a blank-comment
-                                validation error is visible while the dialog is still open,
-                                instead of rendering behind it. */}
-                            <div className="border-t pt-4">
-                                <p className="mb-2 text-sm font-medium text-destructive">Reject (permanent)</p>
-                                <ConfirmDialog
-                                    trigger={
-                                        <Button type="button" variant="destructive">
-                                            Reject
-                                        </Button>
-                                    }
-                                    title="Reject this activity calendar?"
-                                    description="This is permanent — the submitter cannot revive this document. They must file a brand-new calendar submission."
-                                >
-                                    {(close) => (
-                                        <Form
-                                            {...ActivityCalendarReviewController.reject.form({ document: document.id })}
-                                            options={{ preserveScroll: true }}
-                                            onSuccess={close}
-                                        >
-                                            {({ processing, errors }) => (
-                                                <>
-                                                    <Textarea
-                                                        name="comment"
-                                                        placeholder="Reason for rejection…"
-                                                        rows={3}
-                                                        required
-                                                    />
-                                                    <InputError message={errors.comment} />
-                                                    <DialogFooter className="mt-4 gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button type="button" variant="secondary" disabled={processing}>
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-                                                        <Button type="submit" variant="destructive" loading={processing}>
-                                                            Reject
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </>
-                                            )}
-                                        </Form>
+                            ) : undefined,
+                            confirmTitle: 'Approve this activity calendar?',
+                            confirmDescription: (
+                                <>
+                                    This action is irreversible once the SDAO
+                                    quorum is met — every listed activity
+                                    becomes an approved, venue-blocking booking.
+                                    {errors.approve && (
+                                        <span className="mt-2 block text-destructive">
+                                            {errors.approve}
+                                        </span>
                                     )}
-                                </ConfirmDialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </>
+                            ),
+                            onConfirm: handleApprove,
+                        }}
+                        return={{
+                            formProps:
+                                ActivityCalendarReviewController.return.form({
+                                    document: document.id,
+                                }),
+                            placeholder:
+                                'Explain what the submitter needs to revise…',
+                            flagFields: (
+                                <CalendarSectionFlagFields
+                                    activities={calendar?.activities ?? []}
+                                />
+                            ),
+                        }}
+                        reject={{
+                            formProps:
+                                ActivityCalendarReviewController.reject.form({
+                                    document: document.id,
+                                }),
+                            confirmTitle: 'Reject this activity calendar?',
+                            confirmDescription:
+                                'This is permanent — the submitter cannot revive this document. They must file a brand-new calendar submission.',
+                        }}
+                    />
                 )}
 
                 {isInReview && hasApproved && (
                     <p className="text-sm text-muted-foreground">
-                        You have already approved this step. Waiting for the other SDAO member.
+                        You have already approved this step. Waiting for the
+                        other SDAO member.
                     </p>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(document.status)}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {reviewOnlyStatusNote(document.status)}
+                    </p>
                 )}
 
                 {/* History */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Transition History</CardTitle>
+                        <CardTitle className="text-base">
+                            Transition History
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ol className="relative border-l border-border pl-4">
                             {history.map((entry) => (
                                 <li key={entry.id} className="mb-4 ml-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium">{actionLabel(entry.action)}</span>
+                                        <span className="font-medium">
+                                            {actionLabel(entry.action)}
+                                        </span>
                                         {entry.actor && (
                                             <span className="text-sm text-muted-foreground">
                                                 — {entry.actor.name}
@@ -339,15 +352,23 @@ export default function ReviewActivityCalendarShow({
                                         )}
                                     </div>
                                     {entry.comment && (
-                                        <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
-                                    )}
-                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-destructive">
-                                            Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            "{entry.comment}"
                                         </p>
                                     )}
+                                    {entry.flagged_sections &&
+                                        entry.flagged_sections.length > 0 && (
+                                            <p className="mt-1 text-xs text-destructive">
+                                                Flagged:{' '}
+                                                {entry.flagged_sections
+                                                    .map(calendarFlagLabel)
+                                                    .join(', ')}
+                                            </p>
+                                        )}
                                     <time className="text-xs text-muted-foreground">
-                                        {new Date(entry.created_at).toLocaleString()}
+                                        {new Date(
+                                            entry.created_at,
+                                        ).toLocaleString()}
                                     </time>
                                 </li>
                             ))}

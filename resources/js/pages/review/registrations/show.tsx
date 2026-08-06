@@ -1,22 +1,26 @@
-import { Form, Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import RegistrationReviewController from '@/actions/App/Http/Controllers/RegistrationReviewController';
-import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import ApprovalActionsCard from '@/components/approval-actions-card';
+import type {
+    AttachmentSlotDef,
+    ExistingAttachment,
+} from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
-import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
-import InputError from '@/components/input-error';
 import SectionFlagFields from '@/components/section-flag-fields';
-import type {SectionFlagDef} from '@/components/section-flag-fields';
+import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DialogClose, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRegistrations from '@/routes/review/registrations';
 import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
 
-type Organization = { id: number; name: string; college: string | null; program: string | null };
+type Organization = {
+    id: number;
+    name: string;
+    college: string | null;
+    program: string | null;
+};
 
 type DocumentData = {
     id: number;
@@ -88,17 +92,29 @@ export default function ReviewRegistrationShow({
     hasApproved,
     adviserAvailable,
 }: Props) {
-    useDocumentUpdates(['document', 'detail', 'attachments', 'history', 'currentStepApprovals', 'hasApproved', 'adviserAvailable']);
+    useDocumentUpdates([
+        'document',
+        'detail',
+        'attachments',
+        'history',
+        'currentStepApprovals',
+        'hasApproved',
+        'adviserAvailable',
+    ]);
 
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const isInReview = document.status === 'in_review';
 
     function handleApprove({ close, stopProcessing }: ConfirmActions) {
-        router.post(reviewRegistrations.approve.url(document.id), {}, {
-            preserveScroll: true,
-            onSuccess: close,
-            onFinish: stopProcessing,
-        });
+        router.post(
+            reviewRegistrations.approve.url(document.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: close,
+                onFinish: stopProcessing,
+            },
+        );
     }
 
     return (
@@ -109,7 +125,9 @@ export default function ReviewRegistrationShow({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                            {document.title}
+                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {document.organization.name}
                         </p>
@@ -121,7 +139,9 @@ export default function ReviewRegistrationShow({
                 {isInReview && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Quorum Status</CardTitle>
+                            <CardTitle className="text-base">
+                                Quorum Status
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm">
                             {currentStepApprovals.length === 0 ? (
@@ -131,7 +151,9 @@ export default function ReviewRegistrationShow({
                             ) : (
                                 <p>
                                     Approved by:{' '}
-                                    {currentStepApprovals.map((a) => a.name).join(', ')}
+                                    {currentStepApprovals
+                                        .map((a) => a.name)
+                                        .join(', ')}
                                 </p>
                             )}
                         </CardContent>
@@ -140,28 +162,63 @@ export default function ReviewRegistrationShow({
 
                 {/* Detail card */}
                 {detail && (
-                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
+                    <Card
+                        className={`border-l-4 ${statusBorderClass(document.status)}`}
+                    >
                         <CardHeader>
-                            <CardTitle className="text-base">Registration Details</CardTitle>
+                            <CardTitle className="text-base">
+                                Registration Details
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
                             {/* Field-presence parity (Phase 2 item 7 slice 2) */}
-                            <Row label="Organization Name" value={document.organization.name} />
-                            <Row label="College" value={document.organization.college ?? '—'} />
+                            <Row
+                                label="Organization Name"
+                                value={document.organization.name}
+                            />
+                            <Row
+                                label="College"
+                                value={document.organization.college ?? '—'}
+                            />
                             {document.organization.program && (
-                                <Row label="Program" value={document.organization.program} />
+                                <Row
+                                    label="Program"
+                                    value={document.organization.program}
+                                />
                             )}
-                            <Row label="Type of Organization" value={detail.organization_type_label} />
-                            <Row label="Contact Person" value={detail.contact_person} />
-                            <Row label="Contact No." value={detail.contact_no} />
-                            <Row label="Email Address" value={detail.email_address} />
-                            <Row label="Date Organized" value={detail.date_organized} />
+                            <Row
+                                label="Type of Organization"
+                                value={detail.organization_type_label}
+                            />
+                            <Row
+                                label="Contact Person"
+                                value={detail.contact_person}
+                            />
+                            <Row
+                                label="Contact No."
+                                value={detail.contact_no}
+                            />
+                            <Row
+                                label="Email Address"
+                                value={detail.email_address}
+                            />
+                            <Row
+                                label="Date Organized"
+                                value={detail.date_organized}
+                            />
                             {detail.adviser && (
-                                <Row label="Adviser" value={detail.adviser.name} />
+                                <Row
+                                    label="Adviser"
+                                    value={detail.adviser.name}
+                                />
                             )}
                             <div className="grid gap-1">
-                                <span className="font-medium text-muted-foreground">Purpose of Organization</span>
-                                <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
+                                <span className="font-medium text-muted-foreground">
+                                    Purpose of Organization
+                                </span>
+                                <p className="whitespace-pre-wrap">
+                                    {detail.purpose_of_organization}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -171,128 +228,75 @@ export default function ReviewRegistrationShow({
 
                 {/* Review actions */}
                 {isInReview && !hasApproved && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Review Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Approve — blocked when the chosen adviser is no longer
-                                available (Phase 2 item 5 race-condition guard) */}
-                            {!adviserAvailable || errors.approve ? (
-                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                    ⛔{' '}
-                                    {errors.approve ??
-                                        'Cannot approve: the chosen adviser is now assigned to a different organization.'}{' '}
-                                    Return the document so the student can pick a different adviser.
-                                </div>
-                            ) : (
-                                <ConfirmDialog
-                                    trigger={<Button className="w-full sm:w-auto">Approve</Button>}
-                                    title="Approve this registration?"
-                                    description="This action is irreversible once the SDAO quorum is met — the organization becomes real, the adviser is bound, and the founding student is locked to this organization going forward."
-                                    confirmLabel="Confirm Approval"
-                                    onConfirm={handleApprove}
-                                />
-                            )}
-
-                            {/* Return for revision */}
-                            <Form
-                                {...RegistrationReviewController.return.form({ document: document.id })}
-                                className="space-y-2 border-t pt-4"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <p className="text-sm font-medium">Return for Revision</p>
-                                        <Textarea
-                                            name="comment"
-                                            placeholder="Explain what the student needs to revise…"
-                                            rows={3}
-                                            required
-                                        />
-                                        <InputError message={errors.comment} />
-                                        <SectionFlagFields sections={sectionFlags} />
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            disabled={processing}
-                                        >
-                                            Return
-                                        </Button>
-                                    </>
-                                )}
-                            </Form>
-
-                            {/* Reject — the reason field lives inside the dialog (not
-                                crossing the Radix portal via a form id) so a blank-comment
-                                validation error is visible while the dialog is still open,
-                                instead of rendering behind it. */}
-                            <div className="border-t pt-4">
-                                <p className="mb-2 text-sm font-medium text-destructive">Reject (permanent)</p>
-                                <ConfirmDialog
-                                    trigger={
-                                        <Button type="button" variant="destructive">
-                                            Reject
-                                        </Button>
-                                    }
-                                    title="Reject this registration?"
-                                    description="This is permanent — the student cannot revive this document. They must file a brand-new registration."
-                                >
-                                    {(close) => (
-                                        <Form
-                                            {...RegistrationReviewController.reject.form({ document: document.id })}
-                                            options={{ preserveScroll: true }}
-                                            onSuccess={close}
-                                        >
-                                            {({ processing, errors }) => (
-                                                <>
-                                                    <Textarea
-                                                        name="comment"
-                                                        placeholder="Reason for rejection…"
-                                                        rows={3}
-                                                        required
-                                                    />
-                                                    <InputError message={errors.comment} />
-                                                    <DialogFooter className="mt-4 gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button type="button" variant="secondary" disabled={processing}>
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-                                                        <Button type="submit" variant="destructive" loading={processing}>
-                                                            Reject
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </>
-                                            )}
-                                        </Form>
-                                    )}
-                                </ConfirmDialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <ApprovalActionsCard
+                        title="Review Actions"
+                        approve={{
+                            // Blocked when the chosen adviser is no longer available
+                            // (Phase 2 item 5 race-condition guard).
+                            blocked:
+                                !adviserAvailable || errors.approve ? (
+                                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                                        ⛔{' '}
+                                        {errors.approve ??
+                                            'Cannot approve: the chosen adviser is now assigned to a different organization.'}{' '}
+                                        Return the document so the student can
+                                        pick a different adviser.
+                                    </div>
+                                ) : undefined,
+                            confirmTitle: 'Approve this registration?',
+                            confirmDescription:
+                                'This action is irreversible once the SDAO quorum is met — the organization becomes real, the adviser is bound, and the founding student is locked to this organization going forward.',
+                            onConfirm: handleApprove,
+                        }}
+                        return={{
+                            formProps: RegistrationReviewController.return.form(
+                                { document: document.id },
+                            ),
+                            placeholder:
+                                'Explain what the student needs to revise…',
+                            flagFields: (
+                                <SectionFlagFields sections={sectionFlags} />
+                            ),
+                        }}
+                        reject={{
+                            formProps: RegistrationReviewController.reject.form(
+                                { document: document.id },
+                            ),
+                            confirmTitle: 'Reject this registration?',
+                            confirmDescription:
+                                'This is permanent — the student cannot revive this document. They must file a brand-new registration.',
+                        }}
+                    />
                 )}
 
                 {isInReview && hasApproved && (
                     <p className="text-sm text-muted-foreground">
-                        You have already approved this step. Waiting for the other SDAO member.
+                        You have already approved this step. Waiting for the
+                        other SDAO member.
                     </p>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">{reviewOnlyStatusNote(document.status)}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {reviewOnlyStatusNote(document.status)}
+                    </p>
                 )}
 
                 {/* History */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Transition History</CardTitle>
+                        <CardTitle className="text-base">
+                            Transition History
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ol className="relative border-l border-border pl-4">
                             {history.map((entry) => (
                                 <li key={entry.id} className="mb-4 ml-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium">{actionLabel(entry.action)}</span>
+                                        <span className="font-medium">
+                                            {actionLabel(entry.action)}
+                                        </span>
                                         {entry.actor && (
                                             <span className="text-sm text-muted-foreground">
                                                 — {entry.actor.name}
@@ -304,22 +308,43 @@ export default function ReviewRegistrationShow({
                                             "{entry.comment}"
                                         </p>
                                     )}
-                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-destructive">
-                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
-                                        </p>
-                                    )}
-                                    {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
-                                        <ul className="mt-1 space-y-0.5 text-xs text-destructive">
-                                            {Object.entries(entry.section_comments).map(([key, note]) => (
-                                                <li key={key}>
-                                                    <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                    {entry.flagged_sections &&
+                                        entry.flagged_sections.length > 0 && (
+                                            <p className="mt-1 text-xs text-destructive">
+                                                Flagged:{' '}
+                                                {entry.flagged_sections
+                                                    .map(
+                                                        (key) =>
+                                                            flaggedSectionLabels[
+                                                                key
+                                                            ] ?? key,
+                                                    )
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                    {entry.section_comments &&
+                                        Object.keys(entry.section_comments)
+                                            .length > 0 && (
+                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                                {Object.entries(
+                                                    entry.section_comments,
+                                                ).map(([key, note]) => (
+                                                    <li key={key}>
+                                                        <span className="font-medium">
+                                                            {flaggedSectionLabels[
+                                                                key
+                                                            ] ?? key}
+                                                            :
+                                                        </span>{' '}
+                                                        {note}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     <time className="text-xs text-muted-foreground">
-                                        {new Date(entry.created_at).toLocaleString()}
+                                        {new Date(
+                                            entry.created_at,
+                                        ).toLocaleString()}
                                     </time>
                                 </li>
                             ))}
