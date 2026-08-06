@@ -106,7 +106,7 @@ test('upload is forbidden once the document is no longer Draft or Returned', fun
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         sourceOfFunding: 'Funding',
-        expenses: 'Expenses',
+        expenseItems: [['label' => 'Expenses', 'amount' => '100.00']],
     );
     $this->document->refresh();
     expect($this->document->status)->toBe(DocumentStatus::InReview);
@@ -131,7 +131,7 @@ test('step-2 submit never requires the resume — succeeds with it absent', func
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         sourceOfFunding: 'Funding',
-        expenses: 'Expenses',
+        expenseItems: [['label' => 'Expenses', 'amount' => '100.00']],
     );
 
     expect($result['document']->status)->toBe(DocumentStatus::InReview);
@@ -154,7 +154,7 @@ test('an uploaded resume appears on the student show page and the reviewer show 
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         sourceOfFunding: 'Funding',
-        expenses: 'Expenses',
+        expenseItems: [['label' => 'Expenses', 'amount' => '100.00']],
     );
     $this->document->refresh();
 

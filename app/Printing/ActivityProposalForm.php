@@ -190,6 +190,20 @@ class ActivityProposalForm implements PrintableForm
             'criteria_mechanics' => $proposal->criteria_mechanics,
             'program_flow' => $proposal->program_flow,
             'source_of_funding' => $proposal->source_of_funding,
+            // Itemized expenses (client request, post-Part-2): a table +
+            // grand total when the proposal has expense_items rows. Falls
+            // back to the legacy `expenses` prose for proposals submitted
+            // before this existed — see the model docblock. Amounts are
+            // formatted here, not in Blade, mirroring how every other money
+            // field (proposed_budget above, ActivityCalendarForm's budget
+            // column) is formatted in the PrintableForm class.
+            'expense_items' => $proposal->expense_items !== null
+                ? array_map(fn (array $row) => [
+                    'label' => $row['label'],
+                    'amount' => number_format((float) $row['amount'], 2),
+                ], $proposal->expense_items)
+                : null,
+            'expense_items_total' => $proposal->expenseItemsTotal,
             'expenses' => $proposal->expenses,
             'has_resource_person_resume' => $document->attachments->contains('slot_key', 'resume_of_resource_person'),
             // "VI. Responsible Person/s" has no backing field on

@@ -187,7 +187,31 @@
     <div class="indent">
         <strong>c. Proposed Budget</strong><br>
         Source of Funding: {{ $source_of_funding }}<br>
-        Expenses: {{ $expenses }}
+        <strong>Expenses:</strong>
+        @if (! empty($expense_items))
+            <table class="bordered-table" style="margin-top: 3pt;">
+                <colgroup>
+                    <col>
+                    <col style="width: 22%">
+                </colgroup>
+                <tr>
+                    <td class="bar">Item</td>
+                    <td class="bar" style="text-align: right;">Amount</td>
+                </tr>
+                @foreach ($expense_items as $item)
+                    <tr>
+                        <td>{{ $item['label'] }}</td>
+                        <td style="text-align: right;">{{ $item['amount'] }}</td>
+                    </tr>
+                @endforeach
+                <tr>
+                    <td class="label-col">TOTAL</td>
+                    <td class="label-col" style="text-align: right;">{{ $expense_items_total }}</td>
+                </tr>
+            </table>
+        @else
+            {{ $expenses }}
+        @endif
     </div>
     <div class="indent">
         <strong>d. Resume of Resource Person/s (if applicable)</strong><br>

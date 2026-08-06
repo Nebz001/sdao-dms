@@ -233,6 +233,11 @@ class ActivityProposalController extends Controller
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
                 'source_of_funding' => $proposal->source_of_funding,
+                // Itemized expenses (client request, post-Part-2); `expenses`
+                // is the legacy free-text fallback for pre-existing
+                // proposals that never got rows — see the model docblock.
+                'expense_items' => $proposal->expense_items,
+                'expense_items_total' => $proposal->expenseItemsTotal,
                 'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 'form_step' => $proposal->form_step,
@@ -295,6 +300,11 @@ class ActivityProposalController extends Controller
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
                 'source_of_funding' => $proposal->source_of_funding,
+                // Itemized expenses (client request, post-Part-2); `expenses`
+                // is the legacy free-text value shown read-only above the
+                // editable table when there are no rows yet to re-enter it
+                // from — see the model docblock.
+                'expense_items' => $proposal->expense_items,
                 'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — raw
@@ -356,6 +366,11 @@ class ActivityProposalController extends Controller
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
                 'source_of_funding' => $proposal->source_of_funding,
+                // Itemized expenses (client request, post-Part-2); `expenses`
+                // is the legacy free-text value shown read-only above the
+                // editable table when there are no rows yet to re-enter it
+                // from — see the model docblock.
+                'expense_items' => $proposal->expense_items,
                 'expenses' => $proposal->expenses,
                 // proposed_budget is read-only here — set once at step 1
                 // (Phase 2 item 7 slice 4a), never re-collected at step 2.
@@ -413,7 +428,7 @@ class ActivityProposalController extends Controller
             criteriaMechanics: $request->string('criteria_mechanics')->toString(),
             programFlow: $request->string('program_flow')->toString(),
             sourceOfFunding: $request->string('source_of_funding')->toString(),
-            expenses: $request->string('expenses')->toString(),
+            expenseItems: $request->array('expense_items'),
         );
 
         $flash = ['message' => 'Proposal submitted for review.'];

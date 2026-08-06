@@ -168,6 +168,78 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($seminarRow['checked'])->toBeFalse();
 });
 
+// ── Itemized expenses (client request, post-Part-2) ─────────────────────
+
+test('expense_items maps to formatted rows plus a formatted grand total, and legacy expenses stays available as a fallback value', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'expense_items' => [
+            ['label' => 'Venue rental', 'amount' => '5000'],
+            ['label' => 'Sound system rental', 'amount' => '8000.5'],
+        ],
+    ]);
+    $data = dataForProposal($doc);
+
+    expect($data['expense_items'])->toBe([
+        ['label' => 'Venue rental', 'amount' => '5,000.00'],
+        ['label' => 'Sound system rental', 'amount' => '8,000.50'],
+    ]);
+    expect($data['expense_items_total'])->toBe('13,000.50');
+    // The legacy prose value is still exposed even when expense_items is
+    // present — the Blade view is what decides which one to render.
+    expect($data['expenses'])->toBe('Venue rental');
+});
+
+test('the grand total sums in integer centavos, not floats, so it never drifts on a repeating-decimal case', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'expense_items' => [
+            ['label' => 'Item A', 'amount' => '0.10'],
+            ['label' => 'Item B', 'amount' => '0.20'],
+        ],
+    ]);
+    $data = dataForProposal($doc);
+
+    // A naive float sum (0.1 + 0.2) produces 0.30000000000000004 in PHP —
+    // the centavos-based accessor must not reproduce that artifact.
+    expect($data['expense_items_total'])->toBe('0.30');
+});
+
+test('a proposal with no expense_items rows exposes a null total and only the legacy expenses prose', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'expense_items' => null,
+    ]);
+    $data = dataForProposal($doc);
+
+    expect($data['expense_items'])->toBeNull();
+    expect($data['expense_items_total'])->toBeNull();
+    expect($data['expenses'])->toBe('Venue rental');
+});
+
+test('the rendered Blade prints an itemized table with a TOTAL row when expense_items is present', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'expense_items' => [['label' => 'Venue rental', 'amount' => '5000']],
+    ]);
+    $form = app(ActivityProposalForm::class);
+    $doc->load($form->eagerLoads());
+
+    $html = view($form->view(), $form->data($doc))->render();
+
+    expect($html)->toContain('Venue rental')
+        ->toContain('TOTAL')
+        ->toContain('5,000.00');
+});
+
+test('the rendered Blade falls back to the legacy prose paragraph when expense_items is empty', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'expense_items' => null,
+    ]);
+    $form = app(ActivityProposalForm::class);
+    $doc->load($form->eagerLoads());
+
+    $html = view($form->view(), $form->data($doc))->render();
+
+    expect($html)->toContain('Venue rental')->not->toContain('TOTAL');
+});
+
 test('the duplicated "Fundraising Activity" row never ticks, and the checklist has exactly 10 type rows', function () {
     $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
         'activity_type' => ActivityType::DonationDriveFundraising->value,

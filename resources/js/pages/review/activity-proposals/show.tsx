@@ -4,6 +4,7 @@ import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachm
 import AttachmentsCard from '@/components/attachments-card';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import ExpenseItemsTable from '@/components/expense-items-table';
 import InputError from '@/components/input-error';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
@@ -35,6 +36,8 @@ type ProposalData = {
     program_flow: string | null;
     source_of_funding: string | null;
     expenses: string | null;
+    expense_items: { label: string; amount: string }[] | null;
+    expense_items_total: string | null;
     proposed_budget: string | null;
     activity_nature_label: string | null;
     activity_type_label: string | null;
@@ -256,12 +259,11 @@ export default function ReviewActivityProposalShow({
                                     <p className="whitespace-pre-wrap text-muted-foreground">{proposal.source_of_funding}</p>
                                 </div>
                             )}
-                            {proposal.expenses && (
-                                <div>
-                                    <p className="mb-1 font-medium">Expenses</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.expenses}</p>
-                                </div>
-                            )}
+                            <ExpenseItemsTable
+                                items={proposal.expense_items}
+                                total={proposal.expense_items_total}
+                                legacyText={proposal.expenses}
+                            />
                         </CardContent>
                     </Card>
                 )}

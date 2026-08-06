@@ -174,7 +174,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'source_of_funding' => 'Source of Funding',
-        'expenses' => 'Expenses',
+        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
     ]);
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);

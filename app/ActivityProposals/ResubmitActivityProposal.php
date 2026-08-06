@@ -78,7 +78,10 @@ class ResubmitActivityProposal
                 'criteria_mechanics' => $data['criteria_mechanics'],
                 'program_flow' => $data['program_flow'],
                 'source_of_funding' => $data['source_of_funding'],
-                'expenses' => $data['expenses'],
+                // Itemized expenses (client request, post-Part-2) — legacy
+                // `expenses` prose is intentionally never rewritten here,
+                // see App\Models\ActivityProposal's docblock.
+                'expense_items' => $data['expense_items'],
                 'proposed_budget' => $data['proposed_budget'] ?? $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — editable
                 // on resubmission, same as proposed_budget already is.

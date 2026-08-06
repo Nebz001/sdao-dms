@@ -43,7 +43,7 @@ class SubmitActivityProposal
         ?string $criteriaMechanics = null,
         ?string $programFlow = null,
         ?string $sourceOfFunding = null,
-        ?string $expenses = null,
+        ?array $expenseItems = null,
     ): array {
         if ($document->status !== DocumentStatus::Draft) {
             throw new AuthorizationException('Only Draft documents can be submitted to the chain.');
@@ -66,7 +66,7 @@ class SubmitActivityProposal
 
         $document = DB::transaction(function () use (
             $actor, $document, $proposal, $variant, $objectives, $narrative,
-            $criteriaMechanics, $programFlow, $sourceOfFunding, $expenses,
+            $criteriaMechanics, $programFlow, $sourceOfFunding, $expenseItems,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
             // intentionally NOT touched here — they're set once at step 1
@@ -78,7 +78,10 @@ class SubmitActivityProposal
                 'criteria_mechanics' => $criteriaMechanics,
                 'program_flow' => $programFlow,
                 'source_of_funding' => $sourceOfFunding,
-                'expenses' => $expenses,
+                // Itemized expenses (client request, post-Part-2) — legacy
+                // `expenses` prose is intentionally never rewritten here,
+                // see App\Models\ActivityProposal's docblock.
+                'expense_items' => $expenseItems,
             ]);
 
             $document->variant = $variant;

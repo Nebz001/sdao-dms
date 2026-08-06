@@ -1,13 +1,16 @@
 import { Form, Head } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import * as activityProposals from '@/routes/activity-proposals';
+
+type ExpenseItem = { label: string; amount: string };
 
 type ActivitySummary = {
     name: string;
@@ -26,6 +29,7 @@ type ProposalData = {
     program_flow: string | null;
     source_of_funding: string | null;
     expenses: string | null;
+    expense_items: ExpenseItem[] | null;
     proposed_budget: string | null;
     budget_source: string | null;
 } | null;
@@ -49,8 +53,22 @@ export default function StepTwo({ document: doc, proposal, activity, attachmentS
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
     const sourceOfFundingRef = useRef<HTMLTextAreaElement>(null);
-    const expensesRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Itemized expenses — a dynamic row list can't live behind a single ref
+    // like the plain-text fields above, so it's state instead. A mirroring
+    // ref keeps scheduleSave()'s debounced setTimeout callback reading the
+    // latest rows rather than a stale closure over the state at the time
+    // scheduleSave was called.
+    const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(
+        proposal?.expense_items && proposal.expense_items.length > 0 ? proposal.expense_items : [{ label: '', amount: '' }],
+    );
+    const expenseItemsRef = useRef(expenseItems);
+    useEffect(() => {
+        expenseItemsRef.current = expenseItems;
+    }, [expenseItems]);
+
+    const expenseTotal = expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
     function xsrfToken(): string {
         return decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
@@ -83,7 +101,7 @@ clearTimeout(saveTimer.current);
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
                     source_of_funding: sourceOfFundingRef.current?.value ?? null,
-                    expenses: expensesRef.current?.value ?? null,
+                    expense_items: expenseItemsRef.current,
                 }),
             }).catch(() => {
                 // Best-effort autosave — a failed ping is silently retried
@@ -199,16 +217,85 @@ clearTimeout(saveTimer.current);
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="expenses">Expenses</Label>
-                            <Textarea
-                                id="expenses"
-                                name="expenses"
-                                ref={expensesRef}
-                                defaultValue={proposal?.expenses ?? ''}
-                                rows={4}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.expenses} />
+                            <div className="flex items-center justify-between">
+                                <Label>Expenses</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setExpenseItems((prev) => [...prev, { label: '', amount: '' }]);
+                                        scheduleSave();
+                                    }}
+                                >
+                                    + Add Item
+                                </Button>
+                            </div>
+                            {proposal?.expenses && (
+                                <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                                    Previously entered as text — re-enter it below as itemized rows: “{proposal.expenses}”
+                                </p>
+                            )}
+                            {expenseItems.map((item, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            name={`expense_items[${i}][label]`}
+                                            value={item.label}
+                                            onChange={(e) => {
+                                                setExpenseItems((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = { ...next[i], label: e.target.value };
+
+                                                    return next;
+                                                });
+                                                scheduleSave();
+                                            }}
+                                            placeholder="Item (e.g. Venue rental)"
+                                            className="flex-1"
+                                        />
+                                        <Input
+                                            name={`expense_items[${i}][amount]`}
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={item.amount}
+                                            onChange={(e) => {
+                                                setExpenseItems((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = { ...next[i], amount: e.target.value };
+
+                                                    return next;
+                                                });
+                                                scheduleSave();
+                                            }}
+                                            placeholder="0.00"
+                                            className="w-28"
+                                        />
+                                        {expenseItems.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setExpenseItems((prev) => prev.filter((_, idx) => idx !== i));
+                                                    scheduleSave();
+                                                }}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <InputError message={errors[`expense_items.${i}.label`] ?? errors[`expense_items.${i}.amount`]} />
+                                </div>
+                            ))}
+                            <div className="flex items-center justify-end gap-2 border-t pt-2 text-sm">
+                                <span className="font-medium text-muted-foreground">Total</span>
+                                <span className="font-semibold tabular-nums">
+                                    ₱{expenseTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                            <InputError message={errors.expense_items} />
                         </div>
 
                         {attachmentSlots.map((slot) => (
