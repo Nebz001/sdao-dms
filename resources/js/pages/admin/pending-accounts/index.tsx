@@ -6,7 +6,13 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 
 type PendingAccount = {
@@ -24,11 +30,19 @@ export default function PendingAccountsIndex({ accounts }: Props) {
     // Scoped to the account that failed, not a page-wide flag — mirrors
     // organizations/officers/index.tsx's deactivateError. A flat flag would
     // leak a stale message into a different account's dialog on next open.
-    const [rejectError, setRejectError] = useState<{ accountId: number; message: string } | null>(null);
+    const [rejectError, setRejectError] = useState<{
+        accountId: number;
+        message: string;
+    } | null>(null);
 
-    const oldest = accounts.length > 0
-        ? new Date(Math.min(...accounts.map((a) => new Date(a.created_at).getTime()))).toLocaleDateString()
-        : '—';
+    const oldest =
+        accounts.length > 0
+            ? new Date(
+                  Math.min(
+                      ...accounts.map((a) => new Date(a.created_at).getTime()),
+                  ),
+              ).toLocaleDateString()
+            : '—';
 
     return (
         <>
@@ -36,24 +50,33 @@ export default function PendingAccountsIndex({ accounts }: Props) {
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Pending Accounts</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Pending Accounts
+                    </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Self-registered students awaiting SDAO review. Verified accounts can submit
-                        documents and be adviser-bound as officers; Rejected accounts permanently
-                        lose that ability but are never deleted.
+                        Self-registered students awaiting SDAO review. Verified
+                        accounts can submit documents and be adviser-bound as
+                        officers; Rejected accounts permanently lose that
+                        ability but are never deleted.
                     </p>
                 </div>
 
                 <QueueStatStrip
                     stats={[
-                        { label: 'Pending', value: String(accounts.length) },
+                        {
+                            label: 'Pending',
+                            value: String(accounts.length),
+                            count: accounts.length,
+                        },
                         { label: 'Oldest waiting', value: oldest },
                     ]}
                 />
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Awaiting Review</CardTitle>
+                        <CardTitle className="text-base">
+                            Awaiting Review
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {accounts.length === 0 ? (
@@ -64,7 +87,8 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                     </EmptyMedia>
                                     <EmptyTitle>No pending accounts</EmptyTitle>
                                     <EmptyDescription>
-                                        Self-registered students awaiting review will show up here.
+                                        Self-registered students awaiting review
+                                        will show up here.
                                     </EmptyDescription>
                                 </EmptyHeader>
                             </Empty>
@@ -76,23 +100,39 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                         className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
                                     >
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{account.name}</p>
-                                            <p className="truncate text-sm text-muted-foreground">{account.email}</p>
+                                            <p className="truncate font-medium">
+                                                {account.name}
+                                            </p>
+                                            <p className="truncate text-sm text-muted-foreground">
+                                                {account.email}
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
-                                                Registered {new Date(account.created_at).toLocaleDateString()}
+                                                Registered{' '}
+                                                {new Date(
+                                                    account.created_at,
+                                                ).toLocaleDateString()}
                                             </p>
                                         </div>
 
                                         <div className="flex shrink-0 items-center gap-2">
                                             <Form
-                                                {...PendingAccountController.verify.form(account.id)}
-                                                options={{ preserveScroll: true }}
+                                                {...PendingAccountController.verify.form(
+                                                    account.id,
+                                                )}
+                                                options={{
+                                                    preserveScroll: true,
+                                                }}
                                             >
                                                 {({ processing }) => (
-                                                    <Button type="submit" size="sm" disabled={processing}>
+                                                    <Button
+                                                        type="submit"
+                                                        size="sm"
+                                                        disabled={processing}
+                                                    >
                                                         {processing ? (
                                                             <>
-                                                                <Spinner /> Verifying…
+                                                                <Spinner />{' '}
+                                                                Verifying…
                                                             </>
                                                         ) : (
                                                             'Verify'
@@ -103,41 +143,58 @@ export default function PendingAccountsIndex({ accounts }: Props) {
 
                                             <ConfirmDialog
                                                 trigger={
-                                                    <Button type="button" size="sm" variant="destructive">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="destructive"
+                                                    >
                                                         Reject
                                                     </Button>
                                                 }
                                                 title={`Reject ${account.name}'s account?`}
                                                 description={
                                                     <>
-                                                        This is permanent. {account.name} will never be able to
-                                                        submit documents or be bound as an officer. Their account
-                                                        is not deleted.
-                                                        {rejectError?.accountId === account.id && (
+                                                        This is permanent.{' '}
+                                                        {account.name} will
+                                                        never be able to submit
+                                                        documents or be bound as
+                                                        an officer. Their
+                                                        account is not deleted.
+                                                        {rejectError?.accountId ===
+                                                            account.id && (
                                                             <span className="mt-2 block text-destructive">
-                                                                {rejectError.message}
+                                                                {
+                                                                    rejectError.message
+                                                                }
                                                             </span>
                                                         )}
                                                     </>
                                                 }
                                                 confirmLabel="Reject Account"
                                                 confirmVariant="destructive"
-                                                onConfirm={({ close, stopProcessing }) => {
+                                                onConfirm={({
+                                                    close,
+                                                    stopProcessing,
+                                                }) => {
                                                     setRejectError(null);
                                                     router.post(
-                                                        PendingAccountController.reject.url(account.id),
+                                                        PendingAccountController.reject.url(
+                                                            account.id,
+                                                        ),
                                                         {},
                                                         {
                                                             preserveScroll: true,
                                                             onSuccess: close,
                                                             onError: (errors) =>
                                                                 setRejectError({
-                                                                    accountId: account.id,
+                                                                    accountId:
+                                                                        account.id,
                                                                     message:
                                                                         errors.account ??
                                                                         'Could not reject this account. Please try again.',
                                                                 }),
-                                                            onFinish: stopProcessing,
+                                                            onFinish:
+                                                                stopProcessing,
                                                         },
                                                     );
                                                 }}

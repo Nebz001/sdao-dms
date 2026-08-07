@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export type WeeklyDelta = {
     thisWeek: number;
@@ -70,6 +71,13 @@ function trendCopy(weekly: WeeklyDelta): string {
  * every stat here is a genuinely new destination that had no visibility
  * before this dashboard existed (Pending Accounts, unassigned advisers),
  * so the whole tile is a link rather than a plain number.
+ *
+ * Deliberately lighter than a section Card (softer border, no shadow,
+ * tighter padding, smaller type) — every tile here sits directly above a
+ * heavier section Card, and the two need to read as different tiers, not
+ * identical chrome repeated twice. A nonzero count is always actionable
+ * (there's no purely-informational tile in this app), so it gets a
+ * `--primary` left-border + icon accent; a zero count stays fully neutral.
  */
 export default function StatTile({
     label,
@@ -80,29 +88,47 @@ export default function StatTile({
 }: StatTileProps) {
     const trend = weekly ? deltaLabel(weekly.delta) : null;
     const TrendIcon = trend?.icon;
+    const isActionable = count > 0;
 
     return (
-        <Card className="transition-colors hover:border-primary/40">
-            <CardContent>
+        <Card
+            className={cn(
+                'gap-0 border-border/60 py-4 shadow-none transition-colors hover:border-primary/40',
+                isActionable && 'border-l-2 border-l-primary',
+            )}
+        >
+            <CardContent className="px-4">
                 <Link
                     href={href}
                     className="flex items-start justify-between gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     <div>
-                        <p className="text-sm text-muted-foreground">{label}</p>
-                        <p className="mt-1 text-2xl font-semibold tabular-nums">
+                        <p className="text-xs font-medium text-muted-foreground">
+                            {label}
+                        </p>
+                        <p className="mt-1 text-xl font-semibold tabular-nums">
                             {count}
                         </p>
                         {weekly && trend && TrendIcon && (
-                            <p
-                                className={`mt-1.5 flex items-center gap-1 text-xs ${trend.className}`}
+                            <div
+                                className={cn(
+                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-xs font-medium',
+                                    trend.className,
+                                )}
                             >
-                                <TrendIcon className="size-3.5 shrink-0" />
+                                <TrendIcon className="size-3 shrink-0" />
                                 <span>{trendCopy(weekly)}</span>
-                            </p>
+                            </div>
                         )}
                     </div>
-                    <Icon className="size-5 shrink-0 text-muted-foreground" />
+                    <Icon
+                        className={cn(
+                            'size-5 shrink-0',
+                            isActionable
+                                ? 'text-primary'
+                                : 'text-muted-foreground',
+                        )}
+                    />
                 </Link>
             </CardContent>
         </Card>

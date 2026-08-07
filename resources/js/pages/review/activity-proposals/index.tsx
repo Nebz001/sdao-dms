@@ -70,7 +70,11 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
 
                 <QueueStatStrip
                     stats={[
-                        { label: 'Pending', value: String(queue.length) },
+                        {
+                            label: 'Pending',
+                            value: String(queue.length),
+                            count: queue.length,
+                        },
                         { label: 'Oldest waiting', value: oldest },
                     ]}
                 />

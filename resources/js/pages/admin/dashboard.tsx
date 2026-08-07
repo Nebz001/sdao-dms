@@ -25,7 +25,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
-import { formatRelativeTime, statusLabel } from '@/lib/utils';
+import { formatRelativeTime, scaleToPercent, statusLabel } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
 type QuickStat = {
@@ -99,6 +99,14 @@ export default function AdminDashboard({
     const delta = deltaLabel(weeklyVolume.delta);
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
+    // Scaled against a max shared across EVERY group's steps, not each
+    // group's own local peak — otherwise the tallest step in every group
+    // always renders at 100%, and a chain variant with 1 proposal looks
+    // identical to one with 15. See scaleToPercent's docblock.
+    const globalMaxStep = Math.max(
+        ...proposalFunnel.flatMap((g) => g.steps.map((s) => s.count)),
+        1,
+    );
 
     return (
         <>
@@ -171,46 +179,39 @@ export default function AdminDashboard({
                     {proposalFunnel.length > 0 && (
                         <CardContent>
                             <div className="space-y-6">
-                                {proposalFunnel.map((group) => {
-                                    const max = Math.max(
-                                        ...group.steps.map((s) => s.count),
-                                        1,
-                                    );
-
-                                    return (
-                                        <div key={group.variant}>
-                                            <p className="text-sm font-medium">
-                                                {group.label}{' '}
-                                                <span className="text-muted-foreground">
-                                                    · {group.total}
-                                                </span>
-                                            </p>
-                                            <div className="mt-2 space-y-1.5">
-                                                {group.steps.map((step) => (
-                                                    <div
-                                                        key={step.role}
-                                                        className="flex items-center gap-3"
-                                                    >
-                                                        <span className="w-40 shrink-0 truncate text-sm text-muted-foreground">
-                                                            {step.role}
-                                                        </span>
-                                                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                                                            <div
-                                                                className="h-2 rounded-full bg-info"
-                                                                style={{
-                                                                    width: `${(step.count / max) * 100}%`,
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <span className="w-6 shrink-0 text-right text-sm tabular-nums">
-                                                            {step.count}
-                                                        </span>
+                                {proposalFunnel.map((group) => (
+                                    <div key={group.variant}>
+                                        <p className="text-sm font-medium">
+                                            {group.label}{' '}
+                                            <span className="text-muted-foreground">
+                                                · {group.total}
+                                            </span>
+                                        </p>
+                                        <div className="mt-2 space-y-1.5">
+                                            {group.steps.map((step) => (
+                                                <div
+                                                    key={step.role}
+                                                    className="flex items-center gap-3"
+                                                >
+                                                    <span className="w-40 shrink-0 truncate text-sm font-medium text-foreground/80">
+                                                        {step.role}
+                                                    </span>
+                                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                                        <div
+                                                            className="h-2 rounded-full bg-info"
+                                                            style={{
+                                                                width: `${scaleToPercent(step.count, globalMaxStep)}%`,
+                                                            }}
+                                                        />
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <span className="w-6 shrink-0 text-right text-sm tabular-nums">
+                                                        {step.count}
+                                                    </span>
+                                                </div>
+                                            ))}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                ))}
                             </div>
                         </CardContent>
                     )}
@@ -231,9 +232,12 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {recentActivity.length === 0 ? (
-                                <Empty>
+                                <Empty className="gap-4 p-6">
                                     <EmptyHeader>
-                                        <EmptyMedia variant="icon">
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="size-8 [&_svg]:size-5"
+                                        >
                                             <History />
                                         </EmptyMedia>
                                         <EmptyTitle>
@@ -287,9 +291,12 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {oldestInReview.length === 0 ? (
-                                <Empty>
+                                <Empty className="gap-4 p-6">
                                     <EmptyHeader>
-                                        <EmptyMedia variant="icon">
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="size-8 [&_svg]:size-5"
+                                        >
                                             <CircleCheck />
                                         </EmptyMedia>
                                         <EmptyTitle>
@@ -342,9 +349,12 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {orgCompliance.pending.length === 0 ? (
-                                <Empty>
+                                <Empty className="gap-4 p-6">
                                     <EmptyHeader>
-                                        <EmptyMedia variant="icon">
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="size-8 [&_svg]:size-5"
+                                        >
                                             <CircleCheck />
                                         </EmptyMedia>
                                         <EmptyTitle>Nothing pending</EmptyTitle>
@@ -383,9 +393,12 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {orgCompliance.notRenewed.length === 0 ? (
-                                <Empty>
+                                <Empty className="gap-4 p-6">
                                     <EmptyHeader>
-                                        <EmptyMedia variant="icon">
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="size-8 [&_svg]:size-5"
+                                        >
                                             <CircleCheck />
                                         </EmptyMedia>
                                         <EmptyTitle>All caught up</EmptyTitle>

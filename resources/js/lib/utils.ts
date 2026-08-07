@@ -62,7 +62,24 @@ export function formatRelativeTime(dateString: string): string {
         return `${diffDays}d ago`;
     }
 
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
+/**
+ * Bar-fill width as a percentage of a shared max — used to scale progress /
+ * funnel bars against a max computed ACROSS the whole dataset (e.g. every
+ * group's steps), not just the current bar's own local peer group. Scaling
+ * against a local max makes the tallest bar in every group render at 100%
+ * regardless of how that group compares to the others, which defeats the
+ * point of a bar chart. Guarded against `max <= 0` (empty dataset) rather
+ * than dividing by zero.
+ */
+export function scaleToPercent(value: number, max: number): number {
+    return max <= 0 ? 0 : (value / max) * 100;
 }
 
 /**
@@ -73,10 +90,13 @@ export function formatTimeRange(start: string, end: string): string {
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(':').map(Number);
 
-        return new Date(1970, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
-            hour: 'numeric',
-            minute: '2-digit',
-        });
+        return new Date(1970, 0, 1, hours, minutes).toLocaleTimeString(
+            undefined,
+            {
+                hour: 'numeric',
+                minute: '2-digit',
+            },
+        );
     };
 
     return `${formatTime(start)} – ${formatTime(end)}`;

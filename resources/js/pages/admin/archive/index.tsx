@@ -170,9 +170,21 @@ export default function DocumentArchiveIndex({
 
                 <QueueStatStrip
                     stats={[
-                        { label: 'Approved', value: String(stats.approved) },
-                        { label: 'Rejected', value: String(stats.rejected) },
-                        { label: 'Total decided', value: String(stats.total) },
+                        {
+                            label: 'Approved',
+                            value: String(stats.approved),
+                            count: stats.approved,
+                        },
+                        {
+                            label: 'Rejected',
+                            value: String(stats.rejected),
+                            count: stats.rejected,
+                        },
+                        {
+                            label: 'Total decided',
+                            value: String(stats.total),
+                            count: stats.total,
+                        },
                     ]}
                 />
 

@@ -1,7 +1,14 @@
 import { Link } from '@inertiajs/react';
+import { Inbox } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Empty,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 
 type StatRow = {
     key: string | number;
@@ -60,9 +67,17 @@ export default function DashboardStatCard({
             </CardHeader>
             <CardContent className={rows.length > 0 ? 'divide-y' : undefined}>
                 {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        {emptyLabel}
-                    </p>
+                    <Empty className="gap-4 p-6">
+                        <EmptyHeader>
+                            <EmptyMedia
+                                variant="icon"
+                                className="size-8 [&_svg]:size-5"
+                            >
+                                <Inbox />
+                            </EmptyMedia>
+                            <EmptyTitle>{emptyLabel}</EmptyTitle>
+                        </EmptyHeader>
+                    </Empty>
                 ) : (
                     rows.map((row) => (
                         <div

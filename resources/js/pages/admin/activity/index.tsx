@@ -174,7 +174,11 @@ export default function ActivityLogIndex({
 
                 <QueueStatStrip
                     stats={[
-                        { label: 'Total Events', value: String(stats.total) },
+                        {
+                            label: 'Total Events',
+                            value: String(stats.total),
+                            count: stats.total,
+                        },
                     ]}
                 />
 
