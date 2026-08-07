@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Support\AcademicYear;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -89,18 +90,40 @@ class AdminDashboardController extends Controller
     /**
      * Four counts that are today invisible until you click into their own
      * page — Pending Accounts and unassigned advisers have never been
-     * surfaced anywhere admin-facing before this.
+     * surfaced anywhere admin-facing before this. Two of the four also carry
+     * a `weekly` baseline (this-week vs. last-week) for the frontend's trend
+     * indicator — omitted, not zeroed, on the other two, since neither has
+     * an honest historical baseline: "Proposals At Your Step" resolves
+     * against the document's *current* step position, which isn't
+     * reconstructible for a past date, and "Unassigned Advisers" is a
+     * point-in-time assignment state, not an event with a timestamp to
+     * bucket.
      *
-     * @return array<int, array{label: string, count: int, href: string|null}>
+     * @return array<int, array{label: string, count: int, href: string|null, weekly?: array{thisWeek: int, lastWeek: int, delta: int, noun: string}}>
      */
     private function quickStats(User $user, StepApproverResolver $resolver): array
     {
+        ['thisWeekStart' => $thisWeekStart, 'lastWeekStart' => $lastWeekStart] = $this->weekBoundaries();
+
         $awaitingReview = collect(self::SDAO_QUEUE_FORM_TYPES)->sum(
             fn (FormType $type) => Document::query()
                 ->where('form_type', $type->value)
                 ->where('status', DocumentStatus::InReview->value)
                 ->count()
         );
+
+        $shortChainFormTypeValues = collect(self::SDAO_QUEUE_FORM_TYPES)->map(fn (FormType $t) => $t->value)->all();
+
+        $awaitingReviewWeekly = $this->bucketByWeek(
+            DocumentTransition::query()
+                ->where('action', TransitionAction::Submitted->value)
+                ->where('created_at', '>=', $lastWeekStart)
+                ->whereHas('document', fn ($q) => $q->whereIn('form_type', $shortChainFormTypeValues))
+                ->pluck('created_at'),
+            $thisWeekStart,
+            $lastWeekStart,
+        );
+        $awaitingReviewWeekly['noun'] = 'submitted';
 
         $proposalsAtMyStep = Document::query()
             ->with('workflowTemplate.steps')
@@ -122,6 +145,16 @@ class AdminDashboardController extends Controller
             ->where('account_status', AccountStatus::Unverified->value)
             ->count();
 
+        $pendingAccountsWeekly = $this->bucketByWeek(
+            User::query()
+                ->where('account_status', AccountStatus::Unverified->value)
+                ->where('created_at', '>=', $lastWeekStart)
+                ->pluck('created_at'),
+            $thisWeekStart,
+            $lastWeekStart,
+        );
+        $pendingAccountsWeekly['noun'] = 'registered';
+
         // "Available, pending assignment" — the same concept already
         // computed for the adviser-search typeahead
         // (RegistrationController::adviserSearch()'s is_available), just
@@ -135,40 +168,72 @@ class AdminDashboardController extends Controller
             // No single href: this sums four separate queues. Links to the
             // shared dashboard, which already lists each queue individually
             // with its own link — a real destination, not a fabricated one.
-            ['label' => 'Awaiting Your Review', 'count' => $awaitingReview, 'href' => route('dashboard')],
+            ['label' => 'Awaiting Your Review', 'count' => $awaitingReview, 'href' => route('dashboard'), 'weekly' => $awaitingReviewWeekly],
             ['label' => 'Proposals At Your Step', 'count' => $proposalsAtMyStep, 'href' => route('review.activity-proposals.index')],
-            ['label' => 'Pending Accounts', 'count' => $pendingAccounts, 'href' => route('admin.pending-accounts.index')],
+            ['label' => 'Pending Accounts', 'count' => $pendingAccounts, 'href' => route('admin.pending-accounts.index'), 'weekly' => $pendingAccountsWeekly],
             ['label' => 'Unassigned Advisers', 'count' => $unassignedAdvisers, 'href' => route('admin.approvers.index')],
         ];
     }
 
     /**
-     * Documents submitted this ISO week vs. last — a plain comparison
-     * number, not a chart (no charting library exists in this project).
-     * Bucketed in PHP rather than a Postgres date_trunc()/extract() query so
-     * this stays exercisable under the test suite's sqlite driver.
+     * This week's start and last week's start — shared by every weekly
+     * comparison on this page (the global "documents submitted this week"
+     * line and the two quick-stat baselines), so all three measure the same
+     * week consistently.
      *
-     * @return array{thisWeek: int, lastWeek: int, delta: int}
+     * @return array{thisWeekStart: CarbonInterface, lastWeekStart: CarbonInterface}
      */
-    private function weeklyVolume(): array
+    private function weekBoundaries(): array
     {
         $now = now();
-        $thisWeekStart = $now->copy()->startOfWeek();
-        $lastWeekStart = $now->copy()->subWeek()->startOfWeek();
 
-        $submittedAt = DocumentTransition::query()
-            ->where('action', TransitionAction::Submitted->value)
-            ->where('created_at', '>=', $lastWeekStart)
-            ->pluck('created_at');
+        return [
+            'thisWeekStart' => $now->copy()->startOfWeek(),
+            'lastWeekStart' => $now->copy()->subWeek()->startOfWeek(),
+        ];
+    }
 
-        $thisWeek = $submittedAt->filter(fn ($t) => $t->greaterThanOrEqualTo($thisWeekStart))->count();
-        $lastWeek = $submittedAt->filter(fn ($t) => $t->between($lastWeekStart, $thisWeekStart))->count();
+    /**
+     * Buckets a collection of timestamps into "this week" vs. "last week"
+     * counts. Bucketed in PHP rather than a Postgres date_trunc()/extract()
+     * query so this stays exercisable under the test suite's sqlite driver.
+     * `between()` is inclusive on both ends, so a timestamp landing exactly
+     * on the week boundary is counted in both buckets — a pre-existing
+     * characteristic carried over unchanged from the original
+     * single-purpose `weeklyVolume()`, so every consumer measures the
+     * boundary the same way.
+     *
+     * @param  Collection<int, CarbonInterface>  $timestamps
+     * @return array{thisWeek: int, lastWeek: int, delta: int}
+     */
+    private function bucketByWeek(Collection $timestamps, CarbonInterface $thisWeekStart, CarbonInterface $lastWeekStart): array
+    {
+        $thisWeek = $timestamps->filter(fn (CarbonInterface $t) => $t->greaterThanOrEqualTo($thisWeekStart))->count();
+        $lastWeek = $timestamps->filter(fn (CarbonInterface $t) => $t->between($lastWeekStart, $thisWeekStart))->count();
 
         return [
             'thisWeek' => $thisWeek,
             'lastWeek' => $lastWeek,
             'delta' => $thisWeek - $lastWeek,
         ];
+    }
+
+    /**
+     * Documents submitted this ISO week vs. last — a plain comparison
+     * number, not a chart (no charting library exists in this project).
+     *
+     * @return array{thisWeek: int, lastWeek: int, delta: int}
+     */
+    private function weeklyVolume(): array
+    {
+        ['thisWeekStart' => $thisWeekStart, 'lastWeekStart' => $lastWeekStart] = $this->weekBoundaries();
+
+        $submittedAt = DocumentTransition::query()
+            ->where('action', TransitionAction::Submitted->value)
+            ->where('created_at', '>=', $lastWeekStart)
+            ->pluck('created_at');
+
+        return $this->bucketByWeek($submittedAt, $thisWeekStart, $lastWeekStart);
     }
 
     /**

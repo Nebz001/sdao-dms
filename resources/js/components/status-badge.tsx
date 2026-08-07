@@ -1,12 +1,22 @@
 import { Badge } from '@/components/ui/badge';
 import { cn, statusLabel } from '@/lib/utils';
 
+/**
+ * Solid fill chips, not tinted — status is the one thing an approver scans
+ * for, so it gets the loudest treatment on the page. `border-transparent` is
+ * required, not decorative: app.css's `* { @apply border-border }` base rule
+ * would otherwise paint a zinc outline around every chip. `text-background`
+ * resolves to the correct on-fill color in both themes (near-white on the
+ * 600-level light fills, near-black on the 500-level dark fills) without a
+ * manual `dark:` branch. Draft stays a neutral `bg-muted` chip — the
+ * "nothing happening yet" state shouldn't compete with the four active ones.
+ */
 const statusStyles: Record<string, string> = {
-    draft: 'bg-muted text-muted-foreground border-border',
-    in_review: 'bg-info/10 text-info-foreground border-info/20',
-    returned: 'bg-warning/10 text-warning-foreground border-warning/20',
-    approved: 'bg-success/10 text-success-foreground border-success/20',
-    rejected: 'bg-destructive/10 text-destructive-foreground border-destructive/20',
+    draft: 'border-transparent bg-muted text-muted-foreground',
+    in_review: 'border-transparent bg-info text-background',
+    returned: 'border-transparent bg-warning text-background',
+    approved: 'border-transparent bg-success text-background',
+    rejected: 'border-transparent bg-destructive text-white',
 };
 
 /**
@@ -33,13 +43,22 @@ type StatusBadgeProps = {
 };
 
 /**
- * Shared tonal status badge (tinted background + colored text + subtle
- * border) used across every document list/show and review page instead of
- * a per-page `statusVariant` map.
+ * Shared solid-chip status badge used across every document list/show and
+ * review page instead of a per-page `statusVariant` map. Pill-shaped
+ * (`rounded-full`) here only — every other badge in the app keeps the base
+ * `ui/badge.tsx` `rounded-md`, so shape and color both carry the status
+ * distinction from the app's neutral count/role badges.
  */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
     return (
-        <Badge variant="outline" className={cn(statusStyles[status] ?? statusStyles.draft, className)}>
+        <Badge
+            variant="outline"
+            className={cn(
+                'rounded-full font-semibold',
+                statusStyles[status] ?? statusStyles.draft,
+                className,
+            )}
+        >
             {statusLabel(status)}
         </Badge>
     );

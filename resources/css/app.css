@@ -71,30 +71,40 @@
 }
 
 :root {
-    --background: oklch(0.99 0.003 264);
-    --foreground: oklch(0.145 0.014 264);
-    --card: oklch(0.99 0.003 264);
-    --card-foreground: oklch(0.145 0.014 264);
-    --popover: oklch(0.99 0.003 264);
-    --popover-foreground: oklch(0.145 0.014 264);
+    /* Neutral surfaces: zinc scale (Tailwind v4 defaults), not the slate/
+       blue-tinted hue-264 values this theme used to carry. Each token names
+       its zinc step so the layering intent (page < card < border, each one
+       step apart) survives future edits. */
+    --background: oklch(0.985 0 0); /* zinc-50 */
+    --foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+    --card: oklch(1 0 0); /* white — one step above zinc-50 */
+    --card-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+    --popover: oklch(1 0 0); /* white */
+    --popover-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
     --primary: oklch(0.32 0.07 264);
     --primary-foreground: oklch(0.99 0.006 264);
-    --secondary: oklch(0.97 0.006 264);
-    --secondary-foreground: oklch(0.205 0.014 264);
-    --muted: oklch(0.97 0.006 264);
-    --muted-foreground: oklch(0.556 0.014 264);
-    --accent: oklch(0.97 0.006 264);
-    --accent-foreground: oklch(0.205 0.014 264);
-    --destructive: oklch(0.55 0.19 25);
-    --destructive-foreground: oklch(0.55 0.19 25);
-    --success: oklch(0.52 0.14 152);
-    --success-foreground: oklch(0.52 0.14 152);
-    --warning: oklch(0.55 0.15 75);
-    --warning-foreground: oklch(0.55 0.15 75);
-    --info: oklch(0.5 0.15 240);
-    --info-foreground: oklch(0.5 0.15 240);
-    --border: oklch(0.922 0.006 264);
-    --input: oklch(0.922 0.006 264);
+    --secondary: oklch(0.967 0.001 286.375); /* zinc-100 */
+    --secondary-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
+    --muted: oklch(0.967 0.001 286.375); /* zinc-100 */
+    --muted-foreground: oklch(0.552 0.016 285.938); /* zinc-500 */
+    --accent: oklch(0.967 0.001 286.375); /* zinc-100 */
+    --accent-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
+    /* Status colors: bright, saturated Tailwind hues — same hue per status
+       in both themes, lightness/saturation adjusted per background. --x is
+       the solid fill (StatusBadge chips, distribution/funnel bars); the
+       -foreground variant is the readable text used by tonal call sites
+       (Alert, venue booking chips). Contrast-ratio compliance is
+       deliberately waived for this palette. */
+    --destructive: oklch(0.577 0.245 27.325); /* red-600 */
+    --destructive-foreground: oklch(0.505 0.213 27.518); /* red-700 */
+    --success: oklch(0.596 0.145 163.225); /* emerald-600 */
+    --success-foreground: oklch(0.508 0.118 165.612); /* emerald-700 */
+    --warning: oklch(0.666 0.179 58.318); /* amber-600 */
+    --warning-foreground: oklch(0.555 0.163 48.998); /* amber-700 */
+    --info: oklch(0.588 0.158 241.966); /* sky-600 */
+    --info-foreground: oklch(0.5 0.134 242.749); /* sky-700 */
+    --border: oklch(0.92 0.004 286.32); /* zinc-200 */
+    --input: oklch(0.92 0.004 286.32); /* zinc-200 */
     --ring: oklch(0.6 0.07 264);
     --chart-1: oklch(0.646 0.222 41.116);
     --chart-2: oklch(0.6 0.118 184.704);
@@ -102,54 +112,57 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0.004 264);
-    --sidebar-foreground: oklch(0.145 0.014 264);
+    --sidebar: oklch(1 0 0); /* white */
+    --sidebar-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
     --sidebar-primary: oklch(0.32 0.07 264);
     --sidebar-primary-foreground: oklch(0.99 0.006 264);
-    --sidebar-accent: oklch(0.97 0.006 264);
-    --sidebar-accent-foreground: oklch(0.205 0.014 264);
-    --sidebar-border: oklch(0.922 0.006 264);
+    --sidebar-accent: oklch(0.967 0.001 286.375); /* zinc-100 */
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
+    --sidebar-border: oklch(0.92 0.004 286.32); /* zinc-200 */
     --sidebar-ring: oklch(0.6 0.07 264);
 }
 
 .dark {
-    --background: oklch(0.145 0.012 264);
-    --foreground: oklch(0.985 0.006 264);
-    --card: oklch(0.145 0.012 264);
-    --card-foreground: oklch(0.985 0.006 264);
-    --popover: oklch(0.145 0.012 264);
-    --popover-foreground: oklch(0.985 0.006 264);
+    /* See :root — same zinc scale, same status hues, dark-mode steps. */
+    --background: oklch(0.141 0.005 285.823); /* zinc-950 */
+    --foreground: oklch(0.985 0 0); /* zinc-50 */
+    --card: oklch(0.21 0.006 285.885); /* zinc-900 — one step above zinc-950 */
+    --card-foreground: oklch(0.985 0 0); /* zinc-50 */
+    --popover: oklch(0.21 0.006 285.885); /* zinc-900 */
+    --popover-foreground: oklch(0.985 0 0); /* zinc-50 */
     --primary: oklch(0.7 0.09 264);
     --primary-foreground: oklch(0.16 0.02 264);
-    --secondary: oklch(0.269 0.014 264);
-    --secondary-foreground: oklch(0.985 0.006 264);
-    --muted: oklch(0.269 0.014 264);
-    --muted-foreground: oklch(0.708 0.014 264);
-    --accent: oklch(0.269 0.014 264);
-    --accent-foreground: oklch(0.985 0.006 264);
-    --destructive: oklch(0.4 0.13 25);
-    --destructive-foreground: oklch(0.66 0.19 25);
-    --success: oklch(0.4 0.11 152);
-    --success-foreground: oklch(0.72 0.17 152);
-    --warning: oklch(0.42 0.12 75);
-    --warning-foreground: oklch(0.75 0.16 75);
-    --info: oklch(0.4 0.12 240);
-    --info-foreground: oklch(0.72 0.15 240);
-    --border: oklch(0.269 0.014 264);
-    --input: oklch(0.269 0.014 264);
+    --secondary: oklch(0.274 0.006 286.033); /* zinc-800 */
+    --secondary-foreground: oklch(0.985 0 0); /* zinc-50 */
+    --muted: oklch(0.274 0.006 286.033); /* zinc-800 */
+    --muted-foreground: oklch(0.705 0.015 286.067); /* zinc-400 */
+    --accent: oklch(0.274 0.006 286.033); /* zinc-800 */
+    --accent-foreground: oklch(0.985 0 0); /* zinc-50 */
+    --destructive: oklch(0.637 0.237 25.331); /* red-500 */
+    --destructive-foreground: oklch(0.704 0.191 22.216); /* red-400 */
+    --success: oklch(0.696 0.17 162.48); /* emerald-500 */
+    --success-foreground: oklch(0.765 0.177 163.223); /* emerald-400 */
+    --warning: oklch(0.769 0.188 70.08); /* amber-500 */
+    --warning-foreground: oklch(0.828 0.189 84.429); /* amber-400 */
+    --info: oklch(0.685 0.169 237.323); /* sky-500 */
+    --info-foreground: oklch(0.746 0.16 232.661); /* sky-400 */
+    --border: oklch(
+        0.274 0.006 286.033
+    ); /* zinc-800 — one step above zinc-900 */
+    --input: oklch(0.274 0.006 286.033); /* zinc-800 */
     --ring: oklch(0.55 0.08 264);
     --chart-1: oklch(0.488 0.243 264.376);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0.014 264);
-    --sidebar-foreground: oklch(0.985 0.006 264);
+    --sidebar: oklch(0.21 0.006 285.885); /* zinc-900 */
+    --sidebar-foreground: oklch(0.985 0 0); /* zinc-50 */
     --sidebar-primary: oklch(0.7 0.09 264);
     --sidebar-primary-foreground: oklch(0.16 0.02 264);
-    --sidebar-accent: oklch(0.269 0.014 264);
-    --sidebar-accent-foreground: oklch(0.985 0.006 264);
-    --sidebar-border: oklch(0.269 0.014 264);
+    --sidebar-accent: oklch(0.274 0.006 286.033); /* zinc-800 */
+    --sidebar-accent-foreground: oklch(0.985 0 0); /* zinc-50 */
+    --sidebar-border: oklch(0.274 0.006 286.033); /* zinc-800 */
     --sidebar-ring: oklch(0.55 0.08 264);
 }
 

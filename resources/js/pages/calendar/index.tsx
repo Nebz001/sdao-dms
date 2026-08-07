@@ -139,7 +139,7 @@ export default function CalendarIndex({ activities }: Props) {
                 {view === 'month' ? (
                     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                         <Card>
-                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-4 space-y-0">
+                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-2">
                                     <Button
                                         variant="outline"
@@ -258,21 +258,25 @@ export default function CalendarIndex({ activities }: Props) {
                         </Card>
                     </div>
                 ) : filteredActivities.length === 0 ? (
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <CalendarX2 />
-                            </EmptyMedia>
-                            <EmptyTitle>
-                                No activities on the calendar yet
-                            </EmptyTitle>
-                            <EmptyDescription>
-                                {selectedVenue === ALL_VENUES
-                                    ? 'Once an activity calendar or proposal is submitted, it’ll show up here.'
-                                    : 'No bookings match the selected venue.'}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
+                    <Card>
+                        <CardContent>
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <CalendarX2 />
+                                    </EmptyMedia>
+                                    <EmptyTitle>
+                                        No activities on the calendar yet
+                                    </EmptyTitle>
+                                    <EmptyDescription>
+                                        {selectedVenue === ALL_VENUES
+                                            ? 'Once an activity calendar or proposal is submitted, it’ll show up here.'
+                                            : 'No bookings match the selected venue.'}
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                        </CardContent>
+                    </Card>
                 ) : (
                     Object.keys(groupedByVenue)
                         .sort()

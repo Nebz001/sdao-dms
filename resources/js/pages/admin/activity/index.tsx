@@ -4,10 +4,22 @@ import { useEffect, useRef, useState } from 'react';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatRelativeTime, statusLabel } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
@@ -51,7 +63,13 @@ type Props = {
 const ALL_TYPES = 'all';
 const ALL_ACTIONS = 'all';
 
-export default function ActivityLogIndex({ transitions, filters, formTypes, actions, stats }: Props) {
+export default function ActivityLogIndex({
+    transitions,
+    filters,
+    formTypes,
+    actions,
+    stats,
+}: Props) {
     const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
     const [action, setAction] = useState(filters.action ?? ALL_ACTIONS);
     const [search, setSearch] = useState(filters.search);
@@ -108,10 +126,12 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                 clearTimeout(debounceTimer.current);
             }
         };
-
     }, [formType, action, search]);
 
-    const hasFilters = formType !== ALL_TYPES || action !== ALL_ACTIONS || search.trim() !== '';
+    const hasFilters =
+        formType !== ALL_TYPES ||
+        action !== ALL_ACTIONS ||
+        search.trim() !== '';
 
     function clearFilters() {
         setFormType(ALL_TYPES);
@@ -125,12 +145,16 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
         }
 
         setLoading(true);
-        router.get(url, {}, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['transitions', 'filters', 'stats'],
-            onFinish: () => setLoading(false),
-        });
+        router.get(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['transitions', 'filters', 'stats'],
+                onFinish: () => setLoading(false),
+            },
+        );
     }
 
     return (
@@ -139,26 +163,46 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Activity Log</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Activity Log
+                    </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Every submission, approval, return, and rejection across every organization and form type.
+                        Every submission, approval, return, and rejection across
+                        every organization and form type.
                     </p>
                 </div>
 
-                <QueueStatStrip stats={[{ label: 'Total Events', value: String(stats.total) }]} />
+                <QueueStatStrip
+                    stats={[
+                        { label: 'Total Events', value: String(stats.total) },
+                    ]}
+                />
 
                 <Card>
-                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:flex-wrap">
+                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
                         <div className="grid gap-2">
-                            <Label htmlFor="activity-form-type">Form type</Label>
-                            <Select value={formType} onValueChange={setFormType}>
-                                <SelectTrigger id="activity-form-type" className="w-full sm:w-56">
+                            <Label htmlFor="activity-form-type">
+                                Form type
+                            </Label>
+                            <Select
+                                value={formType}
+                                onValueChange={setFormType}
+                            >
+                                <SelectTrigger
+                                    id="activity-form-type"
+                                    className="w-full sm:w-56"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_TYPES}>All types</SelectItem>
+                                    <SelectItem value={ALL_TYPES}>
+                                        All types
+                                    </SelectItem>
                                     {formTypes.map((t) => (
-                                        <SelectItem key={t.value} value={t.value}>
+                                        <SelectItem
+                                            key={t.value}
+                                            value={t.value}
+                                        >
                                             {t.label}
                                         </SelectItem>
                                     ))}
@@ -169,13 +213,21 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                         <div className="grid gap-2">
                             <Label htmlFor="activity-action">Action</Label>
                             <Select value={action} onValueChange={setAction}>
-                                <SelectTrigger id="activity-action" className="w-full sm:w-48">
+                                <SelectTrigger
+                                    id="activity-action"
+                                    className="w-full sm:w-48"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_ACTIONS}>All actions</SelectItem>
+                                    <SelectItem value={ALL_ACTIONS}>
+                                        All actions
+                                    </SelectItem>
                                     {actions.map((a) => (
-                                        <SelectItem key={a.value} value={a.value}>
+                                        <SelectItem
+                                            key={a.value}
+                                            value={a.value}
+                                        >
                                             {statusLabel(a.value)}
                                         </SelectItem>
                                     ))}
@@ -194,7 +246,11 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                         </div>
 
                         {hasFilters && (
-                            <Button type="button" variant="ghost" onClick={clearFilters}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={clearFilters}
+                            >
                                 Clear filters
                             </Button>
                         )}
@@ -218,14 +274,23 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                                     <EmptyMedia variant="icon">
                                         <History />
                                     </EmptyMedia>
-                                    <EmptyTitle>{hasFilters ? 'No activity matches these filters' : 'Nothing has happened yet'}</EmptyTitle>
+                                    <EmptyTitle>
+                                        {hasFilters
+                                            ? 'No activity matches these filters'
+                                            : 'Nothing has happened yet'}
+                                    </EmptyTitle>
                                     <EmptyDescription>
                                         {hasFilters
                                             ? 'Try a different form type, action, or search term.'
                                             : 'Submissions and approvals will show up here as they happen.'}
                                     </EmptyDescription>
                                     {hasFilters && (
-                                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={clearFilters}
+                                        >
                                             Clear filters
                                         </Button>
                                     )}
@@ -234,17 +299,31 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                         ) : (
                             <div className="divide-y">
                                 {transitions.data.map((entry) => (
-                                    <div key={entry.id} className="flex items-center justify-between gap-4 py-3">
+                                    <div
+                                        key={entry.id}
+                                        className="flex items-center justify-between gap-4 py-3"
+                                    >
                                         <div className="min-w-0">
-                                            <Link href={entry.href} className="truncate font-medium hover:underline">
+                                            <Link
+                                                href={entry.href}
+                                                className="truncate font-medium hover:underline"
+                                            >
                                                 {entry.documentTitle}
                                             </Link>
                                             <p className="truncate text-sm text-muted-foreground">
-                                                {entry.actorName} {statusLabel(entry.action).toLowerCase()} · {entry.organizationName} ·{' '}
+                                                {entry.actorName}{' '}
+                                                {statusLabel(
+                                                    entry.action,
+                                                ).toLowerCase()}{' '}
+                                                · {entry.organizationName} ·{' '}
                                                 {entry.formTypeLabel}
                                             </p>
                                         </div>
-                                        <span className="shrink-0 text-sm text-muted-foreground">{formatRelativeTime(entry.createdAt)}</span>
+                                        <span className="shrink-0 text-sm text-muted-foreground">
+                                            {formatRelativeTime(
+                                                entry.createdAt,
+                                            )}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
@@ -253,31 +332,39 @@ export default function ActivityLogIndex({ transitions, filters, formTypes, acti
                 </Card>
 
                 {!loading && transitions.data.length > 0 && (
-                    <div className="flex items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground">
-                            Showing {transitions.meta.from}–{transitions.meta.to} of {transitions.meta.total}
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!transitions.links.prev}
-                                onClick={() => goToPage(transitions.links.prev)}
-                            >
-                                Previous
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!transitions.links.next}
-                                onClick={() => goToPage(transitions.links.next)}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
+                    <Card>
+                        <CardContent className="flex items-center justify-between gap-4">
+                            <p className="text-sm text-muted-foreground">
+                                Showing {transitions.meta.from}–
+                                {transitions.meta.to} of{' '}
+                                {transitions.meta.total}
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!transitions.links.prev}
+                                    onClick={() =>
+                                        goToPage(transitions.links.prev)
+                                    }
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!transitions.links.next}
+                                    onClick={() =>
+                                        goToPage(transitions.links.next)
+                                    }
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </>

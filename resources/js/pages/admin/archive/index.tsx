@@ -5,10 +5,22 @@ import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import * as archive from '@/routes/admin/archive';
 
@@ -49,7 +61,12 @@ type Props = {
 const ALL_TYPES = 'all';
 const ALL_STATUSES = 'all';
 
-export default function DocumentArchiveIndex({ documents, filters, formTypes, stats }: Props) {
+export default function DocumentArchiveIndex({
+    documents,
+    filters,
+    formTypes,
+    stats,
+}: Props) {
     const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
     const [status, setStatus] = useState(filters.status ?? ALL_STATUSES);
     const [search, setSearch] = useState(filters.search);
@@ -105,10 +122,12 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                 clearTimeout(debounceTimer.current);
             }
         };
-         
     }, [formType, status, search]);
 
-    const hasFilters = formType !== ALL_TYPES || status !== ALL_STATUSES || search.trim() !== '';
+    const hasFilters =
+        formType !== ALL_TYPES ||
+        status !== ALL_STATUSES ||
+        search.trim() !== '';
 
     function clearFilters() {
         setFormType(ALL_TYPES);
@@ -122,12 +141,16 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
         }
 
         setLoading(true);
-        router.get(url, {}, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['documents', 'filters', 'stats'],
-            onFinish: () => setLoading(false),
-        });
+        router.get(
+            url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['documents', 'filters', 'stats'],
+                onFinish: () => setLoading(false),
+            },
+        );
     }
 
     return (
@@ -136,10 +159,12 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Document Archive</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                        Document Archive
+                    </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Approved and rejected documents across every form type, once they&apos;ve left the
-                        review queues.
+                        Approved and rejected documents across every form type,
+                        once they&apos;ve left the review queues.
                     </p>
                 </div>
 
@@ -152,17 +177,28 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                 />
 
                 <Card>
-                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:flex-wrap">
+                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
                         <div className="grid gap-2">
                             <Label htmlFor="archive-form-type">Form type</Label>
-                            <Select value={formType} onValueChange={setFormType}>
-                                <SelectTrigger id="archive-form-type" className="w-full sm:w-56">
+                            <Select
+                                value={formType}
+                                onValueChange={setFormType}
+                            >
+                                <SelectTrigger
+                                    id="archive-form-type"
+                                    className="w-full sm:w-56"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_TYPES}>All types</SelectItem>
+                                    <SelectItem value={ALL_TYPES}>
+                                        All types
+                                    </SelectItem>
                                     {formTypes.map((t) => (
-                                        <SelectItem key={t.value} value={t.value}>
+                                        <SelectItem
+                                            key={t.value}
+                                            value={t.value}
+                                        >
                                             {t.label}
                                         </SelectItem>
                                     ))}
@@ -173,13 +209,22 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                         <div className="grid gap-2">
                             <Label htmlFor="archive-status">Status</Label>
                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger id="archive-status" className="w-full sm:w-40">
+                                <SelectTrigger
+                                    id="archive-status"
+                                    className="w-full sm:w-40"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_STATUSES}>Approved & Rejected</SelectItem>
-                                    <SelectItem value="approved">Approved</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                    <SelectItem value={ALL_STATUSES}>
+                                        Approved & Rejected
+                                    </SelectItem>
+                                    <SelectItem value="approved">
+                                        Approved
+                                    </SelectItem>
+                                    <SelectItem value="rejected">
+                                        Rejected
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -195,7 +240,11 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                         </div>
 
                         {hasFilters && (
-                            <Button type="button" variant="ghost" onClick={clearFilters}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={clearFilters}
+                            >
                                 Clear filters
                             </Button>
                         )}
@@ -204,7 +253,9 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Decided Documents</CardTitle>
+                        <CardTitle className="text-base">
+                            Decided Documents
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
@@ -220,7 +271,9 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                                         <ArchiveIcon />
                                     </EmptyMedia>
                                     <EmptyTitle>
-                                        {hasFilters ? 'No documents match these filters' : 'Nothing decided yet'}
+                                        {hasFilters
+                                            ? 'No documents match these filters'
+                                            : 'Nothing decided yet'}
                                     </EmptyTitle>
                                     <EmptyDescription>
                                         {hasFilters
@@ -228,7 +281,12 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                                             : 'Approved and rejected documents will show up here once SDAO finalizes them.'}
                                     </EmptyDescription>
                                     {hasFilters && (
-                                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={clearFilters}
+                                        >
                                             Clear filters
                                         </Button>
                                     )}
@@ -237,18 +295,32 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                         ) : (
                             <div className="divide-y">
                                 {documents.data.map((doc) => (
-                                    <div key={doc.id} className="flex items-center justify-between gap-4 py-3">
+                                    <div
+                                        key={doc.id}
+                                        className="flex items-center justify-between gap-4 py-3"
+                                    >
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{doc.title}</p>
+                                            <p className="truncate font-medium">
+                                                {doc.title}
+                                            </p>
                                             <p className="truncate text-sm text-muted-foreground">
-                                                {doc.organization.name} · {doc.form_type_label} ·{' '}
-                                                {new Date(doc.decided_at).toLocaleDateString()}
+                                                {doc.organization.name} ·{' '}
+                                                {doc.form_type_label} ·{' '}
+                                                {new Date(
+                                                    doc.decided_at,
+                                                ).toLocaleDateString()}
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <StatusBadge status={doc.status} />
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={doc.href}>View</Link>
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Link href={doc.href}>
+                                                    View
+                                                </Link>
                                             </Button>
                                         </div>
                                     </div>
@@ -259,31 +331,38 @@ export default function DocumentArchiveIndex({ documents, filters, formTypes, st
                 </Card>
 
                 {!loading && documents.data.length > 0 && (
-                    <div className="flex items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground">
-                            Showing {documents.meta.from}–{documents.meta.to} of {documents.meta.total}
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!documents.links.prev}
-                                onClick={() => goToPage(documents.links.prev)}
-                            >
-                                Previous
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!documents.links.next}
-                                onClick={() => goToPage(documents.links.next)}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
+                    <Card>
+                        <CardContent className="flex items-center justify-between gap-4">
+                            <p className="text-sm text-muted-foreground">
+                                Showing {documents.meta.from}–
+                                {documents.meta.to} of {documents.meta.total}
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!documents.links.prev}
+                                    onClick={() =>
+                                        goToPage(documents.links.prev)
+                                    }
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!documents.links.next}
+                                    onClick={() =>
+                                        goToPage(documents.links.next)
+                                    }
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </>

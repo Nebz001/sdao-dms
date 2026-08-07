@@ -233,6 +233,37 @@ test('oldest in-review uses the latest transition as the activity clock, not doc
         );
 });
 
+test('quick stats carry a weekly baseline for awaiting-review and pending-accounts only', function () {
+    // This week: one short-chain submission, one newly unverified account.
+    inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+    User::factory()->create(['account_status' => AccountStatus::Unverified]);
+
+    // Last week: one more of each, backdated.
+    $lastWeekDoc = inReviewRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $lastWeekDoc->transitions()->where('action', 'submitted')->update(['created_at' => now()->subWeek()]);
+
+    // User::created_at isn't in the model's #[Fillable(...)] list, so a
+    // plain ->update() silently drops it — force it directly instead.
+    $lastWeekUser = User::factory()->create(['account_status' => AccountStatus::Unverified]);
+    $lastWeekUser->forceFill(['created_at' => now()->subWeek()])->save();
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('quickStats.0.weekly.thisWeek', 1)
+            ->where('quickStats.0.weekly.lastWeek', 1)
+            ->where('quickStats.0.weekly.delta', 0)
+            ->where('quickStats.0.weekly.noun', 'submitted')
+            ->missing('quickStats.1.weekly')
+            ->where('quickStats.2.weekly.thisWeek', 1)
+            ->where('quickStats.2.weekly.lastWeek', 1)
+            ->where('quickStats.2.weekly.delta', 0)
+            ->where('quickStats.2.weekly.noun', 'registered')
+            ->missing('quickStats.3.weekly')
+        );
+});
+
 test('org compliance lists organizations with pending items and organizations not yet renewed this year', function () {
     inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
 

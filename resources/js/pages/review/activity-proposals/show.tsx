@@ -168,7 +168,7 @@ export default function ReviewActivityProposalShow({
                 {/* Off-calendar conflict warning */}
                 {activityConflict && activityConflict.confirmed.length > 0 && (
                     <Card className="border-destructive bg-destructive/5">
-                        <CardContent className="pt-4">
+                        <CardContent>
                             <p className="text-sm font-medium text-destructive">
                                 Venue conflict — this activity overlaps an
                                 already-approved booking:

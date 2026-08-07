@@ -1,5 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
-import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import type {
+    AttachmentSlotDef,
+    ExistingAttachment,
+} from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import PrintFormButton from '@/components/print-form-button';
@@ -74,7 +77,13 @@ export default function ShowActivityProposal({
     flaggedSectionLabels,
     flash,
 }: Props) {
-    useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'history']);
+    useDocumentUpdates([
+        'document',
+        'proposal',
+        'activity',
+        'attachments',
+        'history',
+    ]);
 
     const isDraft = doc.status === 'draft';
     const isReturned = doc.status === 'returned';
@@ -87,9 +96,12 @@ export default function ShowActivityProposal({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{doc.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                            {doc.title}
+                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Name of RSO:</span> {doc.organization.name}
+                            <span className="font-medium">Name of RSO:</span>{' '}
+                            {doc.organization.name}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -97,14 +109,26 @@ export default function ShowActivityProposal({
                         <PrintFormButton documentId={doc.id} />
                         {isDraft && (
                             <Button asChild size="sm">
-                                <Link href={activityProposals.continueMethod({ document: doc.id }).url}>
+                                <Link
+                                    href={
+                                        activityProposals.continueMethod({
+                                            document: doc.id,
+                                        }).url
+                                    }
+                                >
                                     Continue Narrative
                                 </Link>
                             </Button>
                         )}
                         {isReturned && (
                             <Button asChild size="sm">
-                                <Link href={activityProposals.edit({ document: doc.id }).url}>
+                                <Link
+                                    href={
+                                        activityProposals.edit({
+                                            document: doc.id,
+                                        }).url
+                                    }
+                                >
                                     Edit & Resubmit
                                 </Link>
                             </Button>
@@ -115,9 +139,10 @@ export default function ShowActivityProposal({
                 {/* Flash warnings */}
                 {flash?.warnings && flash.warnings.length > 0 && (
                     <Card className="border-warning/40 bg-warning/10">
-                        <CardContent className="pt-4">
+                        <CardContent>
                             <p className="text-sm font-medium text-warning-foreground">
-                                Submitted, but a possible venue conflict was detected:
+                                Submitted, but a possible venue conflict was
+                                detected:
                             </p>
                         </CardContent>
                     </Card>
@@ -125,19 +150,26 @@ export default function ShowActivityProposal({
 
                 {/* Activity summary */}
                 {activity && proposal && (
-                    <Card className={`border-l-4 ${statusBorderClass(doc.status)}`}>
+                    <Card
+                        className={`border-l-4 ${statusBorderClass(doc.status)}`}
+                    >
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Activity{' '}
                                 <span className="text-xs font-normal text-muted-foreground">
-                                    ({proposal.calendar_mode === 'on_calendar' ? 'On Calendar' : 'Off Calendar'})
+                                    (
+                                    {proposal.calendar_mode === 'on_calendar'
+                                        ? 'On Calendar'
+                                        : 'Off Calendar'}
+                                    )
                                 </span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm">
                             <p className="font-medium">{activity.name}</p>
                             <p className="text-muted-foreground">
-                                {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
+                                {activity.venue} · {activity.activity_date} ·{' '}
+                                {activity.start_time}–{activity.end_time}
                             </p>
                         </CardContent>
                     </Card>
@@ -147,35 +179,56 @@ export default function ShowActivityProposal({
                 {proposal && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Activity Request Form</CardTitle>
+                            <CardTitle className="text-base">
+                                Activity Request Form
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
                             {proposal.activity_nature_label && (
-                                <Row label="Nature of Activity" value={proposal.activity_nature_label} />
+                                <Row
+                                    label="Nature of Activity"
+                                    value={proposal.activity_nature_label}
+                                />
                             )}
                             {proposal.activity_type_label && (
-                                <Row label="Type of Activity" value={proposal.activity_type_label} />
+                                <Row
+                                    label="Type of Activity"
+                                    value={proposal.activity_type_label}
+                                />
                             )}
-                            {proposal.partner_organizations && proposal.partner_organizations.length > 0 && (
-                                <div className="grid gap-1">
-                                    <span className="font-medium text-muted-foreground">
-                                        Partner Organization(s)/School(s)/RSO
-                                    </span>
-                                    <ul className="list-disc pl-4">
-                                        {proposal.partner_organizations.map((org, i) => (
-                                            <li key={i}>{org}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                            {proposal.partner_organizations &&
+                                proposal.partner_organizations.length > 0 && (
+                                    <div className="grid gap-1">
+                                        <span className="font-medium text-muted-foreground">
+                                            Partner
+                                            Organization(s)/School(s)/RSO
+                                        </span>
+                                        <ul className="list-disc pl-4">
+                                            {proposal.partner_organizations.map(
+                                                (org, i) => (
+                                                    <li key={i}>{org}</li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
                             {proposal.target_sdg_label && (
-                                <Row label="Target SDG" value={proposal.target_sdg_label} />
+                                <Row
+                                    label="Target SDG"
+                                    value={proposal.target_sdg_label}
+                                />
                             )}
                             {proposal.proposed_budget && (
-                                <Row label="Proposed Budget" value={`₱${proposal.proposed_budget}`} />
+                                <Row
+                                    label="Proposed Budget"
+                                    value={`₱${proposal.proposed_budget}`}
+                                />
                             )}
                             {proposal.budget_source && (
-                                <Row label="Budget Source" value={proposal.budget_source} />
+                                <Row
+                                    label="Budget Source"
+                                    value={proposal.budget_source}
+                                />
                             )}
                         </CardContent>
                     </Card>
@@ -185,37 +238,59 @@ export default function ShowActivityProposal({
                 {proposal && (proposal.objectives || proposal.narrative) && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Proposal Narrative</CardTitle>
+                            <CardTitle className="text-base">
+                                Proposal Narrative
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
                             {proposal.objectives && (
                                 <div>
-                                    <p className="mb-1 font-medium">Objectives</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.objectives}</p>
+                                    <p className="mb-1 font-medium">
+                                        Objectives
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.objectives}
+                                    </p>
                                 </div>
                             )}
                             {proposal.narrative && (
                                 <div>
-                                    <p className="mb-1 font-medium">Narrative</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.narrative}</p>
+                                    <p className="mb-1 font-medium">
+                                        Narrative
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.narrative}
+                                    </p>
                                 </div>
                             )}
                             {proposal.criteria_mechanics && (
                                 <div>
-                                    <p className="mb-1 font-medium">Criteria/Mechanics</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.criteria_mechanics}</p>
+                                    <p className="mb-1 font-medium">
+                                        Criteria/Mechanics
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.criteria_mechanics}
+                                    </p>
                                 </div>
                             )}
                             {proposal.program_flow && (
                                 <div>
-                                    <p className="mb-1 font-medium">Program Flow</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.program_flow}</p>
+                                    <p className="mb-1 font-medium">
+                                        Program Flow
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.program_flow}
+                                    </p>
                                 </div>
                             )}
                             {proposal.source_of_funding && (
                                 <div>
-                                    <p className="mb-1 font-medium">Source of Funding</p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">{proposal.source_of_funding}</p>
+                                    <p className="mb-1 font-medium">
+                                        Source of Funding
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                        {proposal.source_of_funding}
+                                    </p>
                                 </div>
                             )}
                             <ExpenseItemsTable
@@ -232,17 +307,23 @@ export default function ShowActivityProposal({
                 {/* Revision history */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Revision History</CardTitle>
+                        <CardTitle className="text-base">
+                            Revision History
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {history.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No history yet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                No history yet.
+                            </p>
                         ) : (
                             <ol className="relative border-l border-border pl-4">
                                 {history.map((entry) => (
                                     <li key={entry.id} className="mb-4 ml-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-medium">{actionLabel(entry.action)}</span>
+                                            <span className="font-medium">
+                                                {actionLabel(entry.action)}
+                                            </span>
                                             {entry.actor && (
                                                 <span className="text-sm text-muted-foreground">
                                                     — {entry.actor.name}
@@ -250,24 +331,48 @@ export default function ShowActivityProposal({
                                             )}
                                         </div>
                                         {entry.comment && (
-                                            <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
-                                        )}
-                                        {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-destructive">
-                                                Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                "{entry.comment}"
                                             </p>
                                         )}
-                                        {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
-                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
-                                                {Object.entries(entry.section_comments).map(([key, note]) => (
-                                                    <li key={key}>
-                                                        <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                        {entry.flagged_sections &&
+                                            entry.flagged_sections.length >
+                                                0 && (
+                                                <p className="mt-1 text-xs text-destructive">
+                                                    Flagged:{' '}
+                                                    {entry.flagged_sections
+                                                        .map(
+                                                            (key) =>
+                                                                flaggedSectionLabels[
+                                                                    key
+                                                                ] ?? key,
+                                                        )
+                                                        .join(', ')}
+                                                </p>
+                                            )}
+                                        {entry.section_comments &&
+                                            Object.keys(entry.section_comments)
+                                                .length > 0 && (
+                                                <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                                    {Object.entries(
+                                                        entry.section_comments,
+                                                    ).map(([key, note]) => (
+                                                        <li key={key}>
+                                                            <span className="font-medium">
+                                                                {flaggedSectionLabels[
+                                                                    key
+                                                                ] ?? key}
+                                                                :
+                                                            </span>{' '}
+                                                            {note}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         <time className="text-xs text-muted-foreground">
-                                            {new Date(entry.created_at).toLocaleString()}
+                                            {new Date(
+                                                entry.created_at,
+                                            ).toLocaleString()}
                                         </time>
                                     </li>
                                 ))}
@@ -290,5 +395,8 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 ShowActivityProposal.layout = {
-    breadcrumbs: [{ title: 'Activity Proposals', href: '/activity-proposals' }, { title: 'View' }],
+    breadcrumbs: [
+        { title: 'Activity Proposals', href: '/activity-proposals' },
+        { title: 'View' },
+    ],
 };

@@ -7,7 +7,13 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty"
       className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
+        // `border-dashed` alone renders nothing — Tailwind needs an explicit
+        // border-width utility, and this component's upstream shadcn/ui
+        // source doesn't add one (confirmed via `npx shadcn diff empty`:
+        // this file already matches the current registry byte-for-byte).
+        // Adding `border` here to actually render the dashed outline the
+        // component's own class name says it should have.
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border border-dashed p-6 text-center text-balance md:p-12",
         className
       )}
       {...props}

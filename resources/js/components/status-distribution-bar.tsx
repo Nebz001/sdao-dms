@@ -33,15 +33,20 @@ const STATUS_ORDER = ['draft', 'in_review', 'returned', 'approved', 'rejected'];
  * hues distinguishable without relying on color alone; the legend below
  * pairs every swatch with its status label and count, never color-only.
  */
-export default function StatusDistributionBar({ data }: StatusDistributionBarProps) {
+export default function StatusDistributionBar({
+    data,
+}: StatusDistributionBarProps) {
     const byStatus = new Map(data.map((d) => [d.status, d.count]));
     const total = data.reduce((sum, d) => sum + d.count, 0);
-    const segments = STATUS_ORDER.map((status) => ({ status, count: byStatus.get(status) ?? 0 })).filter(
-        (s) => s.count > 0,
-    );
+    const segments = STATUS_ORDER.map((status) => ({
+        status,
+        count: byStatus.get(status) ?? 0,
+    })).filter((s) => s.count > 0);
 
+    // The empty-state copy lives in the card's CardDescription (see
+    // admin/dashboard.tsx) so it isn't duplicated here.
     if (total === 0) {
-        return <p className="text-sm text-muted-foreground">No documents in this academic year yet.</p>;
+        return null;
     }
 
     return (
@@ -62,10 +67,20 @@ export default function StatusDistributionBar({ data }: StatusDistributionBarPro
                     const count = byStatus.get(status) ?? 0;
 
                     return (
-                        <div key={status} className="flex items-center gap-1.5 text-sm">
-                            <span className={`size-2.5 rounded-[2px] ${STATUS_FILL[status]}`} aria-hidden />
-                            <span className="text-muted-foreground">{statusLabel(status)}</span>
-                            <span className="font-medium tabular-nums">{count}</span>
+                        <div
+                            key={status}
+                            className="flex items-center gap-1.5 text-sm"
+                        >
+                            <span
+                                className={`size-2.5 rounded-[2px] ${STATUS_FILL[status]}`}
+                                aria-hidden
+                            />
+                            <span className="text-muted-foreground">
+                                {statusLabel(status)}
+                            </span>
+                            <span className="font-medium tabular-nums">
+                                {count}
+                            </span>
                         </div>
                     );
                 })}

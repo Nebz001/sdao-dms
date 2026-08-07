@@ -40,36 +40,55 @@ export default function DashboardStatCard({
 }: DashboardStatCardProps) {
     return (
         <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+            <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div>
                     <CardTitle className="text-base">{title}</CardTitle>
                     {headlineCount !== undefined && (
-                        <p className="mt-1 text-2xl font-semibold tabular-nums">{headlineCount}</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums">
+                            {headlineCount}
+                        </p>
                     )}
                 </div>
                 {viewAllHref && rows.length > 0 && (
-                    <Link href={viewAllHref} className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                        href={viewAllHref}
+                        className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                         {viewAllLabel}
                     </Link>
                 )}
             </CardHeader>
             <CardContent className={rows.length > 0 ? 'divide-y' : undefined}>
                 {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {emptyLabel}
+                    </p>
                 ) : (
                     rows.map((row) => (
-                        <div key={row.key} className="flex items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
-                            <Link href={row.href} className="text-sm font-medium hover:underline">
+                        <div
+                            key={row.key}
+                            className="flex items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0"
+                        >
+                            <Link
+                                href={row.href}
+                                className="text-sm font-medium hover:underline"
+                            >
                                 {row.label}
                             </Link>
                             <div className="flex items-center gap-2">
                                 {row.status ? (
                                     <StatusBadge status={row.status} />
                                 ) : (
-                                    row.badge && <Badge variant="secondary">{row.badge}</Badge>
+                                    row.badge && (
+                                        <Badge variant="secondary">
+                                            {row.badge}
+                                        </Badge>
+                                    )
                                 )}
                                 {row.count !== undefined && (
-                                    <span className="text-sm text-muted-foreground tabular-nums">{row.count}</span>
+                                    <span className="text-sm text-muted-foreground tabular-nums">
+                                        {row.count}
+                                    </span>
                                 )}
                             </div>
                         </div>
