@@ -1,7 +1,12 @@
 import { Link } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { AlertCircle, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export type WeeklyDelta = {
@@ -22,31 +27,34 @@ type StatTileProps = {
     icon: LucideIcon;
     /** Trend vs. last week. Omit when this tile has no honest historical baseline to compare against. */
     weekly?: WeeklyDelta;
+    /**
+     * Marks this tile as needing correction, not just routine queue depth —
+     * e.g. an unassigned adviser is a misconfiguration, unlike "documents
+     * awaiting review", which is expected workflow volume. Renders an
+     * AlertCircle badge + capped pulse + tooltip in the corner instead of
+     * the ordinary nonzero left-border accent, so there's exactly one
+     * urgent signal per card, not two competing ones.
+     */
+    urgent?: boolean;
 };
 
 /**
  * Up = success / down = destructive / flat = muted — shared by every weekly
- * comparison on the admin dashboard: this tile's own trend row below, and
- * the page-level "documents submitted this week" line in admin/dashboard.tsx.
+ * comparison on the admin dashboard's stat tiles.
  */
 export function deltaLabel(delta: number): {
-    text: string;
     icon: LucideIcon;
     className: string;
 } {
     if (delta > 0) {
-        return { text: `+${delta}`, icon: ArrowUp, className: 'text-success' };
+        return { icon: TrendingUp, className: 'text-success' };
     }
 
     if (delta < 0) {
-        return {
-            text: `${delta}`,
-            icon: ArrowDown,
-            className: 'text-destructive',
-        };
+        return { icon: TrendingDown, className: 'text-destructive' };
     }
 
-    return { text: '±0', icon: Minus, className: 'text-muted-foreground' };
+    return { icon: Minus, className: 'text-muted-foreground' };
 }
 
 /**
@@ -66,6 +74,17 @@ function trendCopy(weekly: WeeklyDelta): string {
 }
 
 /**
+ * "1 adviser needs to be assigned" / "3 advisers need to be assigned" —
+ * shared by the urgent badge's accessible name and its tooltip text.
+ */
+function urgentCopy(count: number): string {
+    const plural = count === 1 ? '' : 's';
+    const verb = count === 1 ? 'needs' : 'need';
+
+    return `${count} adviser${plural} ${verb} to be assigned`;
+}
+
+/**
  * A single clickable count — the admin dashboard's "quick links" strip.
  * Distinct from QueueStatStrip (a non-clickable stat row inside one Card):
  * every stat here is a genuinely new destination that had no visibility
@@ -78,6 +97,8 @@ function trendCopy(weekly: WeeklyDelta): string {
  * identical chrome repeated twice. A nonzero count is always actionable
  * (there's no purely-informational tile in this app), so it gets a
  * `--primary` left-border + icon accent; a zero count stays fully neutral.
+ * `urgent` tiles drop the left-border in favor of the corner alert badge
+ * below — see that prop's docblock.
  */
 export default function StatTile({
     label,
@@ -85,6 +106,7 @@ export default function StatTile({
     href,
     icon: Icon,
     weekly,
+    urgent,
 }: StatTileProps) {
     const trend = weekly ? deltaLabel(weekly.delta) : null;
     const TrendIcon = trend?.icon;
@@ -93,10 +115,32 @@ export default function StatTile({
     return (
         <Card
             className={cn(
-                'gap-0 border-border/60 py-4 shadow-none transition-colors hover:border-primary/40',
-                isActionable && 'border-l-2 border-l-primary',
+                'relative gap-0 border-border/60 py-4 shadow-none transition-colors hover:border-primary/40',
+                isActionable && !urgent && 'border-l-2 border-l-primary',
             )}
         >
+            {urgent && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            aria-label={urgentCopy(count)}
+                            className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                            {/* Keyed on count so a value change (e.g. via a
+                                future poll) remounts this node, restarting
+                                the capped ping — not just an "on load" run. */}
+                            <span key={count} className="relative inline-flex">
+                                <span className="absolute inline-flex size-full rounded-full bg-destructive/60 motion-safe:animate-[ping_1.4s_ease-out_3]" />
+                                <span className="relative inline-flex rounded-full bg-destructive p-1">
+                                    <AlertCircle className="size-3.5 text-white" />
+                                </span>
+                            </span>
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{urgentCopy(count)}</TooltipContent>
+                </Tooltip>
+            )}
             <CardContent className="px-4">
                 <Link
                     href={href}

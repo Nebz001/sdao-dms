@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\Term;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Typed accessor for the global, admin-controlled "current term" setting
@@ -16,15 +17,24 @@ class CurrentTerm
 {
     private const string KEY = 'current_term';
 
+    private const string CACHE_KEY = 'current-term-value';
+
     private const Term DEFAULT = Term::FirstTerm;
 
     /**
      * Returns the current term, or the default if no setting row exists yet
-     * (fresh databases / tests that never seed one).
+     * (fresh databases / tests that never seed one). Cached indefinitely —
+     * this is now read on every request via HandleInertiaRequests::share()
+     * (the admin navbar's persistent term/year context), so an uncached
+     * query here would run on every single page load, including the 5s
+     * useDocumentUpdates() poll. Busted in `set()`.
      */
     public static function get(): Term
     {
-        $value = Setting::query()->where('key', self::KEY)->value('value');
+        $value = Cache::rememberForever(
+            self::CACHE_KEY,
+            fn () => Setting::query()->where('key', self::KEY)->value('value'),
+        );
 
         return $value !== null ? Term::from($value) : self::DEFAULT;
     }
@@ -35,5 +45,6 @@ class CurrentTerm
     public static function set(Term $term): void
     {
         Setting::query()->updateOrCreate(['key' => self::KEY], ['value' => $term->value]);
+        Cache::forget(self::CACHE_KEY);
     }
 }

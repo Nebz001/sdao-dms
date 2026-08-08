@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\Organization;
 use App\Models\RoleAssignment;
+use App\Support\AcademicYear;
+use App\Support\CurrentTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
@@ -90,6 +92,12 @@ class HandleInertiaRequests extends Middleware
                 'canProposeOrganization' => Gate::allows('propose', Organization::class),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Persistent navbar context (admin dashboard header). Both are
+            // cheap: AcademicYear::current() is a pure date computation, and
+            // CurrentTerm::get() is cached (see its docblock) so this adds no
+            // per-request DB cost beyond the first call after a term change.
+            'currentTerm' => CurrentTerm::get()->label(),
+            'academicYear' => AcademicYear::current(),
         ];
     }
 }

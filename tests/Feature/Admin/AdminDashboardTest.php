@@ -119,6 +119,10 @@ test('quick stats reflect pending accounts and unassigned advisers', function ()
             ->where('quickStats.2.count', 2)
             ->where('quickStats.3.label', 'Unassigned Advisers')
             ->where('quickStats.3.count', 1)
+            // A nonzero Unassigned Advisers count is flagged urgent on the
+            // frontend (icon badge + pulse + tooltip, see stat-tile.tsx),
+            // replacing the ordinary nonzero left-border.
+            ->where('quickStats.3.urgent', true)
         );
 });
 
@@ -131,6 +135,9 @@ test('quick stats count awaiting-review documents across the four short chains',
         ->assertInertia(fn ($page) => $page
             ->where('quickStats.0.label', 'Awaiting Your Review')
             ->where('quickStats.0.count', 1)
+            // No adviser assignment gap in this scenario — the urgent key
+            // must be omitted entirely, never sent as false.
+            ->missing('quickStats.3.urgent')
         );
 });
 
@@ -230,6 +237,25 @@ test('oldest in-review uses the latest transition as the activity clock, not doc
             // Reading documents.updated_at instead would show ~10 days; the
             // partial approval's transition is what's actually recent.
             ->where('oldestInReview.0.daysSinceActivity', 0)
+        );
+});
+
+test('recent activity and oldest in-review are each capped at 5 rows, not the old 8', function () {
+    // 7 short-chain submissions on the same org — more than the 5-row cap.
+    // Direct Document::factory() + engine->submit() (like inReviewRegistration
+    // already does elsewhere in this file) bypasses the "one active
+    // registration per org" action-layer guard, which is fine for seeding a
+    // count-only assertion here.
+    for ($i = 0; $i < 7; $i++) {
+        inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+    }
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('recentActivity', 5)
+            ->has('oldestInReview', 5)
         );
 });
 

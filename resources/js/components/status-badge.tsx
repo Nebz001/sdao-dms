@@ -63,3 +63,53 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         </Badge>
     );
 }
+
+/**
+ * Colors every `App\Enums\TransitionAction` value using the exact same
+ * info/success/warning/destructive family `statusStyles` above (and
+ * StatusDistributionBar's STATUS_FILL) already use — never a new palette.
+ * `submitted`/`resubmitted` share info (entering or re-entering the review
+ * queue, same family as the "In Review" status); `approved`/`advanced`/
+ * `completed` share success (all three are positive progress toward, or
+ * arrival at, the terminal Approved state); `returned` is warning;
+ * `rejected` is destructive. An unrecognized action falls back to a neutral
+ * chip rather than guessing a color.
+ */
+const actionStyles: Record<string, string> = {
+    submitted: 'border-transparent bg-info text-background',
+    resubmitted: 'border-transparent bg-info text-background',
+    approved: 'border-transparent bg-success text-background',
+    advanced: 'border-transparent bg-success text-background',
+    completed: 'border-transparent bg-success text-background',
+    returned: 'border-transparent bg-warning text-background',
+    rejected: 'border-transparent bg-destructive text-white',
+};
+
+const DEFAULT_ACTION_STYLE =
+    'border-transparent bg-muted text-muted-foreground';
+
+type ActionBadgeProps = {
+    action: string;
+    className?: string;
+};
+
+/**
+ * Solid-chip badge for a document-transition action (e.g. "Approved",
+ * "Returned") — the action-verb sibling of `StatusBadge`, sharing its exact
+ * recipe (pill shape, solid fill, `text-background`/`text-white`) so both
+ * badge types read as the same visual language.
+ */
+export function ActionBadge({ action, className }: ActionBadgeProps) {
+    return (
+        <Badge
+            variant="outline"
+            className={cn(
+                'rounded-full font-semibold',
+                actionStyles[action] ?? DEFAULT_ACTION_STYLE,
+                className,
+            )}
+        >
+            {statusLabel(action)}
+        </Badge>
+    );
+}

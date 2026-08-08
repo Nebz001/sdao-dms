@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
+    ChevronRight,
     CircleCheck,
     FileText,
     History,
@@ -7,8 +8,9 @@ import {
     UserCheck,
     UserPlus,
 } from 'lucide-react';
-import StatTile, { deltaLabel } from '@/components/stat-tile';
+import StatTile from '@/components/stat-tile';
 import type { WeeklyDelta } from '@/components/stat-tile';
+import { ActionBadge } from '@/components/status-badge';
 import StatusDistributionBar from '@/components/status-distribution-bar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,7 +27,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
-import { formatRelativeTime, scaleToPercent, statusLabel } from '@/lib/utils';
+import { formatRelativeTime, scaleToPercent } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
 type QuickStat = {
@@ -33,6 +35,7 @@ type QuickStat = {
     count: number;
     href: string;
     weekly?: WeeklyDelta;
+    urgent?: boolean;
 };
 
 type StatusCount = { status: string; count: number };
@@ -74,7 +77,6 @@ type OrgWithPending = {
 type OrgNotRenewed = { organizationId: number; organizationName: string };
 
 type Props = {
-    academicYear: string;
     quickStats: QuickStat[];
     weeklyVolume: { thisWeek: number; lastWeek: number; delta: number };
     statusDistribution: StatusCount[];
@@ -86,8 +88,32 @@ type Props = {
 
 const QUICK_STAT_ICONS = [Inbox, FileText, UserCheck, UserPlus];
 
+/**
+ * "No submissions yet this week" / "12 submissions this week, up 4 from
+ * last week" / "…, down 2 from last week" / "…, same as last week" — plain
+ * language, no ± notation. `academicYear` used to be shown right above this
+ * ("Showing: 2026-2027") but that's now persistent navbar context (see
+ * app-sidebar-header.tsx) instead of body text repeated on every visit.
+ */
+function weeklyVolumeCopy(thisWeek: number, delta: number): string {
+    if (thisWeek === 0) {
+        return 'No submissions yet this week';
+    }
+
+    const noun = `submission${thisWeek === 1 ? '' : 's'}`;
+
+    if (delta > 0) {
+        return `${thisWeek} ${noun} this week, up ${delta} from last week`;
+    }
+
+    if (delta < 0) {
+        return `${thisWeek} ${noun} this week, down ${Math.abs(delta)} from last week`;
+    }
+
+    return `${thisWeek} ${noun} this week, same as last week`;
+}
+
 export default function AdminDashboard({
-    academicYear,
     quickStats,
     weeklyVolume,
     statusDistribution,
@@ -96,7 +122,7 @@ export default function AdminDashboard({
     oldestInReview,
     orgCompliance,
 }: Props) {
-    const delta = deltaLabel(weeklyVolume.delta);
+    const { academicYear } = usePage().props;
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
     // Scaled against a max shared across EVERY group's steps, not each
@@ -118,19 +144,10 @@ export default function AdminDashboard({
                         Admin Dashboard
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Showing: {academicYear}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground tabular-nums">
-                            {weeklyVolume.thisWeek}
-                        </span>{' '}
-                        documents submitted this week (
-                        <span
-                            className={`font-medium tabular-nums ${delta.className}`}
-                        >
-                            {delta.text}
-                        </span>{' '}
-                        vs. last week)
+                        {weeklyVolumeCopy(
+                            weeklyVolume.thisWeek,
+                            weeklyVolume.delta,
+                        )}
                     </p>
                 </div>
 
@@ -143,6 +160,7 @@ export default function AdminDashboard({
                             href={stat.href}
                             icon={QUICK_STAT_ICONS[index]}
                             weekly={stat.weekly}
+                            urgent={stat.urgent}
                         />
                     ))}
                 </div>
@@ -225,9 +243,10 @@ export default function AdminDashboard({
                             </CardTitle>
                             <Link
                                 href={activityLog.index()}
-                                className="text-sm text-muted-foreground hover:text-foreground"
+                                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                             >
                                 View all activity
+                                <ChevronRight className="size-3.5" />
                             </Link>
                         </CardHeader>
                         <CardContent>
@@ -256,20 +275,24 @@ export default function AdminDashboard({
                                             key={entry.id}
                                             className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
                                         >
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <Link
                                                     href={entry.href}
                                                     className="truncate text-sm font-medium hover:underline"
                                                 >
                                                     {entry.documentTitle}
                                                 </Link>
-                                                <p className="truncate text-sm text-muted-foreground">
-                                                    {entry.actorName}{' '}
-                                                    {statusLabel(
-                                                        entry.action,
-                                                    ).toLowerCase()}{' '}
-                                                    · {entry.organizationName}
-                                                </p>
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                    <span className="truncate text-sm font-medium text-foreground">
+                                                        {entry.actorName}
+                                                    </span>
+                                                    <ActionBadge
+                                                        action={entry.action}
+                                                    />
+                                                    <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                        {entry.organizationName}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <span className="shrink-0 text-sm text-muted-foreground">
                                                 {formatRelativeTime(

@@ -36,9 +36,9 @@ class AdminDashboardController extends Controller
 {
     // Matches OLDEST_IN_REVIEW_LIMIT so the two cards sharing this grid row
     // are the same height at cap, not a mismatched pair.
-    private const int RECENT_ACTIVITY_LIMIT = 8;
+    private const int RECENT_ACTIVITY_LIMIT = 5;
 
-    private const int OLDEST_IN_REVIEW_LIMIT = 8;
+    private const int OLDEST_IN_REVIEW_LIMIT = 5;
 
     /**
      * Short-chain form types reviewed by SDAO alone (CLAUDE.md "Short chains").
@@ -72,11 +72,14 @@ class AdminDashboardController extends Controller
     public function index(StepApproverResolver $resolver, SubmitOrganizationRenewal $renewalCheck): Response
     {
         $user = Auth::user();
+        // Not sent as a page prop anymore — it's now a globally shared prop
+        // (HandleInertiaRequests::share()) driving the persistent navbar
+        // context strip, so every page gets it, not just this one. Still
+        // needed here as a local value for orgCompliance()'s scoping.
         $academicYear = AcademicYear::current();
         [$yearStart, $yearEnd] = AcademicYear::currentRange();
 
         return Inertia::render('admin/dashboard', [
-            'academicYear' => $academicYear,
             'quickStats' => $this->quickStats($user, $resolver),
             'weeklyVolume' => $this->weeklyVolume(),
             'statusDistribution' => $this->statusDistribution($yearStart, $yearEnd),
@@ -99,7 +102,7 @@ class AdminDashboardController extends Controller
      * point-in-time assignment state, not an event with a timestamp to
      * bucket.
      *
-     * @return array<int, array{label: string, count: int, href: string|null, weekly?: array{thisWeek: int, lastWeek: int, delta: int, noun: string}}>
+     * @return array<int, array{label: string, count: int, href: string|null, weekly?: array{thisWeek: int, lastWeek: int, delta: int, noun: string}, urgent?: bool}>
      */
     private function quickStats(User $user, StepApproverResolver $resolver): array
     {
@@ -164,6 +167,21 @@ class AdminDashboardController extends Controller
             ->whereNull('organization_id')
             ->count();
 
+        // An unassigned adviser is a misconfiguration needing correction —
+        // qualitatively different from the other three tiles' routine queue
+        // depth — so it's the one tile flagged `urgent` on the frontend
+        // (icon badge + pulse + tooltip, see stat-tile.tsx). Omitted, not
+        // set to false, when there's nothing to flag — same convention as
+        // the `weekly` key above.
+        $unassignedAdvisersEntry = [
+            'label' => 'Unassigned Advisers',
+            'count' => $unassignedAdvisers,
+            'href' => route('admin.approvers.index'),
+        ];
+        if ($unassignedAdvisers > 0) {
+            $unassignedAdvisersEntry['urgent'] = true;
+        }
+
         return [
             // No single href: this sums four separate queues. Links to the
             // shared dashboard, which already lists each queue individually
@@ -171,7 +189,7 @@ class AdminDashboardController extends Controller
             ['label' => 'Awaiting Your Review', 'count' => $awaitingReview, 'href' => route('dashboard'), 'weekly' => $awaitingReviewWeekly],
             ['label' => 'Proposals At Your Step', 'count' => $proposalsAtMyStep, 'href' => route('review.activity-proposals.index')],
             ['label' => 'Pending Accounts', 'count' => $pendingAccounts, 'href' => route('admin.pending-accounts.index'), 'weekly' => $pendingAccountsWeekly],
-            ['label' => 'Unassigned Advisers', 'count' => $unassignedAdvisers, 'href' => route('admin.approvers.index')],
+            $unassignedAdvisersEntry,
         ];
     }
 
