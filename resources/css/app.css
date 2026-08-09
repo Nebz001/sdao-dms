@@ -54,6 +54,11 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
 
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-accent: var(--brand-accent);
+
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
     --color-chart-3: var(--chart-3);
@@ -120,6 +125,16 @@
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
     --sidebar-border: oklch(0.92 0.004 286.32); /* zinc-200 */
     --sidebar-ring: oklch(0.6 0.07 264);
+    /* Brand — fixed NU Lipa colors, not theme-derived like the tokens above.
+       Navy in light theme, gold in dark theme; foreground flips with it
+       (white-on-gold fails contrast, so it must never be reused as-is). */
+    --brand: #35408e;
+    --brand-foreground: #ffffff;
+    --brand-hover: color-mix(in oklab, var(--brand) 88%, black);
+    /* Same gold in both themes — the seal's own monogram color (matches
+       both nulp-logo-*.svg lockups), used where --brand itself would be
+       illegible (e.g. navy-on-navy in light theme). */
+    --brand-accent: #ffd41c;
 }
 
 .dark {
@@ -164,6 +179,12 @@
     --sidebar-accent-foreground: oklch(0.985 0 0); /* zinc-50 */
     --sidebar-border: oklch(0.274 0.006 286.033); /* zinc-800 */
     --sidebar-ring: oklch(0.55 0.08 264);
+    /* Brand — gold in dark theme; foreground is the same near-black as
+       --background so it matches every other dark-mode "black" text. */
+    --brand: #ffca2c;
+    --brand-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+    --brand-hover: color-mix(in oklab, var(--brand) 88%, white);
+    --brand-accent: #ffd41c;
 }
 
 @layer base {
@@ -177,18 +198,22 @@
 }
 
 /*
- * Used by LandingFlowDiagram's dash-draw entrance (resources/js/components/
- * landing-flow-diagram.tsx). Gated behind `motion-safe:` at the call site,
- * so prefers-reduced-motion users never see these run.
+ * Used by the landing page hero's copy entrance (resources/js/pages/
+ * welcome.tsx). Gated behind `motion-safe:` at each call site. Unlike the
+ * dash/fade-in keyframes this replaced, the "from" state lives entirely
+ * inside the keyframe rather than in an inline style — so a
+ * prefers-reduced-motion user, who never runs the animation at all, sees
+ * the finished `to` state (opacity 1, no offset) immediately instead of
+ * stuck-invisible text.
  */
-@keyframes dash {
-    to {
-        stroke-dashoffset: 0;
+@keyframes hero-rise {
+    from {
+        opacity: 0;
+        transform: translateY(0.75rem);
     }
-}
 
-@keyframes fade-in {
     to {
         opacity: 1;
+        transform: translateY(0);
     }
 }

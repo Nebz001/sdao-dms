@@ -9,8 +9,7 @@ import {
     UserPlus,
     Users,
 } from 'lucide-react';
-import AppLogoIcon from '@/components/app-logo-icon';
-import LandingFlowDiagram from '@/components/landing-flow-diagram';
+import AppLogoLockup from '@/components/app-logo-lockup';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -19,7 +18,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { useAppearance } from '@/hooks/use-appearance';
-import { login, register } from '@/routes';
+import { home, login, register } from '@/routes';
 
 const audiences = [
     {
@@ -79,13 +78,13 @@ export default function Welcome() {
 
             <div className="flex min-h-svh flex-col bg-background">
                 <header className="border-b">
-                    <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-                        <div className="flex items-center gap-2">
-                            <AppLogoIcon className="size-8" />
-                            <span className="text-sm font-semibold tracking-tight">
-                                {import.meta.env.VITE_APP_NAME || 'SDAO-DMS'}
-                            </span>
-                        </div>
+                    <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6 sm:h-20">
+                        <Link
+                            href={home()}
+                            className="inline-flex items-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        >
+                            <AppLogoLockup className="h-10" />
+                        </Link>
                         <div className="flex items-center gap-1">
                             <Button
                                 variant="ghost"
@@ -115,7 +114,7 @@ export default function Welcome() {
                                 )}
                                 <span className="sr-only">Toggle theme</span>
                             </Button>
-                            <Button variant="ghost" size="sm" asChild>
+                            <Button variant="brand" size="sm" asChild>
                                 <Link href={login()}>Log in</Link>
                             </Button>
                         </div>
@@ -124,25 +123,79 @@ export default function Welcome() {
 
                 <main className="flex-1">
                     {/* Hero */}
-                    <section className="relative overflow-hidden">
-                        <LandingFlowDiagram className="pointer-events-none absolute inset-y-0 right-[-6rem] hidden h-full w-[48rem] md:block" />
+                    {/* Height is deliberately NOT a simple ascending scale.
+                        Below `sm` the box is narrower than it is tall
+                        relative to the photo's ~3:2 ratio, so `object-fit:
+                        cover` matches on HEIGHT and shows the photo's full
+                        height uncropped — meaning `object-position`'s Y
+                        component has zero effect there and the shield sits
+                        at a fixed ~22-32% down the section, wherever that
+                        lands. Mobile text also wraps onto more lines (the
+                        eyebrow alone goes from 1 line to 2 under ~400px).
+                        So mobile needs the MOST vertical room, not the
+                        least, to keep the bottom-anchored copy block clear
+                        of that fixed shield band — hence a taller base
+                        height than `sm`. */}
+                    <section className="relative h-[38rem] overflow-hidden sm:h-[34rem] lg:h-[38rem]">
+                        <img
+                            src="/images/nulp-building-1600.webp"
+                            srcSet="/images/nulp-building-960.webp 960w, /images/nulp-building-1600.webp 1600w, /images/nulp-building-2400.webp 2400w"
+                            sizes="100vw"
+                            width={4800}
+                            height={3201}
+                            alt=""
+                            fetchPriority="high"
+                            decoding="async"
+                            className="absolute inset-0 size-full object-cover object-[30%_26%]"
+                        />
+                        {/* Scrim, two stacked layers: a neutral darkener that
+                            does the contrast work, plus a brand-hue layer on
+                            top of it carrying --brand. Both are bottom-heavy
+                            and fade out toward the upper-right, so the copy
+                            block (bottom-left) sits on a strong scrim while
+                            the shield on the building facade (upper-left)
+                            stays clear of it. Split into two layers because
+                            the two themes need very different brand
+                            opacities: navy can carry real weight itself,
+                            gold cannot (gold-on-white-text fails contrast on
+                            its own), so gold stays a thin hue glaze over a
+                            heavier black base while navy leans on its own
+                            darkness more and needs less black underneath. */}
+                        <div
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-linear-to-t from-black/80 from-0% via-black/80 via-62% to-transparent to-85% dark:from-black/90 dark:from-0% dark:via-black/90 dark:via-62% dark:to-transparent dark:to-85%"
+                        />
+                        <div
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-linear-to-tr from-brand/55 from-0% via-brand/55 via-58% to-transparent to-80% dark:from-brand/22 dark:from-0% dark:via-brand/22 dark:via-55% dark:to-transparent dark:to-78%"
+                        />
 
-                        <div className="relative mx-auto w-full max-w-5xl px-6 py-16 sm:py-24">
-                            <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                        <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-5xl px-6 pb-10 sm:pb-14 lg:pb-16">
+                            <p className="text-xs font-semibold tracking-[0.2em] text-brand-accent uppercase motion-safe:animate-[hero-rise_0.5s_ease-out_forwards]">
                                 SDAO Paperless Documentation System
-                            </h1>
-                            <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                                An online system for NU Lipa student
-                                organizations to submit registrations, activity
-                                proposals, calendars, and reports &mdash; and
-                                for approvers to review and approve them
-                                digitally, replacing manual paper routing.
                             </p>
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                <Button size="lg" asChild>
+                            <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight text-balance text-white motion-safe:animate-[hero-rise_0.5s_ease-out_80ms_forwards] sm:text-5xl lg:text-6xl">
+                                File it once.
+                                <br />
+                                Track it to approval.
+                            </h1>
+                            <p className="mt-4 max-w-xl text-base text-white/80 motion-safe:animate-[hero-rise_0.5s_ease-out_160ms_forwards] sm:text-lg">
+                                Student organizations submit registrations,
+                                proposals, calendars, and reports online. Each
+                                one routes to the right approvers
+                                automatically, and every status change shows
+                                up live.
+                            </p>
+                            <div className="mt-8 flex flex-wrap gap-3 motion-safe:animate-[hero-rise_0.5s_ease-out_240ms_forwards]">
+                                <Button size="lg" variant="brand" asChild>
                                     <Link href={login()}>Log in</Link>
                                 </Button>
-                                <Button size="lg" variant="outline" asChild>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="border-white/80 bg-black/25 text-white backdrop-blur-sm hover:bg-black/35 hover:text-white"
+                                    asChild
+                                >
                                     <Link href={register()}>
                                         Create account
                                     </Link>
