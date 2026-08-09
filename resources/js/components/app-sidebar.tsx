@@ -203,7 +203,10 @@ export function AppSidebar() {
     }
 
     if (reviewItems.length > 0) {
-        sections.push({ label: 'Review', items: reviewItems });
+        sections.push({
+            label: 'Review',
+            items: reviewItems,
+        });
     }
 
     const manageItems: NavItem[] = [];
@@ -247,7 +250,10 @@ export function AppSidebar() {
     }
 
     if (manageItems.length > 0) {
-        sections.push({ label: 'Manage', items: manageItems });
+        sections.push({
+            label: 'Manage',
+            items: manageItems,
+        });
     }
 
     return (
@@ -255,7 +261,10 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" className="h-16" asChild>
+                        {/* h-auto: the subtitle now wraps to two lines
+                            (see app-logo.tsx), so a fixed height would clip
+                            it — let the button grow to fit its content. */}
+                        <SidebarMenuButton size="lg" className="h-auto" asChild>
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>

@@ -48,6 +48,11 @@ export function NavUser() {
                                   ? 'left'
                                   : 'bottom'
                         }
+                        // The logout item opens a ConfirmDialog on top of this
+                        // menu; without this, Radix's default close-then-
+                        // refocus-trigger behavior fires while the dialog is
+                        // opening and can steal focus back from it.
+                        onCloseAutoFocus={(e) => e.preventDefault()}
                     >
                         <UserMenuContent user={auth.user} />
                     </DropdownMenuContent>
