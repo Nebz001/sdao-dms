@@ -16,23 +16,18 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentPrintController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\RenewalReviewController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-// Guests see the public landing page; authenticated users are bounced to
-// their dashboard before it ever renders (reverses Phase 2 item 11 Group B).
-Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-
-    return Inertia::render('welcome');
-})->name('home');
+// Guests see the public landing page (including a preview of upcoming
+// approved activities); authenticated users are bounced to their dashboard
+// before it ever renders (reverses Phase 2 item 11 Group B).
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

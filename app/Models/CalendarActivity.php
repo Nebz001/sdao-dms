@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentStatus;
 use App\Enums\Sdg;
 use Database\Factories\CalendarActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,6 +42,25 @@ class CalendarActivity extends Model
     public function calendar(): BelongsTo
     {
         return $this->belongsTo(ActivityCalendar::class, 'activity_calendar_id');
+    }
+
+    /**
+     * Restricts to activities whose parent document has been fully
+     * Approved. This is the authorization boundary for anything shown to
+     * a public, unauthenticated audience (the landing-page activities
+     * widget) — never bypass it for a guest-facing query. A
+     * Draft/InReview/Returned/Rejected document's activities must never
+     * reach a guest through this scope.
+     *
+     * @param  Builder<CalendarActivity>  $query
+     * @return Builder<CalendarActivity>
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'calendar.document',
+            fn (Builder $q) => $q->where('status', DocumentStatus::Approved->value),
+        );
     }
 
     /**

@@ -1,75 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    Bell,
-    ClipboardCheck,
-    FileCheck2,
-    Moon,
-    SendHorizonal,
-    Sun,
-    UserPlus,
-    Users,
-} from 'lucide-react';
+import { Mail, MapPin, Moon, Phone, Sun } from 'lucide-react';
 import AppLogoLockup from '@/components/app-logo-lockup';
+import AppLogoLockupInverted from '@/components/app-logo-lockup-inverted';
+import PublicActivitiesSection from '@/components/public-activities-section';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { useAppearance } from '@/hooks/use-appearance';
 import { home, login, register } from '@/routes';
+import type { PublicActivity } from '@/types/public-activity';
 
-const audiences = [
-    {
-        icon: Users,
-        title: 'Student Organizations',
-        description:
-            'Register your organization, submit activity proposals, calendars, and after-activity reports, and track each document’s approval status in real time.',
-    },
-    {
-        icon: ClipboardCheck,
-        title: 'Faculty & Staff Approvers',
-        description:
-            'Review submissions routed to your role, approve or return them for revision, and keep every organization’s paperwork moving without manual follow-ups.',
-    },
-];
-
-type StepAccent = 'primary' | 'info' | 'success';
-
-const stepAccents: Record<
-    StepAccent,
-    { ring: string; icon: string; bar: string }
-> = {
-    primary: {
-        ring: 'border-primary bg-primary/10',
-        icon: 'text-primary',
-        bar: 'bg-primary/40',
-    },
-    info: {
-        ring: 'border-info bg-info/10',
-        icon: 'text-info',
-        bar: 'bg-info/40',
-    },
-    success: {
-        ring: 'border-success bg-success/10',
-        icon: 'text-success',
-        bar: 'bg-success/40',
-    },
+type Props = {
+    upcomingActivities: PublicActivity[];
 };
 
-const steps: { icon: typeof UserPlus; label: string; accent: StepAccent }[] = [
-    { icon: UserPlus, label: 'Register your organization', accent: 'primary' },
-    { icon: SendHorizonal, label: 'Submit forms digitally', accent: 'primary' },
-    {
-        icon: FileCheck2,
-        label: 'Track approval status in real time',
-        accent: 'info',
-    },
-    { icon: Bell, label: 'Get notified at every step', accent: 'success' },
-];
-
-export default function Welcome() {
+export default function Welcome({ upcomingActivities }: Props) {
     const { resolvedAppearance, updateAppearance } = useAppearance();
 
     return (
@@ -78,7 +21,7 @@ export default function Welcome() {
 
             <div className="flex min-h-svh flex-col bg-background">
                 <header className="border-b">
-                    <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6 sm:h-20">
+                    <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6 sm:h-20">
                         <Link
                             href={home()}
                             className="inline-flex items-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -170,7 +113,7 @@ export default function Welcome() {
                             className="absolute inset-0 bg-linear-to-tr from-brand/55 from-0% via-brand/55 via-58% to-transparent to-80% dark:from-brand/22 dark:from-0% dark:via-brand/22 dark:via-55% dark:to-transparent dark:to-78%"
                         />
 
-                        <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-5xl px-6 pb-10 sm:pb-14 lg:pb-16">
+                        <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-7xl px-6 pb-10 sm:pb-14 lg:pb-16">
                             <p className="text-xs font-semibold tracking-[0.2em] text-brand-accent uppercase motion-safe:animate-[hero-rise_0.5s_ease-out_forwards]">
                                 SDAO Paperless Documentation System
                             </p>
@@ -204,90 +147,93 @@ export default function Welcome() {
                         </div>
                     </section>
 
-                    {/* Who this is for */}
-                    <section className="border-t bg-muted/30">
-                        <div className="mx-auto w-full max-w-5xl px-6 py-14">
-                            <h2 className="text-sm font-medium text-muted-foreground">
-                                Who this is for
-                            </h2>
-                            <div className="mt-6 grid gap-4 md:grid-cols-2">
-                                {audiences.map(
-                                    ({ icon: Icon, title, description }) => (
-                                        <Card
-                                            key={title}
-                                            className="border-l-4 border-l-primary transition-shadow hover:shadow-md"
-                                        >
-                                            <CardHeader>
-                                                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                                                    <Icon
-                                                        className="size-5"
-                                                        aria-hidden="true"
-                                                    />
-                                                </div>
-                                                <CardTitle className="mt-2">
-                                                    {title}
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    {description}
-                                                </CardDescription>
-                                            </CardHeader>
-                                        </Card>
-                                    ),
-                                )}
-                            </div>
-                            <p className="mt-4 text-sm text-muted-foreground">
-                                Both sign in from the same place &mdash; your
-                                access is set by your role.
-                            </p>
-                        </div>
-                    </section>
-
-                    {/* How it works */}
-                    <section className="mx-auto w-full max-w-5xl px-6 py-14">
-                        <h2 className="text-sm font-medium text-muted-foreground">
-                            How it works
-                        </h2>
-                        <ol className="mt-6 grid gap-6 sm:grid-cols-2 md:grid-cols-4">
-                            {steps.map(
-                                ({ icon: Icon, label, accent }, index) => {
-                                    const nextAccent = steps[index + 1]?.accent;
-
-                                    return (
-                                        <li
-                                            key={label}
-                                            className="relative flex flex-col gap-3"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className={`flex size-11 shrink-0 items-center justify-center rounded-full border-2 ${stepAccents[accent].ring}`}
-                                                >
-                                                    <Icon
-                                                        className={`size-5 ${stepAccents[accent].icon}`}
-                                                        aria-hidden="true"
-                                                    />
-                                                </div>
-                                                {nextAccent && (
-                                                    <div
-                                                        aria-hidden
-                                                        className={`hidden h-0.5 flex-1 rounded-full sm:block md:hidden lg:block ${stepAccents[nextAccent].bar}`}
-                                                    />
-                                                )}
-                                            </div>
-                                            <p className="text-sm font-medium">
-                                                {label}
-                                            </p>
-                                        </li>
-                                    );
-                                },
-                            )}
-                        </ol>
-                    </section>
+                    <PublicActivitiesSection
+                        activities={upcomingActivities}
+                    />
                 </main>
 
-                <footer className="border-t">
-                    <div className="mx-auto w-full max-w-5xl px-6 py-6 text-sm text-muted-foreground">
-                        NU Lipa &middot; Student Development and Activities
-                        Office
+                {/* Footer sits on `bg-brand` — deliberately the INVERSE of
+                    the page's own theme (navy in light theme, gold in dark
+                    theme). Every color in here is `text-brand-foreground`
+                    based, not `text-muted-foreground`/`text-foreground` —
+                    those page-body tokens track the page's own light/dark
+                    surface, and would silently fail contrast against this
+                    surface's opposite background (measured: navy body text
+                    on this navy footer, or light text on this gold footer,
+                    both under 1.6:1). `--brand-foreground` already flips
+                    white/near-black exactly opposite to `--brand` itself,
+                    which is what makes it the correct pairing here — same
+                    reasoning as the logo swap in AppLogoLockupInverted. */}
+                <footer className="bg-brand">
+                    <div className="mx-auto w-full max-w-7xl px-6 py-12">
+                        <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
+                            <div>
+                                <AppLogoLockupInverted className="h-10" />
+                                <p className="mt-3 text-sm text-brand-foreground/80">
+                                    Student Development and Activities
+                                    Office
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-bold tracking-wide text-brand-foreground/80 uppercase">
+                                    About
+                                </p>
+                                <p className="mt-3 text-sm text-brand-foreground/80">
+                                    A paperless way for NU Lipa student
+                                    organizations to submit, route, and
+                                    track approvals &mdash; all in one
+                                    place.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-bold tracking-wide text-brand-foreground/80 uppercase">
+                                    Contact
+                                </p>
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    <li>
+                                        <a
+                                            href="mailto:sdao@nu-lipa.edu.ph"
+                                            className="flex items-center gap-2 text-sm text-brand-foreground/80 hover:text-brand-foreground hover:underline underline-offset-2"
+                                        >
+                                            <Mail
+                                                className="size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            sdao@nu-lipa.edu.ph
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="tel:+63431234567"
+                                            className="flex items-center gap-2 text-sm text-brand-foreground/80 hover:text-brand-foreground hover:underline underline-offset-2"
+                                        >
+                                            <Phone
+                                                className="size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            (043) 123 4567
+                                        </a>
+                                    </li>
+                                    <li className="flex items-center gap-2 text-sm text-brand-foreground/80">
+                                        <MapPin
+                                            className="size-4 shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        SDAO Office, NU Lipa
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="mt-10 border-t border-brand-foreground/20 pt-6">
+                            <p className="text-center text-xs text-brand-foreground/70">
+                                &copy; {new Date().getFullYear()} NU Lipa
+                                &middot; SDAO Paperless Documentation
+                                System. All rights reserved.
+                            </p>
+                        </div>
                     </div>
                 </footer>
             </div>
