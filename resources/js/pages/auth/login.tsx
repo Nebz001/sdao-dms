@@ -1,6 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -27,8 +26,6 @@ export default function Login({ status, canResetPassword }: Props) {
                     {status}
                 </div>
             )}
-
-            <PasskeyVerify />
 
             <Form
                 {...store.form()}
@@ -88,6 +85,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <Button
                                 type="submit"
+                                variant="brand"
                                 className="mt-4 w-full"
                                 tabIndex={4}
                                 disabled={processing}
