@@ -30,12 +30,21 @@ export type ConfirmActions = {
 };
 
 type ConfirmDialogProps = {
-    /** The element that opens the dialog, e.g. a <Button>Approve</Button>. */
-    trigger: ReactNode;
+    /**
+     * The element that opens the dialog, e.g. a <Button>Approve</Button>.
+     * Omit when the caller drives `open` externally instead (e.g. a
+     * DropdownMenuItem, which can't safely nest a DialogTrigger — opening it
+     * from an onSelect handler and controlling `open`/`onOpenChange` avoids
+     * the Radix focus/close race between the two overlays).
+     */
+    trigger?: ReactNode;
     title: string;
     description: ReactNode;
     /** Disables the trigger itself (e.g. while a related mutation is in flight). */
     triggerDisabled?: boolean;
+    /** Externally controlled open state — pairs with `onOpenChange`. Omit both to manage state internally (the default, used by every trigger-based caller). */
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
     confirmLabel?: string;
     confirmVariant?: ButtonVariant;
     /** Disables the confirm button itself (e.g. a required field is invalid). */
@@ -72,14 +81,19 @@ export default function ConfirmDialog({
     title,
     description,
     triggerDisabled = false,
+    open: openProp,
+    onOpenChange: onOpenChangeProp,
     confirmLabel,
     confirmVariant = 'default',
     confirmDisabled = false,
     onConfirm,
     children,
 }: ConfirmDialogProps) {
-    const [open, setOpen] = useState(false);
+    const [internalOpen, setInternalOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+
+    const open = openProp ?? internalOpen;
+    const setOpen = onOpenChangeProp ?? setInternalOpen;
 
     const close = () => {
         setProcessing(false);
@@ -104,9 +118,11 @@ export default function ConfirmDialog({
                 setOpen(next);
             }}
         >
-            <DialogTrigger asChild disabled={triggerDisabled}>
-                {trigger}
-            </DialogTrigger>
+            {trigger !== undefined && (
+                <DialogTrigger asChild disabled={triggerDisabled}>
+                    {trigger}
+                </DialogTrigger>
+            )}
             <DialogContent>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>{description}</DialogDescription>

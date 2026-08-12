@@ -1,5 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/confirm-dialog';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -18,11 +20,7 @@ type Props = {
 
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
-
-    const handleLogout = () => {
-        cleanup();
-        router.flushAll();
-    };
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     return (
         <>
@@ -46,18 +44,43 @@ export function UserMenuContent({ user }: Props) {
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link
-                    className="block w-full cursor-pointer"
-                    href={logout()}
-                    as="button"
-                    onClick={handleLogout}
-                    data-test="logout-button"
-                >
-                    <LogOut className="mr-2" />
-                    Log out
-                </Link>
+            <DropdownMenuItem
+                variant="destructive"
+                className="cursor-pointer"
+                onSelect={(e) => {
+                    // Keep the dropdown mounted while the confirm dialog
+                    // opens — closing it here would tear down the Radix
+                    // portal mid-transition, per the ConfirmDialog docblock.
+                    e.preventDefault();
+                    setConfirmOpen(true);
+                }}
+                data-test="logout-button"
+            >
+                <LogOut className="mr-2" />
+                Log out
             </DropdownMenuItem>
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title="Log out?"
+                description="You'll need to sign in again to access your account."
+                confirmLabel="Log out"
+                confirmVariant="destructive"
+                onConfirm={({ close, stopProcessing }) => {
+                    router.post(
+                        logout.url(),
+                        {},
+                        {
+                            onSuccess: () => {
+                                cleanup();
+                                router.flushAll();
+                                close();
+                            },
+                            onFinish: stopProcessing,
+                        },
+                    );
+                }}
+            />
         </>
     );
 }

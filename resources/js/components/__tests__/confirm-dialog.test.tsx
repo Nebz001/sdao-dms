@@ -163,4 +163,47 @@ describe('ConfirmDialog', () => {
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
     });
+
+    it('supports being opened externally with no trigger element (e.g. from a DropdownMenuItem)', async () => {
+        const user = userEvent.setup();
+        const onConfirm = vi.fn(({ close, stopProcessing }: ConfirmActions) => {
+            close();
+            stopProcessing();
+        });
+        const onOpenChange = vi.fn();
+
+        const { rerender } = render(
+            <ConfirmDialog
+                open={false}
+                onOpenChange={onOpenChange}
+                title="Log out?"
+                description="You'll need to sign in again."
+                confirmLabel="Log out"
+                onConfirm={onConfirm}
+            />,
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        rerender(
+            <ConfirmDialog
+                open={true}
+                onOpenChange={onOpenChange}
+                title="Log out?"
+                description="You'll need to sign in again."
+                confirmLabel="Log out"
+                onConfirm={onConfirm}
+            />,
+        );
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Log out' }));
+
+        expect(onConfirm).toHaveBeenCalledTimes(1);
+        // `close()` (called by onConfirm above) must delegate to the
+        // caller's onOpenChange rather than any internal state, since this
+        // instance was never given internal state to fall back on.
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
 });
