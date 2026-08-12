@@ -8,10 +8,12 @@ import {
     UserCheck,
     UserPlus,
 } from 'lucide-react';
+import ProposalFunnelChart from '@/components/proposal-funnel-chart';
 import StatTile from '@/components/stat-tile';
 import type { WeeklyDelta } from '@/components/stat-tile';
-import { ActionBadge } from '@/components/status-badge';
-import StatusDistributionBar from '@/components/status-distribution-bar';
+import { ActionBadge, StatusBadge } from '@/components/status-badge';
+import StatusDistributionPie from '@/components/status-distribution-pie';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -27,7 +29,8 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
-import { formatRelativeTime, scaleToPercent } from '@/lib/utils';
+import { useInitials } from '@/hooks/use-initials';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
 type QuickStat = {
@@ -88,6 +91,9 @@ type Props = {
 
 const QUICK_STAT_ICONS = [Inbox, FileText, UserCheck, UserPlus];
 
+/** Fixed width so every row's timestamp lands in the same column regardless of label length ("just now" vs. "15d ago"). */
+const TIMESTAMP_COLUMN_CLASS = 'w-20 shrink-0 text-right text-sm text-muted-foreground tabular-nums';
+
 /**
  * "No submissions yet this week" / "12 submissions this week, up 4 from
  * last week" / "…, down 2 from last week" / "…, same as last week" — plain
@@ -113,6 +119,43 @@ function weeklyVolumeCopy(thisWeek: number, delta: number): string {
     return `${thisWeek} ${noun} this week, same as last week`;
 }
 
+/**
+ * Solid warning/destructive chips, reusing the exact tokens Returned/
+ * Rejected already use elsewhere on this dashboard — a count badge should
+ * carry the same urgency language as a status badge, not sit there as a
+ * decorative gray number. Thresholds are a judgment call (not derived data):
+ * a couple of pending items is routine queue depth, several is a forming
+ * backlog, many is genuinely stuck.
+ */
+function pendingCountBadgeClass(count: number): string | undefined {
+    if (count >= 5) {
+        return 'border-transparent bg-destructive text-white';
+    }
+
+    if (count >= 3) {
+        return 'border-transparent bg-warning text-background';
+    }
+
+    return undefined;
+}
+
+/**
+ * Same idea as `pendingCountBadgeClass`, tuned for a slower-moving
+ * compliance metric (total orgs not yet renewed) rather than a per-org
+ * pending-document count, so the thresholds sit higher.
+ */
+function notRenewedCountBadgeClass(count: number): string | undefined {
+    if (count >= 8) {
+        return 'border-transparent bg-destructive text-white';
+    }
+
+    if (count >= 4) {
+        return 'border-transparent bg-warning text-background';
+    }
+
+    return undefined;
+}
+
 export default function AdminDashboard({
     quickStats,
     weeklyVolume,
@@ -123,16 +166,9 @@ export default function AdminDashboard({
     orgCompliance,
 }: Props) {
     const { academicYear } = usePage().props;
+    const getInitials = useInitials();
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
-    // Scaled against a max shared across EVERY group's steps, not each
-    // group's own local peak — otherwise the tallest step in every group
-    // always renders at 100%, and a chain variant with 1 proposal looks
-    // identical to one with 15. See scaleToPercent's docblock.
-    const globalMaxStep = Math.max(
-        ...proposalFunnel.flatMap((g) => g.steps.map((s) => s.count)),
-        1,
-    );
 
     return (
         <>
@@ -165,75 +201,53 @@ export default function AdminDashboard({
                     ))}
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Status Distribution
-                        </CardTitle>
-                        <CardDescription>
-                            {statusTotal > 0
-                                ? `${statusTotal} documents in ${academicYear}`
-                                : 'No documents in this academic year yet.'}
-                        </CardDescription>
-                    </CardHeader>
-                    {statusTotal > 0 && (
-                        <CardContent>
-                            <StatusDistributionBar data={statusDistribution} />
-                        </CardContent>
-                    )}
-                </Card>
+                {/* items-start: each card sizes to its own content instead
+                    of the default grid stretch, so a taller bar chart on
+                    the right doesn't force the pie chart's card to match
+                    its height. */}
+                <div className="grid items-start gap-4 md:grid-cols-2">
+                    {/* gap-4/py-4, not the default gap-6/py-6: this card's
+                        actual content (a small pie, a divider, a five-item
+                        legend) is shorter than the default Card chrome
+                        assumes, and `items-start` above means it no longer
+                        gets stretched to its taller sibling's height either
+                        — so the padding needs to earn its keep too. */}
+                    <Card className="gap-4 py-4">
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                Status Distribution
+                            </CardTitle>
+                            <CardDescription>
+                                {statusTotal > 0
+                                    ? `${statusTotal} documents in ${academicYear}`
+                                    : 'No documents in this academic year yet.'}
+                            </CardDescription>
+                        </CardHeader>
+                        {statusTotal > 0 && (
+                            <CardContent>
+                                <StatusDistributionPie data={statusDistribution} />
+                            </CardContent>
+                        )}
+                    </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Activity Proposal Funnel
-                        </CardTitle>
-                        <CardDescription>
-                            {proposalFunnel.length > 0
-                                ? `${proposalTotal} proposals in review across ${proposalFunnel.length} chain variant${proposalFunnel.length === 1 ? '' : 's'}`
-                                : 'No activity proposals are currently in review.'}
-                        </CardDescription>
-                    </CardHeader>
-                    {proposalFunnel.length > 0 && (
-                        <CardContent>
-                            <div className="space-y-6">
-                                {proposalFunnel.map((group) => (
-                                    <div key={group.variant}>
-                                        <p className="text-sm font-medium">
-                                            {group.label}{' '}
-                                            <span className="text-muted-foreground">
-                                                · {group.total}
-                                            </span>
-                                        </p>
-                                        <div className="mt-2 space-y-1.5">
-                                            {group.steps.map((step) => (
-                                                <div
-                                                    key={step.role}
-                                                    className="flex items-center gap-3"
-                                                >
-                                                    <span className="w-40 shrink-0 truncate text-sm font-medium text-foreground/80">
-                                                        {step.role}
-                                                    </span>
-                                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                                                        <div
-                                                            className="h-2 rounded-full bg-info"
-                                                            style={{
-                                                                width: `${scaleToPercent(step.count, globalMaxStep)}%`,
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <span className="w-6 shrink-0 text-right text-sm tabular-nums">
-                                                        {step.count}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                Activity Proposal Funnel
+                            </CardTitle>
+                            <CardDescription>
+                                {proposalFunnel.length > 0
+                                    ? `${proposalTotal} proposals in review across ${proposalFunnel.length} chain variant${proposalFunnel.length === 1 ? '' : 's'}`
+                                    : 'No activity proposals are currently in review.'}
+                            </CardDescription>
+                        </CardHeader>
+                        {proposalFunnel.length > 0 && (
+                            <CardContent>
+                                <ProposalFunnelChart groups={proposalFunnel} />
+                            </CardContent>
+                        )}
+                    </Card>
+                </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <Card>
@@ -273,19 +287,27 @@ export default function AdminDashboard({
                                     {recentActivity.map((entry) => (
                                         <div
                                             key={entry.id}
-                                            className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+                                            className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0 flex-1">
                                                 <Link
                                                     href={entry.href}
-                                                    className="truncate text-sm font-medium hover:underline"
+                                                    className="block truncate text-sm font-semibold hover:underline"
                                                 >
                                                     {entry.documentTitle}
                                                 </Link>
-                                                <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                    <span className="truncate text-sm font-medium text-foreground">
+                                                {/* Actor byline — same avatar treatment (shape, fallback colors) as the account menu at the bottom of the sidebar (see UserInfo), just sized down for this denser list. */}
+                                                <div className="mt-1 flex items-center gap-1.5">
+                                                    <Avatar className="size-5 overflow-hidden rounded-full">
+                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-[10px] text-black dark:bg-neutral-700 dark:text-white">
+                                                            {getInitials(entry.actorName)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="truncate text-sm text-muted-foreground">
                                                         {entry.actorName}
                                                     </span>
+                                                </div>
+                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                                     <ActionBadge
                                                         action={entry.action}
                                                     />
@@ -294,7 +316,7 @@ export default function AdminDashboard({
                                                     </span>
                                                 </div>
                                             </div>
-                                            <span className="shrink-0 text-sm text-muted-foreground">
+                                            <span className={TIMESTAMP_COLUMN_CLASS}>
                                                 {formatRelativeTime(
                                                     entry.createdAt,
                                                 )}
@@ -336,23 +358,29 @@ export default function AdminDashboard({
                                     {oldestInReview.map((doc) => (
                                         <div
                                             key={doc.id}
-                                            className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+                                            className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0"
                                         >
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <Link
                                                     href={doc.href}
-                                                    className="truncate text-sm font-medium hover:underline"
+                                                    className="block truncate text-sm font-semibold hover:underline"
                                                 >
                                                     {doc.title}
                                                 </Link>
-                                                <p className="truncate text-sm text-muted-foreground">
-                                                    {doc.organizationName} ·{' '}
+                                                <p className="mt-1 truncate text-sm text-muted-foreground">
                                                     {doc.formTypeLabel}
                                                     {doc.stepLabel &&
                                                         ` · ${doc.stepLabel}`}
                                                 </p>
+                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                    {/* Every row here is, by this widget's own definition, in review — not fetched data, just the constant this section is scoped to. */}
+                                                    <StatusBadge status="in_review" />
+                                                    <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                        {doc.organizationName}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+                                            <span className={TIMESTAMP_COLUMN_CLASS}>
                                                 {doc.daysSinceActivity}d ago
                                             </span>
                                         </div>
@@ -398,7 +426,14 @@ export default function AdminDashboard({
                                             <span className="text-sm font-medium">
                                                 {org.organizationName}
                                             </span>
-                                            <Badge variant="secondary">
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    !pendingCountBadgeClass(org.count) &&
+                                                        'border-transparent bg-secondary text-secondary-foreground',
+                                                    pendingCountBadgeClass(org.count),
+                                                )}
+                                            >
                                                 {org.count}
                                             </Badge>
                                         </div>
@@ -409,10 +444,26 @@ export default function AdminDashboard({
                     </Card>
 
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row items-center justify-between gap-2">
                             <CardTitle className="text-base">
                                 Not Yet Renewed This Year
                             </CardTitle>
+                            {orgCompliance.notRenewed.length > 0 && (
+                                <Badge
+                                    variant="outline"
+                                    className={cn(
+                                        !notRenewedCountBadgeClass(
+                                            orgCompliance.notRenewed.length,
+                                        ) &&
+                                            'border-transparent bg-secondary text-secondary-foreground',
+                                        notRenewedCountBadgeClass(
+                                            orgCompliance.notRenewed.length,
+                                        ),
+                                    )}
+                                >
+                                    {orgCompliance.notRenewed.length}
+                                </Badge>
+                            )}
                         </CardHeader>
                         <CardContent>
                             {orgCompliance.notRenewed.length === 0 ? (

@@ -1,20 +1,9 @@
 import { usePage } from '@inertiajs/react';
+import { CalendarRange, GraduationCap } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
-
-/**
- * Today's date, computed client-side rather than passed from the server —
- * this is purely presentational persistent context, so the viewer's own
- * clock/timezone is more correct here than round-tripping the server's.
- */
-function today(): string {
-    return new Date().toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
-}
 
 export function AppSidebarHeader({
     breadcrumbs = [],
@@ -29,12 +18,19 @@ export function AppSidebarHeader({
                 <SidebarTrigger className="-ml-1" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
-            <div className="ml-auto hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
-                <span>{currentTerm}</span>
-                <span aria-hidden>·</span>
-                <span>{academicYear}</span>
-                <span aria-hidden>·</span>
-                <span>{today()}</span>
+            {/* The only thing left in this slot now that the date is gone —
+                real badge treatment (icon + pill) instead of plain gray text,
+                so it reads as intentional persistent context rather than a
+                leftover label. */}
+            <div className="ml-auto hidden items-center gap-2 sm:flex">
+                <Badge variant="secondary" className="gap-1.5 font-normal">
+                    <CalendarRange aria-hidden />
+                    {currentTerm}
+                </Badge>
+                <Badge variant="secondary" className="gap-1.5 font-normal">
+                    <GraduationCap aria-hidden />
+                    {academicYear}
+                </Badge>
             </div>
         </header>
     );
