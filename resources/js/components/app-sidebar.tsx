@@ -12,6 +12,7 @@ import {
     UserCheck,
     UserPlus,
     Users,
+    UserRoundPlus,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -35,11 +36,13 @@ import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentTermSettings from '@/routes/admin/settings/term';
 import * as calendar from '@/routes/calendar';
 import * as officers from '@/routes/officers';
+import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
 import * as renewals from '@/routes/renewals';
 import * as reports from '@/routes/reports';
 import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
+import * as reviewJoinRequests from '@/routes/review/join-requests';
 import * as reviewRegistrations from '@/routes/review/registrations';
 import * as reviewRenewals from '@/routes/review/renewals';
 import * as reviewReports from '@/routes/review/reports';
@@ -163,6 +166,11 @@ export function AppSidebar() {
                     href: registrations.create(),
                     icon: FilePlus2,
                 },
+                {
+                    title: 'Join an Organization',
+                    href: organizationsJoin.create(),
+                    icon: UserPlus,
+                },
             ],
         });
     }
@@ -199,6 +207,18 @@ export function AppSidebar() {
             title: 'Review Proposals',
             href: reviewActivityProposals.index(),
             icon: Inbox,
+        });
+    }
+
+    // Join requests are decided by an org's adviser OR any of its active
+    // officers (DocumentPolicy::manageJoinRequests) — broader than
+    // manageOfficers' adviser-only "Manage Officers" entry below, so this
+    // gates on isStudentOfficer too, not just adviserRole.
+    if (adviserRole?.organization_id || isStudentOfficer) {
+        reviewItems.push({
+            title: 'Review Join Requests',
+            href: reviewJoinRequests.index(),
+            icon: UserRoundPlus,
         });
     }
 

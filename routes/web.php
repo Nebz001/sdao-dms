@@ -18,6 +18,8 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\JoinOrganizationController;
+use App\Http\Controllers\JoinRequestReviewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
@@ -74,6 +76,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');
     Route::post('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'store'])->name('officers.store');
     Route::delete('/organizations/{organization}/officers/{membership}', [OrganizationOfficerController::class, 'destroy'])->name('officers.destroy');
+
+    // Student — request to join an existing organization (literal paths
+    // declared before any wildcard, same convention as registrations below)
+    Route::get('/organizations/join', [JoinOrganizationController::class, 'create'])->name('organizations.join.create');
+    Route::get('/organizations/join/search', [JoinOrganizationController::class, 'search'])->middleware('throttle:30,1')->name('organizations.join.search');
+    Route::post('/organizations/join', [JoinOrganizationController::class, 'store'])->name('organizations.join.store');
+
+    // Adviser/officer — join-request review queue
+    Route::get('/review/join-requests', [JoinRequestReviewController::class, 'index'])->name('review.join-requests.index');
+    Route::post('/review/join-requests/{joinRequest}/approve', [JoinRequestReviewController::class, 'approve'])->name('review.join-requests.approve');
+    Route::post('/review/join-requests/{joinRequest}/decline', [JoinRequestReviewController::class, 'decline'])->name('review.join-requests.decline');
 
     // Student — registration lifecycle (literal paths declared before {document} wildcard)
     Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');

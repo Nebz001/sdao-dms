@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\OrganizationJoinRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -57,7 +58,24 @@ class DashboardController extends Controller
         $data = [
             'myOrganization' => null,
             'proposalsAtMyStep' => null,
+            'pendingJoinRequest' => null,
         ];
+
+        // Filing a join request doesn't require AccountStatus::Verified (see
+        // RequestToJoinOrganization's docblock), so this can be true even in
+        // the Unverified branch below — shown there as an extra status line,
+        // not a substitute for the "awaiting SDAO verification" message.
+        $pendingJoinRequest = OrganizationJoinRequest::query()
+            ->where('user_id', $user->id)
+            ->pending()
+            ->with('organization')
+            ->first();
+
+        if ($pendingJoinRequest !== null) {
+            $data['pendingJoinRequest'] = [
+                'organizationName' => $pendingJoinRequest->organization->name,
+            ];
+        }
 
         if ($membership !== null) {
             $needsAttentionQuery = Document::query()

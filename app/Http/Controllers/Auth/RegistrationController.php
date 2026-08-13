@@ -44,6 +44,13 @@ class RegistrationController extends Controller
             ...$this->profileRules(audience: 'student'),
             'password' => $this->passwordRules(),
             'id_number' => $this->idNumberRules(required: true),
+            // "Join an existing organization" choice (register.tsx's first
+            // fieldset) — rides along in the payload below purely to decide
+            // verifyStore()'s post-verification redirect. No account exists
+            // yet to persist it on, and it has no other effect. Nullable,
+            // not required: register.tsx always sends one, but nothing else
+            // hitting this endpoint (existing tests included) needs to.
+            'intended_path' => ['nullable', 'string', 'in:register_new,join_existing'],
         ]);
 
         // Hashed immediately (never held plaintext) and the whole payload is
@@ -55,6 +62,7 @@ class RegistrationController extends Controller
                 'name' => $data['name'],
                 'password' => Hash::make($data['password']),
                 'id_number' => $data['id_number'],
+                'intended_path' => $data['intended_path'] ?? 'register_new',
             ],
         );
 
@@ -109,6 +117,17 @@ class RegistrationController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+
+        // "Join an existing organization" choice, captured back in store()
+        // (see its docblock note). `?? 'register_new'` covers a code that
+        // was re-issued via resend() from a payload predating this field —
+        // same as today's behavior, straight to the dashboard.
+        $intendedPath = $payload['intended_path'] ?? 'register_new';
+
+        if ($intendedPath === 'join_existing') {
+            return to_route('organizations.join.create')
+                ->with('flash', ['message' => 'Account created — now find your organization.']);
+        }
 
         return to_route('dashboard')->with('flash', ['message' => 'Account created — welcome!']);
     }

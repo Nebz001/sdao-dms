@@ -110,6 +110,19 @@ class DocumentPolicy
     }
 
     /**
+     * Can the user decide (approve/decline) this organization's incoming
+     * join requests? Broader than manageOfficers() — the task explicitly
+     * scopes this to "an organization's existing officer or adviser", so an
+     * active president/secretary can act here even though only the adviser
+     * can manage officer turnover.
+     */
+    public function manageJoinRequests(User $user, Organization $organization): bool
+    {
+        return $this->roleDirectory->isAdviserOf($user, $organization)
+            || $this->membershipService->activeOfficersFor($organization)->contains('id', $user->id);
+    }
+
+    /**
      * Can the user edit this document? Only when Returned, and only an
      * officer who can act on it — the original submitter or any active
      * officer (president/secretary — equal partners, per CLAUDE.md) of the
