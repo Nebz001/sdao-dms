@@ -59,6 +59,11 @@
     --color-brand-hover: var(--brand-hover);
     --color-brand-accent: var(--brand-accent);
 
+    --color-brand-fixed: var(--brand-fixed);
+    --color-brand-fixed-foreground: var(--brand-fixed-foreground);
+    --color-brand-fixed-hover: var(--brand-fixed-hover);
+    --color-brand-fixed-tint: var(--brand-fixed-tint);
+
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
     --color-chart-3: var(--chart-3);
@@ -127,7 +132,10 @@
     --sidebar-ring: oklch(0.6 0.07 264);
     /* Brand — fixed NU Lipa colors, not theme-derived like the tokens above.
        Navy in light theme, gold in dark theme; foreground flips with it
-       (white-on-gold fails contrast, so it must never be reused as-is). */
+       (white-on-gold fails contrast, so it must never be reused as-is).
+       Reserved for potential reuse elsewhere — the landing page and the
+       auth pages (login/register/verify) intentionally do NOT use this
+       flipping token; see --brand-fixed below for those. */
     --brand: #35408e;
     --brand-foreground: #ffffff;
     --brand-hover: color-mix(in oklab, var(--brand) 88%, black);
@@ -135,6 +143,20 @@
        both nulp-logo-*.svg lockups), used where --brand itself would be
        illegible (e.g. navy-on-navy in light theme). */
     --brand-accent: #ffd41c;
+    /* Brand, fixed — always navy, same value in both themes (no .dark
+       override below). Used by the landing page and the login/register/
+       verify pages, which must stay on-brand navy in dark theme instead of
+       following --brand's gold flip. */
+    --brand-fixed: #35408e;
+    --brand-fixed-foreground: #ffffff;
+    --brand-fixed-hover: color-mix(in oklab, var(--brand-fixed) 88%, black);
+    /* Light blue tint of --brand-fixed, always the same in both themes —
+       for text that sits directly on the landing/auth hero's photo scrim
+       (itself fixed-dark in both themes now), where solid navy text
+       wouldn't read. Not a gold stand-in: this is the legibility role
+       --brand-accent used to fill for that one spot, done in navy/blue
+       instead. */
+    --brand-fixed-tint: color-mix(in oklab, var(--brand-fixed) 42%, white);
 }
 
 .dark {

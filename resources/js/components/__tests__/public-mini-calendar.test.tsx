@@ -33,8 +33,8 @@ describe('PublicMiniCalendar', () => {
         });
         const todayNumber = todayCell.querySelector('span');
 
-        expect(todayNumber).toHaveClass('bg-brand');
-        expect(todayNumber).toHaveClass('text-brand-foreground');
+        expect(todayNumber).toHaveClass('bg-brand-fixed');
+        expect(todayNumber).toHaveClass('text-brand-fixed-foreground');
     });
 
     it('renders a has-activity day as a clickable button with a dot', () => {
@@ -50,7 +50,7 @@ describe('PublicMiniCalendar', () => {
         const day15 = screen.getByRole('gridcell', { name: /Sep 15, 2026/ });
 
         expect(day15.tagName).toBe('BUTTON');
-        expect(day15.querySelector('.bg-brand')).toBeInTheDocument();
+        expect(day15.querySelector('.bg-brand-fixed')).toBeInTheDocument();
     });
 
     it('renders a day with no activities as a non-interactive cell, no dot', () => {
@@ -66,7 +66,7 @@ describe('PublicMiniCalendar', () => {
         const day12 = screen.getByRole('gridcell', { name: 'Sep 12, 2026' });
 
         expect(day12.tagName).toBe('DIV');
-        expect(day12.querySelector('.bg-brand')).not.toBeInTheDocument();
+        expect(day12.querySelector('.bg-brand-fixed')).not.toBeInTheDocument();
     });
 
     it('pluralizes the activity count in the accessible label', () => {

@@ -85,7 +85,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <Button
                                 type="submit"
-                                variant="brand"
+                                variant="brand-fixed"
                                 className="mt-4 w-full"
                                 tabIndex={4}
                                 disabled={processing}

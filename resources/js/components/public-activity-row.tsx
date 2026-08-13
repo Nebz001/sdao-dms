@@ -42,7 +42,7 @@ export default function PublicActivityRow({ activity }: Props) {
 
     return (
         <div className="flex items-start gap-3 rounded-md border px-3 py-2">
-            <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-md bg-brand text-brand-foreground">
+            <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-md bg-brand-fixed text-brand-fixed-foreground">
                 <span className="text-[10px] font-semibold tracking-wide uppercase">
                     {month}
                 </span>
@@ -58,7 +58,7 @@ export default function PublicActivityRow({ activity }: Props) {
                         ? `${timeRange} · ${activity.venue}`
                         : activity.venue}
                 </p>
-                <span className="mt-1.5 inline-flex max-w-full items-center truncate rounded-full border border-brand/20 bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                <span className="mt-1.5 inline-flex max-w-full items-center truncate rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                     {activity.organization}
                 </span>
             </div>

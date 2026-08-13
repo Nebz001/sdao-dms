@@ -14,8 +14,8 @@ import type { AuthLayoutProps } from '@/types';
  *
  * Unlike the hero, nothing here sits directly on the scrim: the logo,
  * heading, description, and every form field live inside an opaque `Card`,
- * so none of it needs the hero's white/gold on-photo text treatment. The
- * card's own colors (`bg-card`, normal foreground) are unaffected by
+ * so none of it needs the hero's white/blue-tint on-photo text treatment.
+ * The card's own colors (`bg-card`, normal foreground) are unaffected by
  * whatever photo is behind it — only the page background changed, which is
  * why the card gets a stronger shadow (`shadow-2xl` vs the default
  * `shadow-sm`) to visibly lift off a now-busier backdrop.
@@ -44,7 +44,7 @@ export default function AuthSimpleLayout({
             />
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-linear-to-tr from-brand/55 from-0% via-brand/55 via-58% to-transparent to-80% dark:from-brand/22 dark:from-0% dark:via-brand/22 dark:via-55% dark:to-transparent dark:to-78%"
+                className="absolute inset-0 bg-linear-to-tr from-brand-fixed/55 from-0% via-brand-fixed/55 via-58% to-transparent to-80%"
             />
 
             <Toaster />

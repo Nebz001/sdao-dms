@@ -70,7 +70,7 @@ function VariantTick({
     const secondLine = rest.join(', ');
     const tickStyle: React.CSSProperties = {
         fill: 'var(--foreground)',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 500,
     };
 
@@ -216,7 +216,8 @@ export default function ProposalFunnelChart({
                         dataKey={`step_${index}`}
                         stackId="funnel"
                         fill={stepColor(index)}
-                        radius={3}
+                        radius={4}
+                        barSize={28}
                     />
                 ))}
             </BarChart>

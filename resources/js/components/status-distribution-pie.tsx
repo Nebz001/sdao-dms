@@ -75,8 +75,14 @@ export default function StatusDistributionPie({
         // can't resolve (collapses to 0) when the flex container's own
         // height is itself content-driven rather than definite. A grid
         // track's height is resolved before its items stretch, so the
-        // divider's height actually fills the row.
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-[auto_auto_1fr]">
+        // divider's height actually fills the row. `w-full`: the parent
+        // CardContent is now a flex container (see admin/dashboard.tsx),
+        // and this grid's trailing `1fr` legend column needs a definite
+        // container width to resolve against rather than shrinking to the
+        // flex item's own content width. gap-8, not gap-4: the previous
+        // value read as cramped — pie, divider, and legend need real
+        // breathing room between them, not just enough to avoid touching.
+        <div className="grid w-full grid-cols-1 items-stretch gap-8 sm:grid-cols-[auto_auto_1fr]">
             {/* Fixed pixel dimensions, not aspect-square + w-full: inside
                 this grid row, ResponsiveContainer's 100% width resolves
                 against the grid cell's own auto content width once the

@@ -201,18 +201,13 @@ export default function AdminDashboard({
                     ))}
                 </div>
 
-                {/* items-start: each card sizes to its own content instead
-                    of the default grid stretch, so a taller bar chart on
-                    the right doesn't force the pie chart's card to match
-                    its height. */}
-                <div className="grid items-start gap-4 md:grid-cols-2">
-                    {/* gap-4/py-4, not the default gap-6/py-6: this card's
-                        actual content (a small pie, a divider, a five-item
-                        legend) is shorter than the default Card chrome
-                        assumes, and `items-start` above means it no longer
-                        gets stretched to its taller sibling's height either
-                        — so the padding needs to earn its keep too. */}
-                    <Card className="gap-4 py-4">
+                {/* Default grid stretch (items-stretch): both cards match
+                    the row's tallest sibling instead of each sizing to its
+                    own content — the pie card's CardContent centers its
+                    (shorter) content vertically to fill that extra height
+                    gracefully rather than leaving it top-anchored. */}
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Status Distribution
@@ -224,7 +219,7 @@ export default function AdminDashboard({
                             </CardDescription>
                         </CardHeader>
                         {statusTotal > 0 && (
-                            <CardContent>
+                            <CardContent className="flex flex-1 items-center">
                                 <StatusDistributionPie data={statusDistribution} />
                             </CardContent>
                         )}

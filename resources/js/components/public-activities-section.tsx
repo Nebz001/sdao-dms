@@ -107,7 +107,7 @@ export default function PublicActivitiesSection({ activities }: Props) {
         <section className="mx-auto w-full max-w-7xl px-6 py-14">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <p className="text-xs font-semibold tracking-[0.2em] text-brand uppercase">
+                    <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
                         Stay in the loop
                     </p>
                     <h2 className="mt-1 text-2xl font-bold tracking-tight text-balance sm:text-3xl">

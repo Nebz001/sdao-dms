@@ -22,6 +22,11 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         brand:
           "bg-brand text-brand-foreground shadow-xs hover:bg-brand-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        // Fixed navy in both themes — never flips to gold. Used on the
+        // landing page and the login/register/verify pages, which must
+        // stay on-brand navy in dark theme; see --brand-fixed in app.css.
+        "brand-fixed":
+          "bg-brand-fixed text-brand-fixed-foreground shadow-xs hover:bg-brand-fixed-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

@@ -86,7 +86,7 @@ export default function VerifyRegistrationCode({
 
                             <Button
                                 type="submit"
-                                variant="brand"
+                                variant="brand-fixed"
                                 className="w-full"
                                 loading={processing}
                                 loadingText="Verifying…"

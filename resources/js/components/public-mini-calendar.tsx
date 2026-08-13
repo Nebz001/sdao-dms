@@ -108,7 +108,7 @@ export default function PublicMiniCalendar({
                             className={cn(
                                 'flex size-5 items-center justify-center rounded-full text-xs lg:size-9 lg:text-base',
                                 day.isToday
-                                    ? 'bg-brand font-semibold text-brand-foreground'
+                                    ? 'bg-brand-fixed font-semibold text-brand-fixed-foreground'
                                     : 'text-muted-foreground',
                                 day.inMonth &&
                                     !day.isToday &&
@@ -126,7 +126,7 @@ export default function PublicMiniCalendar({
                                 {hasActivity && (
                                     <span
                                         aria-hidden="true"
-                                        className="size-1.5 rounded-full bg-brand lg:size-2"
+                                        className="size-1.5 rounded-full bg-brand-fixed lg:size-2"
                                     />
                                 )}
                             </span>
