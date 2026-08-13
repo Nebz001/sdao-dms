@@ -12,14 +12,14 @@ test('profile page is displayed', function () {
     $response->assertOk();
 });
 
-test('profile information can be updated', function () {
+test('the name can be updated immediately when the email is unchanged', function () {
     $user = User::factory()->create();
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => $user->email,
         ]);
 
     $response
@@ -27,11 +27,42 @@ test('profile information can be updated', function () {
         ->assertSessionHas('flash', ['message' => 'Profile updated.'])
         ->assertRedirect(route('profile.edit'));
 
+    expect($user->refresh()->name)->toBe('Test User');
+});
+
+test('changing to a new school email defers the write behind a verification code', function () {
+    $user = User::factory()->create();
+    $originalEmail = $user->email;
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => 'new.address@students.nu-lipa.edu.ph',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.verify-email'));
+
     $user->refresh();
 
     expect($user->name)->toBe('Test User');
-    expect($user->email)->toBe('test@example.com');
-    expect($user->email_verified_at)->toBeNull();
+    expect($user->email)->toBe($originalEmail);
+});
+
+test('a personal email is rejected on profile update', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'someone@gmail.com',
+        ]);
+
+    $response->assertSessionHasErrors('email');
+    expect($user->fresh()->email)->not->toBe('someone@gmail.com');
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {

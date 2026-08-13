@@ -15,27 +15,13 @@ beforeEach(function () {
 });
 
 test('a freshly self-registered account has zero role assignments', function () {
-    $this->post(route('register.store'), [
-        'name' => 'Bare Student',
-        'email' => 'bare-student@example.test',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-    ]);
-
-    $user = User::where('email', 'bare-student@example.test')->firstOrFail();
+    [$user] = registerViaHttp(['name' => 'Bare Student', 'email' => 'bare-student@students.nu-lipa.edu.ph']);
 
     expect($user->roleAssignments()->count())->toBe(0);
 });
 
 test('a freshly self-registered account starts Unverified, awaiting SDAO review', function () {
-    $this->post(route('register.store'), [
-        'name' => 'Fresh Registrant',
-        'email' => 'fresh-registrant@example.test',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-    ]);
-
-    $user = User::where('email', 'fresh-registrant@example.test')->firstOrFail();
+    [$user] = registerViaHttp(['name' => 'Fresh Registrant', 'email' => 'fresh-registrant@students.nu-lipa.edu.ph']);
 
     expect($user->account_status)->toBe(AccountStatus::Unverified);
 });
@@ -43,18 +29,14 @@ test('a freshly self-registered account starts Unverified, awaiting SDAO review'
 test('the public registration endpoint ignores role/scope fields smuggled into the request body', function () {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
 
-    $this->post(route('register.store'), [
+    // None of these are real registration fields — an attempt to self-grant
+    // a role via the public form must have no effect.
+    [$user] = registerViaHttp([
         'name' => 'Smuggler',
-        'email' => 'smuggler@example.test',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-        // None of these are real Fortify/CreateNewUser fields — an attempt
-        // to self-grant a role via the public form must have no effect.
+        'email' => 'smuggler@students.nu-lipa.edu.ph',
         'role' => Role::SdaoMember->value,
         'organization_id' => $org->id,
     ]);
-
-    $user = User::where('email', 'smuggler@example.test')->firstOrFail();
 
     expect($user->roleAssignments()->count())->toBe(0);
     expect(RoleAssignment::where('user_id', $user->id)->exists())->toBeFalse();

@@ -27,10 +27,13 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            // Every account must hold an NU Lipa school address — defaults to
+            // the student domain since most factory-created users in tests
+            // are unaffiliated actors, not provisioned staff.
+            'email' => fake()->unique()->userName().'@students.nu-lipa.edu.ph',
             'email_verified_at' => now(),
             // Test/dev accounts are trusted by default so existing acting-as
-            // tests keep working; self-registration (CreateNewUser) sets
+            // tests keep working; self-registration (RegistrationController) sets
             // Unverified explicitly instead of relying on this default.
             'account_status' => AccountStatus::Verified,
             'password' => static::$password ??= Hash::make('password'),

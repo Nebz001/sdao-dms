@@ -27,9 +27,9 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function offCalApprovedActivity(string $venue, string $date, string $start, string $end): CalendarActivity
@@ -240,12 +240,12 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
 
     // Advance through the off-calendar chain for Computing Society:
     // [SdaoMember(×2), Adviser, ProgramChair, Dean, AsstDir, AcadDir, ExecDir]
-    $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $dean = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $asstDir = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $acadDir = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $execDir = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $asstDir = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 
     $this->engine->approve($approvedProposalDoc, $this->sdaoA);
     $approvedProposalDoc->refresh();
@@ -268,7 +268,7 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
 
     // Now a second student tries to submit for the same venue/date/time
     $otherOrg = Organization::where('name', 'IT Guild')->firstOrFail();
-    $otherStudent = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $otherStudent = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 
     $conflictingDraft = app(StartProposalDraft::class)->execute(
         actor: $otherStudent,
@@ -312,7 +312,7 @@ test('off-calendar proposal CalendarActivity is invisible to checker while Draft
 
     // A rival submission to the same slot should not see a conflict (since draft is invisible)
     $otherOrg = Organization::where('name', 'IT Guild')->firstOrFail();
-    $otherStudent = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $otherStudent = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 
     $rivalDraft = $this->startDraft->execute(
         actor: $otherStudent,

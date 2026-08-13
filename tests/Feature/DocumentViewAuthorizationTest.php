@@ -34,11 +34,11 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // CS officer
-    $this->studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // IT Guild officer — different org
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // CS officer
+    $this->studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail(); // IT Guild officer — different org
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -50,8 +50,8 @@ beforeEach(function () {
 function viewAuthApprovedRegistration(Organization $org, User $actor): void
 {
     $engine = app(ApprovalEngine::class);
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 
     $doc = viewAuthRegistrationDocument($org, $actor);
     $engine->submit($doc, $actor);
@@ -288,14 +288,14 @@ test('after-activity report show: org officer can view, different-org officer ca
     );
 
     foreach ([
-        'adviser-one@sdao.test',
-        'chair-cs@sdao.test',
-        'dean-ccit@sdao.test',
-        'sdao-a@sdao.test',
-        'sdao-b@sdao.test',
-        'asst-director@sdao.test',
-        'academic-director@sdao.test',
-        'executive-director@sdao.test',
+        'adviser-one@nu-lipa.edu.ph',
+        'chair-cs@nu-lipa.edu.ph',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $this->engine->approve($proposalDoc, User::where('email', $email)->firstOrFail());
         $proposalDoc->refresh();

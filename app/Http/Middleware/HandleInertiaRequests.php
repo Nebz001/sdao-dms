@@ -98,6 +98,45 @@ class HandleInertiaRequests extends Middleware
             // per-request DB cost beyond the first call after a term change.
             'currentTerm' => CurrentTerm::get()->label(),
             'academicYear' => AcademicYear::current(),
+            // A closure, not a resolved value — Inertia only evaluates
+            // callable props when they're actually included in the
+            // response. The notification bell fetches this key by name on
+            // open (`only: ['notifications']`); left as a raw array, this
+            // query would also run on every 5s useDocumentUpdates() poll
+            // (`only: ['document','history','queue']`) even though that
+            // poll never asks for it.
+            'notifications' => fn () => $this->notificationsFor($request),
+        ];
+    }
+
+    /**
+     * @return array{unreadCount: int, items: array<int, array<string, mixed>>}|null
+     */
+    private function notificationsFor(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'unreadCount' => $user->unreadNotifications()->count(),
+            'items' => $user->notifications()
+                ->latest()
+                ->limit(8)
+                ->get()
+                ->map(fn ($notification) => [
+                    'id' => $notification->id,
+                    'kind' => $notification->data['kind'] ?? null,
+                    'title' => $notification->data['title'] ?? '',
+                    'body' => $notification->data['body'] ?? '',
+                    'url' => $notification->data['url'] ?? null,
+                    'readAt' => $notification->read_at?->toIso8601String(),
+                    'createdAt' => $notification->created_at->toIso8601String(),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }

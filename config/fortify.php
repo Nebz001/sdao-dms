@@ -161,7 +161,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration is owned outside Fortify (see
+        // App\Http\Controllers\Auth\RegistrationController) so a school-email
+        // verification code can gate account creation.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

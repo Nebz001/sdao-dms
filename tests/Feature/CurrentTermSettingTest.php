@@ -19,8 +19,8 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(SubmitActivityCalendar::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function currentTermPayload(): array
@@ -172,7 +172,7 @@ test('an SDAO member can update the current term via the settings screen', funct
 });
 
 test('a non-SDAO authenticated user is forbidden on the current-term settings routes', function () {
-    $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($adviser)->get(route('admin.settings.term.edit'))->assertForbidden();
     $this->actingAs($adviser)->put(route('admin.settings.term.update'), [

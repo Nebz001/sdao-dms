@@ -19,8 +19,8 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(SubmitOrganizationRegistration::class);
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /** A fresh, admin-provisioned adviser account with no organization yet (available). */
@@ -41,7 +41,7 @@ function foundingPayload(array $overrides = []): array
         'purposeOfOrganization' => 'A brand-new student organization.',
         'contactPerson' => 'Founding Student',
         'contactNo' => '09171234567',
-        'emailAddress' => 'foundingorg@sdao.test',
+        'emailAddress' => 'foundingorg@nu-lipa.edu.ph',
         'dateOrganized' => '2020-06-01',
         'attachmentFiles' => registrationAttachmentFiles(),
     ], $overrides);

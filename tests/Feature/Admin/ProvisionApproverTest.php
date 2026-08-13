@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(ProvisionApprover::class);
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
     $this->program = Program::where('name', 'BS Computer Science')->firstOrFail();
@@ -29,7 +29,7 @@ test('an SDAO member can provision an adviser scoped to an organization', functi
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'New Adviser',
-        email: 'new-adviser@sdao.test',
+        email: 'new-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['organization_id' => $this->org->id],
     );
@@ -44,7 +44,7 @@ test('an SDAO member can provision an adviser with NO scope — available, pendi
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'Available Adviser',
-        email: 'available-adviser@sdao.test',
+        email: 'available-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: [],
     );
@@ -57,7 +57,7 @@ test('an SDAO member can provision a dean scoped to a school', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'New Dean',
-        email: 'new-dean@sdao.test',
+        email: 'new-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
     );
@@ -72,7 +72,7 @@ test('an SDAO member can provision a program chair scoped to a program', functio
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'New Chair',
-        email: 'new-chair@sdao.test',
+        email: 'new-chair@nu-lipa.edu.ph',
         role: Role::ProgramChair,
         scope: ['program_id' => $this->program->id],
     );
@@ -87,7 +87,7 @@ test('an SDAO member can provision a global role with no scope', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'New Director',
-        email: 'new-director@sdao.test',
+        email: 'new-director@nu-lipa.edu.ph',
         role: Role::ExecutiveDirector,
         scope: [],
     );
@@ -102,7 +102,7 @@ test('provisioning Student is rejected — students self-register and are advise
     expect(fn () => $this->action->execute(
         actor: $this->sdaoA,
         name: 'Should Fail',
-        email: 'should-fail@sdao.test',
+        email: 'should-fail@nu-lipa.edu.ph',
         role: Role::Student,
         scope: ['organization_id' => $this->org->id],
     ))->toThrow(ValidationException::class);
@@ -113,31 +113,31 @@ test('a mismatched role/scope pair is rejected', function () {
     expect(fn () => $this->action->execute(
         actor: $this->sdaoA,
         name: 'Mismatched',
-        email: 'mismatched@sdao.test',
+        email: 'mismatched@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['school_id' => $this->school->id],
     ))->toThrow(ValidationException::class);
 });
 
 test('a non-SDAO actor cannot provision an approver via the action', function () {
-    $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     expect(fn () => $this->action->execute(
         actor: $adviser,
         name: 'Nope',
-        email: 'nope@sdao.test',
+        email: 'nope@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['organization_id' => $this->org->id],
     ))->toThrow(AuthorizationException::class);
 });
 
 test('a non-SDAO authenticated user gets 403 on every admin route', function () {
-    $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($adviser)->get(route('admin.approvers.index'))->assertForbidden();
     $this->actingAs($adviser)->get(route('admin.approvers.create'))->assertForbidden();
     $this->actingAs($adviser)->post(route('admin.approvers.store'), [
-        'name' => 'X', 'email' => 'x@sdao.test', 'role' => Role::Adviser->value, 'organization_id' => $this->org->id,
+        'name' => 'X', 'email' => 'x@nu-lipa.edu.ph', 'role' => Role::Adviser->value, 'organization_id' => $this->org->id,
     ])->assertForbidden();
 });
 
@@ -145,7 +145,7 @@ test('a provisioned approver lands account-Verified and email-verified — no ve
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'Trusted Approver',
-        email: 'trusted-approver@sdao.test',
+        email: 'trusted-approver@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
     );
@@ -160,7 +160,7 @@ test('provisioning sends a real password-reset notification and never sets a usa
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'Reset Check',
-        email: 'reset-check@sdao.test',
+        email: 'reset-check@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],
     );
@@ -177,13 +177,13 @@ test('provisioning sends a real password-reset notification and never sets a usa
 test('the store endpoint provisions an adviser with no organization_id — the unbound available-pool path', function () {
     $response = $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
         'name' => 'Available Via HTTP',
-        'email' => 'available-via-http@sdao.test',
+        'email' => 'available-via-http@nu-lipa.edu.ph',
         'role' => Role::Adviser->value,
     ]);
 
     $response->assertRedirect(route('admin.approvers.index'));
 
-    $newUser = User::where('email', 'available-via-http@sdao.test')->firstOrFail();
+    $newUser = User::where('email', 'available-via-http@nu-lipa.edu.ph')->firstOrFail();
     $ra = RoleAssignment::where('user_id', $newUser->id)->where('role', Role::Adviser->value)->firstOrFail();
     expect($ra->organization_id)->toBeNull();
 });
@@ -203,12 +203,12 @@ test('an SDAO member can reach the admin routes end-to-end via HTTP', function (
 
     $response = $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
         'name' => 'HTTP Provisioned',
-        'email' => 'http-provisioned@sdao.test',
+        'email' => 'http-provisioned@nu-lipa.edu.ph',
         'role' => Role::Adviser->value,
         'organization_id' => $this->org->id,
     ]);
 
     $response->assertRedirect(route('admin.approvers.index'));
-    $newUser = User::where('email', 'http-provisioned@sdao.test')->firstOrFail();
+    $newUser = User::where('email', 'http-provisioned@nu-lipa.edu.ph')->firstOrFail();
     expect(RoleAssignment::where('user_id', $newUser->id)->where('role', Role::Adviser->value)->exists())->toBeTrue();
 });

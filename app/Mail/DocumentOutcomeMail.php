@@ -3,9 +3,9 @@
 namespace App\Mail;
 
 use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\User;
+use App\Support\DocumentUrls;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -72,29 +72,23 @@ class DocumentOutcomeMail extends Mailable
                 'organizationName' => $this->document->organization->name,
                 'documentTitle' => $this->document->title,
                 'comment' => $this->comment,
-                'documentUrl' => $this->documentUrl(),
+                'documentUrl' => DocumentUrls::forSubmitter($this->document),
             ],
         );
     }
 
-    private function outcomeLabel(): string
+    /**
+     * Also reused by DocumentOutcomeNotification::toArray() (the bell's copy
+     * of this same wording) so the email subject/body and the in-app row can
+     * never say something different for the same outcome.
+     */
+    public function outcomeLabel(): string
     {
         return match ($this->outcome) {
             DocumentStatus::Approved => 'approved',
             DocumentStatus::Rejected => 'rejected',
             DocumentStatus::Returned => 'returned for revision',
             default => 'updated',
-        };
-    }
-
-    private function documentUrl(): string
-    {
-        return match ($this->document->form_type) {
-            FormType::OrganizationRegistration => route('registrations.show', $this->document),
-            FormType::OrganizationRenewal => route('renewals.show', $this->document),
-            FormType::ActivityCalendar => route('activity-calendars.show', $this->document),
-            FormType::ActivityProposal => route('activity-proposals.show', $this->document),
-            FormType::AfterActivityReport => route('reports.show', $this->document),
         };
     }
 }

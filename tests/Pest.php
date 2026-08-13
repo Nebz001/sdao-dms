@@ -1,9 +1,12 @@
 <?php
 
+use App\Mail\EmailVerificationCodeMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
@@ -133,6 +136,41 @@ function currentTwoFactorCodeFor(User $user): string
     return app(Google2FA::class)->getCurrentOtp(
         Fortify::currentEncrypter()->decrypt($user->fresh()->two_factor_secret)
     );
+}
+
+/**
+ * Drives the real two-step self-registration HTTP flow end to end: POST
+ * register.store (validates the school email, issues a code, creates NO
+ * User row yet) then POST register.verify.store with the code captured off
+ * the faked EmailVerificationCodeMail. Calls Mail::fake() itself, so don't
+ * assert on other mail in the same test without re-faking afterward.
+ *
+ * @return array{0: User, 1: array<string, string>} the created user and the payload used
+ */
+function registerViaHttp(array $overrides = []): array
+{
+    Mail::fake();
+
+    $payload = array_merge([
+        'name' => 'Test Student',
+        'email' => 'student-'.Str::random(10).'@students.nu-lipa.edu.ph',
+        'id_number' => fake()->unique()->numerify('####-######'),
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ], $overrides);
+
+    test()->post(route('register.store'), $payload);
+
+    $code = null;
+    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+        $code = $mail->code;
+
+        return true;
+    });
+
+    test()->post(route('register.verify.store'), ['code' => $code]);
+
+    return [User::where('email', $payload['email'])->firstOrFail(), $payload];
 }
 
 function something()

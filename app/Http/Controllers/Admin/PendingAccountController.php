@@ -19,11 +19,12 @@ class PendingAccountController extends Controller
         $accounts = User::query()
             ->where('account_status', AccountStatus::Unverified->value)
             ->orderBy('created_at')
-            ->get(['id', 'name', 'email', 'created_at'])
+            ->get(['id', 'name', 'email', 'id_number', 'created_at'])
             ->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
+                'id_number' => $u->id_number,
                 'created_at' => $u->created_at,
             ]);
 

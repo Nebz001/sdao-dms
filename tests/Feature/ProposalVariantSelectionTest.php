@@ -28,8 +28,8 @@ beforeEach(function () {
 
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->studentGamma = User::where('email', 'student-gamma@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function proposalApprovedActivity(Organization $org): CalendarActivity

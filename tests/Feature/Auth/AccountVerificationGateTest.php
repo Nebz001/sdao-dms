@@ -25,8 +25,8 @@ use Database\Seeders\WorkflowTemplateSeeder;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -108,14 +108,14 @@ function approvedProposalForVerificationGate(Organization $org, User $student): 
 
     $engine = app(ApprovalEngine::class);
     foreach ([
-        'adviser-one@sdao.test',
-        'chair-cs@sdao.test',
-        'dean-ccit@sdao.test',
-        'sdao-a@sdao.test',
-        'sdao-b@sdao.test',
-        'asst-director@sdao.test',
-        'academic-director@sdao.test',
-        'executive-director@sdao.test',
+        'adviser-one@nu-lipa.edu.ph',
+        'chair-cs@nu-lipa.edu.ph',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
     ] as $approverEmail) {
         $engine->approve($doc, User::where('email', $approverEmail)->firstOrFail());
         $doc->refresh();
@@ -198,7 +198,7 @@ test('a rejected officer is forbidden from proposing a new organization', functi
 });
 
 test('the activity-proposal chain-entry submit is forbidden once the account is no longer verified', function () {
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     $document = app(StartProposalDraft::class)->execute(
         actor: $student,
@@ -231,7 +231,7 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
 });
 
 test('the activity-proposal chain-entry submit is forbidden when the account was never verified', function () {
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     $document = app(StartProposalDraft::class)->execute(
         actor: $student,
@@ -265,7 +265,7 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
 
 test('an unverified officer is forbidden from submitting a renewal', function () {
     // Renewal requires a prior Approved registration for the org first.
-    $verifiedOfficer = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $verifiedOfficer = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     // Built directly (not via SubmitOrganizationRegistration, which now
     // requires a not-yet-affiliated founding student — Phase 2 item 5): this
@@ -294,9 +294,9 @@ test('an unverified officer is forbidden from submitting a renewal', function ()
     $engine = app(ApprovalEngine::class);
     $engine->submit($registration, $verifiedOfficer);
     $registration->refresh();
-    $engine->approve($registration, User::where('email', 'sdao-a@sdao.test')->firstOrFail());
+    $engine->approve($registration, User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail());
     $registration->refresh();
-    $engine->approve($registration, User::where('email', 'sdao-b@sdao.test')->firstOrFail());
+    $engine->approve($registration, User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail());
     $registration->refresh();
     expect($registration->status)->toBe(DocumentStatus::Approved);
 
@@ -373,7 +373,7 @@ test('an unverified officer is forbidden from creating an activity-proposal draf
 });
 
 test('an unverified officer is forbidden from submitting an after-activity report', function () {
-    $verifiedOfficer = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $verifiedOfficer = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $proposal = approvedProposalForVerificationGate($this->org, $verifiedOfficer);
 
     $officer = bindUnverifiedOfficerTo($this->org);

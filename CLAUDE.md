@@ -201,9 +201,10 @@ Approved and Rejected.
 - **Real auth is deferred.** The stub sits behind an auth interface/boundary;
   build every feature against that boundary, NOT against the real auth
   implementation. Swapping the stub for real auth must be a localized change.
-- Authentication uses personal email + password via Laravel Fortify. Email
-  verification is REQUIRED — it confirms an address is real before an account
-  exists.
+- Authentication uses an NU Lipa **school email** (never a personal address)
+  + password via Laravel Fortify. Email verification is REQUIRED — it
+  confirms an address is real before an account exists. See "School email
+  domain, verification code, and ID number" below for the full rule.
 - Account creation is split by role:
   - Approvers (adviser, program chair, dean, principal, SDAO members, and the
     three directors) are created or invited by SDAO admin. They never
@@ -312,6 +313,42 @@ SDAO members are Carl Justin Magpantay and Zaira Joy Enayo (already used).
 Additionally seed: Pia Jasmin I. Quizon (Assistant Director of Academic
 Services), Bernie S. Fabito (Academic Director), Avelino D. Palupit (Executive
 Director).
+
+### School email domain, verification code, and ID number
+
+An account can only ever hold an NU Lipa school email address — never a
+personal one. This is enforced everywhere an email is collected or changed:
+self-registration, the profile settings email field, and SDAO's admin
+approver-provisioning form. All three share one validation source
+(`App\Concerns\ProfileValidationRules::emailRules()`, which applies
+`App\Rules\SchoolEmailDomain`) so the rule cannot be fixed in one place and
+missed in another. Allowed domains are configurable, not hardcoded — see
+`config/school.php` (`SCHOOL_STUDENT_EMAIL_DOMAINS` /
+`SCHOOL_STAFF_EMAIL_DOMAINS`): students use `students.nu-lipa.edu.ph`, staff
+(advisers, program chairs, deans, principals, SDAO members, the three
+directors) use `nu-lipa.edu.ph`.
+
+- **Self-registration** validates the domain first, then emails a random
+  6-digit code (`App\Mail\EmailVerificationCodeMail`, 15-minute expiry, 5
+  wrong attempts before a 15-minute lockout, 60-second resend cooldown — all
+  configurable in `config/school.php`). No `User` row is created until the
+  code matches (`App\Http\Controllers\Auth\RegistrationController`) — this is
+  what "confirms an address is real before an account exists" means in
+  practice. Fortify's own `Features::registration()` is disabled
+  (`config/fortify.php`) since it has no seam for this.
+- **Changing the email in profile settings** follows the same code gate
+  (`App\Http\Controllers\Settings\ProfileController::update()`/
+  `verifyEmail*()`): the new address is never written to `users.email` until
+  its code is verified. A name-only change still saves immediately.
+- **Admin approver provisioning** validates the staff domain but has no code
+  step — SDAO already vouches for the account, and the password-reset link it
+  sends is itself proof of deliverability.
+- A **student/staff ID number** (`users.id_number`) is required on student
+  self-registration and optional on admin-provisioned staff. It's excluded
+  from the default `User` serialization (`#[Hidden]`) so it never rides along
+  on the `auth.user` prop shipped to every page — it's surfaced only in
+  admin-facing views (Pending Accounts queue, approvers list) that explicitly
+  select it.
 
 ### Exact field corrections per form
 

@@ -153,7 +153,7 @@ test('resubmit preserves untouched slots and replaces a re-uploaded one', functi
     $originalByLawsAttachment = $document->attachments()->where('slot_key', 'by_laws')->firstOrFail();
 
     // SDAO returns it for revision.
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     app(ApprovalEngine::class)->returnForRevision($document, $sdaoA, 'Please update the by-laws.');
     $document->refresh();
 
@@ -199,7 +199,7 @@ test('download is authorized for the submitter and the reviewing SDAO member, fo
     $document = Document::where('organization_id', $org->id)->firstOrFail();
     $attachment = $document->attachments()->firstOrFail();
 
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $outsider = User::factory()->create();
 
     $this->actingAs($student)->get(route('attachments.download', $attachment))->assertOk();

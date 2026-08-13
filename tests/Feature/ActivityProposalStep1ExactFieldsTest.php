@@ -30,8 +30,8 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function approvedCalendarActivityForStep1(Organization $org, string $name = 'Approved Test Event'): CalendarActivity
@@ -210,7 +210,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
 // --- Regression: existing on/off-calendar mechanics unaffected ----------
 
 test('off-calendar venue-conflict detection (at step-2 submit) still keys only on venue+date+time, unaffected by the new fields', function () {
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $engine = app(ApprovalEngine::class);
     $submitAction = app(SubmitActivityProposal::class);
 
@@ -232,8 +232,8 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
     $engine->approve($firstDoc, $sdaoB);
     $firstDoc->refresh();
     foreach ([
-        'adviser-one@sdao.test', 'chair-cs@sdao.test', 'dean-ccit@sdao.test',
-        'asst-director@sdao.test', 'academic-director@sdao.test', 'executive-director@sdao.test',
+        'adviser-one@nu-lipa.edu.ph', 'chair-cs@nu-lipa.edu.ph', 'dean-ccit@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph', 'academic-director@nu-lipa.edu.ph', 'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $engine->approve($firstDoc, User::where('email', $email)->firstOrFail());
         $firstDoc->refresh();

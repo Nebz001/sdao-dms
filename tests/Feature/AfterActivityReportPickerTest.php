@@ -30,8 +30,8 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -79,18 +79,18 @@ function pickerApprovedProposal(Organization $org, User $actor, string $activity
         narrative: 'Narrative',
     );
 
-    $adviserEmail = $org->name === 'IT Guild' ? 'adviser-two@sdao.test' : 'adviser-one@sdao.test';
-    $chairEmail = $org->name === 'IT Guild' ? 'chair-it@sdao.test' : 'chair-cs@sdao.test';
+    $adviserEmail = $org->name === 'IT Guild' ? 'adviser-two@nu-lipa.edu.ph' : 'adviser-one@nu-lipa.edu.ph';
+    $chairEmail = $org->name === 'IT Guild' ? 'chair-it@nu-lipa.edu.ph' : 'chair-cs@nu-lipa.edu.ph';
 
     foreach ([
         $adviserEmail,
         $chairEmail,
-        'dean-ccit@sdao.test',
-        'sdao-a@sdao.test',
-        'sdao-b@sdao.test',
-        'asst-director@sdao.test',
-        'academic-director@sdao.test',
-        'executive-director@sdao.test',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $engine->approve($proposalDoc, User::where('email', $email)->firstOrFail());
         $proposalDoc->refresh();
@@ -149,7 +149,7 @@ test('(ii) picker excludes a proposal that already has a non-rejected (e.g. InRe
 
 test('(ii) a proposal whose only report was REJECTED reappears in the picker — rejected does not permanently block', function () {
     $proposal = pickerApprovedProposal($this->computingSociety, $this->studentAlpha, 'Rejected Report Activity');
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $report = app(SubmitAfterActivityReport::class)->execute(
         actor: $this->studentAlpha,

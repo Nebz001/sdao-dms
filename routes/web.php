@@ -13,10 +13,12 @@ use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\Auth\RegistrationController as AuthRegistrationController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
@@ -28,6 +30,23 @@ use Illuminate\Support\Facades\Route;
 // approved activities); authenticated users are bounced to their dashboard
 // before it ever renders (reverses Phase 2 item 11 Group B).
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Self-registration, owned outside Fortify (config/fortify.php disables
+// Features::registration()) so a school-email verification code can gate
+// account creation — see App\Http\Controllers\Auth\RegistrationController.
+Route::middleware(['guest'])->group(function () {
+    Route::get('register', [AuthRegistrationController::class, 'create'])->name('register');
+    Route::post('register', [AuthRegistrationController::class, 'store'])
+        ->middleware('throttle:register')
+        ->name('register.store');
+    Route::get('register/verify', [AuthRegistrationController::class, 'verify'])->name('register.verify');
+    Route::post('register/verify', [AuthRegistrationController::class, 'verifyStore'])
+        ->middleware('throttle:10,1')
+        ->name('register.verify.store');
+    Route::post('register/verify/resend', [AuthRegistrationController::class, 'resend'])
+        ->middleware('throttle:email-code-resend')
+        ->name('register.verify.resend');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -44,6 +63,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/documents/{document}/print', DocumentPrintController::class)
         ->middleware('throttle:20,1')
         ->name('documents.print');
+
+    // Notification bell — generic across every form type, same category as
+    // attachments/print above. See HandleInertiaRequests::share() for the
+    // shared prop these actions keep in sync.
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');

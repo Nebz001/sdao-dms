@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\AttemptToAuthenticate;
-use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\RedirectIfTwoFactorAuthenticatable;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -45,7 +44,6 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::createUsersUsing(CreateNewUser::class);
 
         // Swaps in our AttemptToAuthenticate and RedirectIfTwoFactorAuthenticatable
         // so a failed login can tell the user which field was wrong (see
@@ -91,10 +89,6 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        ]));
-
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
@@ -119,6 +113,26 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by(
                 ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
             );
+        });
+
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        // Governs both requesting the first code (registration/profile-email
+        // -change) and every "send a new code" resend — keyed by the target
+        // address so one email can't be bombarded regardless of which flow.
+        RateLimiter::for('email-code-resend', function (Request $request) {
+            $email = Str::lower((string) (
+                $request->session()->get('pending_registration_email')
+                ?? $request->session()->get('pending_profile_email')
+                ?? $request->user()?->email
+            ));
+
+            return [
+                Limit::perMinute(1)->by($email),
+                Limit::perHour(5)->by($email),
+            ];
         });
     }
 }

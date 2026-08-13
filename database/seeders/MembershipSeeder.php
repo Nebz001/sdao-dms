@@ -34,14 +34,14 @@ class MembershipSeeder extends Seeder
         $itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
         $shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
 
-        $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-        $studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
-        $studentGamma = User::where('email', 'student-gamma@sdao.test')->firstOrFail();
+        $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+        $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
+        $studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
 
         // Extra student: Secretary of Computing Society (exercises equal-partner rule).
         $studentDelta = User::factory()->create([
             'name' => 'Student Delta',
-            'email' => 'student-delta@sdao.test',
+            'email' => 'student-delta@students.nu-lipa.edu.ph',
         ]);
         RoleAssignment::create([
             'user_id' => $studentDelta->id,

@@ -17,7 +17,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(BindOrganizationOfficer::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 test('adviser can bind a student as president', function () {
@@ -37,7 +37,7 @@ test('adviser can bind a student as president', function () {
 });
 
 test('binding a second president deactivates the first and retains the old record', function () {
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $oldMembership = OrganizationMembership::where('user_id', $studentAlpha->id)
         ->where('organization_id', $this->org->id)
         ->where('position', OfficerPosition::President->value)
@@ -71,8 +71,8 @@ test('binding a second president deactivates the first and retains the old recor
 });
 
 test('a non-adviser cannot bind officers', function () {
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     expect(fn () => $this->action->execute(
         actor: $sdaoA,

@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { NotificationsProp } from '@/types/notifications';
 import type { FlashToast } from '@/types/ui';
 
 declare module 'react' {
@@ -23,6 +24,8 @@ declare module '@inertiajs/core' {
             currentTerm: string;
             /** e.g. "2026-2027" — see App\Support\AcademicYear. */
             academicYear: string;
+            /** null for guests. See HandleInertiaRequests::share() — a closure prop, only queried when requested. */
+            notifications: NotificationsProp;
             [key: string]: unknown;
         };
     }

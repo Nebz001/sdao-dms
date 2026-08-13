@@ -26,12 +26,12 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->secretary = User::where('email', 'student-delta@sdao.test')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $this->dean = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->secretary = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function authApprovedActivity(Organization $org): CalendarActivity
@@ -140,7 +140,7 @@ test('unaffiliated user cannot start a draft for the org', function () {
 test('user affiliated with a different org cannot start a draft for this org', function () {
     $activity = authApprovedActivity($this->org);
     // student-beta is a member of IT Guild, not Computing Society
-    $otherOrgStudent = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $otherOrgStudent = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 
     expect(fn () => $this->startDraft->execute(
         actor: $otherOrgStudent,
@@ -212,10 +212,10 @@ test('HTTP: mid-chain approve (adviser, step 1) redirects back to the review sho
 test('HTTP: final approver (executive director) approving redirects to the queue, not a 403', function () {
     $doc = authSubmittedProposal($this->startDraft, $this->submitProposal, $this->student, $this->org);
 
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $asstDirector = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $academicDirector = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $executiveDirector = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $asstDirector = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $academicDirector = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $executiveDirector = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 
     // Drive the chain to its last step (7): adviser, chair, dean, SDAO (both), asst director, academic director.
     foreach ([$this->adviser, $this->chair, $this->dean, $this->sdaoA, $sdaoB, $asstDirector, $academicDirector] as $approver) {

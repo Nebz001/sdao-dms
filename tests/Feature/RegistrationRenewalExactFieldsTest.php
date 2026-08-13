@@ -28,9 +28,9 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
     $this->program = Program::where('name', 'BS Computer Science')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
 });
 
@@ -162,7 +162,7 @@ test('College and Program are present on every rendering, not just registration 
 
 test('a Senior High School organization shows College with no Program (no program to show)', function () {
     $shsOrg = Organization::where('name', 'SHS Student Council')->firstOrFail();
-    $shsStudent = User::where('email', 'student-gamma@sdao.test')->firstOrFail();
+    $shsStudent = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
 
     $renewalAction = app(SubmitOrganizationRenewal::class);
     $engine = app(ApprovalEngine::class);

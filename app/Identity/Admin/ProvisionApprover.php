@@ -31,7 +31,7 @@ class ProvisionApprover
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, string $name, string $email, Role $role, array $scope): User
+    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null): User
     {
         if (! $actor->roleAssignments->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember)) {
             throw new AuthorizationException('Only an SDAO member may provision approver accounts.');
@@ -48,6 +48,7 @@ class ProvisionApprover
         $user = User::create([
             'name' => $name,
             'email' => $email,
+            'id_number' => $idNumber,
             'password' => Hash::make(Str::random(40)),
             // The admin vouches for the address, and the reset link itself
             // proves ownership — approvers are trusted accounts and must not

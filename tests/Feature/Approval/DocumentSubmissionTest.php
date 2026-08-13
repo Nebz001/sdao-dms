@@ -19,7 +19,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->submitter = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->submitter = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 // Test 7: submit → InReview, step 1, template bound, notification to step-1 approvers

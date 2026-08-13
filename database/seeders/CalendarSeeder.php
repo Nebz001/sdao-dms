@@ -35,9 +35,9 @@ class CalendarSeeder extends Seeder
     public function run(): void
     {
         $itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-        $studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
-        $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-        $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+        $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
+        $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+        $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 
         // 1. Submit IT Guild calendar and approve it — this becomes the confirmed hard-block baseline
         $result = $this->submitAction->execute(
@@ -62,7 +62,7 @@ class CalendarSeeder extends Seeder
         //    This is in the InReview queue and exercises the tentative code path
         //    when another submission later overlaps it.
         $computingSoc = Organization::where('name', 'Computing Society')->firstOrFail();
-        $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+        $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
         $this->submitAction->execute(
             actor: $studentAlpha,

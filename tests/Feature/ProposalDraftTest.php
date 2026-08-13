@@ -22,7 +22,7 @@ beforeEach(function () {
     $this->submitProposal = app(SubmitActivityProposal::class);
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function draftOffCalendarData(): array

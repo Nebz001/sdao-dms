@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\Storage;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -58,9 +58,9 @@ function approvedPriorRegistrationFor(Organization $org, User $actor): void
     $engine = app(ApprovalEngine::class);
     $engine->submit($document, $actor);
     $document->refresh();
-    $engine->approve($document, User::where('email', 'sdao-a@sdao.test')->firstOrFail());
+    $engine->approve($document, User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail());
     $document->refresh();
-    $engine->approve($document, User::where('email', 'sdao-b@sdao.test')->firstOrFail());
+    $engine->approve($document, User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail());
 }
 
 function renewalStorePayload(array $overrides = []): array

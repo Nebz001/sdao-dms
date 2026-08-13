@@ -66,7 +66,7 @@ export default function Profile({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">School email</Label>
 
                                 <Input
                                     id="email"
@@ -76,8 +76,14 @@ export default function Profile({
                                     name="email"
                                     required
                                     autoComplete="username"
-                                    placeholder="Email address"
+                                    placeholder="juan.delacruz@students.nu-lipa.edu.ph"
                                 />
+
+                                <p className="text-xs text-muted-foreground">
+                                    Must be an NU Lipa school address.
+                                    Changing it sends a verification code to
+                                    the new address before it takes effect.
+                                </p>
 
                                 <InputError
                                     className="mt-2"

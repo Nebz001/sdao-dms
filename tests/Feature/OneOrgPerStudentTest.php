@@ -26,14 +26,14 @@ beforeEach(function () {
 
     $this->orgA = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->orgB = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->adviserA = User::where('email', 'adviser-one@sdao.test')->firstOrFail(); // Computing Society
-    $this->adviserB = User::where('email', 'adviser-two@sdao.test')->firstOrFail(); // IT Guild
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->adviserA = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(); // Computing Society
+    $this->adviserB = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail(); // IT Guild
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
 
     // Already bound (via MembershipSeeder) as active President of Computing Society.
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 /** A fresh, admin-provisioned adviser account with no organization yet (available). */

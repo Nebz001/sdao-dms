@@ -40,7 +40,7 @@ class ProposalSeeder extends Seeder
     private function seedDraftProposal(): void
     {
         $itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-        $studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+        $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 
         // Find the Approved "Tech Fair" CalendarActivity seeded by CalendarSeeder.
         $techFair = CalendarActivity::query()
@@ -65,7 +65,7 @@ class ProposalSeeder extends Seeder
     private function seedInReviewOffCalendarProposal(): void
     {
         $shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
-        $studentGamma = User::where('email', 'student-gamma@sdao.test')->firstOrFail();
+        $studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
 
         $document = $this->startDraft->execute(
             actor: $studentGamma,

@@ -20,8 +20,8 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->document = $this->startDraft->execute(
         actor: $this->studentAlpha,
@@ -209,7 +209,7 @@ test('resubmitting a Returned proposal round-trips edited values of the four new
 
     // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is first.
     $engine = app(ApprovalEngine::class);
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $engine->approve($document, $this->sdaoA);
     $document->refresh();
     $engine->returnForRevision($document, $sdaoB, 'Please revise the mechanics and funding source.');

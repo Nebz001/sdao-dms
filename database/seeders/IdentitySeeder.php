@@ -26,11 +26,11 @@ class IdentitySeeder extends Seeder
     {
         // ── Global approvers ─────────────────────────────────────────────────
 
-        $sdaoA = $this->user('SDAO Member A', 'sdao-a@sdao.test');
-        $sdaoB = $this->user('SDAO Member B', 'sdao-b@sdao.test');
-        $asstDirector = $this->user('Asst. Director of Academic Services', 'asst-director@sdao.test');
-        $academicDirector = $this->user('Academic Director', 'academic-director@sdao.test');
-        $executiveDirector = $this->user('Executive Director', 'executive-director@sdao.test');
+        $sdaoA = $this->user('SDAO Member A', 'sdao-a@nu-lipa.edu.ph');
+        $sdaoB = $this->user('SDAO Member B', 'sdao-b@nu-lipa.edu.ph');
+        $asstDirector = $this->user('Asst. Director of Academic Services', 'asst-director@nu-lipa.edu.ph');
+        $academicDirector = $this->user('Academic Director', 'academic-director@nu-lipa.edu.ph');
+        $executiveDirector = $this->user('Executive Director', 'executive-director@nu-lipa.edu.ph');
 
         RoleAssignment::create(['user_id' => $sdaoA->id, 'role' => Role::SdaoMember]);
         RoleAssignment::create(['user_id' => $sdaoB->id, 'role' => Role::SdaoMember]);
@@ -41,15 +41,15 @@ class IdentitySeeder extends Seeder
         // ── Regular school: School of Computing and IT (CCIT) ────────────────
 
         $ccit = School::create(['name' => 'School of Computing and IT', 'type' => 'regular']);
-        $dean = $this->user('Dean CCIT', 'dean-ccit@sdao.test');
+        $dean = $this->user('Dean CCIT', 'dean-ccit@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $dean->id, 'role' => Role::Dean, 'school_id' => $ccit->id]);
 
         // Program: BS Computer Science
         $bscs = Program::create(['school_id' => $ccit->id, 'name' => 'BS Computer Science']);
-        $chairCs = $this->user('Chair CS', 'chair-cs@sdao.test');
+        $chairCs = $this->user('Chair CS', 'chair-cs@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $chairCs->id, 'role' => Role::ProgramChair, 'program_id' => $bscs->id]);
 
-        $adviserOne = $this->user('Adviser One', 'adviser-one@sdao.test');
+        $adviserOne = $this->user('Adviser One', 'adviser-one@nu-lipa.edu.ph');
         $computingSociety = Organization::create([
             'name' => 'Computing Society',
             'school_id' => $ccit->id,
@@ -57,15 +57,15 @@ class IdentitySeeder extends Seeder
         ]);
         RoleAssignment::create(['user_id' => $adviserOne->id, 'role' => Role::Adviser, 'organization_id' => $computingSociety->id]);
 
-        $studentAlpha = $this->user('Student Alpha', 'student-alpha@sdao.test');
+        $studentAlpha = $this->user('Student Alpha', 'student-alpha@students.nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $studentAlpha->id, 'role' => Role::Student, 'organization_id' => $computingSociety->id]);
 
         // Program: BS Information Technology
         $bsit = Program::create(['school_id' => $ccit->id, 'name' => 'BS Information Technology']);
-        $chairIt = $this->user('Chair IT', 'chair-it@sdao.test');
+        $chairIt = $this->user('Chair IT', 'chair-it@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $chairIt->id, 'role' => Role::ProgramChair, 'program_id' => $bsit->id]);
 
-        $adviserTwo = $this->user('Adviser Two', 'adviser-two@sdao.test');
+        $adviserTwo = $this->user('Adviser Two', 'adviser-two@nu-lipa.edu.ph');
         $itGuild = Organization::create([
             'name' => 'IT Guild',
             'school_id' => $ccit->id,
@@ -73,7 +73,7 @@ class IdentitySeeder extends Seeder
         ]);
         RoleAssignment::create(['user_id' => $adviserTwo->id, 'role' => Role::Adviser, 'organization_id' => $itGuild->id]);
 
-        $studentBeta = $this->user('Student Beta', 'student-beta@sdao.test');
+        $studentBeta = $this->user('Student Beta', 'student-beta@students.nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $studentBeta->id, 'role' => Role::Student, 'organization_id' => $itGuild->id]);
 
         // ── Empty-shell regular schools (structure present, no people yet) ───
@@ -84,10 +84,10 @@ class IdentitySeeder extends Seeder
         // ── Senior High School ───────────────────────────────────────────────
 
         $shs = School::create(['name' => 'Senior High School', 'type' => 'senior_high']);
-        $principal = $this->user('Principal SHS', 'principal-shs@sdao.test');
+        $principal = $this->user('Principal SHS', 'principal-shs@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $principal->id, 'role' => Role::Principal, 'school_id' => $shs->id]);
 
-        $adviserShs = $this->user('Adviser SHS', 'adviser-shs@sdao.test');
+        $adviserShs = $this->user('Adviser SHS', 'adviser-shs@nu-lipa.edu.ph');
         $shsCouncil = Organization::create([
             'name' => 'SHS Student Council',
             'school_id' => $shs->id,
@@ -95,7 +95,7 @@ class IdentitySeeder extends Seeder
         ]);
         RoleAssignment::create(['user_id' => $adviserShs->id, 'role' => Role::Adviser, 'organization_id' => $shsCouncil->id]);
 
-        $studentGamma = $this->user('Student Gamma', 'student-gamma@sdao.test');
+        $studentGamma = $this->user('Student Gamma', 'student-gamma@students.nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $studentGamma->id, 'role' => Role::Student, 'organization_id' => $shsCouncil->id]);
     }
 

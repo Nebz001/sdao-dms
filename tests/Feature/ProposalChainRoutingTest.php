@@ -27,19 +27,19 @@ beforeEach(function () {
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
 
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->studentGamma = User::where('email', 'student-gamma@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
 
-    $this->adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->adviserShs = User::where('email', 'adviser-shs@sdao.test')->firstOrFail();
-    $this->chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $this->deanCcit = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $this->principalShs = User::where('email', 'principal-shs@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->asstDir = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $this->acadDir = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $this->execDir = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $this->adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->adviserShs = User::where('email', 'adviser-shs@nu-lipa.edu.ph')->firstOrFail();
+    $this->chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $this->principalShs = User::where('email', 'principal-shs@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->asstDir = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function chainApprovedActivity(Organization $org): CalendarActivity

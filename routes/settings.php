@@ -10,6 +10,17 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // A school-email change is gated behind a verification code sent to the
+    // new address — see ProfileController::update()/verifyEmail*().
+    Route::get('settings/profile/verify-email', [ProfileController::class, 'verifyEmail'])
+        ->name('profile.verify-email');
+    Route::post('settings/profile/verify-email', [ProfileController::class, 'verifyEmailStore'])
+        ->middleware('throttle:10,1')
+        ->name('profile.verify-email.store');
+    Route::post('settings/profile/verify-email/resend', [ProfileController::class, 'verifyEmailResend'])
+        ->middleware('throttle:email-code-resend')
+        ->name('profile.verify-email.resend');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

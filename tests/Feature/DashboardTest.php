@@ -50,7 +50,7 @@ test('auth.canProposeOrganization mirrors DocumentPolicy::propose exactly — tr
     // redirects away from /dashboard (see the redirect tests below), but
     // auth.* props are shared globally by HandleInertiaRequests, so any page
     // they can actually reach proves the same thing.
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($sdaoA)
         ->get(route('admin.dashboard.index'))
@@ -59,7 +59,7 @@ test('auth.canProposeOrganization mirrors DocumentPolicy::propose exactly — tr
 });
 
 test('a student officer is not offered the founding flow (they already have an organization)', function () {
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($studentAlpha)
         ->get(route('dashboard'))
@@ -68,7 +68,7 @@ test('a student officer is not offered the founding flow (they already have an o
 });
 
 test('an SDAO member visiting /dashboard is redirected to the admin dashboard', function () {
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($sdaoA)
         ->get(route('dashboard'))
@@ -76,7 +76,7 @@ test('an SDAO member visiting /dashboard is redirected to the admin dashboard', 
 });
 
 test('a non-SDAO approver still sees the light dashboard, unaffected by the SDAO redirect', function () {
-    $adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($adviserOne)
         ->get(route('dashboard'))
@@ -86,7 +86,7 @@ test('a non-SDAO approver still sees the light dashboard, unaffected by the SDAO
 
 test('a student officer sees their organization\'s documents needing attention', function () {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     Document::create([
         'form_type' => FormType::OrganizationRenewal,
@@ -112,8 +112,8 @@ test('a student officer sees their organization\'s documents needing attention',
 
 test('a proposal-chain approver sees proposals currently at their step', function () {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $activityDoc = Document::create([
         'form_type' => FormType::ActivityCalendar,

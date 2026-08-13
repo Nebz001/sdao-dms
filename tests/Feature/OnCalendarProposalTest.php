@@ -21,7 +21,7 @@ beforeEach(function () {
     $this->startDraft = app(StartProposalDraft::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function onCalApprovedActivity(Organization $org, string $name = 'Test Event'): CalendarActivity

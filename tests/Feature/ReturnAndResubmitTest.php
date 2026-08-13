@@ -20,9 +20,9 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->updateAction = app(UpdateOrganizationRegistration::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function returnedRegistration(Organization $org, ApprovalEngine $engine, User $submitter, User $sdaoA): Document
@@ -55,7 +55,7 @@ test('officer can edit and resubmit a returned registration', function () {
         purposeOfOrganization: 'Updated description.',
         contactPerson: 'Student Alpha',
         contactNo: '09171234567',
-        emailAddress: 'cs@sdao.test',
+        emailAddress: 'cs@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
         attachmentFiles: registrationAttachmentFiles(),
     );
@@ -78,7 +78,7 @@ test('resubmit resumes at SDAO step and both must re-approve', function () {
         purposeOfOrganization: 'Revised.',
         contactPerson: 'Alpha',
         contactNo: '09171234567',
-        emailAddress: 'cs@sdao.test',
+        emailAddress: 'cs@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
         attachmentFiles: registrationAttachmentFiles(),
     );

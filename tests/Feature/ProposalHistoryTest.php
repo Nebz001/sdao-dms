@@ -29,8 +29,8 @@ beforeEach(function () {
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function historyApprovedActivity(Organization $org): CalendarActivity
@@ -141,7 +141,7 @@ test('return for revision is recorded in history with comment', function () {
     $this->engine->approve($doc, $this->adviser);
     $doc->refresh();
 
-    $chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
+    $chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
     $this->engine->returnForRevision($doc, $chair, 'Incomplete budget breakdown.');
     $doc->refresh();
 
@@ -354,7 +354,7 @@ test('review show page returns 403 for a wrong-role user', function () {
     );
 
     // Chair is step 2, not step 1 — should be 403
-    $chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
+    $chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
     $this->actingAs($chair)
         ->withoutVite()
         ->get("/review/activity-proposals/{$doc->id}")

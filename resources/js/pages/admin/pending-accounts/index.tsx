@@ -19,6 +19,7 @@ type PendingAccount = {
     id: number;
     name: string;
     email: string;
+    id_number: string | null;
     created_at: string;
 };
 
@@ -106,6 +107,11 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                             <p className="truncate text-sm text-muted-foreground">
                                                 {account.email}
                                             </p>
+                                            {account.id_number && (
+                                                <p className="truncate text-xs text-muted-foreground">
+                                                    ID: {account.id_number}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-muted-foreground">
                                                 Registered{' '}
                                                 {new Date(

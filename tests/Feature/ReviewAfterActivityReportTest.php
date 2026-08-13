@@ -22,9 +22,9 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $this->outsider = User::factory()->create();
 });
 
@@ -36,7 +36,7 @@ beforeEach(function () {
 function submittedReportForComputingSociety(): Document
 {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $engine = app(ApprovalEngine::class);
 
     $calendarDoc = Document::create([
@@ -77,14 +77,14 @@ function submittedReportForComputingSociety(): Document
     );
 
     foreach ([
-        'adviser-one@sdao.test',
-        'chair-cs@sdao.test',
-        'dean-ccit@sdao.test',
-        'sdao-a@sdao.test',
-        'sdao-b@sdao.test',
-        'asst-director@sdao.test',
-        'academic-director@sdao.test',
-        'executive-director@sdao.test',
+        'adviser-one@nu-lipa.edu.ph',
+        'chair-cs@nu-lipa.edu.ph',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $engine->approve($proposalDoc, User::where('email', $email)->firstOrFail());
         $proposalDoc->refresh();

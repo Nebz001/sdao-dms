@@ -31,10 +31,10 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->deanCcit = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
 });
 
 test('a legitimate SDAO approver sees the queue, but a student, a bare account, and an approver from an unrelated chain see nothing', function (FormType $formType, string $routeName) {
@@ -87,7 +87,7 @@ test('a legitimate SDAO approver sees the queue, but a student, a bare account, 
 test('SDAO global scope is preserved: an SDAO member sees in-review documents from every organization, not just one', function () {
     shortChainInReviewDoc(FormType::OrganizationRegistration, $this->org, $this->engine, $this->studentAlpha);
 
-    $studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
     shortChainInReviewDoc(FormType::OrganizationRegistration, $this->itGuild, $this->engine, $studentBeta);
 
     $this->actingAs($this->sdaoA)

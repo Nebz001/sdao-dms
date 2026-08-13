@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Defaults to 'unverified' (fail closed): CreateNewUser sets this
-            // explicitly on self-registration; ProvisionApprover and the
+            // Defaults to 'unverified' (fail closed): RegistrationController
+            // sets this explicitly on self-registration; ProvisionApprover and the
             // UserFactory set 'verified' explicitly for admin-provisioned /
             // seeded accounts. Indexed — the Pending Accounts queue filters on it.
             $table->string('account_status')->default('unverified')->after('email_verified_at')->index();

@@ -17,9 +17,9 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 /** Create a submitted (InReview) registration for Computing Society. */
@@ -95,7 +95,7 @@ test('split decision (one approve, one return) puts document in Returned', funct
 
 test('non-SDAO user cannot review a registration', function () {
     $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
-    $adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     expect(fn () => $this->engine->approve($doc, $adviser))
         ->toThrow(UnauthorizedApproverException::class);

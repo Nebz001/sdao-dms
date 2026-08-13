@@ -58,7 +58,7 @@ test('users can not authenticate with invalid password', function () {
 
 test('login shows an email-specific error when no account exists for that email', function () {
     $this->post(route('login.store'), [
-        'email' => 'nobody@sdao.test',
+        'email' => 'nobody@nu-lipa.edu.ph',
         'password' => 'password',
     ])->assertInvalid(['email' => "We can't find a user with that email address."]);
 

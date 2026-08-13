@@ -15,7 +15,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 test('a self-registered bare student is findable via the officer search', function () {
@@ -42,7 +42,7 @@ test('a self-registered bare student is findable via the officer search', functi
 // account_status is Verified). Proves both halves explicitly: excluded
 // while Unverified, found immediately once Verified.
 test('an unverified self-registered student is not findable until SDAO verifies them', function () {
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $freshStudent = User::factory()->unverifiedAccount()->create([
         'name' => 'Just Registered',
         'email' => 'just-registered@example.test',
@@ -100,7 +100,7 @@ test('a bare, unbound account does not appear in a DIFFERENT org\'s officer sear
 
     // IT Guild's adviser searches for the same name — must NOT find a
     // Computing-Society-bound student in their own org's picker.
-    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+    $itGuildAdviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
     $response = $this->actingAs($itGuildAdviser)
         ->withoutVite()
         ->get(route('officers.index', $this->itGuild).'?search=nowhere@example.test');
@@ -193,7 +193,7 @@ test('a DIFFERENT org\'s adviser cannot deactivate this org\'s officer', functio
         ->where('organization_id', $this->org->id)
         ->firstOrFail();
 
-    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+    $itGuildAdviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($itGuildAdviser)
         ->delete(route('officers.destroy', [$this->org, $membership]));
@@ -216,7 +216,7 @@ test('a DIFFERENT org\'s adviser cannot deactivate this org\'s officer', functio
 test('a plain student cannot view, search, or bind officers for an org they are not the adviser of', function () {
     // student-alpha is an active officer of Computing Society, not IT Guild —
     // an authenticated, legitimate account with zero relationship to IT Guild.
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $target = User::factory()->create();
 
     $this->actingAs($student)
@@ -245,7 +245,7 @@ test('a plain student cannot view, search, or bind officers for an org they are 
 });
 
 test('a DIFFERENT org\'s adviser cannot view, search, or bind officers for this org', function () {
-    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+    $itGuildAdviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
     $target = User::factory()->create();
 
     $this->actingAs($itGuildAdviser)
@@ -290,7 +290,7 @@ test('an adviser cannot deactivate another org\'s officer by pairing their own o
         ->where('position', OfficerPosition::President->value)
         ->firstOrFail();
 
-    $itGuildAdviser = User::where('email', 'adviser-two@sdao.test')->firstOrFail();
+    $itGuildAdviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($itGuildAdviser)
         ->delete(route('officers.destroy', [$this->itGuild, $foreignMembership]));

@@ -32,6 +32,7 @@ class ApproverController extends Controller
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
+                'id_number' => $u->id_number,
                 'roles' => $u->roleAssignments->map(fn (RoleAssignment $ra) => [
                     'role' => $ra->role->value,
                     'label' => $ra->role->label(),
@@ -68,6 +69,7 @@ class ApproverController extends Controller
             actor: Auth::user(),
             name: $request->string('name')->toString(),
             email: $request->string('email')->toString(),
+            idNumber: $request->string('id_number')->toString() ?: null,
             role: Role::from($request->string('role')->toString()),
             scope: [
                 'school_id' => $request->integer('school_id') ?: null,

@@ -26,9 +26,9 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 afterEach(function () {
@@ -86,8 +86,8 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
     $engine->submit($document, $actor);
     $document->refresh();
 
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $engine->approve($document, $sdaoA);
     $document->refresh();
     $engine->approve($document, $sdaoB);

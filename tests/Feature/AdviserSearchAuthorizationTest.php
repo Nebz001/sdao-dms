@@ -34,7 +34,7 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function adviserSearchFoundingPayload(array $overrides = []): array
@@ -54,7 +54,7 @@ test('an already-affiliated student cannot use the adviser search', function () 
     // student-alpha is Computing Society's seeded active President
     // (MembershipSeeder) — hasActiveMembershipElsewhere() is true, so
     // propose() denies.
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($studentAlpha)
         ->getJson(route('registrations.adviser-search', ['q' => 'Adviser']))

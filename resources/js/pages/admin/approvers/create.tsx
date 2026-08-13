@@ -51,9 +51,24 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" name="email" required />
+                                <Label htmlFor="email">School email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    placeholder="firstname.lastname@nu-lipa.edu.ph"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Must be an NU Lipa staff address — the password-reset link is sent here.
+                                </p>
                                 <InputError message={errors.email} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="id_number">Staff ID number (optional)</Label>
+                                <Input id="id_number" type="text" name="id_number" autoComplete="off" />
+                                <InputError message={errors.id_number} />
                             </div>
 
                             <div className="grid gap-2">

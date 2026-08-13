@@ -32,7 +32,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -67,14 +67,14 @@ function printFormApprovedProposal(Organization $org, User $student): ActivityPr
         'end_time' => '12:00',
     ]);
 
-    $adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $deanCcit = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $asstDir = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $acadDir = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $execDir = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $asstDir = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 
     $draft = app(StartProposalDraft::class)->execute(
         actor: $student,

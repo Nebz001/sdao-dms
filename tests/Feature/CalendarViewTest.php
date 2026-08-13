@@ -15,7 +15,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
 
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->user = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->user = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $this->org = Organization::where('name', 'IT Guild')->firstOrFail();
 });
 

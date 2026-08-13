@@ -4,16 +4,15 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalVariant;
-use App\Mail\DocumentOutcomeMail;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\DocumentOutcomeNotification;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
-use Illuminate\Mail\PendingMail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 // Deliberately does NOT seed MembershipSeeder — $this->org has no active
 // officers, and $this->student is an unaffiliated User::factory() account
@@ -23,17 +22,22 @@ use Illuminate\Support\Facades\Mail;
 // registration takes, since ApproveOrganizationRegistration only creates the
 // OrganizationMembership AFTER SDAO quorum. See the "...emails both active
 // officers..." tests below for the has-officers branch.
+//
+// The actual delivery channel is now DocumentOutcomeNotification (mail +
+// database off one class — see ApproverHandOffNotification's docblock for
+// the split), fired via Notification::send() from MailingSubmitterNotifier;
+// trigger unchanged, still ApprovalEngine::approve/reject/returnForRevision.
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $this->student = User::factory()->create();
 
-    Mail::fake();
+    Notification::fake();
 });
 
 test('final quorum approval emails the submitter with the Approved outcome', function () {
@@ -48,12 +52,13 @@ test('final quorum approval emails the submitter with the Approved outcome', fun
     $this->engine->approve($doc, $this->sdaoA);
     $this->engine->approve($doc, $this->sdaoB);
 
-    Mail::assertQueued(DocumentOutcomeMail::class, function (DocumentOutcomeMail $mail) use ($doc) {
-        return $mail->hasTo($this->student->email)
-            && $mail->document->id === $doc->id
-            && $mail->outcome === DocumentStatus::Approved;
-    });
-    Mail::assertQueued(DocumentOutcomeMail::class, 1);
+    Notification::assertSentTo(
+        $this->student,
+        DocumentOutcomeNotification::class,
+        fn (DocumentOutcomeNotification $notification) => $notification->document->id === $doc->id
+            && $notification->outcome === DocumentStatus::Approved,
+    );
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 1);
 });
 
 test('a non-quorum SDAO partial approval sends no submitter email', function () {
@@ -68,7 +73,7 @@ test('a non-quorum SDAO partial approval sends no submitter email', function () 
     // First of two required SDAO approvals — quorum not yet met.
     $this->engine->approve($doc, $this->sdaoA);
 
-    Mail::assertNotQueued(DocumentOutcomeMail::class);
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 0);
 });
 
 test('advancing to a non-final step sends no submitter email', function () {
@@ -84,7 +89,7 @@ test('advancing to a non-final step sends no submitter email', function () {
     // Advances from step 1 (adviser) to step 2 (chair) — not the final step.
     $this->engine->approve($doc, $this->adviser);
 
-    Mail::assertNotQueued(DocumentOutcomeMail::class);
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 0);
 });
 
 test('rejecting a document emails the submitter with the Rejected outcome and comment', function () {
@@ -98,12 +103,13 @@ test('rejecting a document emails the submitter with the Rejected outcome and co
 
     $this->engine->reject($doc, $this->sdaoA, 'Missing required attachments.');
 
-    Mail::assertQueued(DocumentOutcomeMail::class, function (DocumentOutcomeMail $mail) use ($doc) {
-        return $mail->hasTo($this->student->email)
-            && $mail->document->id === $doc->id
-            && $mail->outcome === DocumentStatus::Rejected
-            && $mail->comment === 'Missing required attachments.';
-    });
+    Notification::assertSentTo(
+        $this->student,
+        DocumentOutcomeNotification::class,
+        fn (DocumentOutcomeNotification $notification) => $notification->document->id === $doc->id
+            && $notification->outcome === DocumentStatus::Rejected
+            && $notification->comment === 'Missing required attachments.',
+    );
 });
 
 test('returning a document for revision emails the submitter with the Returned outcome and comment', function () {
@@ -117,12 +123,13 @@ test('returning a document for revision emails the submitter with the Returned o
 
     $this->engine->returnForRevision($doc, $this->sdaoA, 'Please fix the adviser section.', ['adviser_selection']);
 
-    Mail::assertQueued(DocumentOutcomeMail::class, function (DocumentOutcomeMail $mail) use ($doc) {
-        return $mail->hasTo($this->student->email)
-            && $mail->document->id === $doc->id
-            && $mail->outcome === DocumentStatus::Returned
-            && $mail->comment === 'Please fix the adviser section.';
-    });
+    Notification::assertSentTo(
+        $this->student,
+        DocumentOutcomeNotification::class,
+        fn (DocumentOutcomeNotification $notification) => $notification->document->id === $doc->id
+            && $notification->outcome === DocumentStatus::Returned
+            && $notification->comment === 'Please fix the adviser section.',
+    );
 });
 
 test('resubmit sends no submitter email — that channel is approver-only', function () {
@@ -138,8 +145,8 @@ test('resubmit sends no submitter email — that channel is approver-only', func
 
     $this->engine->resubmit($doc, $this->student);
 
-    // Exactly the one Returned email from above — nothing new on resubmit.
-    Mail::assertQueued(DocumentOutcomeMail::class, 1);
+    // Exactly the one Returned notification from above — nothing new on resubmit.
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 1);
 });
 
 test('a document with no recorded submitter notifies nobody and does not throw', function () {
@@ -153,10 +160,10 @@ test('a document with no recorded submitter notifies nobody and does not throw',
 
     $this->engine->reject($doc, $this->sdaoA);
 
-    Mail::assertNotQueued(DocumentOutcomeMail::class);
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 0);
 });
 
-test('a mail dispatch failure is logged but does not prevent the rejection from succeeding', function () {
+test('a notification dispatch failure is logged but does not prevent the rejection from succeeding', function () {
     $doc = Document::factory()->create([
         'form_type' => FormType::OrganizationRegistration,
         'organization_id' => $this->org->id,
@@ -166,12 +173,9 @@ test('a mail dispatch failure is logged but does not prevent the rejection from 
     $this->engine->submit($doc, $this->student);
 
     Log::spy();
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
 
-    $pending = Mockery::mock(PendingMail::class);
-    $pending->shouldReceive('queue')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
-    Mail::shouldReceive('to')->andReturn($pending);
-
-    // Must not throw, even though the mail dispatch fails.
+    // Must not throw, even though the notification dispatch fails.
     $this->engine->reject($doc, $this->sdaoA, 'Duplicate submission.');
 
     $doc->refresh();
@@ -193,7 +197,8 @@ test('the document URL in the mail points at the student-facing show route, not 
 
     $this->engine->reject($doc, $this->sdaoA);
 
-    Mail::assertQueued(DocumentOutcomeMail::class, function (DocumentOutcomeMail $mail) use ($doc) {
+    Notification::assertSentTo($this->student, DocumentOutcomeNotification::class, function (DocumentOutcomeNotification $notification) use ($doc) {
+        $mail = $notification->toMail($this->student);
         $mail->assertSeeInHtml(route('registrations.show', $doc), false);
         $mail->assertDontSeeInHtml(route('review.registrations.show', $doc), false);
 
@@ -205,8 +210,8 @@ test('the document URL in the mail points at the student-facing show route, not 
 
 test('returning a document for revision emails both active officers, not just the submitter', function () {
     $this->seed(MembershipSeeder::class);
-    $president = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $secretary = User::where('email', 'student-delta@sdao.test')->firstOrFail();
+    $president = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $secretary = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail();
 
     $doc = Document::factory()->create([
         'form_type' => FormType::OrganizationRegistration,
@@ -218,15 +223,23 @@ test('returning a document for revision emails both active officers, not just th
 
     $this->engine->returnForRevision($doc, $this->sdaoA, 'Please fix the adviser section.');
 
-    Mail::assertQueued(DocumentOutcomeMail::class, fn (DocumentOutcomeMail $mail) => $mail->hasTo($president->email) && $mail->outcome === DocumentStatus::Returned);
-    Mail::assertQueued(DocumentOutcomeMail::class, fn (DocumentOutcomeMail $mail) => $mail->hasTo($secretary->email) && $mail->outcome === DocumentStatus::Returned);
-    Mail::assertQueued(DocumentOutcomeMail::class, 2);
+    Notification::assertSentTo(
+        $president,
+        DocumentOutcomeNotification::class,
+        fn (DocumentOutcomeNotification $notification) => $notification->outcome === DocumentStatus::Returned,
+    );
+    Notification::assertSentTo(
+        $secretary,
+        DocumentOutcomeNotification::class,
+        fn (DocumentOutcomeNotification $notification) => $notification->outcome === DocumentStatus::Returned,
+    );
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 2);
 });
 
 test('rejecting a document emails both active officers when the org has them', function () {
     $this->seed(MembershipSeeder::class);
-    $president = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $secretary = User::where('email', 'student-delta@sdao.test')->firstOrFail();
+    $president = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $secretary = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail();
 
     $doc = Document::factory()->create([
         'form_type' => FormType::OrganizationRegistration,
@@ -238,7 +251,7 @@ test('rejecting a document emails both active officers when the org has them', f
 
     $this->engine->reject($doc, $this->sdaoA, 'Duplicate submission.');
 
-    Mail::assertQueued(DocumentOutcomeMail::class, fn (DocumentOutcomeMail $mail) => $mail->hasTo($president->email));
-    Mail::assertQueued(DocumentOutcomeMail::class, fn (DocumentOutcomeMail $mail) => $mail->hasTo($secretary->email));
-    Mail::assertQueued(DocumentOutcomeMail::class, 2);
+    Notification::assertSentTo($president, DocumentOutcomeNotification::class);
+    Notification::assertSentTo($secretary, DocumentOutcomeNotification::class);
+    Notification::assertSentTimes(DocumentOutcomeNotification::class, 2);
 });

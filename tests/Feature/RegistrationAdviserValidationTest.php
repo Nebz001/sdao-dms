@@ -60,7 +60,7 @@ test('resubmit rejects picking a non-adviser account as the new adviser', functi
     $org = Organization::where('name', 'Attachments Test Org')->firstOrFail();
     $document = Document::where('organization_id', $org->id)->firstOrFail();
 
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     app(ApprovalEngine::class)->returnForRevision($document, $sdaoA, 'Please pick a different adviser.');
     $document->refresh();
 

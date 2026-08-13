@@ -22,9 +22,9 @@ beforeEach(function () {
     $this->action = app(SubmitActivityCalendar::class);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function exactFieldsActivity(array $overrides = []): array
@@ -146,7 +146,7 @@ test('venue-conflict detection is unaffected by differing SDG/participant/budget
     // A second org submits an overlapping activity with DIFFERENT sdg/budget —
     // conflict must still be detected purely on venue+date+time.
     $itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail();
+    $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
 
     expect(fn () => $this->action->execute(
         actor: $studentBeta,

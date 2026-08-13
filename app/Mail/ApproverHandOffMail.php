@@ -2,10 +2,10 @@
 
 namespace App\Mail;
 
-use App\Enums\FormType;
 use App\Enums\TransitionAction;
 use App\Models\Document;
 use App\Models\User;
+use App\Support\DocumentUrls;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -55,11 +55,21 @@ class ApproverHandOffMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $subject = $this->triggerAction === TransitionAction::Resubmitted
+        return new Envelope(subject: $this->subjectLine());
+    }
+
+    /**
+     * Also reused by ApproverHandOffNotification::toArray() (the bell's copy
+     * of this same wording) so the email subject and the in-app row can
+     * never say something different for the same hand-off. Named
+     * subjectLine() rather than subject() — Mailable already declares a
+     * fluent subject($subject) setter that this would otherwise collide with.
+     */
+    public function subjectLine(): string
+    {
+        return $this->triggerAction === TransitionAction::Resubmitted
             ? "Resubmitted for your review: {$this->document->title}"
             : "Action needed: {$this->document->title}";
-
-        return new Envelope(subject: $subject);
     }
 
     public function content(): Content
@@ -71,20 +81,9 @@ class ApproverHandOffMail extends Mailable
                 'formTypeLabel' => $this->document->form_type->label(),
                 'organizationName' => $this->document->organization->name,
                 'documentTitle' => $this->document->title,
-                'reviewUrl' => $this->reviewUrl(),
+                'reviewUrl' => DocumentUrls::forReviewer($this->document),
                 'isResubmission' => $this->triggerAction === TransitionAction::Resubmitted,
             ],
         );
-    }
-
-    private function reviewUrl(): string
-    {
-        return match ($this->document->form_type) {
-            FormType::OrganizationRegistration => route('review.registrations.show', $this->document),
-            FormType::OrganizationRenewal => route('review.renewals.show', $this->document),
-            FormType::ActivityCalendar => route('review.activity-calendars.show', $this->document),
-            FormType::ActivityProposal => route('review.activity-proposals.show', $this->document),
-            FormType::AfterActivityReport => route('review.reports.show', $this->document),
-        };
     }
 }

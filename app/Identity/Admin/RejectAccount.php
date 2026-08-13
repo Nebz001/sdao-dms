@@ -4,12 +4,11 @@ namespace App\Identity\Admin;
 
 use App\Enums\AccountStatus;
 use App\Enums\Role;
-use App\Mail\AccountRejectedMail;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Notifications\AccountRejectedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -38,7 +37,7 @@ class RejectAccount
         $account->update(['account_status' => AccountStatus::Rejected]);
 
         try {
-            Mail::to($account)->queue(new AccountRejectedMail($account));
+            $account->notify(new AccountRejectedNotification);
         } catch (\Throwable $e) {
             Log::error('Account-rejected notification failed to dispatch', [
                 'user_id' => $account->id,

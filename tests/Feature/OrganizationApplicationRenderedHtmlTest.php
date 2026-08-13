@@ -25,7 +25,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function renderedOrganizationApplicationHtml(FormType $formType = FormType::OrganizationRegistration): string
@@ -38,7 +38,7 @@ function renderedOrganizationApplicationHtml(FormType $formType = FormType::Orga
         'current_step_position' => null,
         'organization_id' => Organization::where('name', 'Computing Society')->firstOrFail()->id,
         'workflow_template_id' => null,
-        'submitted_by' => User::where('email', 'student-alpha@sdao.test')->firstOrFail()->id,
+        'submitted_by' => User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail()->id,
     ]);
 
     OrganizationRegistrationDetail::create([

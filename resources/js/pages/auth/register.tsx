@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -13,7 +14,21 @@ type Props = {
     passwordRules: string;
 };
 
+/**
+ * NU Lipa student IDs are a fixed shape: 4-digit year, dash, 6-digit number
+ * (e.g. 2023-182854). Strips everything but digits, caps at 10 digits, and
+ * inserts the dash after the 4th — so the field behaves like a formatted
+ * code entry rather than free text.
+ */
+function formatIdNumber(raw: string): string {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+
+    return digits.length <= 4 ? digits : `${digits.slice(0, 4)}-${digits.slice(4)}`;
+}
+
 export default function Register({ passwordRules }: Props) {
+    const [idNumber, setIdNumber] = useState('');
+
     return (
         <>
             <Head title="Register" />
@@ -45,7 +60,7 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">School email</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -53,9 +68,37 @@ export default function Register({ passwordRules }: Props) {
                                     tabIndex={2}
                                     autoComplete="email"
                                     name="email"
-                                    placeholder="email@example.com"
+                                    placeholder="juan.delacruz@students.nu-lipa.edu.ph"
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                    Use your NU Lipa student email — we&apos;ll
+                                    send a verification code to it.
+                                </p>
                                 <InputError message={errors.email} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="id_number">
+                                    Student ID number
+                                </Label>
+                                <Input
+                                    id="id_number"
+                                    type="text"
+                                    inputMode="numeric"
+                                    required
+                                    tabIndex={3}
+                                    autoComplete="off"
+                                    name="id_number"
+                                    placeholder="2023-182854"
+                                    value={idNumber}
+                                    onChange={(e) =>
+                                        setIdNumber(
+                                            formatIdNumber(e.target.value),
+                                        )
+                                    }
+                                    maxLength={11}
+                                />
+                                <InputError message={errors.id_number} />
                             </div>
 
                             <div className="grid gap-2">
@@ -63,7 +106,7 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
+                                    tabIndex={4}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
@@ -79,7 +122,7 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={5}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
@@ -94,7 +137,7 @@ export default function Register({ passwordRules }: Props) {
                                 type="submit"
                                 variant="brand"
                                 className="mt-2 w-full"
-                                tabIndex={5}
+                                tabIndex={6}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}

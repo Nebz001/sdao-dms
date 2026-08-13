@@ -27,7 +27,7 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function attachmentsTestApprovedProposal(Organization $org, User $actor): ActivityProposal
@@ -72,9 +72,9 @@ function attachmentsTestApprovedProposal(Organization $org, User $actor): Activi
     );
 
     foreach ([
-        'adviser-one@sdao.test', 'chair-cs@sdao.test', 'dean-ccit@sdao.test',
-        'sdao-a@sdao.test', 'sdao-b@sdao.test', 'asst-director@sdao.test',
-        'academic-director@sdao.test', 'executive-director@sdao.test',
+        'adviser-one@nu-lipa.edu.ph', 'chair-cs@nu-lipa.edu.ph', 'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph', 'sdao-b@nu-lipa.edu.ph', 'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph', 'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $engine->approve($proposalDoc, User::where('email', $email)->firstOrFail());
         $proposalDoc->refresh();
@@ -160,7 +160,7 @@ test('a single-file slot rejects a second upload by replacing, not appending', f
     $original = $report->attachments()->where('slot_key', 'evaluation_form')->firstOrFail();
 
     // Return + resubmit re-uploading only evaluation_form.
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->engine->returnForRevision($report, $sdaoA, 'Please fix the evaluation form.');
     $report->refresh();
 

@@ -3,47 +3,48 @@
 use App\Enums\AccountStatus;
 use App\Identity\Admin\RejectAccount;
 use App\Identity\Admin\VerifyAccount;
-use App\Mail\AccountRejectedMail;
-use App\Mail\AccountVerifiedMail;
 use App\Models\User;
+use App\Notifications\AccountRejectedNotification;
+use App\Notifications\AccountVerifiedNotification;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
-use Illuminate\Mail\PendingMail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
+// Delivery channel is now AccountVerifiedNotification/AccountRejectedNotification
+// (mail + database off one class each — see ApproverHandOffNotification's
+// docblock for the split), fired via $account->notify() — Notifiable's own
+// dispatch, still intercepted correctly by Notification::fake(). Trigger
+// unchanged: VerifyAccount::execute() / RejectAccount::execute().
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
-    Mail::fake();
+    Notification::fake();
 });
 
-test('verifying a pending account sends AccountVerifiedMail to that account', function () {
+test('verifying a pending account sends AccountVerifiedNotification to that account', function () {
     $account = User::factory()->unverifiedAccount()->create();
 
     app(VerifyAccount::class)->execute($this->sdaoA, $account);
 
-    Mail::assertQueued(AccountVerifiedMail::class, fn (AccountVerifiedMail $mail) => $mail->hasTo($account->email));
-    Mail::assertNotQueued(AccountRejectedMail::class);
+    Notification::assertSentTo($account, AccountVerifiedNotification::class);
+    Notification::assertSentTimes(AccountRejectedNotification::class, 0);
 });
 
-test('rejecting a pending account sends AccountRejectedMail to that account', function () {
+test('rejecting a pending account sends AccountRejectedNotification to that account', function () {
     $account = User::factory()->unverifiedAccount()->create();
 
     app(RejectAccount::class)->execute($this->sdaoA, $account);
 
-    Mail::assertQueued(AccountRejectedMail::class, fn (AccountRejectedMail $mail) => $mail->hasTo($account->email));
-    Mail::assertNotQueued(AccountVerifiedMail::class);
+    Notification::assertSentTo($account, AccountRejectedNotification::class);
+    Notification::assertSentTimes(AccountVerifiedNotification::class, 0);
 });
 
-test('a mail dispatch failure is logged but does not prevent account verification from succeeding', function () {
+test('a notification dispatch failure is logged but does not prevent account verification from succeeding', function () {
     Log::spy();
-
-    $pending = Mockery::mock(PendingMail::class);
-    $pending->shouldReceive('queue')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
-    Mail::shouldReceive('to')->andReturn($pending);
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
 
     $account = User::factory()->unverifiedAccount()->create();
 

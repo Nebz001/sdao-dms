@@ -19,9 +19,9 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->updateAction = app(UpdateActivityCalendar::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function returnedCalendar(): Document
@@ -29,8 +29,8 @@ function returnedCalendar(): Document
     $action = app(SubmitActivityCalendar::class);
     $engine = app(ApprovalEngine::class);
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $student = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $result = $action->execute(
         actor: $student,

@@ -20,8 +20,8 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->submitAction = app(SubmitOrganizationRegistration::class);
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function foundingOrgPayload(array $overrides = []): array
@@ -292,7 +292,7 @@ test('adviser and founding student remain unbound through every non-terminal sta
 });
 
 test('Gate::authorize propose blocks a student who already has an active org', function () {
-    $studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // already President, Computing Society
+    $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // already President, Computing Society
     $adviser = User::factory()->create();
     RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);
 

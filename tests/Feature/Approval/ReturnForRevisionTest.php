@@ -20,14 +20,14 @@ beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->chair = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $this->dean = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->asstDirector = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $this->academicDirector = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $this->executiveDirector = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->asstDirector = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->academicDirector = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->executiveDirector = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /** Set up a regular on-calendar doc that has been approved up to (but not including) the given step. */

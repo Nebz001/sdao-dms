@@ -18,16 +18,16 @@ beforeEach(function () {
 
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
-    $this->studentDelta = User::where('email', 'student-delta@sdao.test')->firstOrFail(); // secretary, Computing Society
-    $this->studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // president, IT Guild
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
+    $this->studentDelta = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail(); // secretary, Computing Society
+    $this->studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail(); // president, IT Guild
 });
 
 function submitRenewalFor(User $actor, Organization $org): void
 {
     $engine = app(ApprovalEngine::class);
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 
     // Built directly (not via SubmitOrganizationRegistration) — this fixture
     // only needs a prior Approved registration for an org the actor is

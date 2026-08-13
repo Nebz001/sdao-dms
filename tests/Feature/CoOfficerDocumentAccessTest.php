@@ -32,11 +32,11 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
     $this->updateAction = app(UpdateOrganizationRegistration::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->president = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->secretary = User::where('email', 'student-delta@sdao.test')->firstOrFail();
-    $this->differentOrgOfficer = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // IT Guild
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->president = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->secretary = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->differentOrgOfficer = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail(); // IT Guild
     $this->outsider = User::factory()->create();
 });
 
@@ -74,7 +74,7 @@ test('secretary can edit and resubmit a returned registration submitted by the p
         purposeOfOrganization: 'Updated by secretary.',
         contactPerson: 'Student Delta',
         contactNo: '09171234567',
-        emailAddress: 'cs@sdao.test',
+        emailAddress: 'cs@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
         attachmentFiles: registrationAttachmentFiles(),
     );

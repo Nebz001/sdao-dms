@@ -22,8 +22,8 @@ use Illuminate\Http\UploadedFile;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->studentBeta = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // different org
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail(); // different org
 
     $this->document = app(StartProposalDraft::class)->execute(
         actor: $this->studentAlpha,
@@ -158,7 +158,7 @@ test('an uploaded resume appears on the student show page and the reviewer show 
     );
     $this->document->refresh();
 
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is first.
     $this->actingAs($this->studentAlpha)

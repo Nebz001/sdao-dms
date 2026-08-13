@@ -27,15 +27,15 @@ beforeEach(function () {
     $this->engine = app(ApprovalEngine::class);
 
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->studentAlpha = User::where('email', 'student-alpha@sdao.test')->firstOrFail();
-    $this->adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $this->chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $this->deanCcit = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $this->sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $this->asstDir = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $this->acadDir = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $this->execDir = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $this->asstDir = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $this->execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -82,14 +82,14 @@ function approvedProposalForComputingSociety(Organization $org, User $student): 
     $submitProposal = app(SubmitActivityProposal::class);
     $engine = app(ApprovalEngine::class);
 
-    $adviserOne = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
-    $chairCs = User::where('email', 'chair-cs@sdao.test')->firstOrFail();
-    $deanCcit = User::where('email', 'dean-ccit@sdao.test')->firstOrFail();
-    $sdaoA = User::where('email', 'sdao-a@sdao.test')->firstOrFail();
-    $sdaoB = User::where('email', 'sdao-b@sdao.test')->firstOrFail();
-    $asstDir = User::where('email', 'asst-director@sdao.test')->firstOrFail();
-    $acadDir = User::where('email', 'academic-director@sdao.test')->firstOrFail();
-    $execDir = User::where('email', 'executive-director@sdao.test')->firstOrFail();
+    $adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+    $asstDir = User::where('email', 'asst-director@nu-lipa.edu.ph')->firstOrFail();
+    $acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
+    $execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 
     $draft = $startDraft->execute(
         actor: $student,
@@ -172,7 +172,7 @@ test('an officer of the activity\'s org can submit a report against an approved 
 
 test('an officer of a different org cannot submit a report for this activity', function () {
     $proposal = approvedProposalForComputingSociety($this->org, $this->studentAlpha);
-    $outsiderOfficer = User::where('email', 'student-beta@sdao.test')->firstOrFail(); // president, IT Guild
+    $outsiderOfficer = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail(); // president, IT Guild
 
     expect(fn () => $this->reportAction->execute(
         actor: $outsiderOfficer,

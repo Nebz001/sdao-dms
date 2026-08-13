@@ -11,7 +11,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->adviser = User::where('email', 'adviser-one@sdao.test')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -26,14 +26,12 @@ beforeEach(function () {
  * (`login.store`), not `actingAs()`.
  */
 test('a real Fortify-authenticated, adviser-bound student gets the same auth.isActiveOfficer signal a seeded test session would', function () {
-    // 1. Self-register a real account (the actual Fortify pipeline).
-    $this->post(route('register.store'), [
+    // 1. Self-register a real account through the real two-step flow
+    // (school-email domain check, code issuance, code verification).
+    [$student] = registerViaHttp([
         'name' => 'Real Auth Student',
-        'email' => 'real-auth-student@example.test',
-        'password' => 'password',
-        'password_confirmation' => 'password',
+        'email' => 'real-auth-student@students.nu-lipa.edu.ph',
     ]);
-    $student = User::where('email', 'real-auth-student@example.test')->firstOrFail();
 
     // 2. Mark email-verified AND SDAO account-Verified (skips the email
     // round-trip and the Pending Accounts queue; both enforcement paths have
@@ -58,7 +56,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
     $this->assertGuest();
 
     $this->post(route('login'), [
-        'email' => 'real-auth-student@example.test',
+        'email' => 'real-auth-student@students.nu-lipa.edu.ph',
         'password' => 'password',
     ]);
     $this->assertAuthenticatedAs($student->fresh());
@@ -72,7 +70,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
 });
 
 test('the same auth.isActiveOfficer signal appears for an equivalent seeded student via actingAs', function () {
-    $seededStudent = User::where('email', 'student-alpha@sdao.test')->firstOrFail(); // president, Computing Society
+    $seededStudent = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
 
     $this->actingAs($seededStudent);
 
