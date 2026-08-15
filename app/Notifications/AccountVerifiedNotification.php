@@ -58,7 +58,7 @@ class AccountVerifiedNotification extends Notification implements ShouldQueue
             'kind' => 'account_verified',
             'title' => 'Your SDAO account has been verified',
             'body' => 'You can now submit documents and be bound to an organization.',
-            'url' => route('dashboard'),
+            'url' => route('dashboard', absolute: false),
             'document_id' => null,
             'form_type' => null,
             'organization' => null,

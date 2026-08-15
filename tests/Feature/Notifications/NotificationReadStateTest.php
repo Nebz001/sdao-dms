@@ -24,7 +24,12 @@ test('marking a notification read updates read_at', function () {
 
     $this->actingAs($this->account)
         ->patch(route('notifications.read', $this->notification->id))
-        ->assertRedirect();
+        // Not a redirect: this is fired from a plain, un-awaited fetch()
+        // (see useNotificationRead's markRowRead), and a 302 would have
+        // fetch() re-issue the redirect with the same PATCH method against
+        // whatever page it was called from, 405ing there — see
+        // NotificationController::markRead's docblock.
+        ->assertNoContent();
 
     expect($this->notification->fresh()->read_at)->not->toBeNull();
 });

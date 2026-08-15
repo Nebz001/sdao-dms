@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Support\AcademicYear;
 use App\Support\CurrentTerm;
+use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
@@ -110,6 +111,11 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
+     * A tight, capped teaser — NotificationController::index() is where
+     * genuine browsing of the full notification history happens (same
+     * capped-teaser-vs-full-page split as AdminDashboardController's
+     * recentActivity() vs ActivityLogController::index()).
+     *
      * @return array{unreadCount: int, items: array<int, array<string, mixed>>}|null
      */
     private function notificationsFor(Request $request): ?array
@@ -122,19 +128,16 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'unreadCount' => $user->unreadNotifications()->count(),
+            // Unread-first (Postgres sorts NULL read_at first on DESC),
+            // newest-first within each group — so the ~8 most relevant rows
+            // survive the cap even when older unread items would otherwise
+            // be pushed out by a burst of already-read ones.
             'items' => $user->notifications()
-                ->latest()
+                ->orderByDesc('read_at')
+                ->orderByDesc('created_at')
                 ->limit(8)
                 ->get()
-                ->map(fn ($notification) => [
-                    'id' => $notification->id,
-                    'kind' => $notification->data['kind'] ?? null,
-                    'title' => $notification->data['title'] ?? '',
-                    'body' => $notification->data['body'] ?? '',
-                    'url' => $notification->data['url'] ?? null,
-                    'readAt' => $notification->read_at?->toIso8601String(),
-                    'createdAt' => $notification->created_at->toIso8601String(),
-                ])
+                ->map(fn ($notification) => NotificationPresenter::present($notification))
                 ->values()
                 ->all(),
         ];

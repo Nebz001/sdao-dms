@@ -67,7 +67,7 @@ class JoinRequestReceivedNotification extends Notification implements ShouldQueu
             'kind' => 'join_request_received',
             'title' => $mail->subjectLine(),
             'body' => "Requesting to join \u{2022} {$this->joinRequest->organization->name}",
-            'url' => route('review.join-requests.index'),
+            'url' => route('review.join-requests.index', absolute: false),
             'document_id' => null,
             'form_type' => null,
             'organization' => $this->joinRequest->organization->name,

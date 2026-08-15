@@ -68,7 +68,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Notification bell — generic across every form type, same category as
     // attachments/print above. See HandleInertiaRequests::share() for the
-    // shared prop these actions keep in sync.
+    // shared prop these actions keep in sync. Literal path declared before
+    // any wildcard route below, same convention as organizations/join.
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 

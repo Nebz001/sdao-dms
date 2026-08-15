@@ -64,7 +64,7 @@ class JoinRequestApprovedNotification extends Notification implements ShouldQueu
             'kind' => 'join_request_approved',
             'title' => "You're in — {$this->joinRequest->organization->name}",
             'body' => 'Your request to join was approved. You now have officer access.',
-            'url' => route('dashboard'),
+            'url' => route('dashboard', absolute: false),
             'document_id' => null,
             'form_type' => null,
             'organization' => $this->joinRequest->organization->name,

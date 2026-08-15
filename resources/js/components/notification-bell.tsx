@@ -1,14 +1,14 @@
-import { router, usePage } from '@inertiajs/react';
-import { Bell, Check } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Bell, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { markAllRead, markRead } from '@/actions/App/Http/Controllers/NotificationController';
+import { index as notificationsIndex, markAllRead } from '@/actions/App/Http/Controllers/NotificationController';
+import { NotificationRow } from '@/components/notification-row';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, formatRelativeTime } from '@/lib/utils';
-import type { NotificationItem } from '@/types/notifications';
+import { useNotificationRead } from '@/hooks/use-notification-read';
 
 /**
  * The bell's data is deliberately NOT kept fresh by a background poll — see
@@ -17,16 +17,26 @@ import type { NotificationItem } from '@/types/notifications';
  * prop (HandleInertiaRequests::share()) refreshing on every normal page
  * navigation, and a one-shot partial reload fired right here when the panel
  * is actually opened, so what's shown is never more than one click stale.
+ *
+ * The prop itself is a tight, unread-first, ~8-row teaser
+ * (HandleInertiaRequests::notificationsFor()) — the full, paginated,
+ * filterable history lives at /notifications (NotificationController::index,
+ * "View all notifications" below), same capped-teaser-vs-full-page split as
+ * the dashboard's "Recent Activity" card vs. the Activity Log page.
  */
 export function NotificationBell() {
     const { notifications } = usePage().props;
     const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const { markRowRead, markManyRead, visitNotification, resetOptimisticReadIds, applyOptimistic } = useNotificationRead();
 
-    const unreadCount = notifications?.unreadCount ?? 0;
-    const items = notifications?.items ?? [];
+    const { items, staleIds } = applyOptimistic(notifications?.items ?? []);
+    const unreadCount = Math.max(0, (notifications?.unreadCount ?? 0) - staleIds.size);
 
-    function handleOpenChange(open: boolean) {
-        if (!open) {
+    function handleOpenChange(nextOpen: boolean) {
+        setOpen(nextOpen);
+
+        if (!nextOpen) {
             return;
         }
 
@@ -34,32 +44,30 @@ export function NotificationBell() {
         router.reload({
             only: ['notifications'],
             async: true,
-            onFinish: () => setLoading(false),
+            onFinish: () => {
+                setLoading(false);
+                resetOptimisticReadIds();
+            },
         });
     }
 
-    function handleMarkRead(item: NotificationItem) {
-        if (item.readAt) {
-            return;
-        }
-
-        router.patch(markRead.url(item.id), {}, { preserveScroll: true, preserveState: true });
-    }
-
-    function handleRowClick(item: NotificationItem) {
-        handleMarkRead(item);
-
-        if (item.url) {
-            router.visit(item.url);
-        }
+    function handleRowClick(item: (typeof items)[number]) {
+        // Close explicitly rather than relying on Radix's own dismiss
+        // handling: the row is a plain <button>, not a DropdownMenuItem, so
+        // no built-in close-on-select fires for it, and DropdownMenu's
+        // default modal={true} leaves `pointer-events: none` on <body>
+        // until it does — which would otherwise strand the page unusable
+        // even after a successful navigation.
+        visitNotification(item, () => setOpen(false));
     }
 
     function handleMarkAllRead() {
+        markManyRead(items);
         router.patch(markAllRead.url(), {}, { preserveScroll: true });
     }
 
     return (
-        <DropdownMenu onOpenChange={handleOpenChange}>
+        <DropdownMenu open={open} onOpenChange={handleOpenChange}>
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
@@ -78,7 +86,7 @@ export function NotificationBell() {
                     )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-0">
+            <DropdownMenuContent align="end" className="w-96 p-0">
                 <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
                     <span className="text-sm font-medium">Notifications</span>
                     <Button
@@ -111,52 +119,26 @@ export function NotificationBell() {
                         </EmptyHeader>
                     </Empty>
                 ) : (
-                    <ul className="max-h-[380px] overflow-y-auto py-1">
+                    <ul className="max-h-[420px] overflow-y-auto py-1">
                         {items.map((item) => (
-                            <li
+                            <NotificationRow
                                 key={item.id}
-                                className={cn(
-                                    'flex items-start gap-2 px-3 py-2.5 hover:bg-accent',
-                                    !item.readAt && 'bg-accent/40',
-                                )}
-                            >
-                                <span
-                                    className={cn('mt-1.5 size-2 shrink-0 rounded-full', !item.readAt && 'bg-primary')}
-                                    aria-hidden
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => handleRowClick(item)}
-                                    className="min-w-0 flex-1 text-left text-sm"
-                                >
-                                    <span
-                                        className={cn(
-                                            'block truncate font-medium',
-                                            item.readAt && 'font-normal text-muted-foreground',
-                                        )}
-                                    >
-                                        {item.title}
-                                    </span>
-                                    <span className="block truncate text-xs text-muted-foreground">{item.body}</span>
-                                    <span className="block text-xs text-muted-foreground">
-                                        {formatRelativeTime(item.createdAt)}
-                                    </span>
-                                </button>
-                                {!item.readAt && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-6 shrink-0"
-                                        aria-label="Mark as read"
-                                        onClick={() => handleMarkRead(item)}
-                                    >
-                                        <Check />
-                                    </Button>
-                                )}
-                            </li>
+                                item={item}
+                                onRowClick={() => handleRowClick(item)}
+                                onMarkRead={() => markRowRead(item)}
+                            />
                         ))}
                     </ul>
                 )}
+
+                <Link
+                    href={notificationsIndex()}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center gap-1 border-t px-3 py-2 text-sm text-primary hover:bg-accent/40 hover:underline"
+                >
+                    View all notifications
+                    <ChevronRight className="size-3.5" />
+                </Link>
             </DropdownMenuContent>
         </DropdownMenu>
     );

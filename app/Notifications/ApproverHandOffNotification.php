@@ -81,7 +81,7 @@ class ApproverHandOffNotification extends Notification implements ShouldQueue
             'kind' => 'approver_hand_off',
             'title' => $mail->subjectLine(),
             'body' => "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name}",
-            'url' => DocumentUrls::forReviewer($this->document),
+            'url' => DocumentUrls::pathForReviewer($this->document),
             'document_id' => $this->document->id,
             'form_type' => $this->document->form_type->value,
             'organization' => $this->document->organization->name,

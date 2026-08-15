@@ -42,10 +42,18 @@ test('a hand-off writes a database notification pointing at the review route', f
 
     $notification = $this->sdaoA->notifications()->first();
 
+    // Origin-relative, not absolute — a notification row can be written from
+    // a CLI/queue-worker context with a different APP_URL than whatever
+    // origin the browser is actually on, and an absolute URL baked at write
+    // time becomes a cross-origin URL the moment those differ. Inertia's
+    // router.visit() issues an XHR with no same-origin fallback, so a
+    // cross-origin bell link silently fails to navigate. See
+    // App\Support\DocumentUrls' class docblock. Mail keeps the absolute
+    // variant — see ApproverHandOffMailTest.
     expect($notification)->not->toBeNull()
         ->and($notification->data['kind'])->toBe('approver_hand_off')
         ->and($notification->data['document_id'])->toBe($doc->id)
-        ->and($notification->data['url'])->toBe(route('review.registrations.show', $doc))
+        ->and($notification->data['url'])->toBe(route('review.registrations.show', $doc, absolute: false))
         ->and($notification->read_at)->toBeNull();
 });
 
@@ -95,7 +103,7 @@ test('a final-approval outcome writes a database notification pointing at the su
     expect($notification)->not->toBeNull()
         ->and($notification->data['kind'])->toBe('document_outcome')
         ->and($notification->data['status'])->toBe('approved')
-        ->and($notification->data['url'])->toBe(route('registrations.show', $doc));
+        ->and($notification->data['url'])->toBe(route('registrations.show', $doc, absolute: false));
 });
 
 test('verifying an account writes a database notification', function () {
@@ -107,7 +115,7 @@ test('verifying an account writes a database notification', function () {
 
     expect($notification)->not->toBeNull()
         ->and($notification->data['kind'])->toBe('account_verified')
-        ->and($notification->data['url'])->toBe(route('dashboard'));
+        ->and($notification->data['url'])->toBe(route('dashboard', absolute: false));
 });
 
 test('rejecting an account writes a database notification', function () {
@@ -119,5 +127,5 @@ test('rejecting an account writes a database notification', function () {
 
     expect($notification)->not->toBeNull()
         ->and($notification->data['kind'])->toBe('account_rejected')
-        ->and($notification->data['url'])->toBe(route('dashboard'));
+        ->and($notification->data['url'])->toBe(route('dashboard', absolute: false));
 });

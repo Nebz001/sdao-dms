@@ -28,6 +28,23 @@ pest()->extend(TestCase::class)
 
 /*
 |--------------------------------------------------------------------------
+| Browser tests
+|--------------------------------------------------------------------------
+|
+| Real-click regression tests (pestphp/pest-plugin-browser). These run
+| in-process — Pest's LaravelHttpServer invokes this same booted app's
+| HTTP kernel directly (see vendor/pestphp/pest-plugin-browser/src/Drivers/
+| LaravelHttpServer.php), so RefreshDatabase's transaction is visible to
+| both the test and the page Playwright drives, same as Feature tests.
+|
+*/
+
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Browser');
+
+/*
+|--------------------------------------------------------------------------
 | Attachment storage faking (Phase 2 item 8)
 |--------------------------------------------------------------------------
 |

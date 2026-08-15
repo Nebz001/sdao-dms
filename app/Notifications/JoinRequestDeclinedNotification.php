@@ -64,7 +64,7 @@ class JoinRequestDeclinedNotification extends Notification implements ShouldQueu
             'kind' => 'join_request_declined',
             'title' => "Request declined — {$this->joinRequest->organization->name}",
             'body' => 'Your request to join was not approved this time.',
-            'url' => route('dashboard'),
+            'url' => route('dashboard', absolute: false),
             'document_id' => null,
             'form_type' => null,
             'organization' => $this->joinRequest->organization->name,

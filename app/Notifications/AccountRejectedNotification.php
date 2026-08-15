@@ -58,7 +58,7 @@ class AccountRejectedNotification extends Notification implements ShouldQueue
             'kind' => 'account_rejected',
             'title' => 'Your SDAO account application was not approved',
             'body' => 'Contact SDAO if you believe this was a mistake.',
-            'url' => route('dashboard'),
+            'url' => route('dashboard', absolute: false),
             'document_id' => null,
             'form_type' => null,
             'organization' => null,

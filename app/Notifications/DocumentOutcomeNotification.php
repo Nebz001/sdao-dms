@@ -74,7 +74,7 @@ class DocumentOutcomeNotification extends Notification implements ShouldQueue
             'kind' => 'document_outcome',
             'title' => "{$this->document->title} was {$mail->outcomeLabel()}",
             'body' => "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name}",
-            'url' => DocumentUrls::forSubmitter($this->document),
+            'url' => DocumentUrls::pathForSubmitter($this->document),
             'document_id' => $this->document->id,
             'form_type' => $this->document->form_type->value,
             'organization' => $this->document->organization->name,
