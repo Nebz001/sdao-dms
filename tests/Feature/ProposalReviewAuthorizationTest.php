@@ -198,6 +198,22 @@ test('DocumentPolicy::review updates when the document advances to the next step
     expect($this->adviser->can('review', $doc))->toBeFalse(); // no longer the current step
 });
 
+test('DocumentPolicy: a passed step grants read but not act', function () {
+    $doc = authSubmittedProposal($this->startDraft, $this->submitProposal, $this->student, $this->org);
+    $this->engine->approve($doc, $this->adviser);
+    $doc->refresh();
+
+    // The adviser's step (1) has passed — they can still read, but the act
+    // gate stays exactly current-step-only.
+    expect($this->adviser->can('review', $doc))->toBeFalse();
+    expect($this->adviser->can('view', $doc))->toBeTrue();
+    expect($this->adviser->can('reviewView', $doc))->toBeTrue();
+
+    // The dean's step (3) has never been reached (chain is only at step 2).
+    expect($this->dean->can('view', $doc))->toBeFalse();
+    expect($this->dean->can('reviewView', $doc))->toBeFalse();
+});
+
 // ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
 
 test('HTTP: mid-chain approve (adviser, step 1) redirects back to the review show page', function () {

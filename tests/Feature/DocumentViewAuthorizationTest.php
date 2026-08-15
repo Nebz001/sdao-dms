@@ -12,8 +12,10 @@ use App\Enums\Role;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
@@ -21,6 +23,7 @@ use App\Support\AcademicYear;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Covers the IDOR gap found in the full gap audit: student-facing show()
@@ -39,6 +42,7 @@ beforeEach(function () {
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->chairCs = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+    $this->deanCcit = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -115,6 +119,56 @@ function viewAuthApprovedCalendarActivity(Organization $org, string $name): Cale
     ]);
 }
 
+/**
+ * Submits an on-calendar activity proposal for the given org — the same
+ * inline sequence the "activity proposal show" test above uses, factored out
+ * for the reached-step read-access tests below (deliberately not the
+ * `authSubmittedProposal()` helper from ProposalReviewAuthorizationTest.php:
+ * that function is only defined when both files happen to be loaded in the
+ * same run, so this file stays runnable on its own, e.g. via --filter).
+ */
+function submitViewAuthProposal(Organization $org, User $actor, string $activityName = 'View Auth Proposal Activity'): Document
+{
+    $activity = viewAuthApprovedCalendarActivity($org, $activityName);
+
+    $draft = app(StartProposalDraft::class)->execute(
+        actor: $actor,
+        organization: $org,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+    );
+
+    ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
+        actor: $actor,
+        document: $draft,
+        objectives: 'Objectives',
+        narrative: 'Narrative',
+    );
+
+    return $doc;
+}
+
+/**
+ * Rebinds a role's seat to a brand-new user — the real-world case the
+ * "reached step" read-access section below covers: a role holder who
+ * inherited the seat AFTER their predecessor acted, and so has no
+ * DocumentTransition/DocumentStepApproval row of their own anywhere on this
+ * document. Updates the existing assignment rather than adding a second one,
+ * because RoleDirectory resolves org-scoped roles with firstOrFail().
+ */
+function reassignAdviserSeat(Organization $org): User
+{
+    $successor = User::factory()->create();
+
+    RoleAssignment::query()
+        ->where('role', Role::Adviser)
+        ->where('organization_id', $org->id)
+        ->firstOrFail()
+        ->update(['user_id' => $successor->id]);
+
+    return $successor;
+}
+
 test('registration show: org officer can view, different-org officer cannot, current-step SDAO can', function () {
     $doc = viewAuthRegistrationDocument($this->computingSociety, $this->studentAlpha);
     $this->engine->submit($doc, $this->studentAlpha);
@@ -187,6 +241,123 @@ test('activity proposal show: org officer and the CURRENT step approver can view
     $this->actingAs($this->studentBeta)->get(route('activity-proposals.show', $doc))->assertForbidden(); // different org
     $this->actingAs($this->adviserOne)->get(route('activity-proposals.show', $doc))->assertOk(); // (b) current-step approver
     $this->actingAs($this->chairCs)->get(route('activity-proposals.show', $doc))->assertForbidden(); // approver, but not their turn yet
+});
+
+// ── Read access for a REACHED step's approver: DocumentPolicy::isChainApprover() ──
+// Any approver resolvable for a step this document's chain has already
+// passed through keeps read access for as long as the document remains
+// active, all the way through and past a terminal state — not just while
+// it's their turn. This is deliberately broader than hasActedOn(): it also
+// covers a role holder who inherited the seat AFTER their predecessor acted
+// (reassignAdviserSeat() below), so it can never be mistaken for merely
+// re-testing hasActedOn() under a different name. The "not their turn yet"
+// boundary above is untouched: a future step never matches.
+
+test('an approver who inherited a passed step can view the document while it is still in review', function () {
+    $doc = submitViewAuthProposal($this->computingSociety, $this->studentAlpha);
+    expect($doc->current_step_position)->toBe(1); // Adviser
+
+    $this->engine->approve($doc, $this->adviserOne);
+    $doc->refresh();
+    expect($doc->current_step_position)->toBe(2); // chain has moved past the Adviser step
+
+    // The seat changes hands AFTER the predecessor acted: the successor has
+    // zero transition/step-approval rows, so hasActedOn() can never cover them.
+    $successor = reassignAdviserSeat($this->computingSociety);
+    expect($successor->can('review', $doc))->toBeFalse(); // not their turn — act gate unchanged
+
+    $this->actingAs($successor)->get(route('review.activity-proposals.show', $doc))->assertOk();
+    $this->actingAs($successor)->get(route('activity-proposals.show', $doc))->assertOk();
+
+    // The predecessor keeps access too — they have real rows (hasActedOn()).
+    $this->actingAs($this->adviserOne)->get(route('review.activity-proposals.show', $doc))->assertOk();
+
+    // The step-3 dean has still never been reached (max step_position = 2).
+    $this->actingAs($this->deanCcit)->get(route('review.activity-proposals.show', $doc))->assertForbidden();
+});
+
+test('an approver who inherited a passed step can still view the document after it is approved', function () {
+    $doc = submitViewAuthProposal($this->computingSociety, $this->studentAlpha);
+
+    $this->engine->approve($doc, $this->adviserOne);
+    $doc->refresh();
+    $successor = reassignAdviserSeat($this->computingSociety);
+
+    foreach ([
+        'chair-cs@nu-lipa.edu.ph', 'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph', 'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph', 'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
+    ] as $email) {
+        $this->engine->approve($doc, User::where('email', $email)->firstOrFail());
+        $doc->refresh();
+    }
+
+    expect($doc->status)->toBe(DocumentStatus::Approved);
+    expect($doc->current_step_position)->toBeNull(); // terminal: only transitions remain
+
+    $this->actingAs($successor)->get(route('review.activity-proposals.show', $doc))->assertOk();
+    $this->actingAs($successor)->get(route('activity-proposals.show', $doc))->assertOk();
+});
+
+test('an approver who inherited a passed step can still view the document after it is rejected', function () {
+    $doc = submitViewAuthProposal($this->computingSociety, $this->studentAlpha);
+
+    $this->engine->approve($doc, $this->adviserOne);
+    $doc->refresh();
+    $successor = reassignAdviserSeat($this->computingSociety);
+
+    $this->engine->reject($doc, $this->chairCs, 'Not approved.');
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Rejected);
+    expect($doc->current_step_position)->toBeNull();
+
+    $this->actingAs($successor)->get(route('review.activity-proposals.show', $doc))->assertOk();
+
+    // Rejected at step 2 — step 3's dean was never reached, and rejection
+    // must not retroactively hand the rest of the chain read access.
+    $this->actingAs($this->deanCcit)->get(route('review.activity-proposals.show', $doc))->assertForbidden();
+});
+
+test('a past-step approver can download the attachments of a document they can view', function () {
+    // Registration's short chain is a single SDAO step, so a newly
+    // provisioned SDAO member is a reached-step approver with no rows of
+    // their own — the same shape as the proposal tests above, but exercising
+    // AttachmentController::download(), which authorizes via `view` alone
+    // (not `reviewView`), so a page a user can open must not 403 on its own
+    // files.
+    $doc = viewAuthRegistrationDocument($this->computingSociety, $this->studentAlpha);
+    $this->engine->submit($doc, $this->studentAlpha);
+    $doc->refresh();
+    $this->engine->approve($doc, $this->sdaoA);
+    $doc->refresh();
+    $this->engine->approve($doc, User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail());
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Approved);
+
+    $attachment = DocumentAttachment::factory()->create(['document_id' => $doc->id]);
+    Storage::disk('local')->put($attachment->path, 'fake file contents');
+
+    $newSdaoMember = User::factory()->create();
+    $newSdaoMember->roleAssignments()->create(['role' => Role::SdaoMember]);
+
+    $this->actingAs($newSdaoMember)->get(route('attachments.download', $attachment))->assertOk();
+});
+
+test('an approver from a different organization was never on this chain and still gets a real 403', function () {
+    $doc = submitViewAuthProposal($this->computingSociety, $this->studentAlpha);
+    $this->engine->approve($doc, $this->adviserOne);
+    $doc->refresh();
+
+    // adviser-two is IT Guild's adviser (IdentitySeeder) — the Adviser step of
+    // THIS document resolves, org-scoped, to Computing Society's adviser only.
+    $adviserTwo = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
+    $chairIt = User::where('email', 'chair-it@nu-lipa.edu.ph')->firstOrFail();
+
+    $this->actingAs($adviserTwo)->get(route('review.activity-proposals.show', $doc))->assertForbidden();
+    $this->actingAs($adviserTwo)->get(route('activity-proposals.show', $doc))->assertForbidden();
+    $this->actingAs($chairIt)->get(route('review.activity-proposals.show', $doc))->assertForbidden();
+    $this->actingAs(User::factory()->create())->get(route('review.activity-proposals.show', $doc))->assertForbidden();
 });
 
 // ── Admin document archive: DocumentPolicy::viewArchive() ──────────────────

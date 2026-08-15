@@ -45,34 +45,44 @@ class DocumentPolicy
      * (the document's own submitter — a founding student has no membership
      * yet on their own pending proposal, Phase 2 item 5 — or any active
      * officer of the document's own organization, i.e. the president or
-     * secretary; see OrganizationMembershipService::canActOnDocument()), an
-     * approver whose current step in this document's chain is active right
-     * now (`review()`), or an approver who has already legitimately acted on
-     * this document (`hasActedOn()`) — so a document doesn't vanish on its
-     * own actor the moment it moves past their step (e.g. after they reject
-     * it, finalize it, or the chain advances beyond them).
+     * secretary; see OrganizationMembershipService::canActOnDocument()),
+     * an approver whose current step in this document's chain is active right
+     * now (`review()`), an approver who has already legitimately acted on it
+     * (`hasActedOn()`), or an approver for any step this document's chain has
+     * already REACHED (`isChainApprover()`) — so a document doesn't vanish on
+     * an approver the moment it moves past their step, and doesn't vanish on
+     * a role holder who inherited the seat after their predecessor acted, or
+     * who was provisioned mid-chain and so has no rows of their own. Once a
+     * step is reached, its approver's read access persists for good —
+     * through Returned, Approved, and Rejected alike.
      * Prevents any authenticated user from reading another organization's
-     * document by guessing/enumerating IDs: an approver who never acted and
-     * whose step isn't active matches none of these.
+     * document by guessing/enumerating IDs: an approver whose step this
+     * document has never reached matches none of these, and role resolution
+     * is scoped to the document's own organization throughout.
      */
     public function view(User $user, Document $document): bool
     {
         return $this->membershipService->canActOnDocument($user, $document)
             || $this->review($user, $document)
-            || $this->hasActedOn($user, $document);
+            || $this->hasActedOn($user, $document)
+            || $this->isChainApprover($user, $document);
     }
 
     /**
      * Can the user view this document's review screen? Same as `view()`'s
      * approver-facing clauses, without the submitter/membership clauses that
      * don't apply to approver-only screens (Remediation-phase fix — see
-     * `review()`'s docblock for the bug this closes).
+     * `review()`'s docblock for the bug this closes), plus `viewArchive()`'s
+     * blanket SDAO access to terminal documents. `isChainApprover()` is
+     * checked last: it's the broadest and the most expensive clause, so the
+     * cheap ones get a chance to short-circuit first.
      */
     public function reviewView(User $user, Document $document): bool
     {
         return $this->review($user, $document)
             || $this->hasActedOn($user, $document)
-            || $this->viewArchive($user, $document);
+            || $this->viewArchive($user, $document)
+            || $this->isChainApprover($user, $document);
     }
 
     /**
@@ -189,22 +199,31 @@ class DocumentPolicy
      * document_transitions)? Deliberately excludes steps the document has
      * never reached yet.
      *
-     * Used only to decide, when a review action is no longer valid right
-     * now, whether the user has a genuine — if momentarily stale — stake in
-     * this document, versus a total stranger to it:
-     *   - the OTHER SDAO member just finalized/rejected a dual-approval step
-     *     while this member's page was still open → their step WAS reached
-     *     (it's exactly where the document just was) → friendly redirect.
-     *   - a future-step approver (e.g. the dean, while the document still
-     *     sits with the adviser) has a step that was never reached → real
-     *     403. This must stay a real 403: it's the same boundary
-     *     DocumentViewAuthorizationTest pins for view() ("approver, but not
-     *     their turn yet"), and reached-only scoping is what keeps this
-     *     method from quietly widening past it.
-     * See HandlesReviewActions::authorizeReviewAction().
+     * Used in two places:
      *
-     * Deliberately NOT used by view()/reviewView() — this only softens
-     * action error messaging, it never grants read access.
+     * 1. Read access, via `view()`/`reviewView()`. "Was ever a step on this
+     *    chain" is the right shape for reading: unlike `hasActedOn()`, it
+     *    doesn't require the reader to have personally clicked, so it also
+     *    covers a newly provisioned role holder and a seat reassigned after
+     *    the predecessor acted. Resolution is live and organization-scoped,
+     *    so another org's adviser or a future step's approver still matches
+     *    nothing.
+     *
+     * 2. Stale-action messaging, via
+     *    HandlesReviewActions::authorizeReviewAction() — deciding whether a
+     *    no-longer-valid review action came from someone with a genuine,
+     *    momentarily stale stake, or from a total stranger:
+     *      - the OTHER SDAO member just finalized/rejected a dual-approval
+     *        step while this member's page was still open → their step WAS
+     *        reached (it's exactly where the document just was) → friendly
+     *        redirect, not a raw 403.
+     *      - a future-step approver (e.g. the dean, while the document still
+     *        sits with the adviser) has a step that was never reached → real
+     *        403.
+     *
+     * The reached-only scoping is what keeps both uses honest: it's the same
+     * boundary DocumentViewAuthorizationTest pins ("approver, but not their
+     * turn yet"), and it never widens past it — for reading OR for acting.
      */
     public function isChainApprover(User $user, Document $document): bool
     {

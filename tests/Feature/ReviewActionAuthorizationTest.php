@@ -449,3 +449,36 @@ test('HTTP: final approve at position 7 (executive director) completes the propo
         ->get(route('review.activity-proposals.show', $doc))
         ->assertForbidden();
 });
+
+// ── 8. Read access ≠ act access for a reached-step approver ────────────────
+// DocumentPolicy::view()/reviewView() now grant read to anyone resolvable as
+// the approver of a step this chain has REACHED (not just one who personally
+// acted — see DocumentViewAuthorizationTest's "reached step" section for the
+// role-turnover cases). The act gate is untouched here: review() is still
+// current-step-and-InReview only, so a reached-but-passed approver's action
+// attempts still resolve to the same friendly stale-action redirect
+// isChainApprover() has always produced for them — never a 403, and never
+// silently re-processed.
+
+test('HTTP: a reached-step approver who can now read the document still cannot approve, reject, or return it', function () {
+    $doc = authSubmittedProposal($this->startDraft, $this->submitProposal, $this->studentAlpha, $this->org);
+    $this->engine->approve($doc, $this->adviser);
+    $doc->refresh();
+    expect($doc->current_step_position)->toBe(2); // the chair's step now
+
+    // Read is granted (the fix)...
+    $this->actingAs($this->adviser)->withoutVite()
+        ->get(route('review.activity-proposals.show', $doc))->assertOk();
+
+    // ...but every action still bounces to the queue, unprocessed.
+    foreach (['approve', 'reject', 'return'] as $action) {
+        $this->actingAs($this->adviser)->withoutVite()
+            ->post(route("review.activity-proposals.{$action}", $doc), ['comment' => 'n/a'])
+            ->assertRedirect(route('review.activity-proposals.index'));
+    }
+
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::InReview);
+    expect($doc->current_step_position)->toBe(2); // untouched
+    expect($this->adviser->can('review', $doc))->toBeFalse();
+});
