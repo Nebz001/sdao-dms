@@ -131,6 +131,15 @@ class ActivityCalendarReviewController extends Controller
                 // keys are resolved to "Activity N+1" directly on the
                 // frontend instead of a server-side label lookup.
                 'flagged_sections' => $t->flagged_sections,
+                // field_changes IS included here, unlike section_comments
+                // above: it's captured fresh at the moment of resubmission
+                // from the rows as they existed then (App\Approval\FieldChangeSet),
+                // never read back through a stale row id, so the
+                // no-stable-identity problem that defers section_comments
+                // does not apply. Its section labels ("Activity N") are also
+                // already baked in server-side, unlike raw flagged_sections
+                // keys above.
+                'field_changes' => $t->field_changes,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),

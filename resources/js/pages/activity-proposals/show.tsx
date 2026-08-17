@@ -5,6 +5,7 @@ import type {
 } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import ExpenseItemsTable from '@/components/expense-items-table';
+import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -368,6 +369,14 @@ export default function ShowActivityProposal({
                                                         </li>
                                                     ))}
                                                 </ul>
+                                            )}
+                                        {entry.action === 'resubmitted' &&
+                                            entry.field_changes && (
+                                                <FieldChangeDiff
+                                                    changes={
+                                                        entry.field_changes
+                                                    }
+                                                />
                                             )}
                                         <time className="text-xs text-muted-foreground">
                                             {new Date(

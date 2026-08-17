@@ -3,6 +3,9 @@
 namespace App\Renewals;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
+use App\Approval\SectionFields;
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\OrganizationType;
@@ -49,6 +52,19 @@ class UpdateOrganizationRenewal
             $actor, $document, $organizationType, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized, $attachmentFiles
         ) {
+            // Field-level revision diffs — see UpdateOrganizationRegistration
+            // for the full rationale. Note SectionFields has no
+            // 'adviser_selection' entry for Renewal: SectionFlags exposes the
+            // key (shared match arm with Registration) but the renewal form
+            // has no adviser field, so flagging it finds zero fields.
+            $flagged = SectionFlags::currentlyFlagged($document);
+            $trackedFields = $flagged === []
+                ? []
+                : SectionFields::definitionsForSections($document->form_type, $flagged);
+            $oldValues = $trackedFields === []
+                ? []
+                : FieldChangeSet::snapshot($document->registrationDetail, $trackedFields);
+
             // academic_year is intentionally NOT included: it is set once at
             // creation (SubmitOrganizationRenewal) and must never change across
             // the return/resubmit cycle.
@@ -67,7 +83,14 @@ class UpdateOrganizationRenewal
             $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
             $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
-            $this->engine->resubmit($document, $actor);
+            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+                $document->form_type,
+                $flagged,
+                $oldValues,
+                FieldChangeSet::snapshot($document->registrationDetail()->first(), $trackedFields),
+            );
+
+            $this->engine->resubmit($document, $actor, $fieldChanges);
             $document->refresh();
 
             return $document;

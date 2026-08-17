@@ -23,8 +23,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $comment
  * @property array<int, string>|null $flagged_sections
  * @property array<string, string>|null $section_comments
+ * @property array<string, array{label: string, status: string, fields: array<int, array{key: string, label: string, old: string|null, new: string|null, changed: bool}>}>|null $field_changes
  */
-#[Fillable(['document_id', 'actor_id', 'action', 'from_status', 'to_status', 'step_position', 'comment', 'flagged_sections', 'section_comments', 'created_at'])]
+#[Fillable(['document_id', 'actor_id', 'action', 'from_status', 'to_status', 'step_position', 'comment', 'flagged_sections', 'section_comments', 'field_changes', 'created_at'])]
 class DocumentTransition extends Model
 {
     public $timestamps = false;
@@ -35,6 +36,7 @@ class DocumentTransition extends Model
         'to_status' => DocumentStatus::class,
         'flagged_sections' => 'array',
         'section_comments' => 'array',
+        'field_changes' => 'array',
         'created_at' => 'datetime',
     ];
 

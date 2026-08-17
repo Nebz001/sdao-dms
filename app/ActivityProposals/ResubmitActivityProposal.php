@@ -3,8 +3,12 @@
 namespace App\ActivityProposals;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
+use App\Approval\SectionFields;
+use App\Approval\SectionFlags;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -47,9 +51,52 @@ class ResubmitActivityProposal
 
         $document->load(['activityProposal.calendarActivity']);
         $proposal = $document->activityProposal;
+        $isOffCalendar = $proposal->calendar_mode === ProposalCalendarMode::OffCalendar;
+
+        // ── Field-level revision diffs: snapshot BOTH models up front ──────
+        //
+        // Both writes below mutate their model in place ($activity->update()
+        // just below and $proposal->update() inside the transaction), and
+        // Model::update() -> save() -> syncOriginal() means getOriginal()
+        // would return the NEW values afterwards. So the only correct moment
+        // for the before-side is here, before either write.
+        //
+        // 'schedule_venue' is the one section whose fields live on
+        // CalendarActivity; it is excluded entirely for ON-calendar
+        // proposals, where those fields are structurally uneditable —
+        // reporting "no changes" about a field the student cannot touch
+        // would be misleading, not just noise.
+        //
+        // The two field-key sets are disjoint (proposal: title,
+        // activity_nature, activity_type, partner_organizations, target_sdg,
+        // objectives, narrative, criteria_mechanics, program_flow,
+        // source_of_funding, expense_items, proposed_budget, budget_source;
+        // activity: venue, activity_date, start_time, end_time), so merging
+        // them into one flat snapshot is safe.
+        $flagged = SectionFlags::currentlyFlagged($document);
+
+        if (! $isOffCalendar) {
+            $flagged = array_values(array_diff($flagged, ['schedule_venue']));
+        }
+
+        $activityDefs = in_array('schedule_venue', $flagged, true)
+            ? SectionFields::definitionsFor(FormType::ActivityProposal, 'schedule_venue')
+            : [];
+        $proposalDefs = SectionFields::definitionsForSections(
+            FormType::ActivityProposal,
+            array_values(array_diff($flagged, ['schedule_venue'])),
+        );
+        $trackAnything = $activityDefs !== [] || $proposalDefs !== [];
+
+        $oldValues = $trackAnything
+            ? array_merge(
+                FieldChangeSet::snapshot($proposal, $proposalDefs),
+                FieldChangeSet::snapshot($proposal->calendarActivity, $activityDefs),
+            )
+            : [];
 
         // For off-calendar, optionally update the CalendarActivity details first.
-        if ($proposal->calendar_mode === ProposalCalendarMode::OffCalendar) {
+        if ($isOffCalendar) {
             $activity = $proposal->calendarActivity;
 
             if ($activity !== null && $this->hasActivityUpdate($data)) {
@@ -70,7 +117,9 @@ class ResubmitActivityProposal
             }
         }
 
-        $document = DB::transaction(function () use ($actor, $document, $proposal, $data) {
+        $document = DB::transaction(function () use (
+            $actor, $document, $proposal, $data, $flagged, $proposalDefs, $activityDefs, $oldValues, $trackAnything
+        ) {
             $proposal->update([
                 'objectives' => $data['objectives'],
                 'narrative' => $data['narrative'],
@@ -96,7 +145,23 @@ class ResubmitActivityProposal
                 $proposal->update(['title' => $data['title']]);
             }
 
-            $this->engine->resubmit($document, $actor);
+            // Both models were updated in place and are already current
+            // ($activity->refresh() ran above, before this transaction
+            // opened; $proposal->update() just wrote through this same
+            // instance), so the after-side reads straight off them — no
+            // re-query needed here, unlike the query-builder mass-update
+            // paths in the other four action classes.
+            $fieldChanges = $trackAnything ? FieldChangeSet::build(
+                $document->form_type,
+                $flagged,
+                $oldValues,
+                array_merge(
+                    FieldChangeSet::snapshot($proposal, $proposalDefs),
+                    FieldChangeSet::snapshot($proposal->calendarActivity, $activityDefs),
+                ),
+            ) : null;
+
+            $this->engine->resubmit($document, $actor, $fieldChanges);
             $document->refresh();
 
             return $document;

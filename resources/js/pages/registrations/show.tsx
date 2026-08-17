@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -141,6 +142,9 @@ export default function ShowRegistration({ document, detail, attachmentSlots, at
                                                 </li>
                                             ))}
                                         </ul>
+                                    )}
+                                    {entry.action === 'resubmitted' && entry.field_changes && (
+                                        <FieldChangeDiff changes={entry.field_changes} />
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

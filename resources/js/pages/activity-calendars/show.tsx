@@ -1,9 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
+import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import type { FieldChanges } from '@/types/document-transitions';
 
 type DocumentData = {
     id: number;
@@ -44,6 +46,11 @@ type TransitionEntry = {
     step_position: number | null;
     comment: string | null;
     flagged_sections: string[] | null;
+    // Unlike section_comments (omitted here — no stable row identity across
+    // a delete+recreate resubmit), field_changes IS safe: it's captured
+    // fresh from the rows as they existed at the moment of resubmission,
+    // never read back through a stale row id.
+    field_changes: FieldChanges | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -171,6 +178,9 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                                         <p className="mt-1 text-xs text-destructive">
                                             Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
                                         </p>
+                                    )}
+                                    {entry.action === 'resubmitted' && entry.field_changes && (
+                                        <FieldChangeDiff changes={entry.field_changes} />
                                     )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(entry.created_at).toLocaleString()}

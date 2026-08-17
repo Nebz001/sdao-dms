@@ -198,6 +198,7 @@ class AfterActivityReportController extends Controller
                 'comment' => $t->comment,
                 'flagged_sections' => $t->flagged_sections,
                 'section_comments' => $t->section_comments,
+                'field_changes' => $t->field_changes,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),

@@ -3,6 +3,9 @@
 namespace App\Registrations;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
+use App\Approval\SectionFields;
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\OrganizationType;
@@ -54,6 +57,17 @@ class UpdateOrganizationRegistration
             $actor, $document, $organizationType, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized, $adviserId, $attachmentFiles
         ) {
+            // Field-level revision diffs: freeze the CURRENT values of every
+            // field belonging to a flagged section, before the overwrite
+            // below. Skipped entirely when the return carried no flags.
+            $flagged = SectionFlags::currentlyFlagged($document);
+            $trackedFields = $flagged === []
+                ? []
+                : SectionFields::definitionsForSections($document->form_type, $flagged);
+            $oldValues = $trackedFields === []
+                ? []
+                : FieldChangeSet::snapshot($document->registrationDetail, $trackedFields);
+
             $updates = [
                 'organization_type' => $organizationType->value,
                 'purpose_of_organization' => $purposeOfOrganization,
@@ -91,7 +105,21 @@ class UpdateOrganizationRegistration
             $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
             $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
-            $this->engine->resubmit($document, $actor);
+            // The after-side MUST be a fresh re-read, never $updates: that
+            // array holds raw request values (an enum's ->value, a date
+            // string) while $oldValues holds cast values (an
+            // OrganizationType, a Carbon). Re-reading runs both sides
+            // through the same casts. ->update() above was a query-builder
+            // mass update, so the cached ->registrationDetail relation is
+            // stale — ->first() re-queries.
+            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+                $document->form_type,
+                $flagged,
+                $oldValues,
+                FieldChangeSet::snapshot($document->registrationDetail()->first(), $trackedFields),
+            );
+
+            $this->engine->resubmit($document, $actor, $fieldChanges);
             $document->refresh();
 
             return $document;

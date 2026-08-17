@@ -3,12 +3,14 @@ import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/Act
 import ApprovalActionsCard from '@/components/approval-actions-card';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
 import * as reviewActivityCalendars from '@/routes/review/activity-calendars';
+import type { FieldChanges } from '@/types/document-transitions';
 
 type DocumentData = {
     id: number;
@@ -47,6 +49,11 @@ type TransitionEntry = {
     to_status: string;
     comment: string | null;
     flagged_sections: string[] | null;
+    // Unlike section_comments (omitted here — no stable row identity across
+    // a delete+recreate resubmit), field_changes IS safe: it's captured
+    // fresh from the rows as they existed at the moment of resubmission,
+    // never read back through a stale row id.
+    field_changes: FieldChanges | null;
     actor: { name: string } | null;
     created_at: string;
 };
@@ -368,6 +375,14 @@ export default function ReviewActivityCalendarShow({
                                                     .map(calendarFlagLabel)
                                                     .join(', ')}
                                             </p>
+                                        )}
+                                    {entry.action === 'resubmitted' &&
+                                        entry.field_changes && (
+                                            <FieldChangeDiff
+                                                changes={
+                                                    entry.field_changes
+                                                }
+                                            />
                                         )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(

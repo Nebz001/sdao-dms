@@ -3,6 +3,9 @@
 namespace App\Reports;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
+use App\Approval\SectionFields;
+use App\Approval\SectionFlags;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
@@ -49,6 +52,19 @@ class UpdateAfterActivityReport
             $actor, $document, $summary, $outcomes, $participantCount,
             $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage, $attachmentFiles
         ) {
+            // Field-level revision diffs — see UpdateOrganizationRegistration
+            // for the full rationale. 'event_details' is intentionally absent
+            // from SectionFields: it is a read-only echo of the linked
+            // CalendarActivity with zero editable fields, so flagging it
+            // produces no diff by design.
+            $flagged = SectionFlags::currentlyFlagged($document);
+            $trackedFields = $flagged === []
+                ? []
+                : SectionFields::definitionsForSections($document->form_type, $flagged);
+            $oldValues = $trackedFields === []
+                ? []
+                : FieldChangeSet::snapshot($document->afterActivityReport, $trackedFields);
+
             // activity_proposal_id is intentionally NOT included here — the
             // hard link to the approved activity never changes on revision.
             $document->afterActivityReport()->update([
@@ -67,7 +83,14 @@ class UpdateAfterActivityReport
             $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
             $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
-            $this->engine->resubmit($document, $actor);
+            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+                $document->form_type,
+                $flagged,
+                $oldValues,
+                FieldChangeSet::snapshot($document->afterActivityReport()->first(), $trackedFields),
+            );
+
+            $this->engine->resubmit($document, $actor, $fieldChanges);
             $document->refresh();
 
             return $document;

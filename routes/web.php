@@ -16,6 +16,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\RegistrationController as AuthRegistrationController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JoinOrganizationController;
@@ -73,6 +74,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+    // Student officers — one cross-form-type, cross-status history of every
+    // document their organization has ever filed, Draft through Rejected.
+    // Literal path before any {document} wildcard below, same convention as
+    // /notifications and /organizations/join.
+    Route::get('/document-history', [DocumentHistoryController::class, 'index'])->name('document-history.index');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');

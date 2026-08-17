@@ -35,6 +35,7 @@ import * as archive from '@/routes/admin/archive';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentTermSettings from '@/routes/admin/settings/term';
 import * as calendar from '@/routes/calendar';
+import * as documentHistory from '@/routes/document-history';
 import * as officers from '@/routes/officers';
 import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
@@ -155,6 +156,11 @@ export function AppSidebar() {
                     icon: Files,
                 },
                 { title: 'My Reports', href: reports.index(), icon: Files },
+                {
+                    title: 'Document History',
+                    href: documentHistory.index(),
+                    icon: History,
+                },
             ],
         });
     } else if (canFoundOrganization) {

@@ -15,20 +15,6 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    /**
-     * Maps a document's form type to its student-facing "show" route name,
-     * for building "needs attention" links (Phase 2 item 11 Group B).
-     *
-     * @var array<string, string>
-     */
-    private const SHOW_ROUTE_NAMES = [
-        'organization_registration' => 'registrations.show',
-        'organization_renewal' => 'renewals.show',
-        'activity_calendar' => 'activity-calendars.show',
-        'activity_proposal' => 'activity-proposals.show',
-        'after_activity_report' => 'reports.show',
-    ];
-
     public function index(StepApproverResolver $resolver): Response|RedirectResponse
     {
         $user = Auth::user();
@@ -104,7 +90,7 @@ class DashboardController extends Controller
                         'id' => $d->id,
                         'title' => $d->title,
                         'status' => $d->status->value,
-                        'href' => route(self::SHOW_ROUTE_NAMES[$d->form_type->value], $d),
+                        'href' => route($d->form_type->studentShowRouteName(), $d),
                     ]),
             ];
         }

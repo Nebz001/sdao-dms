@@ -233,22 +233,41 @@ class ApprovalEngine
      * Resumes at the step that issued the return (current_step_position is
      * unchanged). Approvals for all earlier steps still count (invariant #2).
      *
+     * $fieldChanges (field-level revision diffs) is purely informational
+     * structured metadata on the transition, exactly like $flaggedSections is
+     * on returnForRevision() — it does not affect resume position, approval
+     * persistence, or anything else here, and is never validated against the
+     * flags it was derived from. It is built by the caller (the five
+     * per-form-type resubmit action classes, via App\Approval\FieldChangeSet),
+     * which are the only places that can see both the before and after
+     * values; the engine has no knowledge of form types or fields and never
+     * derives it itself.
+     *
      * @param  User  $actor  The student resubmitting after revision (president or secretary).
+     * @param  array<string, array{label: string, status: string, fields: array<int, array<string, mixed>>}>|null  $fieldChanges
      *
      * @throws InvalidTransitionException
      */
-    public function resubmit(Document $document, User $actor): void
+    public function resubmit(Document $document, User $actor, ?array $fieldChanges = null): void
     {
         $this->guardStatus($document, DocumentStatus::Returned, 'resubmit');
 
-        DB::transaction(function () use ($document, $actor) {
+        DB::transaction(function () use ($document, $actor, $fieldChanges) {
             $fromStatus = $document->status;
             $resumePosition = $document->current_step_position;
 
             $document->status = DocumentStatus::InReview;
             $document->save();
 
-            $this->recordTransition($document, $actor, TransitionAction::Resubmitted, $fromStatus, DocumentStatus::InReview, $resumePosition);
+            $this->recordTransition(
+                $document,
+                $actor,
+                TransitionAction::Resubmitted,
+                $fromStatus,
+                DocumentStatus::InReview,
+                $resumePosition,
+                fieldChanges: $fieldChanges,
+            );
             $this->activateStep($document, $resumePosition, TransitionAction::Resubmitted);
         });
     }
@@ -369,6 +388,8 @@ class ApprovalEngine
 
     /**
      * @param  array<int, string>|null  $flaggedSections
+     * @param  array<string, string>|null  $sectionComments
+     * @param  array<string, array{label: string, status: string, fields: array<int, array<string, mixed>>}>|null  $fieldChanges
      */
     private function recordTransition(
         Document $document,
@@ -380,6 +401,7 @@ class ApprovalEngine
         ?string $comment = null,
         ?array $flaggedSections = null,
         ?array $sectionComments = null,
+        ?array $fieldChanges = null,
     ): void {
         DocumentTransition::create([
             'document_id' => $document->id,
@@ -391,6 +413,7 @@ class ApprovalEngine
             'comment' => $comment,
             'flagged_sections' => $flaggedSections,
             'section_comments' => $sectionComments,
+            'field_changes' => $fieldChanges,
             'created_at' => now(),
         ]);
     }

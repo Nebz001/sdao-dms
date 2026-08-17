@@ -3,6 +3,9 @@
 namespace App\Calendar;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
+use App\Approval\SectionFields;
+use App\Approval\SectionFlags;
 use App\Enums\DocumentStatus;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -53,6 +56,24 @@ class UpdateActivityCalendar
             // resubmission after a Return never re-derives or overwrites it,
             // even if the global current term has since changed.
 
+            // ── Field-level revision diffs ──────────────────────────────────
+            //
+            // Must run BEFORE the delete below — these rows are about to stop
+            // existing, so there is no "before instance" to interrogate later.
+            //
+            // Read through $calendar->activities(), whose relation ordering
+            // (activity_date, then start_time) is the SAME ordering
+            // SectionFlags::calendarKeysFor() implicitly counts against, so
+            // index i here corresponds to "activity_{i}" there.
+            $flagged = SectionFlags::currentlyFlagged($document);
+            $rowDefs = SectionFields::calendarFields();
+            $oldRows = $flagged === []
+                ? []
+                : $calendar->activities()
+                    ->get()
+                    ->map(fn (CalendarActivity $row) => FieldChangeSet::snapshot($row, $rowDefs))
+                    ->all();
+
             // Replace all child activities
             CalendarActivity::where('activity_calendar_id', $calendar->id)->delete();
 
@@ -71,7 +92,21 @@ class UpdateActivityCalendar
                 ]);
             }
 
-            $this->engine->resubmit($document, $actor);
+            // Re-read (not $activities) for the same reason as everywhere
+            // else — raw request strings vs cast values — and because the
+            // relation's date/time ordering may differ from the submitted
+            // array order, and it's the relation order that "activity_{i}"
+            // means both here and on any future return.
+            $fieldChanges = $flagged === [] ? null : FieldChangeSet::buildForCalendar(
+                $flagged,
+                $oldRows,
+                $calendar->activities()
+                    ->get()
+                    ->map(fn (CalendarActivity $row) => FieldChangeSet::snapshot($row, $rowDefs))
+                    ->all(),
+            );
+
+            $this->engine->resubmit($document, $actor, $fieldChanges);
             $document->refresh();
 
             return $document;

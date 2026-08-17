@@ -23,4 +23,24 @@ enum FormType: string
             self::AfterActivityReport => 'After-Activity Report',
         };
     }
+
+    /**
+     * Route name of this form type's student-facing "show" page. Lives on
+     * the enum because two callers need the identical mapping
+     * (DashboardController's "needs attention" links,
+     * DocumentHistoryController's rows) rather than a private const
+     * duplicated in both. The approver-facing counterpart stays where it is
+     * (DocumentArchiveController::REVIEW_SHOW_ROUTE_NAMES et al.) — a
+     * different audience, different authorization.
+     */
+    public function studentShowRouteName(): string
+    {
+        return match ($this) {
+            self::OrganizationRegistration => 'registrations.show',
+            self::OrganizationRenewal => 'renewals.show',
+            self::ActivityCalendar => 'activity-calendars.show',
+            self::ActivityProposal => 'activity-proposals.show',
+            self::AfterActivityReport => 'reports.show',
+        };
+    }
 }

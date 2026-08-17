@@ -7,6 +7,7 @@ import type {
 } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
@@ -335,6 +336,14 @@ export default function ReviewRenewalShow({
                                                     </li>
                                                 ))}
                                             </ul>
+                                        )}
+                                    {entry.action === 'resubmitted' &&
+                                        entry.field_changes && (
+                                            <FieldChangeDiff
+                                                changes={
+                                                    entry.field_changes
+                                                }
+                                            />
                                         )}
                                     <time className="text-xs text-muted-foreground">
                                         {new Date(

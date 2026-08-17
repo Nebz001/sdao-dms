@@ -162,6 +162,12 @@ class ActivityCalendarController extends Controller
                 // raw "activity_N" keys resolve to "Activity N+1" on the
                 // frontend directly.
                 'flagged_sections' => $t->flagged_sections,
+                // field_changes IS included here, unlike section_comments
+                // above: it's captured fresh at the moment of resubmission
+                // from the rows as they existed then, never read back
+                // through a stale row id, so the no-stable-identity problem
+                // that defers section_comments does not apply.
+                'field_changes' => $t->field_changes,
                 'actor' => $t->actor ? ['name' => $t->actor->name] : null,
                 'created_at' => $t->created_at,
             ]),
