@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Document Attachment Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk used by App\Attachments\AttachmentStorage for every document
+    | attachment write. Defaults to "supabase" so uploads survive Railway's
+    | ephemeral filesystem across redeploys. Overridable so local dev/test
+    | runs and demo seeding don't require live Supabase credentials.
+    |
+    */
+
+    'attachments' => env('ATTACHMENTS_DISK', 'supabase'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -57,6 +71,18 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
+            'report' => false,
+        ],
+
+        'supabase' => [
+            'driver' => 's3',
+            'key' => env('SUPABASE_STORAGE_KEY'),
+            'secret' => env('SUPABASE_STORAGE_SECRET'),
+            'region' => env('SUPABASE_STORAGE_REGION'),
+            'bucket' => env('SUPABASE_STORAGE_BUCKET'),
+            'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
             'report' => false,
         ],
 

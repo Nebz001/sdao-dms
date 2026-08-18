@@ -95,6 +95,11 @@ class DemoDataSeeder extends Seeder
      */
     public function run(): array
     {
+        // Demo attachments are throwaway fakes (fakeAttachmentsFor() below) —
+        // keep them off real Supabase storage regardless of what
+        // filesystems.attachments/ATTACHMENTS_DISK resolves to.
+        config(['filesystems.attachments' => 'local']);
+
         $this->resolveFixedApprovers();
 
         $accounts = $this->seedAccounts();

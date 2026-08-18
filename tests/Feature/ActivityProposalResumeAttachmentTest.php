@@ -54,6 +54,28 @@ test('uploading a resume while the document is Draft stores it and returns it as
     expect($this->document->attachments()->where('slot_key', 'resume_of_resource_person')->count())->toBe(1);
 });
 
+test('the download_url returned by upload retrieves the exact bytes just uploaded, off the supabase disk', function () {
+    // Round-trips Mode B's upload through the actual download route, proving
+    // AttachmentController::download() reads back correctly off the
+    // filesystems.attachments disk (Supabase Storage) rather than assuming
+    // local disk.
+    $file = UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf');
+
+    $response = $this->actingAs($this->studentAlpha)->post(route('attachments.store'), [
+        'document_id' => $this->document->id,
+        'slot_key' => 'resume_of_resource_person',
+        'file' => $file,
+    ]);
+
+    $attachment = $this->document->attachments()->where('slot_key', 'resume_of_resource_person')->firstOrFail();
+    expect($attachment->disk)->toBe('supabase');
+
+    $download = $this->actingAs($this->studentAlpha)->get($response->json('download_url'));
+
+    $download->assertOk();
+    expect($download->streamedContent())->toBe($file->getContent());
+});
+
 test('a second upload to the same slot replaces the first', function () {
     $this->actingAs($this->studentAlpha)->post(route('attachments.store'), [
         'document_id' => $this->document->id,

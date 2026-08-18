@@ -27,7 +27,27 @@ test('store() writes the file to disk and creates a row', function () {
     expect($attachment->slot_key)->toBe('letter_of_intent');
     expect($attachment->original_filename)->toBe('letter.pdf');
     expect($attachment->uploaded_by)->toBe($this->actor->id);
-    Storage::disk('local')->assertExists($attachment->path);
+    Storage::disk('supabase')->assertExists($attachment->path);
+});
+
+test('store() writes to the configured attachments disk, recording it on the row', function () {
+    $document = Document::factory()->create(['form_type' => FormType::OrganizationRegistration]);
+    $file = UploadedFile::fake()->create('letter.pdf', 100, 'application/pdf');
+
+    $attachment = $this->storage->store($document, 'letter_of_intent', $file, $this->actor, multiple: false);
+
+    expect($attachment->disk)->toBe('supabase');
+    Storage::disk('supabase')->assertExists($attachment->path);
+    Storage::disk('local')->assertMissing($attachment->path);
+});
+
+test('store() preserves the per-form-type, per-document path convention', function () {
+    $document = Document::factory()->create(['form_type' => FormType::OrganizationRegistration]);
+    $file = UploadedFile::fake()->create('letter.pdf', 100, 'application/pdf');
+
+    $attachment = $this->storage->store($document, 'letter_of_intent', $file, $this->actor, multiple: false);
+
+    expect($attachment->path)->toStartWith("attachments/{$document->form_type->value}/{$document->id}/");
 });
 
 test('store() on a single-file slot replaces the previous file, deleting it from disk', function () {
@@ -44,7 +64,7 @@ test('store() on a single-file slot replaces the previous file, deleting it from
 
     expect(DocumentAttachment::where('document_id', $document->id)->where('slot_key', 'letter_of_intent')->count())->toBe(1);
     expect(DocumentAttachment::find($second->id)->original_filename)->toBe('second.pdf');
-    Storage::disk('local')->assertMissing($firstPath);
+    Storage::disk('supabase')->assertMissing($firstPath);
 });
 
 test('store() on a multi-file slot accumulates rather than replacing', function () {
@@ -67,6 +87,21 @@ test('storeMany() stores every slot in the given array', function () {
 
     expect($document->attachments()->pluck('slot_key')->sort()->values()->all())
         ->toBe(['attendance_sheet', 'evaluation_form', 'photos']);
+});
+
+test('storeMany() routes every slot to the supabase disk', function () {
+    $document = Document::factory()->create(['form_type' => FormType::AfterActivityReport]);
+
+    $this->storage->storeMany($document, [
+        'photos' => [UploadedFile::fake()->create('photo-1.jpg', 100, 'image/jpeg')],
+        'evaluation_form' => UploadedFile::fake()->create('eval.pdf', 100, 'application/pdf'),
+        'attendance_sheet' => UploadedFile::fake()->create('attendance.pdf', 100, 'application/pdf'),
+    ], $this->actor);
+
+    $document->attachments->each(function (DocumentAttachment $attachment) {
+        expect($attachment->disk)->toBe('supabase');
+        Storage::disk('supabase')->assertExists($attachment->path);
+    });
 });
 
 test('storeMany() ignores an unknown slot key for the document\'s form type', function () {
@@ -127,5 +162,21 @@ test('delete() removes the row and the file from disk', function () {
     $this->storage->delete($attachment);
 
     expect(DocumentAttachment::find($attachment->id))->toBeNull();
+    Storage::disk('supabase')->assertMissing($path);
+});
+
+test('delete() on a legacy local-disk row removes the file from local, not supabase', function () {
+    $document = Document::factory()->create(['form_type' => FormType::OrganizationRegistration]);
+    $path = 'attachments/organization_registration/'.$document->id.'/legacy.pdf';
+    Storage::disk('local')->put($path, 'legacy file contents');
+    $attachment = DocumentAttachment::factory()->local()->create([
+        'document_id' => $document->id,
+        'path' => $path,
+    ]);
+
+    $this->storage->delete($attachment);
+
+    expect(DocumentAttachment::find($attachment->id))->toBeNull();
     Storage::disk('local')->assertMissing($path);
+    Storage::disk('supabase')->assertMissing($path);
 });

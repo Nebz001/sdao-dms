@@ -177,11 +177,11 @@ test('resubmit preserves untouched slots and replaces a re-uploaded one', functi
 
     // letter_of_intent untouched — same row, same file.
     expect(DocumentAttachment::find($originalLetterAttachment->id))->not->toBeNull();
-    Storage::disk('local')->assertExists($originalLetterAttachment->path);
+    Storage::disk('supabase')->assertExists($originalLetterAttachment->path);
 
     // by_laws replaced — old file gone, new one in its place.
     expect(DocumentAttachment::find($originalByLawsAttachment->id))->toBeNull();
-    Storage::disk('local')->assertMissing($originalByLawsAttachment->path);
+    Storage::disk('supabase')->assertMissing($originalByLawsAttachment->path);
     $newByLaws = $document->attachments()->where('slot_key', 'by_laws')->firstOrFail();
     expect($newByLaws->original_filename)->toBe('new-by-laws.pdf');
 });

@@ -22,9 +22,42 @@ use Tests\TestCase;
 |
 */
 
+/*
+|--------------------------------------------------------------------------
+| Attachment storage faking (Phase 2 item 8; Supabase migration)
+|--------------------------------------------------------------------------
+|
+| Every Feature test gets faked disks automatically — Registration,
+| Renewal, and After-Activity Report submissions now require real uploaded
+| files, so any test that reaches those write paths needs Storage::fake()
+| in effect. Scoped to Feature only (Unit tests don't touch the DB or
+| storage), same scoping as RefreshDatabase above.
+|
+| Both disks are faked: "supabase" is where AttachmentStorage now writes
+| (filesystems.attachments), "local" is kept faked too so tests covering
+| pre-migration rows (disk => 'local') can plant/assert files without
+| touching the real filesystem.
+|
+| IMPORTANT: this must be chained onto the SAME pest()->extend()->in() call
+| via ->beforeEach(...) — a standalone top-level beforeEach(fn () => ...)
+| ->in('Feature') call silently registers nothing (Pest's global beforeEach()
+| function binds to the CURRENT file, and ->in() is not a real method on the
+| resulting call; it went through Pest's proxy fallback and forwarded 'in()'
+| onto the test case, where it's a no-op). Found and fixed while migrating
+| attachments to Supabase Storage: the local disk masked this bug for years
+| because assertExists()/assertMissing() work against the real 'local'
+| filesystem with or without Storage::fake(), so no attachment test's fake
+| was ever actually taking effect until this call was corrected.
+|
+*/
+
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature')
+    ->beforeEach(function () {
+        Storage::fake('supabase');
+        Storage::fake('local');
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -42,23 +75,6 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Browser');
-
-/*
-|--------------------------------------------------------------------------
-| Attachment storage faking (Phase 2 item 8)
-|--------------------------------------------------------------------------
-|
-| Every Feature test gets a faked local disk automatically — Registration,
-| Renewal, and After-Activity Report submissions now require real uploaded
-| files, so any test that reaches those write paths needs Storage::fake()
-| in effect. Scoped to Feature only (Unit tests don't touch the DB or
-| storage), same scoping as RefreshDatabase above.
-|
-*/
-
-beforeEach(function () {
-    Storage::fake('local');
-})->in('Feature');
 
 /*
 |--------------------------------------------------------------------------

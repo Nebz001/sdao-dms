@@ -13,9 +13,11 @@ use Illuminate\Validation\ValidationException;
 /**
  * Generic attachment storage (Phase 2 item 8), shared by every form type's
  * write path (Mode A — bundled with Store/Update — and Mode B — the
- * standalone attach-to-existing-document endpoint). Local disk for now,
- * Laravel as the sole write path — see plan notes on switching to a cloud
- * disk later.
+ * standalone attach-to-existing-document endpoint). Laravel is the sole
+ * write path. Files go to the disk configured at `filesystems.attachments`
+ * (Supabase Storage by default — see config/filesystems.php); each row
+ * records the disk it actually landed on, so older rows written to a
+ * different disk keep resolving correctly.
  */
 class AttachmentStorage
 {
@@ -33,13 +35,15 @@ class AttachmentStorage
                 ->each(fn (DocumentAttachment $existing) => $this->delete($existing));
         }
 
-        $path = $file->store("attachments/{$document->form_type->value}/{$document->id}", 'local');
+        $disk = config('filesystems.attachments');
+
+        $path = $file->store("attachments/{$document->form_type->value}/{$document->id}", $disk);
 
         return $document->attachments()->create([
             'slot_key' => $slotKey,
             'original_filename' => $file->getClientOriginalName(),
             'path' => $path,
-            'disk' => 'local',
+            'disk' => $disk,
             'mime_type' => $file->getClientMimeType(),
             'size' => $file->getSize(),
             'uploaded_by' => $actor?->id,

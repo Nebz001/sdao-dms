@@ -336,7 +336,30 @@ test('a past-step approver can download the attachments of a document they can v
     expect($doc->status)->toBe(DocumentStatus::Approved);
 
     $attachment = DocumentAttachment::factory()->create(['document_id' => $doc->id]);
-    Storage::disk('local')->put($attachment->path, 'fake file contents');
+    Storage::disk('supabase')->put($attachment->path, 'fake file contents');
+
+    $newSdaoMember = User::factory()->create();
+    $newSdaoMember->roleAssignments()->create(['role' => Role::SdaoMember]);
+
+    $this->actingAs($newSdaoMember)->get(route('attachments.download', $attachment))->assertOk();
+});
+
+test('a pre-migration attachment still on the local disk downloads correctly', function () {
+    // Rows written before the Supabase migration recorded disk => 'local' —
+    // AttachmentController::download() must keep resolving those by their
+    // own `disk` column rather than assuming every row is on the current
+    // default (supabase) disk.
+    $doc = viewAuthRegistrationDocument($this->computingSociety, $this->studentAlpha);
+    $this->engine->submit($doc, $this->studentAlpha);
+    $doc->refresh();
+    $this->engine->approve($doc, $this->sdaoA);
+    $doc->refresh();
+    $this->engine->approve($doc, User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail());
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Approved);
+
+    $attachment = DocumentAttachment::factory()->local()->create(['document_id' => $doc->id]);
+    Storage::disk('local')->put($attachment->path, 'legacy fake file contents');
 
     $newSdaoMember = User::factory()->create();
     $newSdaoMember->roleAssignments()->create(['role' => Role::SdaoMember]);

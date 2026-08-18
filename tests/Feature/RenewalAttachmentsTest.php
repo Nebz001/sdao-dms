@@ -165,5 +165,5 @@ test('resubmit preserves untouched slots and replaces a re-uploaded one', functi
 
     expect($renewal->attachments()->count())->toBe(9);
     expect(DocumentAttachment::find($originalFinancialStatement->id))->toBeNull();
-    Storage::disk('local')->assertMissing($originalFinancialStatement->path);
+    Storage::disk('supabase')->assertMissing($originalFinancialStatement->path);
 });
