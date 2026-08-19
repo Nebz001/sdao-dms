@@ -1,0 +1,27 @@
+# Railway / Nixpacks build configuration.
+#
+# PHP version is deliberately NOT pinned here. Nixpacks' PHP provider derives
+# it solely from composer.json's `require.php` field (it never reads
+# composer.lock and honours no env var), so "php": "^8.4.1" there is what
+# selects the php84 toolchain. Overriding [phases.setup] would mean
+# re-declaring the provider's entire generated nixPkgs list (php84 with
+# extensions, nginx, libmysqlclient, composer, Node's packages) by hand --
+# redundant and fragile.
+
+[phases.install]
+# "..." keeps the provider's own generated commands for this phase:
+#   mkdir -p /var/log/nginx && mkdir -p /var/cache/nginx
+#   composer install --ignore-platform-reqs      (dev deps included)
+#   <auto-detected node install, npm ci>
+# then re-run composer without dev dependencies to strip pest/pint/phpstan/
+# sail/boost from the deployed image. This also re-runs post-autoload-dump,
+# regenerating bootstrap/cache/packages.php without the dev providers.
+#
+# No --ignore-platform-reqs on this second call, on purpose: by now the real
+# php84 binary is on PATH and must genuinely satisfy the locked requirements
+# (>=8.4.1, plus prod ext-*). If it ever doesn't, fail loudly here rather
+# than inside the obscure post-autoload-dump crash.
+cmds = [
+    "...",
+    "composer install --no-dev --optimize-autoloader --no-interaction --no-progress",
+]
