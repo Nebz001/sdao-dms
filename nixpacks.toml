@@ -9,19 +9,27 @@
 # redundant and fragile.
 
 [phases.install]
-# "..." keeps the provider's own generated commands for this phase:
+# This list REPLACES the PHP provider's auto-generated install commands
+# entirely (no "..." token) so composer only ever runs once, --no-dev.
+#
+# The provider's own get_install() would normally emit:
 #   mkdir -p /var/log/nginx && mkdir -p /var/cache/nginx
 #   composer install --ignore-platform-reqs      (dev deps included)
-#   <auto-detected node install, npm ci>
-# then re-run composer without dev dependencies to strip pest/pint/phpstan/
-# sail/boost from the deployed image. This also re-runs post-autoload-dump,
-# regenerating bootstrap/cache/packages.php without the dev providers.
+#   npm ci                                       (from package-lock.json)
+# Lines 1 and 3 below are hand-copied from that generated set so nginx's
+# log/cache dirs and the Node install are still preserved. Line 2 is
+# replaced outright: the generated composer call installs dev dependencies,
+# and pestphp/pest-plugin-browser (dev-only) requires ext-sockets, which
+# isn't in the default Nix PHP extension set -- that's what was failing.
+# We never want dev deps in the production image anyway, so skip that pass
+# entirely instead of installing everything and re-installing without dev.
 #
-# No --ignore-platform-reqs on this second call, on purpose: by now the real
-# php84 binary is on PATH and must genuinely satisfy the locked requirements
-# (>=8.4.1, plus prod ext-*). If it ever doesn't, fail loudly here rather
-# than inside the obscure post-autoload-dump crash.
+# No --ignore-platform-reqs here, on purpose: the real php84 binary is on
+# PATH and must genuinely satisfy the locked prod requirements (>=8.4.1,
+# plus prod ext-*, all of which are default-enabled). If it ever doesn't,
+# fail loudly here rather than inside an obscure post-autoload-dump crash.
 cmds = [
-    "...",
+    "mkdir -p /var/log/nginx && mkdir -p /var/cache/nginx",
     "composer install --no-dev --optimize-autoloader --no-interaction --no-progress",
+    "npm ci",
 ]
