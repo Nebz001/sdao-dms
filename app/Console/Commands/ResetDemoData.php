@@ -46,6 +46,14 @@ class ResetDemoData extends Command
             return self::SUCCESS;
         }
 
+        // The pooled Supabase connection inherits whatever statement_timeout
+        // the server/pooler role has configured. This command runs as a
+        // one-shot artisan process with its own PDO connection, so raising
+        // it here is scoped to this process only — it cannot leak into
+        // web/queue workers, which each get their own connection. No reset
+        // is needed afterward since the process exits when handle() returns.
+        DB::statement('SET statement_timeout = 300000'); // 5 minutes, up from the server default
+
         $this->info('Wiping demo/transactional data...');
         $wipeSummary = DB::transaction(fn () => $this->wipe());
 
