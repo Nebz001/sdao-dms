@@ -110,19 +110,22 @@ class WorkflowTemplateSeeder extends Seeder
         string $name,
         array $steps,
     ): void {
-        $template = WorkflowTemplate::create([
-            'form_type' => $formType,
-            'variant' => $variant,
-            'name' => $name,
-        ]);
+        // updateOrCreate (not create) so rerunning this seeder against a
+        // partially-seeded database never trips the (form_type, variant)
+        // unique constraint — it matches by those two columns explicitly,
+        // which also closes the gap where the DB's own unique index treats
+        // two NULL variants as distinct and would otherwise let short-chain
+        // templates silently duplicate on rerun.
+        $template = WorkflowTemplate::updateOrCreate(
+            ['form_type' => $formType, 'variant' => $variant],
+            ['name' => $name],
+        );
 
         foreach ($steps as $position => [$role, $requiredApprovals]) {
-            WorkflowStep::create([
-                'workflow_template_id' => $template->id,
-                'position' => $position + 1,
-                'role' => $role,
-                'required_approvals' => $requiredApprovals,
-            ]);
+            WorkflowStep::updateOrCreate(
+                ['workflow_template_id' => $template->id, 'position' => $position + 1],
+                ['role' => $role, 'required_approvals' => $requiredApprovals],
+            );
         }
     }
 }
