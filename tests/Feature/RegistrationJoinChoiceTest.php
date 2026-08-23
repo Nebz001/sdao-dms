@@ -36,7 +36,7 @@ function startRegistrationWithIntent(?string $intentedPath): string
 function capturedRegistrationCode(): string
 {
     $code = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
 
         return true;

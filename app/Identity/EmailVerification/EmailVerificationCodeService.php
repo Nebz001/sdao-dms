@@ -43,9 +43,9 @@ class EmailVerificationCodeService
         ]);
 
         try {
-            Mail::to($email)->send(new EmailVerificationCodeMail($code, $record->expires_at));
+            Mail::to($email)->queue(new EmailVerificationCodeMail($code, $record->expires_at));
         } catch (Throwable $exception) {
-            Log::error('Failed to send email verification code.', [
+            Log::error('Failed to queue email verification code.', [
                 'email' => $email,
                 'purpose' => $purpose,
                 'exception' => $exception,

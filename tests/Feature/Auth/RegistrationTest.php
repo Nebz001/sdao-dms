@@ -23,7 +23,7 @@ test('a submission with a personal email is rejected before any code is generate
     ]);
 
     $response->assertSessionHasErrors('email');
-    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
     expect(User::where('email', 'test@gmail.com')->exists())->toBeFalse();
 });
 
@@ -39,7 +39,7 @@ test('an ID number that does not match the 4-digit-year-dash-6-digit format is r
     ]);
 
     $response->assertSessionHasErrors('id_number');
-    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
 });
 
 test('a valid submission sends a code and creates no user yet', function () {
@@ -55,7 +55,7 @@ test('a valid submission sends a code and creates no user yet', function () {
 
     $response->assertRedirect(route('register.verify'));
     expect(User::where('email', 'test.user@students.nu-lipa.edu.ph')->exists())->toBeFalse();
-    Mail::assertSent(EmailVerificationCodeMail::class);
+    Mail::assertQueued(EmailVerificationCodeMail::class);
 });
 
 test('entering the correct code creates the account, verifies the email, and logs the user in', function () {
@@ -98,7 +98,7 @@ test('a code can only be used once', function () {
     ]);
 
     $code = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
 
         return true;

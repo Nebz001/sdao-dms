@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Mail;
 function capturedProfileCode(): string
 {
     $code = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
 
         return true;
@@ -100,5 +100,5 @@ test('a personal email is rejected before any code is sent', function () {
     ]);
 
     $response->assertSessionHasErrors('email');
-    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
 });

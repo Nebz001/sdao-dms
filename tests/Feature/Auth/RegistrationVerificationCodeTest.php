@@ -19,7 +19,7 @@ function startRegistration(string $email): void
 function capturedCode(): string
 {
     $code = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
 
         return true;
@@ -66,7 +66,7 @@ test('resending issues a new code and the old one stops working', function () {
 
     $this->post(route('register.verify.resend'));
 
-    Mail::assertSent(EmailVerificationCodeMail::class, 2);
+    Mail::assertQueued(EmailVerificationCodeMail::class, 2);
 
     $this->post(route('register.verify.store'), ['code' => $firstCode])
         ->assertSessionHasErrors('code');
@@ -80,7 +80,7 @@ test('the resent code verifies successfully', function () {
     $this->post(route('register.verify.resend'));
 
     $secondCode = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$secondCode) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$secondCode) {
         $secondCode = $mail->code;
 
         return true;

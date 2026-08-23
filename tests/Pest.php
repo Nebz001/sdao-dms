@@ -195,7 +195,7 @@ function registerViaHttp(array $overrides = []): array
     test()->post(route('register.store'), $payload);
 
     $code = null;
-    Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
+    Mail::assertQueued(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
 
         return true;
