@@ -115,4 +115,51 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Illuminate\Mail\MailServiceProvider reads "markdown.paths" to build the
+    | "mail::" view namespace; without this key it defaults to [] and anything
+    | under resources/views/vendor/mail is silently ignored. Markdown resolves
+    | each component per-file with the framework path as a fallback, so only
+    | the files actually present here shadow the framework — everything else
+    | (layout, message, footer, button, panel, themes/default.css) keeps
+    | tracking upgrades. Keep that directory as thin as possible. Run
+    | `php artisan config:clear` after touching this — a cached config keeps
+    | "paths" at [] and the override becomes a silent no-op.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transactional Email Logo
+    |--------------------------------------------------------------------------
+    |
+    | The header logo (resources/views/vendor/mail/html/header.blade.php) is a
+    | hosted PNG rather than a cid: attachment, so it costs nothing per send
+    | and degrades to alt text when a client blocks remote images. asset()
+    | resolves against APP_URL inside the queue worker (Foundation\Bootstrap\
+    | SetRequestForConsole), which is correct in production. Set
+    | MAIL_LOGO_URL when APP_URL points at localhost but mail actually leaves
+    | through a real provider (e.g. testing Resend delivery in local dev) —
+    | otherwise the logo 404s in the recipient's inbox.
+    |
+    */
+
+    'logo' => [
+        'url' => env('MAIL_LOGO_URL'),
+        'width' => 200,
+        'height' => 50,
+    ],
+
 ];

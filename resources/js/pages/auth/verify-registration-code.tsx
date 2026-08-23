@@ -112,6 +112,10 @@ export default function VerifyRegistrationCode({
                                     ? `Resend code (${cooldown}s)`
                                     : 'Resend code'}
                             </button>
+                            <span className="mt-1 block text-xs">
+                                Not in your inbox? Check your spam or junk
+                                folder.
+                            </span>
                         </div>
                     )}
                 </Form>

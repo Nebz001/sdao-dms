@@ -1,7 +1,7 @@
 <x-mail::message>
 # Your verification code
 
-{{ $code }}
+<x-mail::verification-code :code="$code" />
 
 This code expires at {{ $expiresAt->format('g:i A') }} ({{ $expiresAt->diffForHumans(['parts' => 1]) }}).
 
