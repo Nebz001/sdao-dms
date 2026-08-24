@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\AcademicYear;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Binds the seeded students as active officers of their organizations.
@@ -42,6 +43,7 @@ class MembershipSeeder extends Seeder
         $studentDelta = User::factory()->create([
             'name' => 'Student Delta',
             'email' => 'student-delta@students.nu-lipa.edu.ph',
+            'password' => Hash::make('ict@1234'),
         ]);
         RoleAssignment::create([
             'user_id' => $studentDelta->id,

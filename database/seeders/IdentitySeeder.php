@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Seeds all users, schools, programs, organizations, and role assignments
@@ -17,10 +18,17 @@ use Illuminate\Database\Seeder;
  *   - Regular school: on-calendar and off-calendar (adviser → chair → dean → SDAO → 3 directors)
  *   - SHS: on-calendar and off-calendar (adviser → principal → SDAO → 3 directors)
  *   - Short chains (registration, renewal, calendar, after-activity report)
+ *
+ * Every account uses the password "ict@1234" — same convention as
+ * RealRosterSeeder and DemoDataSeeder. `user()` must set this explicitly:
+ * leaving it to UserFactory's default silently gives these accounts the
+ * password "password" instead.
  */
 class IdentitySeeder extends Seeder
 {
     use WithoutModelEvents;
+
+    private const string PASSWORD = 'ict@1234';
 
     public function run(): void
     {
@@ -101,6 +109,10 @@ class IdentitySeeder extends Seeder
 
     private function user(string $name, string $email): User
     {
-        return User::factory()->create(['name' => $name, 'email' => $email]);
+        return User::factory()->create([
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make(self::PASSWORD),
+        ]);
     }
 }
