@@ -75,7 +75,7 @@ test('clicking a notification row navigates to the correct document and closes t
 
     $page = visit('/login')
         ->fill('Email address', $sdaoA->email)
-        ->fill('Password', 'password')
+        ->fill('Password', 'ict@1234')
         ->click('Log in')
         ->assertPathIs('/admin/dashboard');
 
