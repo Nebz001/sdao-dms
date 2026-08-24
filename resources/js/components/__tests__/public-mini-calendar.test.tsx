@@ -21,6 +21,8 @@ describe('PublicMiniCalendar', () => {
     it("highlights today's cell with the brand fill", () => {
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[]}
                 selectedDate={null}
                 onSelectDay={vi.fn()}
@@ -40,6 +42,8 @@ describe('PublicMiniCalendar', () => {
     it('renders a has-activity day as a clickable button with a dot', () => {
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[activity({ activity_date: '2026-09-15' })]}
                 selectedDate={null}
                 onSelectDay={vi.fn()}
@@ -56,6 +60,8 @@ describe('PublicMiniCalendar', () => {
     it('renders a day with no activities as a non-interactive cell, no dot', () => {
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[]}
                 selectedDate={null}
                 onSelectDay={vi.fn()}
@@ -72,6 +78,8 @@ describe('PublicMiniCalendar', () => {
     it('pluralizes the activity count in the accessible label', () => {
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[
                     activity({ id: 1, activity_date: '2026-09-15' }),
                     activity({ id: 2, activity_date: '2026-09-15' }),
@@ -95,6 +103,8 @@ describe('PublicMiniCalendar', () => {
 
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[activity({ activity_date: '2026-09-15' })]}
                 selectedDate={null}
                 onSelectDay={onSelectDay}
@@ -112,6 +122,8 @@ describe('PublicMiniCalendar', () => {
     it('marks the selected day as pressed', () => {
         render(
             <PublicMiniCalendar
+                year={2026}
+                month={8}
                 activities={[activity({ activity_date: '2026-09-15' })]}
                 selectedDate="2026-09-15"
                 onSelectDay={vi.fn()}
@@ -122,5 +134,56 @@ describe('PublicMiniCalendar', () => {
         expect(
             screen.getByRole('gridcell', { name: /Sep 15, 2026/ }),
         ).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('shows an activity dot in a past month relative to today', () => {
+        render(
+            <PublicMiniCalendar
+                year={2026}
+                month={7} // August — before "today" (Sep 10)
+                activities={[activity({ activity_date: '2026-08-20' })]}
+                selectedDate={null}
+                onSelectDay={vi.fn()}
+                today="2026-09-10"
+            />,
+        );
+
+        expect(
+            screen.getByRole('gridcell', { name: /Aug 20, 2026/ }).tagName,
+        ).toBe('BUTTON');
+    });
+
+    it('shows an activity dot in a future month relative to today', () => {
+        render(
+            <PublicMiniCalendar
+                year={2026}
+                month={9} // October — after "today" (Sep 10)
+                activities={[activity({ activity_date: '2026-10-05' })]}
+                selectedDate={null}
+                onSelectDay={vi.fn()}
+                today="2026-09-10"
+            />,
+        );
+
+        expect(
+            screen.getByRole('gridcell', { name: /Oct 5, 2026/ }).tagName,
+        ).toBe('BUTTON');
+    });
+
+    it('renders the correct month label for the given year/month, independent of today', () => {
+        render(
+            <PublicMiniCalendar
+                year={2026}
+                month={7} // August
+                activities={[]}
+                selectedDate={null}
+                onSelectDay={vi.fn()}
+                today="2026-09-10"
+            />,
+        );
+
+        expect(
+            screen.getByRole('grid', { name: 'August 2026' }),
+        ).toBeInTheDocument();
     });
 });

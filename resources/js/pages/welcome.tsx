@@ -9,10 +9,10 @@ import { home, login, register } from '@/routes';
 import type { PublicActivity } from '@/types/public-activity';
 
 type Props = {
-    upcomingActivities: PublicActivity[];
+    activities: PublicActivity[];
 };
 
-export default function Welcome({ upcomingActivities }: Props) {
+export default function Welcome({ activities }: Props) {
     const { resolvedAppearance, updateAppearance } = useAppearance();
 
     return (
@@ -143,9 +143,7 @@ export default function Welcome({ upcomingActivities }: Props) {
                         </div>
                     </section>
 
-                    <PublicActivitiesSection
-                        activities={upcomingActivities}
-                    />
+                    <PublicActivitiesSection activities={activities} />
                 </main>
 
                 {/* Footer sits on `bg-brand-fixed` — always navy, in both

@@ -1,12 +1,16 @@
 import { useMemo } from 'react';
-import { buildMonthGrid, currentYearMonth } from '@/lib/month-grid';
+import { buildMonthGrid } from '@/lib/month-grid';
 import { cn, formatCalendarDate } from '@/lib/utils';
 import type { PublicActivity } from '@/types/public-activity';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type Props = {
-    /** Approved, upcoming activities — grouped here by `activity_date`. */
+    /** Full year, e.g. 2026. */
+    year: number;
+    /** 0-indexed month (0 = January). */
+    month: number;
+    /** Approved activities (any date) — grouped here by `activity_date`. */
     activities: PublicActivity[];
     /** `"YYYY-MM-DD"` of the day the list is currently filtered to, or null. */
     selectedDate: string | null;
@@ -26,35 +30,25 @@ function dayAriaLabel(iso: string, count: number): string {
 }
 
 /**
- * A compact, read-only month calendar for the public landing page — always
- * shows the current month (no prev/next navigation; nothing to navigate to,
- * since the widget only ever has this month plus a short runway beyond it).
+ * A compact, read-only month calendar for the public landing page. Like
+ * VenueMonthGrid (the authenticated tool this is modeled on), the displayed
+ * `year`/`month` is owned by the caller (PublicActivitiesSection), which
+ * renders the prev/next controls — this component only renders whichever
+ * month it's told to.
  *
- * Unlike VenueMonthGrid (the authenticated tool this is modeled on), a day
- * cell is only a real `<button>` when it has at least one approved activity
- * — there's nothing to click into on an empty day, and this keeps the tab
- * order short and meaningful instead of 42 stops of mostly-empty days.
+ * Unlike VenueMonthGrid, a day cell is only a real `<button>` when it has at
+ * least one approved activity — there's nothing to click into on an empty
+ * day, and this keeps the tab order short and meaningful instead of 42 stops
+ * of mostly-empty days.
  */
 export default function PublicMiniCalendar({
+    year,
+    month,
     activities,
     selectedDate,
     onSelectDay,
     today,
 }: Props) {
-    // Derived from `today` when given, rather than always reading the real
-    // current date — there's no month navigation on this widget, so
-    // "today" and "the displayed month" must never disagree. This also
-    // makes the component fully controllable in tests via `today` alone,
-    // the same single override VenueMonthGrid's own `today` prop offers.
-    const { year, month } = useMemo(() => {
-        if (today) {
-            const [y, m] = today.split('-').map(Number);
-
-            return { year: y, month: m - 1 };
-        }
-
-        return currentYearMonth();
-    }, [today]);
     const days = useMemo(
         () => buildMonthGrid(year, month, today),
         [year, month, today],
@@ -78,10 +72,6 @@ export default function PublicMiniCalendar({
 
     return (
         <div role="grid" aria-label={monthLabel}>
-            <p className="mb-2 text-center text-sm font-medium lg:mb-3 lg:text-lg">
-                {monthLabel}
-            </p>
-
             <div
                 role="row"
                 className="grid grid-cols-7 gap-px text-center text-xs font-medium text-muted-foreground lg:text-sm"

@@ -5,6 +5,11 @@ import PublicActivitiesSection from '@/components/public-activities-section';
 import { formatCalendarDate } from '@/lib/utils';
 import type { PublicActivity } from '@/types/public-activity';
 
+/** Fixed "today" used throughout — day 1 so every day-1..8 fixture activity
+ * below still counts as upcoming, keeping these tests independent of the
+ * real wall-clock date. */
+const TODAY = '2026-09-01';
+
 function activity(overrides: Partial<PublicActivity>): PublicActivity {
     return {
         id: 1,
@@ -18,21 +23,11 @@ function activity(overrides: Partial<PublicActivity>): PublicActivity {
     };
 }
 
-/**
- * Builds N activities on days 1..N of the REAL current month. PublicMiniCalendar
- * always renders the true current month here (PublicActivitiesSection doesn't
- * expose a `today` override the way the calendar component itself does for its
- * own tests), so activity dates must land in that same month to be clickable —
- * days 1-8 are valid in every month regardless of length.
- */
+/** Builds N activities on days 1..N of the fixed reference month (Sep 2026). */
 function activitiesInCurrentMonth(count: number): PublicActivity[] {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-
     return Array.from({ length: count }, (_, i) => {
         const day = i + 1;
-        const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const iso = `2026-09-${String(day).padStart(2, '0')}`;
 
         return activity({
             id: i + 1,
@@ -47,6 +42,7 @@ describe('PublicActivitiesSection — pagination', () => {
         render(
             <PublicActivitiesSection
                 activities={activitiesInCurrentMonth(5)}
+                today={TODAY}
             />,
         );
 
@@ -60,6 +56,7 @@ describe('PublicActivitiesSection — pagination', () => {
         render(
             <PublicActivitiesSection
                 activities={activitiesInCurrentMonth(8)}
+                today={TODAY}
             />,
         );
 
@@ -73,6 +70,7 @@ describe('PublicActivitiesSection — pagination', () => {
         render(
             <PublicActivitiesSection
                 activities={activitiesInCurrentMonth(8)}
+                today={TODAY}
             />,
         );
 
@@ -89,6 +87,7 @@ describe('PublicActivitiesSection — pagination', () => {
         render(
             <PublicActivitiesSection
                 activities={activitiesInCurrentMonth(8)}
+                today={TODAY}
             />,
         );
 
@@ -109,7 +108,9 @@ describe('PublicActivitiesSection — pagination', () => {
     it('selecting a day on the calendar resets pagination to page 1 of the filtered set', async () => {
         const user = userEvent.setup();
         const activities = activitiesInCurrentMonth(8);
-        render(<PublicActivitiesSection activities={activities} />);
+        render(
+            <PublicActivitiesSection activities={activities} today={TODAY} />,
+        );
 
         await user.click(screen.getByRole('button', { name: 'Next page' }));
         expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
@@ -131,7 +132,9 @@ describe('PublicActivitiesSection — pagination', () => {
     it('clearing the filter resets pagination to page 1 of the full list', async () => {
         const user = userEvent.setup();
         const activities = activitiesInCurrentMonth(8);
-        render(<PublicActivitiesSection activities={activities} />);
+        render(
+            <PublicActivitiesSection activities={activities} today={TODAY} />,
+        );
 
         await user.click(screen.getByRole('button', { name: 'Next page' }));
 
@@ -146,5 +149,141 @@ describe('PublicActivitiesSection — pagination', () => {
 
         expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
         expect(screen.getByText('Event 1')).toBeInTheDocument();
+    });
+});
+
+describe('PublicActivitiesSection — month navigation', () => {
+    function activitiesAcrossMonths(): PublicActivity[] {
+        return [
+            activity({
+                id: 1,
+                name: 'Past Month Event',
+                activity_date: '2026-08-20',
+            }),
+            activity({
+                id: 2,
+                name: 'Current Month Event',
+                activity_date: '2026-09-15',
+            }),
+            activity({
+                id: 3,
+                name: 'Future Month Event',
+                activity_date: '2026-10-05',
+            }),
+        ];
+    }
+
+    it('opens on the current month with the current month\'s activity visible', () => {
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        expect(
+            screen.getByRole('grid', { name: 'September 2026' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('gridcell', { name: /Sep 15, 2026/ }).tagName,
+        ).toBe('BUTTON');
+    });
+
+    it('navigating to the next month reveals that month\'s activity', async () => {
+        const user = userEvent.setup();
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        await user.click(
+            screen.getByRole('button', { name: 'Next month' }),
+        );
+
+        expect(
+            screen.getByRole('grid', { name: 'October 2026' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('gridcell', { name: /Oct 5, 2026/ }).tagName,
+        ).toBe('BUTTON');
+    });
+
+    it('navigating to the previous month reveals a past activity', async () => {
+        const user = userEvent.setup();
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        await user.click(
+            screen.getByRole('button', { name: 'Previous month' }),
+        );
+
+        expect(
+            screen.getByRole('grid', { name: 'August 2026' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('gridcell', { name: /Aug 20, 2026/ }).tagName,
+        ).toBe('BUTTON');
+    });
+
+    it("the \"Next up\" list never leads with a past activity even though the calendar can navigate to it", () => {
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        expect(screen.getByText('Next up')).toBeInTheDocument();
+        expect(screen.getByText('Current Month Event')).toBeInTheDocument();
+        expect(screen.getByText('Future Month Event')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Past Month Event'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('selecting a past day still surfaces its activity in the list', async () => {
+        const user = userEvent.setup();
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        await user.click(
+            screen.getByRole('button', { name: 'Previous month' }),
+        );
+        await user.click(
+            screen.getByRole('gridcell', { name: /Aug 20, 2026/ }),
+        );
+
+        expect(screen.getByText('Past Month Event')).toBeInTheDocument();
+    });
+
+    it('navigating to a different month clears an active day filter', async () => {
+        const user = userEvent.setup();
+        render(
+            <PublicActivitiesSection
+                activities={activitiesAcrossMonths()}
+                today="2026-09-10"
+            />,
+        );
+
+        await user.click(
+            screen.getByRole('gridcell', { name: /Sep 15, 2026/ }),
+        );
+        expect(screen.getByText('Activities on Sep 15, 2026')).toBeInTheDocument();
+
+        await user.click(
+            screen.getByRole('button', { name: 'Next month' }),
+        );
+
+        expect(screen.getByText('Next up')).toBeInTheDocument();
     });
 });

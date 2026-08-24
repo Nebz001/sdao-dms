@@ -23,7 +23,7 @@ function seedHomeActivity(DocumentStatus $status, string $name): CalendarActivit
     ]);
 }
 
-test('guests visiting home see only approved upcoming activities', function () {
+test('guests visiting home see only approved activities', function () {
     seedHomeActivity(DocumentStatus::Draft, 'Draft Event');
     seedHomeActivity(DocumentStatus::InReview, 'In Review Event');
     seedHomeActivity(DocumentStatus::Returned, 'Returned Event');
@@ -34,8 +34,8 @@ test('guests visiting home see only approved upcoming activities', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('welcome')
-            ->has('upcomingActivities', 1)
-            ->where('upcomingActivities.0.name', 'Approved Event')
+            ->has('activities', 1)
+            ->where('activities.0.name', 'Approved Event')
         );
 
     $response->assertDontSee('Draft Event');
@@ -51,8 +51,8 @@ test('the public activities payload never includes document status or id', funct
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('welcome')
-            ->has('upcomingActivities', 1)
-            ->has('upcomingActivities.0', fn (Assert $activity) => $activity
+            ->has('activities', 1)
+            ->has('activities.0', fn (Assert $activity) => $activity
                 ->hasAll(['id', 'name', 'venue', 'activity_date', 'start_time', 'end_time', 'organization'])
                 ->missing('status')
                 ->missing('document_id')
@@ -61,7 +61,7 @@ test('the public activities payload never includes document status or id', funct
         );
 });
 
-test('an activity outside the 90-day window is not shown', function () {
+test('an approved activity far beyond 90 days in the future is still shown', function () {
     $document = Document::factory()->create(['status' => DocumentStatus::Approved]);
     $calendar = ActivityCalendar::factory()->for($document)->create();
     CalendarActivity::factory()->for($calendar, 'calendar')->create([
@@ -73,7 +73,25 @@ test('an activity outside the 90-day window is not shown', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('welcome')
-            ->has('upcomingActivities', 0)
+            ->has('activities', 1)
+            ->where('activities.0.name', 'Far Future Event')
+        );
+});
+
+test('an approved activity in the past is still shown, so the calendar can navigate back to it', function () {
+    $document = Document::factory()->create(['status' => DocumentStatus::Approved]);
+    $calendar = ActivityCalendar::factory()->for($document)->create();
+    CalendarActivity::factory()->for($calendar, 'calendar')->create([
+        'name' => 'Past Event',
+        'activity_date' => now()->subDays(120)->toDateString(),
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('welcome')
+            ->has('activities', 1)
+            ->where('activities.0.name', 'Past Event')
         );
 });
 

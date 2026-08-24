@@ -31,7 +31,7 @@ function formatDateBadge(iso: string): { month: string; day: number } {
  * gets the same neutral pill style — no per-org color coding.
  *
  * No status badge — every activity reaching this component is Approved by
- * construction (see HomeController::upcomingActivities()).
+ * construction (see HomeController::approvedActivities()).
  */
 export default function PublicActivityRow({ activity }: Props) {
     const { month, day } = formatDateBadge(activity.activity_date);

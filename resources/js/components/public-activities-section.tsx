@@ -10,12 +10,16 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { addMonths, currentYearMonth, todayISODate } from '@/lib/month-grid';
 import { formatCalendarDate } from '@/lib/utils';
 import * as calendar from '@/routes/calendar';
 import type { PublicActivity } from '@/types/public-activity';
 
 type Props = {
+    /** Every approved activity — any date, past or future (see HomeController). */
     activities: PublicActivity[];
+    /** `"YYYY-MM-DD"` to treat as "today"; defaults to the real current date. Overridable for tests. */
+    today?: string;
 };
 
 /**
@@ -26,10 +30,15 @@ const PAGE_SIZE = 5;
 
 /**
  * The landing page's public activities widget — an "Upcoming Activities"
- * list next to a compact current-month calendar, replacing the old static
- * "Who this is for" band. Every activity here is Approved, filtered
- * server-side (see App\Http\Controllers\HomeController) — this component
- * has no filtering responsibility of its own beyond the day-selection UI.
+ * list next to a compact, navigable month calendar, replacing the old
+ * static "Who this is for" band. Every activity here is Approved, filtered
+ * server-side (see App\Http\Controllers\HomeController) — but *not*
+ * date-bounded server-side, unlike the old 90-day-forward query it
+ * replaced: `activities` is the full approved set (any date), so the
+ * calendar's prev/next controls can navigate to any month — past or
+ * future — and still show accurate dots, all client-side with no refetch.
+ * The "Next up" list narrows that same set down to what's actually still
+ * ahead (`upcomingActivities` below); the calendar always sees the full set.
  *
  * Selecting a day on PublicMiniCalendar filters the list to that day
  * (clicking the same day again clears it) rather than scrolling to it —
@@ -37,11 +46,22 @@ const PAGE_SIZE = 5;
  * activities might not be in the rendered slice to scroll to at all.
  * Selecting (or clearing) a day always resets pagination to page 1 of
  * whichever set — full or filtered — is now active, so a stale page
- * number can never point past the end of a newly-filtered list.
+ * number can never point past the end of a newly-filtered list. Navigating
+ * to a different month does the same, since a selected day that's no
+ * longer on screen would otherwise keep filtering the list to a hidden date.
  */
-export default function PublicActivitiesSection({ activities }: Props) {
+export default function PublicActivitiesSection({ activities, today }: Props) {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [page, setPage] = useState(1);
+    const [{ year, month }, setYearMonth] = useState(() => {
+        if (today) {
+            const [y, m] = today.split('-').map(Number);
+
+            return { year: y, month: m - 1 };
+        }
+
+        return currentYearMonth();
+    });
 
     // "Next up" is pinned to the calendar card's own rendered height (not a
     // guessed number) so the pair reads as matched regardless of how many
@@ -81,15 +101,40 @@ export default function PublicActivitiesSection({ activities }: Props) {
         setPage(1);
     }
 
+    function goToMonth(delta: number) {
+        setYearMonth((prev) => addMonths(prev.year, prev.month, delta));
+        clearFilter();
+    }
+
+    // The default "Next up" list only ever shows what's still ahead — the
+    // full `activities` set (past and future) exists so the mini calendar
+    // can show dots in any navigated month, but the list itself has no
+    // reason to lead with something that already happened.
+    const upcomingActivities = useMemo(() => {
+        const cutoff = today ?? todayISODate();
+
+        return activities.filter(
+            (activity) => activity.activity_date >= cutoff,
+        );
+    }, [activities, today]);
+
     const filteredActivities = useMemo(() => {
         if (!selectedDate) {
-            return activities;
+            return upcomingActivities;
         }
 
+        // A selected day filters against the full dataset, not just
+        // `upcomingActivities` — a visitor browsing a past month via the
+        // calendar can still click a past day and see what happened.
         return activities.filter(
             (activity) => activity.activity_date === selectedDate,
         );
-    }, [activities, selectedDate]);
+    }, [activities, upcomingActivities, selectedDate]);
+
+    const monthLabel = new Date(year, month, 1).toLocaleDateString(
+        undefined,
+        { year: 'numeric', month: 'long' },
+    );
 
     const totalPages = Math.max(
         1,
@@ -173,7 +218,9 @@ export default function PublicActivitiesSection({ activities }: Props) {
                             )}
                             {visibleActivities.length === 0 ? (
                                 <p className="py-4 text-center text-sm text-muted-foreground">
-                                    No activities on this day.
+                                    {selectedDate
+                                        ? 'No activities on this day.'
+                                        : 'No upcoming activities right now.'}
                                 </p>
                             ) : (
                                 visibleActivities.map((activity) => (
@@ -221,16 +268,39 @@ export default function PublicActivitiesSection({ activities }: Props) {
                     </Card>
 
                     <Card ref={calendarCardRef}>
-                        <CardHeader>
+                        <CardHeader className="flex-row items-center justify-between gap-2">
                             <CardTitle className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                This Month
+                                {monthLabel}
                             </CardTitle>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => goToMonth(-1)}
+                                    aria-label="Previous month"
+                                >
+                                    <ChevronLeft />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => goToMonth(1)}
+                                    aria-label="Next month"
+                                >
+                                    <ChevronRight />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <PublicMiniCalendar
+                                year={year}
+                                month={month}
                                 activities={activities}
                                 selectedDate={selectedDate}
                                 onSelectDay={handleSelectDay}
+                                today={today}
                             />
                         </CardContent>
                     </Card>
