@@ -38,7 +38,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
             <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Provision Approver"
-                    description="Creates the account and sends a password-reset link so the approver sets their own password."
+                    description="Creates the account with a working default password and emails the approver their login details."
                 />
 
                 <Form {...ApproverController.store.form()} className="space-y-6">
@@ -60,7 +60,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                                     placeholder="firstname.lastname@nu-lipa.edu.ph"
                                 />
                                 <p className="text-sm text-muted-foreground">
-                                    Must be an NU Lipa staff address — the password-reset link is sent here.
+                                    Must be an NU Lipa staff address — their login details are emailed here.
                                 </p>
                                 <InputError message={errors.email} />
                             </div>

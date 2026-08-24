@@ -4,6 +4,7 @@ export type NotificationKind =
     | 'document_outcome'
     | 'account_verified'
     | 'account_rejected'
+    | 'approver_provisioned'
     | 'join_request_received'
     | 'join_request_approved'
     | 'join_request_declined';

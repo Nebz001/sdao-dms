@@ -37,6 +37,7 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
                     return { Icon: FileText, iconClassName: 'text-muted-foreground', chipClassName: 'bg-muted' };
             }
         case 'account_verified':
+        case 'approver_provisioned':
         case 'join_request_approved':
             return { Icon: UserCheck, iconClassName: 'text-success', chipClassName: 'bg-success/15' };
         case 'account_rejected':

@@ -7,10 +7,10 @@ use App\Enums\Role;
 use App\Enums\ScopeType;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Notifications\ApproverProvisionedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -19,12 +19,19 @@ use Illuminate\Validation\ValidationException;
  * self-registered (CLAUDE.md "Identity & accounts") — this is the only
  * production code path (besides seeders) that creates an approver account.
  *
- * The new account gets no password from the admin: it's created with a
- * random, unusable one and the approver sets their own via the existing
- * Fortify password-reset flow (no new invite/mail infrastructure).
+ * The new account gets DEFAULT_PASSWORD — the same convention every
+ * seeded/demo account already uses (see FixSeededAccountPasswords) — so it's
+ * usable the instant it's created, instead of a random unusable password
+ * stuck behind a reset link the approver never asked for.
+ * ApproverProvisionedNotification emails that password to the approver right
+ * away and points them at the existing Settings > Security page to change it
+ * once they've logged in.
  */
 class ProvisionApprover
 {
+    /** Matches the convention seeded/demo accounts already use (see FixSeededAccountPasswords). */
+    public const string DEFAULT_PASSWORD = 'ict@1234';
+
     /**
      * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
      *
@@ -49,10 +56,10 @@ class ProvisionApprover
             'name' => $name,
             'email' => $email,
             'id_number' => $idNumber,
-            'password' => Hash::make(Str::random(40)),
-            // The admin vouches for the address, and the reset link itself
-            // proves ownership — approvers are trusted accounts and must not
-            // hit the email/account verification walls before they can log in.
+            'password' => Hash::make(self::DEFAULT_PASSWORD),
+            // The admin vouches for the address — approvers are trusted
+            // accounts and must not hit the email/account verification walls
+            // before they can log in.
             'email_verified_at' => now(),
             'account_status' => AccountStatus::Verified,
         ]);
@@ -65,7 +72,14 @@ class ProvisionApprover
             'organization_id' => $scope['organization_id'] ?? null,
         ]);
 
-        Password::broker(config('fortify.passwords'))->sendResetLink(['email' => $email]);
+        try {
+            $user->notify(new ApproverProvisionedNotification($role, self::DEFAULT_PASSWORD));
+        } catch (\Throwable $e) {
+            Log::error('Approver-provisioned notification failed to dispatch', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         return $user;
     }

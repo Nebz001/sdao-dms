@@ -79,7 +79,7 @@ class ApproverController extends Controller
         );
 
         return redirect()->route('admin.approvers.index')
-            ->with('flash', ['message' => 'Approver created — a password-reset link has been sent to their email.']);
+            ->with('flash', ['message' => 'Approver created — their login details have been emailed to them.']);
     }
 
     private function scopeLabel(RoleAssignment $ra): string

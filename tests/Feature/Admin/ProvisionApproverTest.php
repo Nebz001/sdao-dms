@@ -8,11 +8,13 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use App\Notifications\ApproverProvisionedNotification;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
@@ -154,7 +156,21 @@ test('a provisioned approver lands account-Verified and email-verified — no ve
     expect($user->email_verified_at)->not->toBeNull();
 });
 
-test('provisioning sends a real password-reset notification and never sets a usable password directly', function () {
+test('provisioning sets the default ict@1234 password immediately — no reset-link limbo', function () {
+    Notification::fake();
+
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Password Check',
+        email: 'password-check@nu-lipa.edu.ph',
+        role: Role::SdaoMember,
+        scope: [],
+    );
+
+    expect(Hash::check(ProvisionApprover::DEFAULT_PASSWORD, $user->password))->toBeTrue();
+});
+
+test('provisioning sends a real ApproverProvisionedNotification carrying the default password to the new approver', function () {
     Notification::fake();
 
     $user = $this->action->execute(
@@ -165,13 +181,82 @@ test('provisioning sends a real password-reset notification and never sets a usa
         scope: [],
     );
 
-    expect($user->password)->not->toBeNull();
+    Notification::assertSentTo(
+        $user,
+        ApproverProvisionedNotification::class,
+        function (ApproverProvisionedNotification $notification, array $channels) use ($user) {
+            expect($channels)->toContain('mail')
+                ->and($notification->role)->toBe(Role::SdaoMember)
+                ->and($notification->temporaryPassword)->toBe(ProvisionApprover::DEFAULT_PASSWORD);
 
-    // The framework's real, email-bearing password-reset notification was
-    // dispatched to the newly-provisioned approver — this is what actually
-    // sends through Laravel's Mail pipeline (MAIL_MAILER=log locally, a real
-    // provider in production), not a no-op.
-    Notification::assertSentTo($user, ResetPassword::class);
+            $mail = $notification->toMail($user);
+            $mail->assertHasSubject('Your SDAO approver account has been created');
+            $mail->assertSeeInHtml(ProvisionApprover::DEFAULT_PASSWORD, false);
+            $mail->assertSeeInHtml(route('login'), false);
+            $mail->assertSeeInHtml(route('security.edit'), false);
+
+            return true;
+        },
+    );
+});
+
+test('the default password never leaks into the persisted in-app notification payload', function () {
+    Notification::fake();
+
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Bell Check',
+        email: 'bell-check@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $this->school->id],
+    );
+
+    Notification::assertSentTo(
+        $user,
+        ApproverProvisionedNotification::class,
+        function (ApproverProvisionedNotification $notification) use ($user) {
+            expect($notification->toArray($user))->not->toContain(ProvisionApprover::DEFAULT_PASSWORD);
+
+            return true;
+        },
+    );
+});
+
+test('a notification dispatch failure is logged but does not prevent provisioning from succeeding', function () {
+    Log::spy();
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
+
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Mail Down',
+        email: 'mail-down@nu-lipa.edu.ph',
+        role: Role::SdaoMember,
+        scope: [],
+    );
+
+    expect(Hash::check(ProvisionApprover::DEFAULT_PASSWORD, $user->password))->toBeTrue();
+
+    Log::shouldHaveReceived('error')
+        ->withArgs(fn (string $message) => $message === 'Approver-provisioned notification failed to dispatch')
+        ->atLeast()->once();
+});
+
+test('a newly provisioned approver can really log in with the default password', function () {
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Can Login',
+        email: 'can-login@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $this->school->id],
+    );
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => ProvisionApprover::DEFAULT_PASSWORD,
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    $response->assertRedirect(route('dashboard', absolute: false));
 });
 
 test('the store endpoint provisions an adviser with no organization_id — the unbound available-pool path', function () {
