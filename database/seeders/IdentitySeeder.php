@@ -48,7 +48,7 @@ class IdentitySeeder extends Seeder
 
         // ── Regular school: School of Computing and IT (CCIT) ────────────────
 
-        $ccit = School::create(['name' => 'School of Computing and IT', 'type' => 'regular']);
+        $ccit = School::firstOrCreate(['name' => 'School of Computing and IT'], ['type' => 'regular']);
         $dean = $this->user('Dean CCIT', 'dean-ccit@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $dean->id, 'role' => Role::Dean, 'school_id' => $ccit->id]);
 
@@ -86,12 +86,12 @@ class IdentitySeeder extends Seeder
 
         // ── Empty-shell regular schools (structure present, no people yet) ───
 
-        School::create(['name' => 'School of Business and Accountancy', 'type' => 'regular']);
-        School::create(['name' => 'School of Health Sciences', 'type' => 'regular']);
+        School::firstOrCreate(['name' => 'School of Business and Accountancy'], ['type' => 'regular']);
+        School::firstOrCreate(['name' => 'School of Health Sciences'], ['type' => 'regular']);
 
         // ── Senior High School ───────────────────────────────────────────────
 
-        $shs = School::create(['name' => 'Senior High School', 'type' => 'senior_high']);
+        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high']);
         $principal = $this->user('Principal SHS', 'principal-shs@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $principal->id, 'role' => Role::Principal, 'school_id' => $shs->id]);
 
