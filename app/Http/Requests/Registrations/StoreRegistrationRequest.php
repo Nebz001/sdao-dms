@@ -26,7 +26,9 @@ class StoreRegistrationRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'school_id' => ['required', 'integer', 'exists:schools,id'],
+            // Extra-Curricular orgs are university-wide and have no college
+            // (Phase 2 remediation item 3) — required only for Co-Curricular.
+            'school_id' => ['nullable', 'integer', 'exists:schools,id', 'required_if:organization_type,'.OrganizationType::CoCurricular->value],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             // Must be a real, admin-provisioned adviser account — role-scoped
             // so a valid-but-non-adviser user id is rejected here, not just
@@ -76,8 +78,27 @@ class StoreRegistrationRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $schoolId = $this->integer('school_id');
+            $organizationType = OrganizationType::tryFrom($this->string('organization_type')->toString());
+            $schoolId = $this->input('school_id') !== null ? $this->integer('school_id') : null;
             $programId = $this->input('program_id') !== null ? $this->integer('program_id') : null;
+
+            // Extra-Curricular orgs are university-wide and have no college —
+            // reject a half-set combination outright rather than silently
+            // dropping whichever the client sent. Without this, a college
+            // could get attached to an org that RoleDirectory/
+            // ProposalVariantResolver assume has none (they key off
+            // hasNoSchool(), not organization_type).
+            if ($organizationType === OrganizationType::ExtraCurricular) {
+                if ($schoolId !== null) {
+                    $validator->errors()->add('school_id', 'An Extra-Curricular organization has no college — leave this blank.');
+                }
+
+                if ($programId !== null) {
+                    $validator->errors()->add('program_id', 'An Extra-Curricular organization has no program — leave this blank.');
+                }
+
+                return;
+            }
 
             if ($programId !== null) {
                 $belongsToSchool = Program::where('id', $programId)->where('school_id', $schoolId)->exists();

@@ -136,3 +136,21 @@ test('the chosen adviser_id must actually hold Role::Adviser', function () {
         adviserId: $notAnAdviser->id,
     ))->toThrow(ValidationException::class);
 });
+
+// ── College-less (Extra-Curricular) founding — Phase 2 remediation item 3 ──
+
+test('an Extra-Curricular organization can be founded with no college', function () {
+    $student = User::factory()->create();
+    $adviser = availableAdviser();
+
+    $document = $this->action->execute(
+        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular]),
+        actor: $student,
+        schoolId: null,
+        adviserId: $adviser->id,
+    );
+
+    expect($document->organization->school_id)->toBeNull();
+    expect($document->organization->program_id)->toBeNull();
+    expect($document->organization->hasNoSchool())->toBeTrue();
+});

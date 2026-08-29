@@ -45,6 +45,9 @@ beforeEach(function () {
     $this->execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
     $this->adviserShs = User::where('email', 'adviser-shs@nu-lipa.edu.ph')->firstOrFail();
     $this->principalShs = User::where('email', 'principal-shs@nu-lipa.edu.ph')->firstOrFail();
+    $this->chessClub = Organization::where('name', 'University Chess Club')->firstOrFail();
+    $this->studentEpsilon = User::where('email', 'student-epsilon@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->adviserExtraCurricular = User::where('email', 'adviser-extracurricular@nu-lipa.edu.ph')->firstOrFail();
 });
 
 /**
@@ -382,6 +385,45 @@ test('an SHS proposal, once its Reviewed-by step approves, records the Principal
     $data = dataForProposal($doc);
     expect($data['narrative_signatures']['reviewed_by']->names)->toBe(['Principal SHS']);
     expect($data['narrative_signatures']['reviewed_by']->date)->not->toBeNull();
+});
+
+// ── College-less (Extra-Curricular) org — Phase 2 remediation item 3 ─────
+
+test('a college-less org\'s proposal omits both "Reviewed by" and "Noted by" entirely, not blank', function () {
+    $doc = activityProposalPrintDocument($this->chessClub, $this->studentEpsilon, ProposalVariant::ExtraCurricularOnCalendar);
+    $data = dataForProposal($doc);
+
+    expect($data['is_shs'])->toBeFalse();
+    expect($data['school_name'])->toBeNull();
+    expect($data['program_name'])->toBeNull();
+    // Omitted (null), not a SignatureBlock with a blank name under the wrong
+    // role label — this org's chain has neither a program chair, a dean, nor
+    // a principal, so there is nothing to print for either block.
+    expect($data['narrative_signatures']['reviewed_by'])->toBeNull();
+    expect($data['narrative_signatures']['noted_by'])->toBeNull();
+});
+
+test('a college-less org\'s proposal still resolves its adviser and tail signatures normally', function () {
+    $doc = activityProposalPrintDocument($this->chessClub, $this->studentEpsilon, ProposalVariant::ExtraCurricularOnCalendar);
+    $data = dataForProposal($doc);
+
+    expect($data['narrative_signatures']['adviser']->names)->toBe(['Adviser Extra-Curricular']);
+});
+
+/*
+ * The actual bug this whole section guards against lived in the Blade
+ * template, not data() — reviewed_by was unconditionally dereferenced
+ * (->names) with no @if wrapper, since it was never null before a
+ * college-less org could exist. dataForProposal() alone can't catch that;
+ * this renders the real HTTP print route.
+ */
+test('a college-less org\'s proposal print route renders without error', function () {
+    $doc = activityProposalPrintDocument($this->chessClub, $this->studentEpsilon, ProposalVariant::ExtraCurricularOnCalendar);
+
+    $this->actingAs($this->studentEpsilon)
+        ->withoutVite()
+        ->get(route('documents.print', $doc))
+        ->assertOk();
 });
 
 // ── RoleDirectory-unresolvable-role degradation ──────────────────────────

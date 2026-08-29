@@ -105,7 +105,7 @@ class RegistrationController extends Controller
         $document = $action->execute(
             actor: $user,
             name: $request->string('name')->toString(),
-            schoolId: $request->integer('school_id'),
+            schoolId: $request->filled('school_id') ? $request->integer('school_id') : null,
             programId: $request->filled('program_id') ? $request->integer('program_id') : null,
             adviserId: $request->integer('adviser_id'),
             organizationType: OrganizationType::from($request->string('organization_type')->toString()),

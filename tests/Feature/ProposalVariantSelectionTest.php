@@ -28,8 +28,10 @@ beforeEach(function () {
 
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
+    $this->chessClub = Organization::where('name', 'University Chess Club')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $this->studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->studentEpsilon = User::where('email', 'student-epsilon@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
 function proposalApprovedActivity(Organization $org): CalendarActivity
@@ -97,6 +99,16 @@ test('SHS org + on-calendar → ShsOnCalendar variant', function () {
 test('SHS org + off-calendar → ShsOffCalendar variant', function () {
     $variant = $this->resolver->resolve($this->shsCouncil, ProposalCalendarMode::OffCalendar);
     expect($variant)->toBe(ProposalVariant::ShsOffCalendar);
+});
+
+test('college-less org + on-calendar → ExtraCurricularOnCalendar variant', function () {
+    $variant = $this->resolver->resolve($this->chessClub, ProposalCalendarMode::OnCalendar);
+    expect($variant)->toBe(ProposalVariant::ExtraCurricularOnCalendar);
+});
+
+test('college-less org + off-calendar → ExtraCurricularOffCalendar variant', function () {
+    $variant = $this->resolver->resolve($this->chessClub, ProposalCalendarMode::OffCalendar);
+    expect($variant)->toBe(ProposalVariant::ExtraCurricularOffCalendar);
 });
 
 // ── Integration: submitted document binds correct template ─────────────────
@@ -220,4 +232,76 @@ test('SHS off-calendar: submitted doc binds template with SDAO-first then advise
     expect($firstStep->role)->toBe(Role::SdaoMember);
     expect($secondStep->role)->toBe(Role::Adviser);
     expect($thirdStep->role)->toBe(Role::Principal);
+});
+
+test('college-less on-calendar: submitted doc binds template with adviser then SDAO, skipping chair/dean', function () {
+    $activity = proposalApprovedActivity($this->chessClub);
+
+    $draft = $this->startDraft->execute(
+        actor: $this->studentEpsilon,
+        organization: $this->chessClub,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+    );
+
+    $result = $this->submitProposal->execute(
+        actor: $this->studentEpsilon,
+        document: $draft,
+        objectives: 'Objectives',
+        narrative: 'Narrative',
+    );
+
+    $doc = $result['document'];
+    expect($doc->variant)->toBe(ProposalVariant::ExtraCurricularOnCalendar);
+
+    $steps = WorkflowStep::where('workflow_template_id', $doc->workflow_template_id)
+        ->orderBy('position')
+        ->pluck('role');
+
+    // No ProgramChair, no Dean, no Principal — straight from adviser to SDAO.
+    expect($steps->all())->toBe([
+        Role::Adviser,
+        Role::SdaoMember,
+        Role::AssistantDirectorAcademicServices,
+        Role::AcademicDirector,
+        Role::ExecutiveDirector,
+    ]);
+});
+
+test('college-less off-calendar: submitted doc binds template with SDAO-first then adviser, skipping chair/dean', function () {
+    $draft = app(StartProposalDraft::class)->execute(
+        actor: $this->studentEpsilon,
+        organization: $this->chessClub,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: [
+            'title' => 'Chess Club Off Calendar Test',
+            'venue' => 'Student Lounge',
+            'activity_date' => '2026-11-06',
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+            'term' => 'first_term',
+        ],
+    );
+
+    $result = $this->submitProposal->execute(
+        actor: $this->studentEpsilon,
+        document: $draft,
+        objectives: 'Objectives',
+        narrative: 'Narrative',
+    );
+
+    $doc = $result['document'];
+    expect($doc->variant)->toBe(ProposalVariant::ExtraCurricularOffCalendar);
+
+    $steps = WorkflowStep::where('workflow_template_id', $doc->workflow_template_id)
+        ->orderBy('position')
+        ->pluck('role');
+
+    expect($steps->all())->toBe([
+        Role::SdaoMember,
+        Role::Adviser,
+        Role::AssistantDirectorAcademicServices,
+        Role::AcademicDirector,
+        Role::ExecutiveDirector,
+    ]);
 });

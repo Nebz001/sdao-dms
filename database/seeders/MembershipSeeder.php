@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
  *   - Student Delta  → Secretary, Computing Society  (new account — exercises equal-partner rule)
  *   - Student Beta   → President, IT Guild
  *   - Student Gamma  → President, SHS Student Council
+ *   - Student Epsilon → President, University Chess Club (Extra-Curricular, no college)
  */
 class MembershipSeeder extends Seeder
 {
@@ -34,10 +35,12 @@ class MembershipSeeder extends Seeder
         $computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
         $itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
         $shsCouncil = Organization::where('name', 'SHS Student Council')->firstOrFail();
+        $chessClub = Organization::where('name', 'University Chess Club')->firstOrFail();
 
         $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
         $studentBeta = User::where('email', 'student-beta@students.nu-lipa.edu.ph')->firstOrFail();
         $studentGamma = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
+        $studentEpsilon = User::where('email', 'student-epsilon@students.nu-lipa.edu.ph')->firstOrFail();
 
         // Extra student: Secretary of Computing Society (exercises equal-partner rule).
         $studentDelta = User::factory()->create([
@@ -55,6 +58,7 @@ class MembershipSeeder extends Seeder
         $this->bind($studentDelta, $computingSociety, OfficerPosition::Secretary, $academicYear);
         $this->bind($studentBeta, $itGuild, OfficerPosition::President, $academicYear);
         $this->bind($studentGamma, $shsCouncil, OfficerPosition::President, $academicYear);
+        $this->bind($studentEpsilon, $chessClub, OfficerPosition::President, $academicYear);
     }
 
     private function bind(User $student, Organization $org, OfficerPosition $position, string $academicYear): void

@@ -245,16 +245,21 @@
                 <div class="muted-note">Adviser, {{ $rso_name }} — Date: {{ $narrative_signatures['adviser']->date }}</div>
             </td>
         </tr>
-        <tr>
-            <td class="label-col">Reviewed by:</td>
-            <td>
-                @foreach ($narrative_signatures['reviewed_by']->names as $name)
-                    {{ $name }}
-                @endforeach
-                <div class="rule"></div>
-                <div class="muted-note">{{ $narrative_signatures['reviewed_by']->roleLabel }}, {{ $school_name }} — Date: {{ $narrative_signatures['reviewed_by']->date }}</div>
-            </td>
-        </tr>
+        @if ($narrative_signatures['reviewed_by'])
+            <tr>
+                <td class="label-col">Reviewed by:</td>
+                <td>
+                    @foreach ($narrative_signatures['reviewed_by']->names as $name)
+                        {{ $name }}
+                    @endforeach
+                    <div class="rule"></div>
+                    <div class="muted-note">{{ $narrative_signatures['reviewed_by']->roleLabel }}, {{ $school_name }} — Date: {{ $narrative_signatures['reviewed_by']->date }}</div>
+                </td>
+            </tr>
+        @endif
+        {{-- A college-less (Extra-Curricular) org's chain has neither a
+             program chair, a dean, nor a principal — both "Reviewed by:" and
+             "Noted by:" are omitted entirely rather than printed blank. --}}
         @if ($narrative_signatures['noted_by'])
             <tr>
                 <td class="label-col">Noted by:</td>

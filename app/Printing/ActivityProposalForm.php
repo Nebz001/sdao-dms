@@ -142,6 +142,12 @@ class ActivityProposalForm implements PrintableForm
         $organization = $document->organization;
         $activity = $proposal->calendarActivity;
         $isShs = $organization->belongsToSeniorHighSchool();
+        // Extra-Curricular, no college (Phase 2 remediation item 3) — the
+        // ExtraCurricular* workflow variants skip program chair AND dean
+        // outright rather than collapsing them into one role the way SHS's
+        // principal does, so there is no substitute signature to print for
+        // either block.
+        $hasNoSchool = $organization->hasNoSchool();
 
         return [
             'form_number' => self::FORM_NUMBER,
@@ -219,15 +225,20 @@ class ActivityProposalForm implements PrintableForm
                     fn () => $this->roleDirectory->adviserFor($organization),
                 ),
                 // SHS collapses "Reviewed by: Program Chair" + "Noted by:
-                // Dean" into one "Reviewed by: Principal" block — the
-                // program-chair/dean resolvers are only ever called for a
-                // regular-school org, so their LogicException on an SHS org
-                // is avoided by this branch, not relied upon as the primary
-                // safety net (resolveSignature()'s catch is defense in depth).
-                'reviewed_by' => $isShs
-                    ? $this->resolveSignature($document, Role::Principal, fn () => $this->roleDirectory->principalFor($organization))
-                    : $this->resolveSignature($document, Role::ProgramChair, fn () => $this->roleDirectory->programChairFor($organization)),
-                'noted_by' => $isShs
+                // Dean" into one "Reviewed by: Principal" block; a
+                // college-less org skips both outright — its chain has
+                // neither a program chair, a dean, nor a principal. Either
+                // way, the program-chair/dean resolvers are only ever called
+                // for a regular-school org, so their LogicException on an
+                // SHS or college-less org is avoided by these branches, not
+                // relied upon as the primary safety net (resolveSignature()'s
+                // catch is defense in depth).
+                'reviewed_by' => match (true) {
+                    $hasNoSchool => null,
+                    $isShs => $this->resolveSignature($document, Role::Principal, fn () => $this->roleDirectory->principalFor($organization)),
+                    default => $this->resolveSignature($document, Role::ProgramChair, fn () => $this->roleDirectory->programChairFor($organization)),
+                },
+                'noted_by' => ($isShs || $hasNoSchool)
                     ? null
                     : $this->resolveSignature($document, Role::Dean, fn () => $this->roleDirectory->deanFor($organization)),
             ],

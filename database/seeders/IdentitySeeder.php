@@ -105,6 +105,20 @@ class IdentitySeeder extends Seeder
 
         $studentGamma = $this->user('Student Gamma', 'student-gamma@students.nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $studentGamma->id, 'role' => Role::Student, 'organization_id' => $shsCouncil->id]);
+
+        // ── Extra-Curricular organization — no college (Phase 2 remediation
+        //    item 3) — school_id and program_id are both null. ─────────────
+
+        $adviserExtraCurricular = $this->user('Adviser Extra-Curricular', 'adviser-extracurricular@nu-lipa.edu.ph');
+        $chessClub = Organization::create([
+            'name' => 'University Chess Club',
+            'school_id' => null,
+            'program_id' => null,
+        ]);
+        RoleAssignment::create(['user_id' => $adviserExtraCurricular->id, 'role' => Role::Adviser, 'organization_id' => $chessClub->id]);
+
+        $studentEpsilon = $this->user('Student Epsilon', 'student-epsilon@students.nu-lipa.edu.ph');
+        RoleAssignment::create(['user_id' => $studentEpsilon->id, 'role' => Role::Student, 'organization_id' => $chessClub->id]);
     }
 
     private function user(string $name, string $email): User

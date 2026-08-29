@@ -16,10 +16,13 @@ use Illuminate\Database\Seeder;
  * Short chains (4): Registration, Renewal, ActivityCalendar, AfterActivityReport
  *   — each is a single SDAO step requiring both members to approve.
  *
- * Proposal variants (4): RegularOnCalendar, RegularOffCalendar, ShsOnCalendar,
- *   ShsOffCalendar — each variant is its own template row, not a code branch.
- *   SDAO appears exactly once in every variant; off-calendar moves it to step 1.
- *   SHS replaces ProgramChair + Dean with a single Principal (invariant #8).
+ * Proposal variants (6): RegularOnCalendar, RegularOffCalendar, ShsOnCalendar,
+ *   ShsOffCalendar, ExtraCurricularOnCalendar, ExtraCurricularOffCalendar —
+ *   each variant is its own template row, not a code branch. SDAO appears
+ *   exactly once in every variant; off-calendar moves it to step 1. SHS
+ *   replaces ProgramChair + Dean with a single Principal (invariant #8);
+ *   ExtraCurricular (a college-less org, Phase 2 remediation item 3) skips
+ *   both outright rather than substituting a replacement role.
  */
 class WorkflowTemplateSeeder extends Seeder
 {
@@ -84,6 +87,33 @@ class WorkflowTemplateSeeder extends Seeder
                 [Role::SdaoMember, 2],  // SDAO relocated to front for off-calendar
                 [Role::Adviser, 1],
                 [Role::Principal, 1],
+                [Role::AssistantDirectorAcademicServices, 1],
+                [Role::AcademicDirector, 1],
+                [Role::ExecutiveDirector, 1],
+            ],
+        );
+
+        $this->template(
+            FormType::ActivityProposal,
+            ProposalVariant::ExtraCurricularOnCalendar,
+            'Activity Proposal — Extra-Curricular (No College), On-Calendar',
+            [
+                [Role::Adviser, 1],
+                // No ProgramChair/Dean step — a college-less org has neither.
+                [Role::SdaoMember, 2],
+                [Role::AssistantDirectorAcademicServices, 1],
+                [Role::AcademicDirector, 1],
+                [Role::ExecutiveDirector, 1],
+            ],
+        );
+
+        $this->template(
+            FormType::ActivityProposal,
+            ProposalVariant::ExtraCurricularOffCalendar,
+            'Activity Proposal — Extra-Curricular (No College), Off-Calendar',
+            [
+                [Role::SdaoMember, 2],  // SDAO relocated to front for off-calendar
+                [Role::Adviser, 1],
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],

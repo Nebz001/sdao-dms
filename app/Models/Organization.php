@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property string $name
- * @property int $school_id
- * @property int|null $program_id Null for SHS orgs that belong directly to SHS.
+ * @property int|null $school_id Null for an Extra-Curricular org with no college (see hasNoSchool()).
+ * @property int|null $program_id Null for SHS orgs (belong directly to SHS) and for a college-less org.
  */
 #[Fillable(['name', 'school_id', 'program_id'])]
 class Organization extends Model
@@ -43,8 +43,26 @@ class Organization extends Model
         return $this->hasMany(RoleAssignment::class);
     }
 
+    /**
+     * NOT `$this->program_id === null` — that used to be sufficient (only a
+     * genuine SHS org had no program), but an Extra-Curricular org with no
+     * college (see hasNoSchool()) also has a null program_id without being
+     * SHS. Checking the school's own type is unambiguous either way.
+     */
     public function belongsToSeniorHighSchool(): bool
     {
-        return $this->program_id === null;
+        return $this->school?->type === 'senior_high';
+    }
+
+    /**
+     * True for an Extra-Curricular org, which is university-wide and has no
+     * college — see StoreRegistrationRequest's conditional school_id
+     * requirement. Routes through the ExtraCurricular* proposal variants
+     * (ProposalVariantResolver), which skip both the program-chair and dean
+     * steps.
+     */
+    public function hasNoSchool(): bool
+    {
+        return $this->school_id === null;
     }
 }

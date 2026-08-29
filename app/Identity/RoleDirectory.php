@@ -40,12 +40,17 @@ class RoleDirectory
     }
 
     /**
-     * Only valid for regular-school organizations (those with a program).
+     * Only valid for regular-school organizations (those with both a school
+     * and a program).
      *
      * @throws ModelNotFoundException|\LogicException
      */
     public function programChairFor(Organization $organization): User
     {
+        if ($organization->hasNoSchool()) {
+            throw new \LogicException('An Extra-Curricular organization with no college has no program chair.');
+        }
+
         if ($organization->belongsToSeniorHighSchool()) {
             throw new \LogicException('Senior High School organizations have no program chair.');
         }
@@ -58,12 +63,16 @@ class RoleDirectory
     }
 
     /**
-     * Only valid for regular-school organizations.
+     * Only valid for regular-school organizations (those with a school).
      *
      * @throws ModelNotFoundException|\LogicException
      */
     public function deanFor(Organization $organization): User
     {
+        if ($organization->hasNoSchool()) {
+            throw new \LogicException('An Extra-Curricular organization with no college has no dean.');
+        }
+
         if ($organization->belongsToSeniorHighSchool()) {
             throw new \LogicException('Senior High School has no dean.');
         }

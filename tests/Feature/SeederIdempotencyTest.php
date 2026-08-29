@@ -44,8 +44,10 @@ test('rerunning the production seeders is a no-op, not a duplicate insert', func
     $this->seed($seeders);
 
     expect($counts())->toBe($firstRun);
-    expect(WorkflowTemplate::count())->toBe(8);
-    expect(WorkflowStep::count())->toBe(30);
+    // 4 short chains + 6 proposal variants (Regular/SHS/ExtraCurricular ×
+    // on/off-calendar — Phase 2 remediation item 3 added the latter pair).
+    expect(WorkflowTemplate::count())->toBe(10);
+    expect(WorkflowStep::count())->toBe(40);
     expect(User::count())->toBe(20);
     expect(RoleAssignment::count())->toBe(20);
 });

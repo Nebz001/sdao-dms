@@ -44,7 +44,7 @@ class SubmitOrganizationRegistration
     public function execute(
         User $actor,
         string $name,
-        int $schoolId,
+        ?int $schoolId,
         ?int $programId,
         int $adviserId,
         OrganizationType $organizationType,

@@ -38,6 +38,11 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
 };
 
+// Matches App\Enums\OrganizationType::CoCurricular->value. An Extra-Curricular
+// org is university-wide and has no college (Phase 2 remediation item 3) —
+// College (and, in turn, Program) only applies to a Co-Curricular org.
+const CO_CURRICULAR = 'co_curricular';
+
 export default function CreateRegistration({ canPropose, schools, organizationTypes, attachmentSlots }: Props) {
     const [name, setName] = useState('');
     const [schoolId, setSchoolId] = useState('');
@@ -62,8 +67,9 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    const needsCollege = organizationType === CO_CURRICULAR;
     const selectedSchool = schools.find((s) => String(s.id) === schoolId);
-    const needsProgram = selectedSchool?.type === 'regular';
+    const needsProgram = needsCollege && selectedSchool?.type === 'regular';
 
     const searchAdvisers = useCallback((query: string) => {
         if (query.trim() === '') {
@@ -134,7 +140,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
             registrations.store().url,
             {
                 name,
-                school_id: schoolId,
+                school_id: needsCollege ? schoolId : '',
                 program_id: needsProgram ? programId : '',
                 adviser_id: selectedAdviser?.id ?? '',
                 organization_type: organizationType,
@@ -178,7 +184,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
 
     const formValid =
         name.trim() !== '' &&
-        schoolId !== '' &&
+        (!needsCollege || schoolId !== '') &&
         (!needsProgram || programId !== '') &&
         selectedAdviser !== null &&
         organizationType !== '' &&
@@ -207,27 +213,59 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="college">College</Label>
+                        <Label htmlFor="organization_type">Type of Organization</Label>
                         <Select
-                            value={schoolId}
+                            value={organizationType}
                             onValueChange={(value) => {
-                                setSchoolId(value);
-                                setProgramId('');
+                                setOrganizationType(value);
+
+                                // Extra-Curricular orgs are university-wide —
+                                // clear a previously-picked college/program
+                                // rather than silently submitting it.
+                                if (value !== CO_CURRICULAR) {
+                                    setSchoolId('');
+                                    setProgramId('');
+                                }
                             }}
                         >
-                            <SelectTrigger id="college" className="w-full">
-                                <SelectValue placeholder="Select college…" />
+                            <SelectTrigger id="organization_type" className="w-full">
+                                <SelectValue placeholder="Select type…" />
                             </SelectTrigger>
                             <SelectContent>
-                                {schools.map((s) => (
-                                    <SelectItem key={s.id} value={String(s.id)}>
-                                        {s.name}
+                                {organizationTypes.map((t) => (
+                                    <SelectItem key={t.value} value={t.value}>
+                                        {t.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        {errors.school_id && <p className="text-sm text-destructive">{errors.school_id}</p>}
+                        {errors.organization_type && <p className="text-sm text-destructive">{errors.organization_type}</p>}
                     </div>
+
+                    {needsCollege && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="college">College</Label>
+                            <Select
+                                value={schoolId}
+                                onValueChange={(value) => {
+                                    setSchoolId(value);
+                                    setProgramId('');
+                                }}
+                            >
+                                <SelectTrigger id="college" className="w-full">
+                                    <SelectValue placeholder="Select college…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {schools.map((s) => (
+                                        <SelectItem key={s.id} value={String(s.id)}>
+                                            {s.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.school_id && <p className="text-sm text-destructive">{errors.school_id}</p>}
+                        </div>
+                    )}
 
                     {needsProgram && (
                         <div className="grid gap-2">
@@ -304,23 +342,6 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             </div>
                         )}
                         {errors.adviser_id && <p className="text-sm text-destructive">{errors.adviser_id}</p>}
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="organization_type">Type of Organization</Label>
-                        <Select value={organizationType} onValueChange={setOrganizationType}>
-                            <SelectTrigger id="organization_type" className="w-full">
-                                <SelectValue placeholder="Select type…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {organizationTypes.map((t) => (
-                                    <SelectItem key={t.value} value={t.value}>
-                                        {t.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.organization_type && <p className="text-sm text-destructive">{errors.organization_type}</p>}
                     </div>
 
                     <div className="grid gap-2">
