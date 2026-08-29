@@ -49,13 +49,22 @@ export type FieldChangeRow = {
 };
 
 /**
- * `status` is 'changed' for every form type except Activity Calendar, whose
- * positional "activity_{i}" sections can also be 'removed' (the student
- * deleted that row on resubmit) or, defensively, 'added'.
+ * `status` is 'changed' for a scalar-field section, for every form type
+ * except Activity Calendar, whose positional "activity_{i}" sections can
+ * also be 'removed' (the student deleted that row on resubmit) or,
+ * defensively, 'added'.
+ *
+ * A flagged ATTACHMENT slot (Registration/Renewal/AfterActivityReport only —
+ * see App\Approval\SectionFields) uses a disjoint trio instead —
+ * 'added' | 'replaced' | 'unchanged' — always paired with an empty `fields`
+ * array, since no filenames are recorded, by design (see
+ * FieldChangeSet::build()). `fields.length === 0` is what
+ * FieldChangeDiff uses to tell an attachment marker apart from a
+ * (structurally always non-empty) calendar-row status of the same name.
  */
 export type SectionFieldChanges = {
     label: string;
-    status: 'changed' | 'removed' | 'added';
+    status: 'changed' | 'removed' | 'added' | 'replaced' | 'unchanged';
     fields: FieldChangeRow[];
 };
 

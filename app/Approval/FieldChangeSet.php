@@ -2,7 +2,9 @@
 
 namespace App\Approval;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
+use App\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -94,21 +96,63 @@ final class FieldChangeSet
      * Every form type except Activity Calendar.
      *
      * Returns null (not an empty array) when nothing is reportable — nothing
-     * flagged, or only sections with no tracked fields (general, attachment
-     * slots, resource_person, event_details). One null check on the frontend.
+     * flagged, or only sections with no tracked fields and no attachment
+     * slot (general, resource_person on Proposal, event_details on Report).
+     * One null check on the frontend.
+     *
+     * $hadAttachmentsBefore and $attachmentFiles are optional and only
+     * matter for a flagged key that is ALSO an attachment slot key (see
+     * AttachmentSlots::for($formType)) — Registration/Renewal/AfterActivity
+     * Report flag attachments this way (SectionFlags::attachmentSlotFlags()
+     * uses the slot key directly as the section key). A caller with no
+     * attachment slots (or that hasn't wired this up) can simply omit them;
+     * every such flagged key then falls through to the scalar-field branch
+     * below, finds no field definitions, and is skipped exactly as before.
      *
      * @param  array<int, string>  $flaggedKeys
      * @param  array<string, mixed>  $old
      * @param  array<string, mixed>  $new
+     * @param  array<string, bool>  $hadAttachmentsBefore  slot key => had at least one file, snapshotted BEFORE AttachmentStorage::storeMany() ran
+     * @param  array<string, mixed>  $attachmentFiles  the same slot_key => file(s) payload passed to storeMany() for this request
      * @return array<string, array{label: string, status: string, fields: array<int, array<string, mixed>>}>|null
      */
-    public static function build(FormType $formType, array $flaggedKeys, array $old, array $new): ?array
-    {
+    public static function build(
+        FormType $formType,
+        array $flaggedKeys,
+        array $old,
+        array $new,
+        array $hadAttachmentsBefore = [],
+        array $attachmentFiles = [],
+    ): ?array {
         $registry = SectionFields::for($formType);
         $labels = SectionFlags::labelsFor($formType);
+        $slotsByKey = collect(AttachmentSlots::for($formType))->keyBy('key');
         $sections = [];
 
         foreach ($flaggedKeys as $key) {
+            $slot = $slotsByKey->get($key);
+
+            if ($slot !== null) {
+                // No filenames recorded, by design — just enough for an
+                // approver to see whether a flagged attachment was actually
+                // touched this resubmit, and whether a single-file slot's
+                // old file was replaced or a multi-file slot only grew.
+                $touched = array_key_exists($key, $attachmentFiles);
+
+                $sections[$key] = [
+                    'label' => $labels[$key] ?? $slot->label,
+                    'status' => match (true) {
+                        ! $touched => 'unchanged',
+                        ! ($hadAttachmentsBefore[$key] ?? false) => 'added',
+                        $slot->multiple => 'added', // accumulates; the old file(s) are never removed
+                        default => 'replaced',
+                    },
+                    'fields' => [],
+                ];
+
+                continue;
+            }
+
             $defs = $registry[$key] ?? [];
 
             if ($defs === []) {
@@ -123,6 +167,33 @@ final class FieldChangeSet
         }
 
         return $sections === [] ? null : $sections;
+    }
+
+    /**
+     * Snapshots which of the flagged, attachment-slot sections currently
+     * have at least one uploaded file — call BEFORE
+     * AttachmentStorage::storeMany() runs, exactly like snapshot() above
+     * must run before its own model writes, so build()'s
+     * $hadAttachmentsBefore reflects the state before this resubmit rather
+     * than after.
+     *
+     * @param  array<int, string>  $flaggedKeys
+     * @return array<string, bool>
+     */
+    public static function snapshotAttachmentPresence(Document $document, array $flaggedKeys): array
+    {
+        $slotKeys = collect(AttachmentSlots::for($document->form_type))->pluck('key');
+        $presence = [];
+
+        foreach ($flaggedKeys as $key) {
+            if (! $slotKeys->contains($key)) {
+                continue;
+            }
+
+            $presence[$key] = $document->attachments()->where('slot_key', $key)->exists();
+        }
+
+        return $presence;
     }
 
     /**

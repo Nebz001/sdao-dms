@@ -64,6 +64,12 @@ class UpdateOrganizationRenewal
             $oldValues = $trackedFields === []
                 ? []
                 : FieldChangeSet::snapshot($document->registrationDetail, $trackedFields);
+            // Same "before" idea, for whichever flagged keys are attachment
+            // slots rather than scalar-field sections — must also run before
+            // this resubmit's storeMany() call below.
+            $hadAttachmentsBefore = $flagged === []
+                ? []
+                : FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
             // academic_year is intentionally NOT included: it is set once at
             // creation (SubmitOrganizationRenewal) and must never change across
@@ -83,11 +89,13 @@ class UpdateOrganizationRenewal
             $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
             $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
-            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+            $fieldChanges = $flagged === [] ? null : FieldChangeSet::build(
                 $document->form_type,
                 $flagged,
                 $oldValues,
                 FieldChangeSet::snapshot($document->registrationDetail()->first(), $trackedFields),
+                $hadAttachmentsBefore,
+                $attachmentFiles,
             );
 
             $this->engine->resubmit($document, $actor, $fieldChanges);

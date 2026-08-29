@@ -15,10 +15,28 @@ use App\Models\OrganizationRegistrationDetail;
  * for the pairing logic and FieldValueFormatter for rendering.
  *
  * Sections deliberately ABSENT here (flagging them is meaningful but
- * produces no diff, exactly as intended):
+ * produces no FIELD diff, exactly as intended):
  *   - 'general'                      — no fields by definition
- *   - every attachment slot key      — file diffs are explicitly out of scope
- *   - 'resource_person' (Proposal)   — attachment-only, no scalar field
+ *   - every attachment slot key      — no scalar fields to diff; a flagged
+ *                                      attachment slot instead gets a
+ *                                      replaced/added/unchanged STATUS
+ *                                      marker (no filenames) via
+ *                                      FieldChangeSet::build()'s own
+ *                                      AttachmentSlots lookup, for the three
+ *                                      form types that flag attachments this
+ *                                      way (Registration, Renewal, After-
+ *                                      Activity Report). ActivityProposal's
+ *                                      one optional attachment is the
+ *                                      exception — see 'resource_person'
+ *                                      below.
+ *   - 'resource_person' (Proposal)   — attachment-only, but uploaded via the
+ *                                      standalone Mode B endpoint
+ *                                      (AttachmentController), independent of
+ *                                      any resubmit request — there is no
+ *                                      "this resubmit's files" payload to
+ *                                      compare against, so the marker above
+ *                                      does not apply here. A real gap, not
+ *                                      an oversight.
  *   - 'event_details' (Report)       — a read-only echo of the linked
  *                                      CalendarActivity; zero editable fields
  *   - 'adviser_selection' on RENEWAL — the key exists in SectionFlags (shared

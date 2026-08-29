@@ -67,6 +67,12 @@ class UpdateOrganizationRegistration
             $oldValues = $trackedFields === []
                 ? []
                 : FieldChangeSet::snapshot($document->registrationDetail, $trackedFields);
+            // Same "before" idea, for whichever flagged keys are attachment
+            // slots (e.g. 'by_laws') rather than scalar-field sections — must
+            // also run before this resubmit's storeMany() call below.
+            $hadAttachmentsBefore = $flagged === []
+                ? []
+                : FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
             $updates = [
                 'organization_type' => $organizationType->value,
@@ -112,11 +118,13 @@ class UpdateOrganizationRegistration
             // through the same casts. ->update() above was a query-builder
             // mass update, so the cached ->registrationDetail relation is
             // stale — ->first() re-queries.
-            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+            $fieldChanges = $flagged === [] ? null : FieldChangeSet::build(
                 $document->form_type,
                 $flagged,
                 $oldValues,
                 FieldChangeSet::snapshot($document->registrationDetail()->first(), $trackedFields),
+                $hadAttachmentsBefore,
+                $attachmentFiles,
             );
 
             $this->engine->resubmit($document, $actor, $fieldChanges);

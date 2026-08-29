@@ -64,6 +64,12 @@ class UpdateAfterActivityReport
             $oldValues = $trackedFields === []
                 ? []
                 : FieldChangeSet::snapshot($document->afterActivityReport, $trackedFields);
+            // Same "before" idea, for whichever flagged keys are attachment
+            // slots (e.g. 'photos') rather than scalar-field sections — must
+            // also run before this resubmit's storeMany() call below.
+            $hadAttachmentsBefore = $flagged === []
+                ? []
+                : FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
             // activity_proposal_id is intentionally NOT included here — the
             // hard link to the approved activity never changes on revision.
@@ -83,11 +89,13 @@ class UpdateAfterActivityReport
             $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
             $this->attachmentStorage->assertRequiredSlotsFilled($document);
 
-            $fieldChanges = $trackedFields === [] ? null : FieldChangeSet::build(
+            $fieldChanges = $flagged === [] ? null : FieldChangeSet::build(
                 $document->form_type,
                 $flagged,
                 $oldValues,
                 FieldChangeSet::snapshot($document->afterActivityReport()->first(), $trackedFields),
+                $hadAttachmentsBefore,
+                $attachmentFiles,
             );
 
             $this->engine->resubmit($document, $actor, $fieldChanges);

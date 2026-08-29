@@ -4,6 +4,7 @@ use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\Approval\ApprovalEngine;
+use App\Attachments\AttachmentStorage;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Enums\DocumentStatus;
@@ -11,15 +12,19 @@ use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\TransitionAction;
+use App\Models\ActivityProposal;
+use App\Models\AfterActivityReport;
 use App\Models\Document;
 use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Registrations\UpdateOrganizationRegistration;
+use App\Reports\UpdateAfterActivityReport;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Field-level revision diffs — proof that a resubmission captures the
@@ -370,10 +375,11 @@ test('field_changes is null when the return carried no flags', function () {
     expect(fcResubmitTransition($doc)->field_changes)->toBeNull();
 });
 
-test('field_changes is null when only field-less sections were flagged', function () {
-    // 'general' has no fields by definition; 'by_laws' is an attachment
-    // slot, and file diffs are explicitly out of scope.
-    $doc = fcReturnedRegistration(['general', 'by_laws']);
+test('field_changes is null when only truly field-less sections were flagged', function () {
+    // 'general' has no fields by definition and is not an attachment slot,
+    // so it is skipped entirely — unlike 'by_laws' (see the attachment
+    // marker tests below), it never contributes anything to report.
+    $doc = fcReturnedRegistration(['general']);
 
     $this->updateRegistration->execute(
         actor: $this->student,
@@ -388,6 +394,144 @@ test('field_changes is null when only field-less sections were flagged', functio
     );
 
     expect(fcResubmitTransition($doc)->field_changes)->toBeNull();
+});
+
+// ── (g) a flagged attachment slot gets a status marker, not a field diff ───
+
+test('a flagged attachment slot with no prior file is recorded as added', function () {
+    // fcReturnedRegistration() never stores any attachment before returning
+    // the document, so by_laws has no prior file — the student's first
+    // upload for it on resubmit is "added", not "replaced".
+    $doc = fcReturnedRegistration(['by_laws']);
+
+    $this->updateRegistration->execute(
+        actor: $this->student,
+        document: $doc,
+        organizationType: OrganizationType::CoCurricular,
+        purposeOfOrganization: 'Original purpose.',
+        contactPerson: 'Old Person',
+        contactNo: '09170000000',
+        emailAddress: 'old@nu-lipa.edu.ph',
+        dateOrganized: '2020-06-01',
+        attachmentFiles: registrationAttachmentFiles(),
+    );
+
+    $changes = fcResubmitTransition($doc)->field_changes;
+
+    expect($changes)->toBe([
+        'by_laws' => ['label' => 'By-Laws', 'status' => 'added', 'fields' => []],
+    ]);
+});
+
+test('a flagged attachment slot with a prior file is recorded as replaced when a new one is uploaded', function () {
+    $doc = fcReturnedRegistration(['by_laws']);
+    app(AttachmentStorage::class)->store(
+        $doc,
+        'by_laws',
+        UploadedFile::fake()->create('old-by-laws.pdf', 100, 'application/pdf'),
+        $this->student,
+        multiple: false,
+    );
+
+    $this->updateRegistration->execute(
+        actor: $this->student,
+        document: $doc,
+        organizationType: OrganizationType::CoCurricular,
+        purposeOfOrganization: 'Original purpose.',
+        contactPerson: 'Old Person',
+        contactNo: '09170000000',
+        emailAddress: 'old@nu-lipa.edu.ph',
+        dateOrganized: '2020-06-01',
+        attachmentFiles: registrationAttachmentFiles(),
+    );
+
+    $changes = fcResubmitTransition($doc)->field_changes;
+
+    expect($changes['by_laws']['status'])->toBe('replaced');
+});
+
+test('a flagged attachment slot the student never touched is recorded as unchanged', function () {
+    $doc = fcReturnedRegistration(['by_laws']);
+    app(AttachmentStorage::class)->store(
+        $doc,
+        'by_laws',
+        UploadedFile::fake()->create('existing-by-laws.pdf', 100, 'application/pdf'),
+        $this->student,
+        multiple: false,
+    );
+
+    $filesWithoutByLaws = registrationAttachmentFiles();
+    unset($filesWithoutByLaws['by_laws']);
+
+    $this->updateRegistration->execute(
+        actor: $this->student,
+        document: $doc,
+        organizationType: OrganizationType::CoCurricular,
+        purposeOfOrganization: 'Original purpose.',
+        contactPerson: 'Old Person',
+        contactNo: '09170000000',
+        emailAddress: 'old@nu-lipa.edu.ph',
+        dateOrganized: '2020-06-01',
+        attachmentFiles: $filesWithoutByLaws,
+    );
+
+    $changes = fcResubmitTransition($doc)->field_changes;
+
+    expect($changes['by_laws']['status'])->toBe('unchanged');
+});
+
+test('a flagged multi-file attachment slot with new uploads is recorded as added, never replaced', function () {
+    // AfterActivityReport's 'photos' slot accumulates (multiple: true) — an
+    // existing photo is never removed by a new upload, so "replaced" would
+    // misdescribe what actually happened. Built directly via factories, the
+    // same shortcut fcReturnedRegistration() takes, rather than the full
+    // proposal-approval chain SubmitAfterActivityReport's real callers go
+    // through — the hard link to a real ActivityProposal row is all the
+    // attachment marker itself needs.
+    $update = app(UpdateAfterActivityReport::class);
+
+    $proposalDoc = Document::factory()->create([
+        'form_type' => FormType::ActivityProposal,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Approved,
+        'submitted_by' => $this->student->id,
+    ]);
+    $proposal = ActivityProposal::factory()->create(['document_id' => $proposalDoc->id]);
+
+    $reportDoc = Document::factory()->create([
+        'form_type' => FormType::AfterActivityReport,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Draft,
+        'submitted_by' => $this->student->id,
+    ]);
+    AfterActivityReport::factory()->create([
+        'document_id' => $reportDoc->id,
+        'activity_proposal_id' => $proposal->id,
+        'summary' => 'Summary',
+    ]);
+
+    // assertRequiredSlotsFilled() (run by every resubmit, regardless of what
+    // was flagged) needs every required slot filled — pre-store the other
+    // two so only 'photos' is actually exercised by this test.
+    $storage = app(AttachmentStorage::class);
+    $storage->store($reportDoc, 'evaluation_form', UploadedFile::fake()->create('eval.pdf', 100, 'application/pdf'), $this->student, multiple: false);
+    $storage->store($reportDoc, 'attendance_sheet', UploadedFile::fake()->create('attendance.pdf', 100, 'application/pdf'), $this->student, multiple: false);
+
+    $this->engine->submit($reportDoc, $this->student);
+    $reportDoc->refresh();
+    $this->engine->returnForRevision($reportDoc, $this->sdaoA, 'Add more photos.', ['photos']);
+    $reportDoc->refresh();
+
+    $update->execute(
+        actor: $this->student,
+        document: $reportDoc,
+        summary: 'Summary',
+        attachmentFiles: ['photos' => [UploadedFile::fake()->create('extra.jpg', 200, 'image/jpeg')]],
+    );
+
+    $changes = fcResubmitTransition($reportDoc)->field_changes;
+
+    expect($changes['photos']['status'])->toBe('added');
 });
 
 test('every non-resubmit transition leaves field_changes null', function () {

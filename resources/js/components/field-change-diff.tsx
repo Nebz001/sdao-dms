@@ -1,4 +1,4 @@
-import type { FieldChangeRow, FieldChanges } from '@/types/document-transitions';
+import type { FieldChangeRow, FieldChanges, SectionFieldChanges } from '@/types/document-transitions';
 
 /**
  * Renders the field-level before/after diffs frozen onto a `resubmitted`
@@ -17,6 +17,22 @@ import type { FieldChangeRow, FieldChanges } from '@/types/document-transitions'
  */
 
 const EMPTY = '—';
+
+/** An attachment-slot marker (see SectionFieldChanges' docblock) never has field rows; a calendar-row status always does. */
+function isAttachmentStatus(section: SectionFieldChanges): boolean {
+    return section.fields.length === 0 && (section.status === 'added' || section.status === 'replaced' || section.status === 'unchanged');
+}
+
+function attachmentStatusMessage(status: SectionFieldChanges['status']): string {
+    switch (status) {
+        case 'replaced':
+            return 'The uploaded file was replaced on this revision.';
+        case 'added':
+            return 'A file was uploaded on this revision.';
+        default:
+            return 'No file was uploaded for this on resubmission.';
+    }
+}
 
 export function FieldChangeDiff({ changes }: { changes: FieldChanges | null }) {
     if (!changes) {
@@ -38,21 +54,27 @@ export function FieldChangeDiff({ changes }: { changes: FieldChanges | null }) {
                 return (
                     <div key={key} className="space-y-0.5">
                         <p className="font-medium">{section.label}</p>
-                        {section.status === 'removed' && (
-                            <p className="text-muted-foreground">This activity was removed on resubmission.</p>
-                        )}
-                        {section.status === 'added' && (
-                            <p className="text-muted-foreground">This activity was added on resubmission.</p>
-                        )}
-                        {section.status === 'changed' && changed.length === 0 && (
-                            <p className="text-muted-foreground">No changes were made to this section.</p>
-                        )}
-                        {changed.length > 0 && (
-                            <ul className="space-y-0.5">
-                                {changed.map((field) => (
-                                    <FieldChangeLine key={field.key} field={field} />
-                                ))}
-                            </ul>
+                        {isAttachmentStatus(section) ? (
+                            <p className="text-muted-foreground">{attachmentStatusMessage(section.status)}</p>
+                        ) : (
+                            <>
+                                {section.status === 'removed' && (
+                                    <p className="text-muted-foreground">This activity was removed on resubmission.</p>
+                                )}
+                                {section.status === 'added' && (
+                                    <p className="text-muted-foreground">This activity was added on resubmission.</p>
+                                )}
+                                {section.status === 'changed' && changed.length === 0 && (
+                                    <p className="text-muted-foreground">No changes were made to this section.</p>
+                                )}
+                                {changed.length > 0 && (
+                                    <ul className="space-y-0.5">
+                                        {changed.map((field) => (
+                                            <FieldChangeLine key={field.key} field={field} />
+                                        ))}
+                                    </ul>
+                                )}
+                            </>
                         )}
                     </div>
                 );
