@@ -9,6 +9,7 @@ import {
     UserPlus,
 } from 'lucide-react';
 import ProposalFunnelChart from '@/components/proposal-funnel-chart';
+import { RelativeTime } from '@/components/relative-time';
 import StatTile from '@/components/stat-tile';
 import type { WeeklyDelta } from '@/components/stat-tile';
 import { ActionBadge, StatusBadge } from '@/components/status-badge';
@@ -30,7 +31,7 @@ import {
     EmptyTitle,
 } from '@/components/ui/empty';
 import { useInitials } from '@/hooks/use-initials';
-import { cn, formatRelativeTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
 type QuickStat = {
@@ -312,9 +313,7 @@ export default function AdminDashboard({
                                                 </div>
                                             </div>
                                             <span className={TIMESTAMP_COLUMN_CLASS}>
-                                                {formatRelativeTime(
-                                                    entry.createdAt,
-                                                )}
+                                                <RelativeTime dateString={entry.createdAt} />
                                             </span>
                                         </div>
                                     ))}

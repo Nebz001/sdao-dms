@@ -1,6 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { index as notificationsIndex, markAllRead } from '@/actions/App/Http/Controllers/NotificationController';
 import { NotificationRow } from '@/components/notification-row';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +11,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationRead } from '@/hooks/use-notification-read';
 
 /**
- * The bell's data is deliberately NOT kept fresh by a background poll — see
- * use-document-updates.ts for the pattern this intentionally does not reuse.
- * Freshness instead comes from two cheap sources: the shared `notifications`
- * prop (HandleInertiaRequests::share()) refreshing on every normal page
- * navigation, and a one-shot partial reload fired right here when the panel
- * is actually opened, so what's shown is never more than one click stale.
+ * A user parked on one page (not navigating) used to never learn a new
+ * notification had arrived — freshness came only from the shared
+ * `notifications` prop (HandleInertiaRequests::share()) refreshing on normal
+ * navigation, plus a one-shot reload when the panel opens. This now also
+ * polls in the background (see the effect below), on the same async,
+ * non-interrupting pattern use-document-updates.ts established — that hook
+ * remains the primary Supabase Realtime swap point (see
+ * resources/js/lib/realtime.ts); this is a second, independent poller for a
+ * different prop and should move to Realtime alongside it.
  *
  * The prop itself is a tight, unread-first, ~8-row teaser
  * (HandleInertiaRequests::notificationsFor()) — the full, paginated,
@@ -24,6 +27,13 @@ import { useNotificationRead } from '@/hooks/use-notification-read';
  * "View all notifications" below), same capped-teaser-vs-full-page split as
  * the dashboard's "Recent Activity" card vs. the Activity Log page.
  */
+
+// notificationsFor() runs an unread count plus an 8-row query on every page
+// in the app (HandleInertiaRequests.php) — notifications aren't the queue a
+// user is actively staring at, so this can afford to be much slower than
+// use-document-updates.ts's 5s document poll.
+const NOTIFICATIONS_POLL_INTERVAL_MS = 45_000;
+
 export function NotificationBell() {
     const { notifications } = usePage().props;
     const [loading, setLoading] = useState(false);
@@ -32,6 +42,54 @@ export function NotificationBell() {
 
     const { items, staleIds } = applyOptimistic(notifications?.items ?? []);
     const unreadCount = Math.max(0, (notifications?.unreadCount ?? 0) - staleIds.size);
+
+    // Read inside the poll/visibility callbacks below via a ref rather than
+    // an effect dependency — restarting the interval every time the dropdown
+    // opens/closes would reset its timing for no benefit; a ref just lets
+    // the next tick see the current value instead.
+    const openRef = useRef(open);
+
+    useEffect(() => {
+        openRef.current = open;
+    }, [open]);
+
+    useEffect(() => {
+        function poll() {
+            // Reordering rows (unread-first) out from under a user actively
+            // reading the open dropdown would be jarring — the open-handler
+            // reload above already guarantees freshness at the moment it
+            // matters (when the panel is opened).
+            if (openRef.current || document.visibilityState === 'hidden') {
+                return;
+            }
+
+            // async: true is required, not cosmetic — see
+            // use-document-updates.ts's docblock. The bell mounts on every
+            // page, including review pages with an approve/reject/return
+            // modal; Inertia's sync stream allows only one in-flight visit
+            // and would cancel that submit outright if a poll tick landed on
+            // top of it.
+            router.reload({ only: ['notifications'], async: true });
+        }
+
+        const interval = setInterval(poll, NOTIFICATIONS_POLL_INTERVAL_MS);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        function handleVisibilityChange() {
+            // The moment a backgrounded tab is looked at again is exactly
+            // when a poll tick was most likely missed.
+            if (document.visibilityState === 'visible' && !openRef.current) {
+                router.reload({ only: ['notifications'], async: true });
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
 
     function handleOpenChange(nextOpen: boolean) {
         setOpen(nextOpen);

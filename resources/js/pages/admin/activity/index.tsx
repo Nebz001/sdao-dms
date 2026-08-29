@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import QueueStatStrip from '@/components/queue-stat-strip';
+import { RelativeTime } from '@/components/relative-time';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatRelativeTime, statusLabel } from '@/lib/utils';
+import { statusLabel } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
 type FormTypeOption = { value: string; label: string };
@@ -324,9 +325,7 @@ export default function ActivityLogIndex({
                                             </p>
                                         </div>
                                         <span className="shrink-0 text-sm text-muted-foreground">
-                                            {formatRelativeTime(
-                                                entry.createdAt,
-                                            )}
+                                            <RelativeTime dateString={entry.createdAt} />
                                         </span>
                                     </div>
                                 ))}

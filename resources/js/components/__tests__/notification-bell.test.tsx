@@ -1,8 +1,8 @@
 import type * as InertiaReact from '@inertiajs/react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationBell } from '@/components/notification-bell';
 import type { NotificationItem, NotificationsProp } from '@/types/notifications';
 
@@ -365,5 +365,82 @@ describe('NotificationBell', () => {
         // unrelated to this component's own logic.
         const link = screen.getByRole('link', { name: /View all notifications/ });
         expect(link).toHaveAttribute('href', '/notifications');
+    });
+
+    /*
+     * The bell used to rely solely on normal page navigation (plus a
+     * one-shot reload on open) to refresh the `notifications` prop — a user
+     * parked on one page never learned a new notification had arrived. It
+     * now also polls in the background; these pin the constraints that make
+     * that safe (async, paused while reading, paused while backgrounded).
+     */
+    describe('background polling', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('polls for fresh notifications asynchronously on an interval, without the dropdown open', () => {
+            mockNotifications({ unreadCount: 0, items: [] });
+            render(<NotificationBell />);
+            reloadMock.mockClear();
+
+            act(() => {
+                vi.advanceTimersByTime(45_000);
+            });
+
+            expect(reloadMock).toHaveBeenCalledWith(
+                expect.objectContaining({ only: ['notifications'], async: true }),
+            );
+        });
+
+        it('does not poll while the dropdown is open, so rows are never reshuffled under the cursor', async () => {
+            vi.useRealTimers();
+            mockNotifications({ unreadCount: 0, items: [] });
+            const user = userEvent.setup();
+            render(<NotificationBell />);
+
+            await user.click(screen.getByRole('button', { name: 'Notifications' }));
+            reloadMock.mockClear();
+
+            vi.useFakeTimers();
+            act(() => {
+                vi.advanceTimersByTime(45_000);
+            });
+
+            expect(reloadMock).not.toHaveBeenCalled();
+        });
+
+        it('does not poll while the tab is hidden', () => {
+            mockNotifications({ unreadCount: 0, items: [] });
+            render(<NotificationBell />);
+            reloadMock.mockClear();
+
+            Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+
+            act(() => {
+                vi.advanceTimersByTime(45_000);
+            });
+
+            expect(reloadMock).not.toHaveBeenCalled();
+
+            Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+        });
+
+        it('refreshes once when the tab becomes visible again', () => {
+            mockNotifications({ unreadCount: 0, items: [] });
+            render(<NotificationBell />);
+            reloadMock.mockClear();
+
+            Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+            document.dispatchEvent(new Event('visibilitychange'));
+
+            expect(reloadMock).toHaveBeenCalledWith(
+                expect.objectContaining({ only: ['notifications'], async: true }),
+            );
+        });
     });
 });

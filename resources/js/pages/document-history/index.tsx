@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import QueueStatStrip from '@/components/queue-stat-strip';
+import { RelativeTime } from '@/components/relative-time';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatRelativeTime, statusLabel } from '@/lib/utils';
+import { statusLabel } from '@/lib/utils';
 import * as documentHistory from '@/routes/document-history';
 
 type FormTypeOption = { value: string; label: string };
@@ -256,7 +257,7 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
                                         <div className="min-w-0">
                                             <p className="truncate font-medium">{doc.title}</p>
                                             <p className="truncate text-sm text-muted-foreground">
-                                                {doc.formTypeLabel} · {formatRelativeTime(doc.lastActivityAt)}
+                                                {doc.formTypeLabel} · <RelativeTime dateString={doc.lastActivityAt} />
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">

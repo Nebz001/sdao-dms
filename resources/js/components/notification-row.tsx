@@ -1,7 +1,8 @@
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRelativeTime } from '@/hooks/use-relative-time';
 import { notificationVisual } from '@/lib/notifications';
-import { cn, formatRelativeTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { NotificationItem } from '@/types/notifications';
 
 type Props = {
@@ -26,6 +27,7 @@ type Props = {
 export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
     const isRead = Boolean(item.readAt);
     const { Icon, iconClassName, chipClassName } = notificationVisual(item);
+    const relativeTime = useRelativeTime(item.createdAt);
 
     return (
         <li
@@ -57,7 +59,7 @@ export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
                 <span className={cn('mt-0.5 block truncate text-xs', isRead ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
                     {item.body}
                 </span>
-                <span className="mt-0.5 block text-[11px] text-muted-foreground/70">{formatRelativeTime(item.createdAt)}</span>
+                <span className="mt-0.5 block text-[11px] text-muted-foreground/70">{relativeTime}</span>
             </button>
             {!isRead && (
                 <Button variant="ghost" size="icon" className="size-6 shrink-0" aria-label="Mark as read" onClick={onMarkRead}>
