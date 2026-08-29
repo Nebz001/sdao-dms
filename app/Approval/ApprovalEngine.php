@@ -272,6 +272,45 @@ class ApprovalEngine
         });
     }
 
+    /**
+     * Permanently stops a document with no acting approver — currently used
+     * only when the submitting account is deleted while their document is
+     * still Draft, InReview, or Returned (see
+     * App\Registrations\WithdrawInFlightRegistrations). Unlike reject(), this
+     * has no authorized approver to check: it's a system-initiated stop, not
+     * a review decision. It also works from Draft and Returned, which
+     * reject() cannot reach (Draft has no current step yet; reject() only
+     * guards InReview).
+     *
+     * The document's `status` still becomes Rejected — Approved/Rejected are
+     * the only two terminal statuses (invariant #2) — but the transition is
+     * recorded as Withdrawn, with no actor, so the audit trail doesn't
+     * misattribute this to a reviewer's decision.
+     *
+     * A no-op on a document that is already terminal.
+     */
+    public function withdraw(Document $document, ?string $reason = null): void
+    {
+        if ($document->status->isTerminal()) {
+            return;
+        }
+
+        DB::transaction(function () use ($document, $reason) {
+            $fromStatus = $document->status;
+            $stepPosition = $document->current_step_position;
+
+            $document->status = DocumentStatus::Rejected;
+            $document->current_step_position = null;
+            $document->save();
+
+            $this->recordTransition($document, null, TransitionAction::Withdrawn, $fromStatus, DocumentStatus::Rejected, $stepPosition, $reason);
+
+            // No notifySubmitter() call: the recipient's account is the one
+            // being deleted (or, for any other future caller of this method,
+            // there is no approver decision to report back).
+        });
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------

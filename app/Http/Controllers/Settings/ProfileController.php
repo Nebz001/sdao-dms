@@ -7,10 +7,12 @@ use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Identity\EmailVerification\EmailVerificationCodeService;
 use App\Models\EmailVerificationCode;
+use App\Registrations\WithdrawInFlightRegistrations;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -123,13 +125,22 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, WithdrawInFlightRegistrations $withdrawRegistrations): RedirectResponse
     {
         $user = $request->user();
 
         Auth::logout();
 
-        $user->delete();
+        // Must happen before the delete, in the same transaction: once the
+        // user row is gone, documents.submitted_by nulls out (nullOnDelete)
+        // and there is no way to find "this user's" in-flight registrations
+        // anymore — they'd sit in the review queue with no submitter, and
+        // approving one would hit a NOT NULL constraint (see
+        // WithdrawInFlightRegistrations's docblock).
+        DB::transaction(function () use ($user, $withdrawRegistrations) {
+            $withdrawRegistrations->execute($user);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

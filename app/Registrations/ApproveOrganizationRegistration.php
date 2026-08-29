@@ -26,9 +26,26 @@ class ApproveOrganizationRegistration
 {
     public function __construct(private readonly ApprovalEngine $engine) {}
 
-    /** @throws ValidationException if the chosen adviser is no longer available */
+    /**
+     * @throws ValidationException if the chosen adviser is no longer
+     *                             available, or the submitting account no
+     *                             longer exists
+     */
     public function execute(Document $document, User $actor): Document
     {
+        // Defensive: WithdrawInFlightRegistrations rejects a document before
+        // its submitter's account can be deleted, so submitted_by should
+        // never actually be null here — but this must be checked BEFORE
+        // engine->approve() below, not after: that call can itself finalize
+        // the quorum and flip status to Approved, and there'd be no undoing
+        // that if the OrganizationMembership::create() further down then hit
+        // its NOT NULL constraint on a null user_id.
+        if ($document->submitted_by === null) {
+            throw ValidationException::withMessages([
+                'approve' => 'Cannot approve: the submitting account no longer exists. Reject this registration instead.',
+            ]);
+        }
+
         $document->loadMissing('registrationDetail');
         $adviserId = $document->registrationDetail->adviser_id;
 

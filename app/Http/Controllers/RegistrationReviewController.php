@@ -29,6 +29,13 @@ class RegistrationReviewController extends Controller
             ->with('organization')
             ->where('form_type', FormType::OrganizationRegistration->value)
             ->where('status', DocumentStatus::InReview->value)
+            // Defensive: WithdrawInFlightRegistrations rejects a document
+            // before its submitter's account can be deleted, so this should
+            // never actually match anything — kept as a second layer against
+            // any other future path to a deleted submitted_by (documents.
+            // submitted_by is nullOnDelete), so a submitter-less document can
+            // never show up in the queue with nowhere to route its approval.
+            ->whereNotNull('submitted_by')
             ->orderBy('created_at')
             ->get()
             // Authorization boundary: only documents the actor is currently

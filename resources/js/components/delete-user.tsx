@@ -49,9 +49,12 @@ export default function DeleteUser() {
                         </DialogTitle>
                         <DialogDescription>
                             Once your account is deleted, all of its resources
-                            and data will also be permanently deleted. Please
-                            enter your password to confirm you would like to
-                            permanently delete your account.
+                            and data will also be permanently deleted,
+                            including any pending organization registration
+                            you've submitted — it will be withdrawn and cannot
+                            be resubmitted. Please enter your password to
+                            confirm you would like to permanently delete your
+                            account.
                         </DialogDescription>
 
                         <Form

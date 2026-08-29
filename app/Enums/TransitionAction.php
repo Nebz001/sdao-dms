@@ -24,4 +24,14 @@ enum TransitionAction: string
 
     /** Final step quorum reached; document is now fully approved. */
     case Completed = 'completed';
+
+    /**
+     * System-initiated permanent stop — currently only when the submitting
+     * account is deleted while the document is still in flight (see
+     * ApprovalEngine::withdraw()). Distinct from Rejected: nobody reviewed
+     * and rejected this document, so the transition log should not claim an
+     * approver did. The document's own `status` still becomes Rejected either
+     * way — Approved/Rejected are the only two terminal statuses.
+     */
+    case Withdrawn = 'withdrawn';
 }
