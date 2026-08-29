@@ -59,6 +59,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const latestAdviserQuery = useRef('');
 
     const [processing, setProcessing] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const selectedSchool = schools.find((s) => String(s.id) === schoolId);
@@ -126,6 +127,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
 
     function submit() {
         setProcessing(true);
+        setUploadProgress(0);
         setErrors({});
 
         router.post(
@@ -144,8 +146,18 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                 attachments: attachmentFiles,
             },
             {
+                // A large attachment upload used to look hung — the button
+                // just showed a static "Submitting…" for as long as the
+                // upload took, with no feedback, which is what actually drove
+                // the repeated-click complaint (the "too large" error can
+                // only be reported once the request completes). A visible
+                // percentage makes clear that progress is happening.
+                onProgress: (event) => setUploadProgress(event?.percentage ?? null),
                 onError: (errs) => setErrors(errs as Record<string, string>),
-                onFinish: () => setProcessing(false),
+                onFinish: () => {
+                    setProcessing(false);
+                    setUploadProgress(null);
+                },
             },
         );
     }
@@ -409,7 +421,8 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                 <Button type="button" onClick={submit} disabled={processing}>
                                     {processing ? (
                                         <>
-                                            <Spinner /> Submitting…
+                                            <Spinner />
+                                            {uploadProgress !== null ? `Uploading… ${uploadProgress}%` : 'Submitting…'}
                                         </>
                                     ) : (
                                         'Confirm Submission'

@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ export type AttachmentSlotDef = {
     required: boolean;
     multiple: boolean;
     accept: string;
+    max_kb: number;
 };
 
 export type ExistingAttachment = {
@@ -29,6 +31,13 @@ type Props = {
     onFilesChange?: (files: FileList | null) => void;
 };
 
+/** "10240 KB" -> "10 MB" — slot.max_kb is always a whole number of MB in practice. */
+function formatMaxSize(maxKb: number): string {
+    const mb = maxKb / 1024;
+
+    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
+}
+
 /**
  * Phase 2 item 8, Mode A — one file-input field for a bundled attachment
  * slot, rendered inside the form's existing <Form>/native form so the file
@@ -39,6 +48,36 @@ type Props = {
 export default function AttachmentSlotField({ slot, existing = [], error, onFilesChange }: Props) {
     const fieldName = slot.multiple ? `attachments[${slot.key}][]` : `attachments[${slot.key}]`;
     const isNativeRequired = slot.required && existing.length === 0;
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [sizeError, setSizeError] = useState<string | null>(null);
+
+    /**
+     * Rejects an oversized file at selection time, before any upload starts.
+     * Previously the only size check was server-side, so a large file had to
+     * fully upload (and, past PHP's post_max_size ceiling, needed a repeat
+     * submit click before the failure was even reported — see UploadLimits)
+     * before the user learned anything was wrong.
+     */
+    function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const files = event.target.files;
+        const maxBytes = slot.max_kb * 1024;
+        const oversized = files ? Array.from(files).find((file) => file.size > maxBytes) : undefined;
+
+        if (oversized) {
+            setSizeError(`"${oversized.name}" is too large — this field accepts files up to ${formatMaxSize(slot.max_kb)}.`);
+
+            if (inputRef.current) {
+                inputRef.current.value = '';
+            }
+
+            onFilesChange?.(null);
+
+            return;
+        }
+
+        setSizeError(null);
+        onFilesChange?.(files);
+    }
 
     return (
         <div className="grid gap-2">
@@ -63,20 +102,20 @@ export default function AttachmentSlotField({ slot, existing = [], error, onFile
             )}
 
             <Input
+                ref={inputRef}
                 id={slot.key}
                 type="file"
                 name={onFilesChange ? undefined : fieldName}
                 accept={slot.accept}
                 multiple={slot.multiple}
                 required={isNativeRequired}
-                onChange={onFilesChange ? (e) => onFilesChange(e.target.files) : undefined}
+                onChange={handleChange}
             />
-            {existing.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                    {slot.multiple ? 'Selecting files adds to the ones above.' : 'Selecting a file replaces the one above.'}
-                </p>
-            )}
-            <InputError message={error} />
+            <p className="text-xs text-muted-foreground">
+                {existing.length > 0 && (slot.multiple ? 'Selecting files adds to the ones above. ' : 'Selecting a file replaces the one above. ')}
+                Max {formatMaxSize(slot.max_kb)} per file.
+            </p>
+            <InputError message={sizeError ?? error} />
         </div>
     );
 }

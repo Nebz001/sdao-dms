@@ -157,11 +157,15 @@ class AttachmentSlots
      * Plain-array slot descriptions for a create page (no Document exists
      * yet, so there are no existing files to present) — see
      * presentForDocument() for the show/edit variant. Includes an `accept`
-     * hint (HTML input accept attribute format) derived from the same
-     * mime-type constants as validationRules(), so the frontend never
-     * hardcodes them separately.
+     * hint (HTML input accept attribute format) and `max_kb`, both derived
+     * from the same mime-type/size constants as validationRules(), so the
+     * frontend never hardcodes them separately. `max_kb` lets the frontend
+     * reject an oversized file at selection time instead of only finding out
+     * after a full upload round trip fails validation (or, for a file large
+     * enough to trip PHP's own post_max_size ceiling before Laravel
+     * validation ever runs, after a raw 413 — see UploadLimits).
      *
-     * @return array<int, array{key: string, label: string, required: bool, multiple: bool, accept: string}>
+     * @return array<int, array{key: string, label: string, required: bool, multiple: bool, accept: string, max_kb: int}>
      */
     public static function slotsFor(FormType $formType): array
     {
@@ -171,6 +175,7 @@ class AttachmentSlots
             'required' => $slot->required,
             'multiple' => $slot->multiple,
             'accept' => self::acceptAttributeFor($slot),
+            'max_kb' => $slot->multiple ? self::PHOTO_MAX_KB : self::DOCUMENT_MAX_KB,
         ])->values()->all();
     }
 
