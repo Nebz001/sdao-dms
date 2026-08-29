@@ -5,6 +5,7 @@ namespace App\Printing;
 use App\Enums\TransitionAction;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Support\DisplayTimezone;
 use Carbon\Carbon;
 
 /**
@@ -22,7 +23,7 @@ class AfterActivityReportForm implements PrintableForm
      * Timestamps are stored/cast in UTC; the office and every approver are
      * Asia/Manila. See OrganizationApplicationForm's identical constant.
      */
-    private const string DISPLAY_TZ = 'Asia/Manila';
+    private const string DISPLAY_TZ = DisplayTimezone::ASIA_MANILA;
 
     public function view(): string
     {

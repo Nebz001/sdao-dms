@@ -2,6 +2,7 @@
 
 use App\Mail\EmailVerificationCodeMail;
 use Illuminate\Mail\Markdown;
+use Illuminate\Support\Carbon;
 
 /*
  * The verification code email was redesigned to add the NU Lipa logo and a
@@ -22,6 +23,25 @@ test('the verification email renders the code prominently with the branded heade
         ->toContain('nulp-logo-light-bg.png')
         ->toContain('This code expires at')
         ->toContain("If you didn't request this, you can ignore this email.");
+});
+
+/*
+ * config/app.php has no APP_TIMEZONE override, so $expiresAt arrives here as
+ * a UTC instant. The blade must convert it to Asia/Manila before printing a
+ * clock time, or a Philippine recipient sees a time 8 hours behind their own
+ * clock (confirmed via a real screenshot during manual testing).
+ */
+test('the verification email prints the expiry time converted to Asia/Manila, not UTC', function () {
+    $expiresAt = Carbon::create(2026, 1, 1, 20, 0, 0, 'UTC');
+
+    $mail = new EmailVerificationCodeMail('482913', $expiresAt);
+
+    $html = $mail->render();
+
+    // 20:00 UTC is 04:00 the next day in Asia/Manila (UTC+8).
+    expect($html)
+        ->toContain('This code expires at 4:00 AM')
+        ->not->toContain('This code expires at 8:00 PM');
 });
 
 /*

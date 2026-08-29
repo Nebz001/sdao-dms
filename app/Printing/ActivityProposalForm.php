@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Support\AcademicYear;
+use App\Support\DisplayTimezone;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use LogicException;
@@ -46,7 +47,7 @@ class ActivityProposalForm implements PrintableForm
      * Timestamps are stored/cast in UTC; every approver is Asia/Manila. See
      * OrganizationApplicationForm's identical constant/rationale.
      */
-    private const string DISPLAY_TZ = 'Asia/Manila';
+    private const string DISPLAY_TZ = DisplayTimezone::ASIA_MANILA;
 
     /**
      * "Nature of Activity" checkboxes, verbatim from the docx — 4 rows, maps

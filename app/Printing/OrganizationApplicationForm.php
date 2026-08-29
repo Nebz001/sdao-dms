@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Models\Document;
 use App\Models\OrganizationRegistrationDetail;
 use App\Support\AcademicYear;
+use App\Support\DisplayTimezone;
 use Illuminate\Support\Collection;
 
 /**
@@ -37,7 +38,7 @@ class OrganizationApplicationForm implements PrintableForm
      * every printed Date:/Time: through this one constant rather than
      * scattering timezone conversions across the form.
      */
-    private const string DISPLAY_TZ = 'Asia/Manila';
+    private const string DISPLAY_TZ = DisplayTimezone::ASIA_MANILA;
 
     /**
      * §7 checklist, verbatim from the paper form — deliberately NOT sourced

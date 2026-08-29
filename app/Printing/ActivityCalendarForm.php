@@ -5,6 +5,7 @@ namespace App\Printing;
 use App\Enums\DocumentStatus;
 use App\Enums\TransitionAction;
 use App\Models\Document;
+use App\Support\DisplayTimezone;
 
 /**
  * Printable rendering of the Activity Calendar submission as a landscape PDF
@@ -27,7 +28,7 @@ class ActivityCalendarForm implements PrintableForm
      * Timestamps are stored/cast in UTC; the office and every approver are
      * Asia/Manila. See OrganizationApplicationForm's identical constant.
      */
-    private const string DISPLAY_TZ = 'Asia/Manila';
+    private const string DISPLAY_TZ = DisplayTimezone::ASIA_MANILA;
 
     public function view(): string
     {
