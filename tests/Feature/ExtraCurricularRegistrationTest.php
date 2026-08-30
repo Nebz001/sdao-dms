@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\DocumentStatus;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Program;
 use App\Models\School;
@@ -61,6 +63,44 @@ test('an Extra-Curricular registration is rejected if a college is also submitte
 
     $response->assertInvalid(['school_id']);
     expect(Organization::where('name', 'Attachments Test Org')->exists())->toBeFalse();
+});
+
+/**
+ * Regression for a live production 500 (Singapore/Railway, 2026-08-30): every
+ * non-academic registration failed while academic ones succeeded, because
+ * 2026_08_29_130000_make_organizations_school_id_nullable had never been
+ * applied there — organizations.school_id was still NOT NULL, so the
+ * Organization::create() at SubmitOrganizationRegistration.php:113 threw
+ * SQLSTATE[23502] for the null school_id that only the Extra-Curricular path
+ * supplies. The two tests below pin the schema invariant and the full
+ * submission respectively, so a reverted/unapplied migration fails here
+ * rather than only in production.
+ */
+test('an organization can be persisted with no college', function () {
+    $organization = Organization::create([
+        'name' => 'College-less Org',
+        'school_id' => null,
+        'program_id' => null,
+    ]);
+
+    expect($organization->refresh()->school_id)->toBeNull();
+});
+
+test('an Extra-Curricular registration submission enters the SDAO approval chain', function () {
+    $student = User::factory()->create();
+
+    $this->actingAs($student)->post(route('registrations.store'), array_merge(
+        foundingRegistrationPayload(['organization_type' => 'extra_curricular', 'adviser_id' => unboundAdviserForAttachmentsTest()->id]),
+        ['attachments' => registrationAttachmentFiles()],
+    ))->assertSessionHasNoErrors();
+
+    $organization = Organization::where('name', 'Attachments Test Org')->firstOrFail();
+    $document = Document::where('organization_id', $organization->id)->firstOrFail();
+
+    expect($organization->school_id)->toBeNull()
+        ->and($document->status)->toBe(DocumentStatus::InReview)
+        ->and($document->workflow_template_id)->not->toBeNull()
+        ->and($document->current_step_position)->toBe(1);
 });
 
 test('an Extra-Curricular registration is rejected if a program is also submitted', function () {
