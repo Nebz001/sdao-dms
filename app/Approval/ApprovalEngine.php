@@ -90,6 +90,17 @@ class ApprovalEngine
         $this->guardStatus($document, DocumentStatus::InReview, 'approve');
 
         DB::transaction(function () use ($document, $actor) {
+            // Serialize concurrent approvals on the same document: without
+            // this lock, two near-simultaneous approve() calls (e.g. both
+            // SDAO members approving within moments of each other) can each
+            // read the quorum count below before the other's insert commits,
+            // both see count < required, and neither ever advances the
+            // document even though both approvals end up recorded. Locking
+            // the document row forces a second concurrent transaction to
+            // wait until the first fully commits, so its own count() is
+            // guaranteed to see every approval the first one just wrote.
+            Document::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
+
             $step = $this->resolveCurrentStep($document);
             $approvers = $this->approverResolver->approversFor($step, $document);
 
