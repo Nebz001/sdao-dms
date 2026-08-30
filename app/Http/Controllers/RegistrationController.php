@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
@@ -32,13 +33,24 @@ class RegistrationController extends Controller
      */
     private const int ADVISER_SEARCH_LIMIT = 10;
 
+    private const int PER_PAGE = 20;
+
     /**
      * List: registrations for any org the user is an active officer of, PLUS
      * their own pending founding proposals (Phase 2 item 5) — a founding
      * student has no membership yet on their own not-yet-Approved proposal,
-     * so the org-membership filter alone would hide it from them.
+     * so the org-membership filter alone would hide it from them. Two
+     * audiences share this one query on purpose, not by accident: for an
+     * officer it surfaces their org's original registration record, and for
+     * a not-yet-affiliated founding student it's the only way (besides the
+     * notification bell) to check on a submission they can't act on yet —
+     * the same row, resolved by whichever leg of the OR applies to the
+     * viewer. Structured like DocumentHistoryController: same PER_PAGE, same
+     * meta/links envelope, same clone-before-status-filter stats trick —
+     * reused, not reinvented. Narrower than that one only in scope (always
+     * OrganizationRegistration, so no form_type filter).
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
 
@@ -47,24 +59,79 @@ class RegistrationController extends Controller
             ->where('is_active', true)
             ->pluck('organization_id');
 
-        $documents = Document::query()
-            ->with('organization')
+        // Unrecognized filter values are treated as "no filter" rather than
+        // trusted into the query — same defensive pattern as
+        // DocumentHistoryController::index().
+        $status = DocumentStatus::tryFrom($request->string('status')->toString())?->value;
+        $search = $request->string('search')->trim()->toString();
+
+        $base = Document::query()
             ->where('form_type', FormType::OrganizationRegistration->value)
             ->where(function ($query) use ($organizationIds, $user) {
                 $query->whereIn('organization_id', $organizationIds)
                     ->orWhere('submitted_by', $user->id);
             })
-            ->orderBy('updated_at', 'desc')
-            ->get()
-            ->map(fn (Document $d) => [
-                'id' => $d->id,
-                'title' => $d->title,
-                'status' => $d->status->value,
-                'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
-                'created_at' => $d->created_at,
-            ]);
+            // Title only — it already embeds the org name (see
+            // SubmitOrganizationRegistration::execute()), so this covers
+            // org-name search too without a second predicate.
+            ->when($search !== '', fn ($query) => $query->where('title', 'like', "%{$search}%"));
 
-        return Inertia::render('registrations/index', ['registrations' => $documents]);
+        // Reflects the search filter but NOT the status filter, so the stats
+        // strip always shows what selecting each status would yield — same
+        // trick as DocumentArchiveController/DocumentHistoryController.
+        $counts = (clone $base)
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $documents = (clone $base)
+            ->with('organization:id,name')
+            ->when($status, fn ($query, $value) => $query->where('status', $value))
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+
+        return Inertia::render('registrations/index', [
+            'registrations' => [
+                'data' => collect($documents->items())->map(fn (Document $d) => [
+                    'id' => $d->id,
+                    'title' => $d->title,
+                    'status' => $d->status->value,
+                    'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
+                    'created_at' => $d->created_at,
+                    'href' => route('registrations.show', $d),
+                ])->values(),
+                'meta' => [
+                    'current_page' => $documents->currentPage(),
+                    'last_page' => $documents->lastPage(),
+                    'from' => $documents->firstItem(),
+                    'to' => $documents->lastItem(),
+                    'total' => $documents->total(),
+                ],
+                'links' => [
+                    'prev' => $documents->previousPageUrl(),
+                    'next' => $documents->nextPageUrl(),
+                ],
+            ],
+            'filters' => [
+                'status' => $status,
+                'search' => $search,
+            ],
+            // Values only — the client labels them with statusLabel() from
+            // @/lib/utils, same idiom as DocumentHistoryController::index().
+            'statuses' => collect(DocumentStatus::cases())
+                ->map(fn (DocumentStatus $s) => ['value' => $s->value])
+                ->values(),
+            'stats' => [
+                'total' => (int) $counts->sum(),
+                'inProgress' => (int) ($counts[DocumentStatus::Draft->value] ?? 0)
+                    + (int) ($counts[DocumentStatus::InReview->value] ?? 0)
+                    + (int) ($counts[DocumentStatus::Returned->value] ?? 0),
+                'approved' => (int) ($counts[DocumentStatus::Approved->value] ?? 0),
+                'rejected' => (int) ($counts[DocumentStatus::Rejected->value] ?? 0),
+            ],
+        ]);
     }
 
     /**

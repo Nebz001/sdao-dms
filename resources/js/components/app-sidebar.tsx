@@ -173,6 +173,11 @@ export function AppSidebar() {
                     icon: FilePlus2,
                 },
                 {
+                    title: 'My Registrations',
+                    href: registrations.index(),
+                    icon: Files,
+                },
+                {
                     title: 'Join an Organization',
                     href: organizationsJoin.create(),
                     icon: UserPlus,
