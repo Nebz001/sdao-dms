@@ -116,6 +116,25 @@ class RealRosterSeeder extends Seeder
      */
     private function assignRole(User $user, Role $role, ?School $school = null, ?Program $program = null, ?Organization $organization = null): void
     {
+        // Single-holder global roles (Assistant/Academic/Executive Director)
+        // always win here, regardless of seeding order: this is the
+        // authoritative real-roster seeder, so it must end up as the sole
+        // assignment for these roles even if IdentitySeeder's placeholder
+        // fixture already claimed one (e.g. when both are seeded together,
+        // as tests/Feature/DemoDataSeederTest.php does). firstOrCreate below
+        // matches on user_id too, so it cannot prevent — or correct — a
+        // different user already holding the same global role; updateOrCreate
+        // here always points the role at the real account. See
+        // RoleDirectory::resolveGlobal()'s docblock.
+        if ($role->hasSingleGlobalHolder()) {
+            RoleAssignment::updateOrCreate(
+                ['role' => $role, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+                ['user_id' => $user->id],
+            );
+
+            return;
+        }
+
         RoleAssignment::firstOrCreate([
             'user_id' => $user->id,
             'role' => $role,

@@ -1,10 +1,12 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
+import { CalendarClock } from 'lucide-react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -38,11 +40,22 @@ type PriorRecord = {
     date_organized: string;
 } | null;
 
+type Eligibility = {
+    status: 'eligible' | 'no_prior_record' | 'season_closed' | 'not_yet_due' | 'already_filed' | null;
+    message: string | null;
+};
+
+type CurrentPeriod = {
+    academic_year: string;
+    term: string;
+    label: string;
+};
+
 type Props = {
     membership: Membership | null;
     priorRecord: PriorRecord;
-    alreadyRenewed: boolean;
-    academicYear: string;
+    eligibility: Eligibility;
+    currentPeriod: CurrentPeriod;
     organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
 };
@@ -50,52 +63,43 @@ type Props = {
 export default function CreateRenewal({
     membership,
     priorRecord,
-    alreadyRenewed,
-    academicYear,
+    eligibility,
+    currentPeriod,
     organizationTypes,
     attachmentSlots,
 }: Props) {
-    if (!membership) {
-        return (
-            <>
-                <Head title="Submit Renewal" />
-                <div className="mx-auto w-full max-w-2xl">
-                    <p className="text-sm text-muted-foreground">
-                        You are not bound as an officer of any organization. Contact your
-                        adviser to be bound before submitting a renewal.
-                    </p>
-                </div>
-            </>
-        );
-    }
+    // Renewal is only ever eligible during 3rd-term season, and always
+    // covers the year that follows the current one — mirrors
+    // AcademicPeriod::nextAcademicYear() on the server.
+    const coveredYear = (() => {
+        const startYear = parseInt(currentPeriod.academic_year.split('-')[0], 10);
 
-    if (!priorRecord) {
-        return (
-            <>
-                <Head title="Submit Renewal" />
-                <div className="mx-auto w-full max-w-2xl">
-                    <p className="text-sm text-muted-foreground">
-                        {membership.organization.name} has no prior approved registration to
-                        renew. Submit an organization registration first.
-                    </p>
-                </div>
-            </>
-        );
-    }
+        return `${startYear + 1}-${startYear + 2}`;
+    })();
 
-    if (alreadyRenewed) {
+    if (!membership || eligibility.status !== 'eligible' || !priorRecord) {
         return (
             <>
                 <Head title="Submit Renewal" />
                 <div className="mx-auto w-full max-w-2xl">
-                    <p className="text-sm text-muted-foreground">
-                        {membership.organization.name} already has a renewal on file for{' '}
-                        {academicYear}. Check{' '}
-                        <a href={renewals.index().url} className="underline">
-                            My Renewals
-                        </a>{' '}
-                        for its status.
-                    </p>
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <CalendarClock />
+                            </EmptyMedia>
+                            <EmptyTitle>Renewal not available yet</EmptyTitle>
+                            <EmptyDescription>
+                                {!membership
+                                    ? 'You are not bound as an officer of any organization. Contact your adviser to be bound before submitting a renewal.'
+                                    : eligibility.message}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                        {membership && eligibility.status === 'already_filed' && (
+                            <Button asChild variant="outline">
+                                <Link href={renewals.index().url}>My Renewals</Link>
+                            </Button>
+                        )}
+                    </Empty>
                 </div>
             </>
         );
@@ -108,7 +112,7 @@ export default function CreateRenewal({
             <div className="max-w-2xl space-y-6">
                 <Heading
                     title="Organization Renewal"
-                    description={`Renewing ${membership.organization.name} for ${academicYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}
+                    description={`Renewing ${membership.organization.name} for ${coveredYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}
                 />
 
                 {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —

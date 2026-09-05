@@ -13,6 +13,7 @@ use App\Enums\OfficerPosition;
 use App\Enums\OrganizationType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Role;
+use App\Enums\Term;
 use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -29,7 +30,8 @@ use App\Registrations\ApproveOrganizationRegistration;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
-use App\Support\AcademicYear;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -463,6 +465,30 @@ class DemoDataSeeder extends Seeder
      * @param  array<string, Organization>  $orgs
      */
     private function seedRenewalStatusSpread(array $orgs): void
+    {
+        // Renewal is only submittable during 3rd-term renewal season.
+        // Foundings above ran under whatever period SettingsSeeder left in
+        // place (normally 1st term), so opening 3rd term of that SAME
+        // academic year here is enough for these orgs to be due — no grace
+        // applies, since they weren't founded during 3rd term. Restored
+        // afterward so the finished demo dataset lands in an ordinary,
+        // season-closed baseline for QA, and so this never fires the
+        // renewal-window notification (only CurrentPeriodController's real
+        // update() flow does that, via OpenRenewalSeason).
+        $originalPeriod = CurrentPeriod::get();
+        CurrentPeriod::set(new AcademicPeriod($originalPeriod->academicYear, Term::ThirdTerm));
+
+        try {
+            $this->seedRenewalDocuments($orgs);
+        } finally {
+            CurrentPeriod::set($originalPeriod);
+        }
+    }
+
+    /**
+     * @param  array<string, Organization>  $orgs
+     */
+    private function seedRenewalDocuments(array $orgs): void
     {
         $renewalFields = fn (Organization $org) => [
             'organizationType' => OrganizationType::CoCurricular,
@@ -1071,7 +1097,8 @@ class DemoDataSeeder extends Seeder
             'program_id' => $programId,
         ]);
 
-        $academicYear = AcademicYear::current();
+        $period = CurrentPeriod::get();
+        $academicYear = $period->academicYear;
 
         $document = Document::create([
             'form_type' => $formType,
@@ -1094,6 +1121,7 @@ class DemoDataSeeder extends Seeder
             'date_organized' => '2024-08-15',
             'adviser_id' => $adviserId,
             'academic_year' => $formType === FormType::OrganizationRenewal ? $academicYear : null,
+            'term' => $formType === FormType::OrganizationRenewal ? $period->term->value : null,
         ]);
 
         return $document;

@@ -9,6 +9,7 @@ use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Role;
+use App\Enums\Term;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -19,7 +20,9 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
+use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -181,6 +184,9 @@ test('registration show: org officer can view, different-org officer cannot, cur
 
 test('renewal show: org officer can view, different-org officer cannot, current-step SDAO can', function () {
     viewAuthApprovedRegistration($this->computingSociety, $this->studentAlpha);
+
+    // Renewal is only submittable during 3rd-term renewal season.
+    CurrentPeriod::set(new AcademicPeriod(CurrentPeriod::get()->academicYear, Term::ThirdTerm));
 
     $doc = app(SubmitOrganizationRenewal::class)->execute(
         actor: $this->studentAlpha,

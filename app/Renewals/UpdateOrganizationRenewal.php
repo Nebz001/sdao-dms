@@ -71,9 +71,11 @@ class UpdateOrganizationRenewal
                 ? []
                 : FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
-            // academic_year is intentionally NOT included: it is set once at
-            // creation (SubmitOrganizationRenewal) and must never change across
-            // the return/resubmit cycle.
+            // academic_year, term, and covers_academic_year are intentionally
+            // NOT included: they are set once at creation
+            // (SubmitOrganizationRenewal) and must never change across the
+            // return/resubmit cycle — covers_academic_year in particular is
+            // the uniqueness key hasNonRejectedRenewalCovering() matches on.
             $document->registrationDetail()->update([
                 'organization_type' => $organizationType->value,
                 'purpose_of_organization' => $purposeOfOrganization,

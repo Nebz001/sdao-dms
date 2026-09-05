@@ -53,6 +53,24 @@ class OrganizationMembershipService
     }
 
     /**
+     * Active officers across MANY organizations at once — the broadcast
+     * equivalent of activeOfficersFor(), used by OpenRenewalSeason to notify
+     * every organization whose renewal just came due in a single query
+     * rather than one activeOfficersFor() call per organization.
+     *
+     * @param  iterable<int, int>  $organizationIds
+     * @return Collection<int, User>
+     */
+    public function activeOfficersForOrganizations(iterable $organizationIds): Collection
+    {
+        return User::query()
+            ->whereHas('organizationMemberships', fn ($q) => $q
+                ->whereIn('organization_id', $organizationIds)
+                ->where('is_active', true))
+            ->get();
+    }
+
+    /**
      * Can this user act on (view/edit/resubmit) this document as an officer
      * of its org? True for any active officer (President OR Secretary — the
      * only two OfficerPosition cases, so "active membership" already IS

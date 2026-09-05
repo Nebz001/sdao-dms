@@ -7,13 +7,15 @@ use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Enums\RenewalEligibility;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
-use App\Support\AcademicYear;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +23,23 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Renewal does NOT start from scratch: it carries forward the organization's
- * most-recent APPROVED registration/renewal data, and is capped at one
- * (non-rejected) renewal per organization per academic year (invariant: the
- * prior year's record is preserved — never deleted or overwritten).
+ * most-recent APPROVED registration/renewal data. It is capped at one
+ * non-rejected renewal per COVERED academic year, and is only submittable
+ * while the current term is 3rd — renewal season. A renewal filed during 3rd
+ * term of academic year X covers X+1; a registration approved during 3rd term
+ * of X covers X AND X+1 (grace), so a newly founded org is never asked to
+ * renew in the very season it was founded in.
+ *
+ * eligibilityFor() is the single source of truth for all of this — never
+ * re-derive renewal eligibility anywhere else. OrganizationStatusResolver's
+ * `renewalDue` flag must always agree with it (pinned by a test).
+ *
+ * Registration stamps its coverage at APPROVE time (see
+ * ApproveOrganizationRegistration) because it records when the org became
+ * active. Renewal stamps its coverage at SUBMIT time, deliberately — its
+ * coverage year is the uniqueness key hasNonRejectedRenewalCovering()
+ * matches on, and must exist while the renewal is still InReview. Do not
+ * unify these two.
  */
 class SubmitOrganizationRenewal
 {
@@ -57,31 +73,27 @@ class SubmitOrganizationRenewal
             throw new AuthorizationException('You must be an active officer of this organization to submit a renewal.');
         }
 
-        if ($this->mostRecentApprovedRecord($organization) === null) {
-            throw ValidationException::withMessages([
-                'organization' => 'This organization has no prior approved registration to renew.',
-            ]);
+        $eligibility = $this->eligibilityFor($organization);
+
+        if (! $eligibility->isEligible()) {
+            $key = $eligibility->status === RenewalEligibility::NoPriorRecord ? 'organization' : 'period';
+
+            throw ValidationException::withMessages([$key => $eligibility->message()]);
         }
 
-        $academicYear = AcademicYear::current();
-
-        if ($this->hasNonRejectedRenewal($organization, $academicYear)) {
-            throw ValidationException::withMessages([
-                'academic_year' => "A renewal for {$academicYear} has already been filed for this organization.",
-            ]);
-        }
-
+        $period = $eligibility->currentPeriod;
+        $coversAcademicYear = $period->nextAcademicYear();
         $adviser = $this->roleDirectory->adviserFor($organization);
 
         return DB::transaction(function () use (
             $actor, $organization, $organizationType, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized,
-            $adviser, $academicYear, $attachmentFiles
+            $adviser, $period, $coversAcademicYear, $attachmentFiles
         ) {
             $document = Document::create([
                 'form_type' => FormType::OrganizationRenewal,
                 'variant' => null,
-                'title' => "Organization Renewal — {$organization->name} ({$academicYear})",
+                'title' => "Organization Renewal — {$organization->name} ({$coversAcademicYear})",
                 'status' => DocumentStatus::Draft,
                 'current_step_position' => null,
                 'organization_id' => $organization->id,
@@ -98,7 +110,13 @@ class SubmitOrganizationRenewal
                 'email_address' => $emailAddress,
                 'date_organized' => $dateOrganized,
                 'adviser_id' => $adviser->id,
-                'academic_year' => $academicYear,
+                // Renewal's coverage is fixed at SUBMIT time, unlike a
+                // registration's (see class docblock) — it must exist while
+                // this renewal is InReview, since it's the uniqueness key
+                // hasNonRejectedRenewalCovering() matches on.
+                'academic_year' => $period->academicYear,
+                'term' => $period->term->value,
+                'covers_academic_year' => $coversAcademicYear,
             ]);
 
             // Phase 2 item 8 — every attachment listed on the client's real
@@ -134,21 +152,62 @@ class SubmitOrganizationRenewal
     }
 
     /**
-     * Uniqueness guard: at most one renewal per org per academic year. Only a
-     * Rejected renewal frees the slot — reject is terminal, so the org must be
-     * able to file a brand-new renewal for the same year (invariant #2: a
-     * rejected document is never revived; the student files anew).
+     * The single source of truth for whether an organization may submit a
+     * renewal right now. execute() (write path), RenewalController::create()
+     * (UX), and OrganizationStatusResolver's `renewalDue` flag must all go
+     * through this method — never re-derive the rule elsewhere.
      *
-     * Public so RenewalController::create() can reuse this exact check for the
-     * "already renewed this year" UX message — single source of truth.
+     * $asOf defaults to the real stored current period, but can be overridden
+     * to evaluate against a hypothetical one — used by
+     * Admin\CurrentPeriodController to preview how many organizations would
+     * come due for a candidate period BEFORE the admin actually saves it,
+     * without mutating any real state.
      */
-    public function hasNonRejectedRenewal(Organization $organization, string $academicYear): bool
+    public function eligibilityFor(Organization $organization, ?AcademicPeriod $asOf = null): RenewalEligibilityResult
+    {
+        $current = $asOf ?? CurrentPeriod::get();
+        $record = $this->mostRecentApprovedRecord($organization);
+
+        if ($record === null) {
+            return new RenewalEligibilityResult(RenewalEligibility::NoPriorRecord, $current, $organization->name, null, null);
+        }
+
+        $coversThrough = $record->registrationDetail?->covers_academic_year;
+
+        if (! $current->isRenewalSeason()) {
+            return new RenewalEligibilityResult(RenewalEligibility::SeasonClosed, $current, $organization->name, $coversThrough, $record);
+        }
+
+        $nextYear = $current->nextAcademicYear();
+
+        if ($this->hasNonRejectedRenewalCovering($organization, $nextYear)) {
+            return new RenewalEligibilityResult(RenewalEligibility::AlreadyFiledThisYear, $current, $organization->name, $coversThrough, $record);
+        }
+
+        // Grace: a registration approved during THIS season already covers
+        // next year — a brand-new org must not be asked to renew days after
+        // being founded.
+        if ($record->form_type === FormType::OrganizationRegistration && $coversThrough === $nextYear) {
+            return new RenewalEligibilityResult(RenewalEligibility::NotYetDue, $current, $organization->name, $coversThrough, $record);
+        }
+
+        return new RenewalEligibilityResult(RenewalEligibility::Eligible, $current, $organization->name, $coversThrough, $record);
+    }
+
+    /**
+     * Uniqueness guard: at most one non-rejected renewal per org per COVERED
+     * academic year. Only a Rejected renewal frees the slot — reject is
+     * terminal, so the org must be able to file a brand-new renewal for the
+     * same covered year (invariant #2: a rejected document is never revived;
+     * the student files anew).
+     */
+    public function hasNonRejectedRenewalCovering(Organization $organization, string $academicYear): bool
     {
         return Document::query()
             ->where('organization_id', $organization->id)
             ->where('form_type', FormType::OrganizationRenewal->value)
             ->where('status', '!=', DocumentStatus::Rejected->value)
-            ->whereHas('registrationDetail', fn ($q) => $q->where('academic_year', $academicYear))
+            ->whereHas('registrationDetail', fn ($q) => $q->where('covers_academic_year', $academicYear))
             ->exists();
     }
 }

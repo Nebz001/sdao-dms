@@ -11,7 +11,7 @@ export function AppSidebarHeader({
 }: {
     breadcrumbs?: BreadcrumbItemType[];
 }) {
-    const { currentTerm, academicYear } = usePage().props;
+    const { currentPeriod } = usePage().props;
 
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
@@ -30,11 +30,11 @@ export function AppSidebarHeader({
                 <div className="hidden items-center gap-2 sm:flex">
                     <Badge variant="secondary" className="gap-1.5 font-normal">
                         <CalendarRange aria-hidden />
-                        {currentTerm}
+                        {currentPeriod.term_label}
                     </Badge>
                     <Badge variant="secondary" className="gap-1.5 font-normal">
                         <GraduationCap aria-hidden />
-                        {academicYear}
+                        {currentPeriod.academic_year}
                     </Badge>
                 </div>
             </div>

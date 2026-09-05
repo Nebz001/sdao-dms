@@ -186,3 +186,27 @@ test('resolves each global director role to exactly one user', function () {
     expect($directory->academicDirector()->id)->toBe($acadDir->id);
     expect($directory->executiveDirector()->id)->toBe($execDir->id);
 });
+
+// A duplicate global-role assignment is a data-quality bug that has
+// genuinely occurred in the real dev database (IdentitySeeder's placeholder
+// and RealRosterSeeder's real account both assigned the same single-holder
+// global role — see RoleDirectory::resolveGlobal()'s docblock).
+// resolveGlobal() cannot repair a duplicate, but must resolve it
+// deterministically by lowest id (first-assigned), never highest — this
+// pins that direction specifically, since "latest wins" was the original,
+// incorrect draft of this fix and would silently replace the real named
+// approver with a stale placeholder on this exact data.
+test('a duplicate global-role assignment resolves to the FIRST-assigned (lowest id) holder, not the latest', function () {
+    $real = User::factory()->create();
+    $placeholder = User::factory()->create();
+
+    // Created in this order so $real's row gets the lower id, exactly as it
+    // does in production (RealRosterSeeder always seeds before
+    // IdentitySeeder's placeholder).
+    RoleAssignment::create(['user_id' => $real->id, 'role' => Role::AssistantDirectorAcademicServices]);
+    RoleAssignment::create(['user_id' => $placeholder->id, 'role' => Role::AssistantDirectorAcademicServices]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->assistantDirectorAcademicServices()->id)->toBe($real->id);
+});

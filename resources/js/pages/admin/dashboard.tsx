@@ -166,7 +166,8 @@ export default function AdminDashboard({
     oldestInReview,
     orgCompliance,
 }: Props) {
-    const { academicYear } = usePage().props;
+    const { currentPeriod } = usePage().props;
+    const academicYear = currentPeriod.academic_year;
     const getInitials = useInitials();
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);

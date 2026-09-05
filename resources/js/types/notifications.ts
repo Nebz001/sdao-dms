@@ -7,7 +7,8 @@ export type NotificationKind =
     | 'approver_provisioned'
     | 'join_request_received'
     | 'join_request_approved'
-    | 'join_request_declined';
+    | 'join_request_declined'
+    | 'renewal_window_opened';
 
 export type NotificationItem = {
     id: string;

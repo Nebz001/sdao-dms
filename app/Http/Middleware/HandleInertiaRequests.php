@@ -4,8 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Organization;
 use App\Models\RoleAssignment;
-use App\Support\AcademicYear;
-use App\Support\CurrentTerm;
+use App\Support\CurrentPeriod;
 use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -93,12 +92,12 @@ class HandleInertiaRequests extends Middleware
                 'canProposeOrganization' => Gate::allows('propose', Organization::class),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            // Persistent navbar context (admin dashboard header). Both are
-            // cheap: AcademicYear::current() is a pure date computation, and
-            // CurrentTerm::get() is cached (see its docblock) so this adds no
-            // per-request DB cost beyond the first call after a term change.
-            'currentTerm' => CurrentTerm::get()->label(),
-            'academicYear' => AcademicYear::current(),
+            // Persistent navbar context (admin dashboard header). Both the
+            // term and the academic year now come from one stored,
+            // admin-controlled setting (CurrentPeriod), cached indefinitely
+            // (see its docblock), so this adds no per-request DB cost beyond
+            // the first call after a period change.
+            'currentPeriod' => $this->currentPeriodProp(),
             // A closure, not a resolved value — Inertia only evaluates
             // callable props when they're actually included in the
             // response. The notification bell fetches this key by name on
@@ -107,6 +106,22 @@ class HandleInertiaRequests extends Middleware
             // (`only: ['document','history','queue']`) even though that
             // poll never asks for it.
             'notifications' => fn () => $this->notificationsFor($request),
+        ];
+    }
+
+    /**
+     * @return array{academic_year: string, term: string, term_label: string, label: string, is_renewal_season: bool}
+     */
+    private function currentPeriodProp(): array
+    {
+        $period = CurrentPeriod::get();
+
+        return [
+            'academic_year' => $period->academicYear,
+            'term' => $period->term->value,
+            'term_label' => $period->term->label(),
+            'label' => $period->label(),
+            'is_renewal_season' => $period->isRenewalSeason(),
         ];
     }
 

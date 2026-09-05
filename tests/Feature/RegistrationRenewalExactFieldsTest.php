@@ -5,6 +5,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
+use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
@@ -13,6 +14,8 @@ use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -193,6 +196,9 @@ test('a Senior High School organization shows College with no Program (no progra
     $engine->approve($registration, $this->sdaoA);
     $registration->refresh();
     $engine->approve($registration, $this->sdaoB);
+
+    // Renewal is only submittable during 3rd-term renewal season.
+    CurrentPeriod::set(new AcademicPeriod(CurrentPeriod::get()->academicYear, Term::ThirdTerm));
 
     $renewal = $renewalAction->execute(
         actor: $shsStudent,

@@ -31,6 +31,17 @@ enum Role: string
     }
 
     /**
+     * True for a "global" role that must have at most one holder at a time
+     * (Assistant/Academic/Executive Director). False for SdaoMember — the
+     * one global role that legitimately has multiple simultaneous holders
+     * (both members must approve; see RoleDirectory::sdaoMembers()).
+     */
+    public function hasSingleGlobalHolder(): bool
+    {
+        return $this->scopeType() === ScopeType::Global && $this !== self::SdaoMember;
+    }
+
+    /**
      * Human-readable label for display (approver provisioning, badges, etc).
      */
     public function label(): string

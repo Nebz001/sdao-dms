@@ -4,11 +4,14 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Enums\Term;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -61,6 +64,9 @@ function approvedPriorRegistrationFor(Organization $org, User $actor): void
     $engine->approve($document, User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail());
     $document->refresh();
     $engine->approve($document, User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail());
+
+    // Renewal is only submittable during 3rd-term renewal season.
+    CurrentPeriod::set(new AcademicPeriod(CurrentPeriod::get()->academicYear, Term::ThirdTerm));
 }
 
 function renewalStorePayload(array $overrides = []): array

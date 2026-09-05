@@ -24,7 +24,7 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Organizations\OrganizationMembershipService;
-use App\Support\CurrentTerm;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -92,7 +92,7 @@ class ActivityProposalController extends Controller
             ] : null,
             // Term is a global, admin-controlled setting (Phase 2 item 6) —
             // shown read-only for the off-calendar branch, never selectable.
-            'current_term_label' => CurrentTerm::get()->label(),
+            'current_term_label' => CurrentPeriod::get()->term->label(),
             'calendarModes' => collect(ProposalCalendarMode::cases())->map(fn ($m) => [
                 'value' => $m->value,
                 'label' => $m->label(),

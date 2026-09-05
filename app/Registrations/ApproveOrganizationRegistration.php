@@ -10,7 +10,7 @@ use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\User;
-use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -20,7 +20,10 @@ use Illuminate\Validation\ValidationException;
  * Slice 3 — two students could have picked the same then-available adviser
  * while both proposals were pending), and — only once the SDAO quorum is
  * actually satisfied — binding the adviser and the founding student as
- * President for the first time.
+ * President for the first time, and stamping the registration detail's
+ * academic period/coverage (see the inline comment at the stamping site for
+ * why this happens at approve time, not submit time — the asymmetry with
+ * SubmitOrganizationRenewal is deliberate).
  */
 class ApproveOrganizationRegistration
 {
@@ -73,12 +76,26 @@ class ApproveOrganizationRegistration
         if ($document->status === DocumentStatus::Approved) {
             $adviserAssignment?->update(['organization_id' => $document->organization_id]);
 
+            $period = CurrentPeriod::get();
+
             OrganizationMembership::create([
                 'user_id' => $document->submitted_by,
                 'organization_id' => $document->organization_id,
                 'position' => OfficerPosition::President->value,
-                'academic_year' => AcademicYear::current(),
+                'academic_year' => $period->academicYear,
                 'is_active' => true,
+            ]);
+
+            // Stamped at APPROVE time (not submit time), unlike a renewal —
+            // this records when the org actually became active, not when the
+            // form happened to be filed. A registration approved during 3rd
+            // term (renewal season) gets grace: it covers both the current
+            // year AND next year, so the org isn't asked to renew days after
+            // being founded — see SubmitOrganizationRenewal::eligibilityFor().
+            $document->registrationDetail->update([
+                'academic_year' => $period->academicYear,
+                'term' => $period->term->value,
+                'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
             ]);
         }
 

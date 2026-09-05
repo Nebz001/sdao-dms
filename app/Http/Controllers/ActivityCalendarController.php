@@ -13,7 +13,7 @@ use App\Http\Requests\Calendar\StoreActivityCalendarRequest;
 use App\Http\Requests\Calendar\UpdateActivityCalendarRequest;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
-use App\Support\CurrentTerm;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -76,7 +76,7 @@ class ActivityCalendarController extends Controller
             // Term is a global, admin-controlled setting (Phase 2 item 6) —
             // shown read-only so the student knows what they're submitting
             // under, but it is never user-selectable.
-            'current_term_label' => CurrentTerm::get()->label(),
+            'current_term_label' => CurrentPeriod::get()->term->label(),
             // Exact field corrections (Phase 2 item 7 slice 1).
             'sdgs' => collect(Sdg::cases())->map(fn (Sdg $s) => [
                 'value' => $s->value,

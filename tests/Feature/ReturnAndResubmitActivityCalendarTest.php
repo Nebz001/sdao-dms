@@ -8,7 +8,9 @@ use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\CurrentTerm;
+use App\Support\AcademicPeriod;
+use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -128,13 +130,13 @@ test('non-submitter cannot resubmit', function () {
 });
 
 test('resubmit retains the term frozen at original submission — even after a global term change', function () {
-    CurrentTerm::set(Term::FirstTerm);
+    CurrentPeriod::set(new AcademicPeriod(AcademicYear::current(), Term::FirstTerm));
     $doc = returnedCalendar();
     $doc->load('activityCalendar');
     expect($doc->activityCalendar->term)->toBe(Term::FirstTerm);
 
     // Admin changes the global current term AFTER submission but before resubmit.
-    CurrentTerm::set(Term::ThirdTerm);
+    CurrentPeriod::set(new AcademicPeriod(AcademicYear::current(), Term::ThirdTerm));
 
     $this->updateAction->execute(
         actor: $this->studentAlpha,

@@ -7,7 +7,7 @@ use App\Http\Controllers\ActivityProposalReviewController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ApproverController;
-use App\Http\Controllers\Admin\CurrentTermController;
+use App\Http\Controllers\Admin\CurrentPeriodController;
 use App\Http\Controllers\Admin\DocumentArchiveController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
@@ -209,9 +209,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // is its "View all activity" destination for genuine browsing.
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
-        // SDAO admin — global settings (Phase 2 item 6: current term)
-        Route::get('/settings/term', [CurrentTermController::class, 'edit'])->name('settings.term.edit');
-        Route::put('/settings/term', [CurrentTermController::class, 'update'])->name('settings.term.update');
+        // SDAO admin — global settings: the current academic period. Setting
+        // the term to 3rd opens organization renewal season.
+        Route::get('/settings/period', [CurrentPeriodController::class, 'edit'])->name('settings.period.edit');
+        Route::put('/settings/period', [CurrentPeriodController::class, 'update'])->name('settings.period.update');
     });
 });
 

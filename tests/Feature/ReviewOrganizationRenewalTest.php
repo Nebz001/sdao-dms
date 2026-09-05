@@ -5,11 +5,14 @@ use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
+use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -68,6 +71,9 @@ function submittedRenewal(): Document
     $registration->refresh();
     $engine->approve($registration, $sdaoB);
     $registration->refresh();
+
+    // Renewal is only submittable during 3rd-term renewal season.
+    CurrentPeriod::set(new AcademicPeriod(CurrentPeriod::get()->academicYear, Term::ThirdTerm));
 
     return app(SubmitOrganizationRenewal::class)->execute(
         actor: $student,

@@ -42,9 +42,28 @@ class IdentitySeeder extends Seeder
 
         RoleAssignment::create(['user_id' => $sdaoA->id, 'role' => Role::SdaoMember]);
         RoleAssignment::create(['user_id' => $sdaoB->id, 'role' => Role::SdaoMember]);
-        RoleAssignment::create(['user_id' => $asstDirector->id, 'role' => Role::AssistantDirectorAcademicServices]);
-        RoleAssignment::create(['user_id' => $academicDirector->id, 'role' => Role::AcademicDirector]);
-        RoleAssignment::create(['user_id' => $executiveDirector->id, 'role' => Role::ExecutiveDirector]);
+
+        // Single-holder global roles use firstOrCreate rather than create()
+        // — this is the pre-Slice-6 PLACEHOLDER fixture, so if RealRosterSeeder
+        // has already (or ever will, in a different run order) assigned the
+        // real account for one of these roles, this seeder must defer to it
+        // rather than create a second, ambiguous row. See
+        // RealRosterSeeder::assignRole(), which is the authoritative side of
+        // this pair and uses updateOrCreate to always win, and
+        // RoleDirectory::resolveGlobal()'s docblock for why more than one row
+        // here is a bug.
+        RoleAssignment::firstOrCreate(
+            ['role' => Role::AssistantDirectorAcademicServices, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+            ['user_id' => $asstDirector->id],
+        );
+        RoleAssignment::firstOrCreate(
+            ['role' => Role::AcademicDirector, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+            ['user_id' => $academicDirector->id],
+        );
+        RoleAssignment::firstOrCreate(
+            ['role' => Role::ExecutiveDirector, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+            ['user_id' => $executiveDirector->id],
+        );
 
         // ── Regular school: School of Computing and IT (CCIT) ────────────────
 

@@ -1,4 +1,4 @@
-import { Ban, Bell, CircleCheck, CircleX, FileText, Inbox, Undo2, UserCheck, UserPlus } from 'lucide-react';
+import { Ban, Bell, CalendarClock, CircleCheck, CircleX, FileText, Inbox, Undo2, UserCheck, UserPlus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NotificationItem } from '@/types/notifications';
 
@@ -45,6 +45,8 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
             return { Icon: Ban, iconClassName: 'text-destructive', chipClassName: 'bg-destructive/15' };
         case 'join_request_received':
             return { Icon: UserPlus, iconClassName: 'text-info', chipClassName: 'bg-info/15' };
+        case 'renewal_window_opened':
+            return { Icon: CalendarClock, iconClassName: 'text-warning', chipClassName: 'bg-warning/15' };
         default:
             return { Icon: Bell, iconClassName: 'text-muted-foreground', chipClassName: 'bg-muted' };
     }

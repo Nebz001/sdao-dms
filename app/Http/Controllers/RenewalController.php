@@ -12,7 +12,7 @@ use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Renewals\UpdateOrganizationRenewal;
-use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -65,23 +65,26 @@ class RenewalController extends Controller
             'value' => $t->value,
             'label' => $t->label(),
         ]);
+        $currentPeriod = CurrentPeriod::get();
+        $currentPeriodProp = [
+            'academic_year' => $currentPeriod->academicYear,
+            'term' => $currentPeriod->term->value,
+            'label' => $currentPeriod->label(),
+        ];
 
         if ($membership === null) {
             return Inertia::render('renewals/create', [
                 'membership' => null,
                 'priorRecord' => null,
-                'alreadyRenewed' => false,
-                'academicYear' => AcademicYear::current(),
+                'eligibility' => ['status' => null, 'message' => null],
+                'currentPeriod' => $currentPeriodProp,
                 'organizationTypes' => $organizationTypes,
                 'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRenewal),
             ]);
         }
 
-        $priorRecord = $renewalAction->mostRecentApprovedRecord($membership->organization);
-        $academicYear = AcademicYear::current();
-        $alreadyRenewed = $renewalAction->hasNonRejectedRenewal($membership->organization, $academicYear);
-
-        $detail = $priorRecord?->registrationDetail;
+        $eligibility = $renewalAction->eligibilityFor($membership->organization);
+        $detail = $eligibility->priorRecord?->registrationDetail;
 
         return Inertia::render('renewals/create', [
             'membership' => [
@@ -104,8 +107,11 @@ class RenewalController extends Controller
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
             ] : null,
-            'alreadyRenewed' => $alreadyRenewed,
-            'academicYear' => $academicYear,
+            'eligibility' => [
+                'status' => $eligibility->status->value,
+                'message' => $eligibility->message(),
+            ],
+            'currentPeriod' => $currentPeriodProp,
             'organizationTypes' => $organizationTypes,
             'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRenewal),
         ]);

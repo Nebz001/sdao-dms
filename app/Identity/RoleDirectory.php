@@ -153,11 +153,26 @@ class RoleDirectory
             ->user;
     }
 
-    /** @throws ModelNotFoundException */
+    /**
+     * More than one row for a single-holder global role (Assistant/Academic/
+     * Executive Director) is a data-quality bug this method cannot repair —
+     * it only guarantees the choice is stable, favoring the FIRST-assigned
+     * holder. This is deliberate, not arbitrary: the intentional roster
+     * seeder (RealRosterSeeder) always runs before the placeholder fixture
+     * (IdentitySeeder) in every documented combined-seed path, so the
+     * earliest assignment is the real one. See
+     * Admin\ProvisionApprover::execute(), which replaces a single-holder
+     * global role's assignment in place rather than appending — a duplicate
+     * can only originate from history or from re-running seeders against a
+     * persisted database, never from normal admin provisioning going forward.
+     *
+     * @throws ModelNotFoundException
+     */
     private function resolveGlobal(Role $role): User
     {
         return RoleAssignment::query()
             ->where('role', $role)
+            ->oldest('id')
             ->firstOrFail()
             ->user;
     }

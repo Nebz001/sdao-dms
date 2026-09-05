@@ -20,10 +20,14 @@ declare module '@inertiajs/core' {
                 warnings?: unknown[];
                 message?: string;
             } | null;
-            /** e.g. "1st Term" — the admin-controlled current-term setting, see App\Support\CurrentTerm. */
-            currentTerm: string;
-            /** e.g. "2026-2027" — see App\Support\AcademicYear. */
-            academicYear: string;
+            /** The admin-controlled current academic period, see App\Support\CurrentPeriod. */
+            currentPeriod: {
+                academic_year: string;
+                term: string;
+                term_label: string;
+                label: string;
+                is_renewal_season: boolean;
+            };
             /** null for guests. See HandleInertiaRequests::share() — a closure prop, only queried when requested. */
             notifications: NotificationsProp;
             [key: string]: unknown;

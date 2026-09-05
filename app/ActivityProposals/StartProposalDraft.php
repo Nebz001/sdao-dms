@@ -12,8 +12,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
-use App\Support\AcademicYear;
-use App\Support\CurrentTerm;
+use App\Support\CurrentPeriod;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,8 +29,8 @@ class StartProposalDraft
      * For on-calendar: $data must contain 'calendar_activity_id' (Approved, org-owned).
      * For off-calendar: $data must contain 'title', 'venue', 'activity_date',
      *   'start_time', 'end_time'. Term is NOT read from $data — it's a
-     *   global, admin-controlled setting (Phase 2 item 6), sourced from
-     *   CurrentTerm::get() below, same as SubmitActivityCalendar.
+     *   global, admin-controlled setting, sourced from CurrentPeriod::get()
+     *   below, same as SubmitActivityCalendar.
      *
      * @param  array<string, mixed>  $data
      *
@@ -99,10 +98,11 @@ class StartProposalDraft
      */
     private function startOffCalendar(User $actor, Organization $organization, array $data): Document
     {
-        // Term is a global, admin-controlled setting (Phase 2 item 6), not a
-        // per-submission choice — matches SubmitActivityCalendar's pattern.
-        $term = CurrentTerm::get();
-        $academicYear = AcademicYear::current();
+        // Period is a global, admin-controlled setting, not a per-submission
+        // choice — matches SubmitActivityCalendar's pattern.
+        $period = CurrentPeriod::get();
+        $term = $period->term;
+        $academicYear = $period->academicYear;
 
         // Create the document first so ActivityCalendar.document_id can point to it.
         $document = Document::create([

@@ -42,9 +42,9 @@ class StoreProposalStepOneRequest extends FormRequest
             'activity_date' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date'],
             'start_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i'],
             'end_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i', 'after:start_time'],
-            // Term is NOT a per-submission field (Phase 2 item 6) — it's a
-            // global, admin-controlled setting read via CurrentTerm::get()
-            // in StartProposalDraft, same as Activity Calendar. No rule here.
+            // Term is NOT a per-submission field — it's a global,
+            // admin-controlled setting read via CurrentPeriod::get() in
+            // StartProposalDraft, same as Activity Calendar. No rule here.
 
             // Exact field corrections (Phase 2 item 7 slice 4a) — apply
             // regardless of calendar_mode; proposal-level classification/

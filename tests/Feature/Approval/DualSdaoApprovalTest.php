@@ -4,10 +4,12 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalVariant;
+use App\Enums\Role;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
 use App\Models\DocumentStepApproval;
 use App\Models\Organization;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -77,6 +79,39 @@ test('second SDAO member approval advances the document and notifies the next ap
         ->where('step_position', 5)
         ->exists();
     expect($nextStepNotified)->toBeTrue();
+});
+
+// Regression test for the "document stuck after SDAO, Assistant Director
+// never sees it" bug: a STALE duplicate global-role assignment (e.g. a
+// leftover from combining IdentitySeeder with a real-roster seeder against
+// the same database — confirmed to have actually happened) must not hide
+// the document from the real Assistant Director's queue once the SDAO
+// quorum completes and the document advances to their step.
+test('a stale duplicate Assistant Director assignment does not hide the document from the real holder\'s queue', function () {
+    $staleHolder = User::factory()->create();
+    RoleAssignment::create(['user_id' => $staleHolder->id, 'role' => Role::AssistantDirectorAcademicServices]);
+
+    // The real holder's row must still be the FIRST-assigned one, matching
+    // production (RealRosterSeeder/IdentitySeeder always seed the real
+    // account before this kind of stray duplicate could exist).
+    expect(RoleAssignment::where('role', Role::AssistantDirectorAcademicServices->value)->count())->toBe(2);
+
+    $this->engine->approve($this->doc, $this->sdaoA);
+    $this->engine->approve($this->doc, $this->sdaoB);
+    $this->doc->refresh();
+
+    expect($this->doc->status)->toBe(DocumentStatus::InReview);
+    expect($this->doc->current_step_position)->toBe(5);
+
+    $this->actingAs($this->asstDirector)
+        ->withoutVite()
+        ->get(route('review.activity-proposals.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('review/activity-proposals/index')
+            ->has('queue', 1)
+            ->where('queue.0.id', $this->doc->id)
+        );
 });
 
 // Test 17: split (one approves, one returns) → Returned; partial cleared; resume at SDAO step

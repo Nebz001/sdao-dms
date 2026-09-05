@@ -124,7 +124,9 @@ These are product rules, not suggestions. Do not "simplify" them away.
    immediately — build this as part of the engine now, not later. Only the
    delivery channel (personal email via a transactional email provider) is
    deferred to the auth slice; the notification trigger itself is not deferred.
-   This is how "no follow-ups" is enforced.
+   This is how "no follow-ups" is enforced. The renewal-season broadcast
+   (below) is the second notification trigger in the system, alongside this
+   one — both use the same mail+database channel pattern.
 
 ## Short chains
 
@@ -148,10 +150,30 @@ Key model facts note.)
   dean — it has a single principal.
 - An organization belongs to one program within a regular school, OR directly
   to Senior High School (which has no programs).
-- Organization renewal happens at most once per academic year per org. Renewal
-  does NOT start from scratch — it carries forward the organization's previous
-  data. The prior year's record is preserved (one record per academic year),
-  never deleted or overwritten.
+- Organization renewal happens at most once per academic year, and only during
+  the **3rd-term renewal season**. Renewal is not submittable in 1st or 2nd
+  term. A renewal filed in 3rd term of academic year X covers X+1. A
+  registration approved during 3rd term of X covers BOTH X and X+1 (grace) —
+  this is what stops a newly founded org from being asked to renew in the
+  season it was just approved in. Renewal does NOT start from scratch — it
+  carries forward the organization's previous data. Every prior record is
+  preserved (one record per covered year), never deleted or overwritten.
+- **Organization activity status**, derived (not stored as a single column):
+  **Active** (covered for the current academic year, has an active
+  president/secretary), **Needs Renewal** (coverage has lapsed), **Pending
+  Review** (not covered, but has a registration/renewal in flight), or
+  **Inactive** (never approved with nothing in flight, or covered but with no
+  active officers). Orthogonally, `renewalDue` is true during 3rd term for an
+  org that hasn't filed for next year yet — a `renewalDue` org is normally
+  ALSO Active, since that is the entire point of renewal season; the two are
+  not mutually exclusive. `renewalDue` for an org must always agree with
+  whether that org can currently submit a renewal — the same predicate, never
+  two competing ones.
+- **Stamp-timing asymmetry (deliberate, do not unify):** a registration's
+  covered-year is stamped at APPROVE time (it records when the org became
+  active); a renewal's covered-year is stamped at SUBMIT time (it is the
+  uniqueness key preventing a duplicate filing, and must exist while the
+  renewal is still in review).
 - Activity proposal is a SINGLE submission in TWO steps: (1) request form,
   (2) proposal narrative + attachments. Routing begins after step 2.
   Step 1: student picks an approved-calendar activity (on-calendar) OR creates
@@ -172,7 +194,7 @@ Key model facts note.)
   (a validation rule, not a table constraint).
 - On officer turnover, the adviser invites the new officers; old memberships
   are deactivated, never hard-deleted — retained for document history
-  (consistent with the renewal "preserve per academic year" rule).
+  (consistent with the renewal "preserve per covered year" rule).
 
 ## Document status model
 
@@ -299,12 +321,22 @@ schema-only/deferred for this form type.
 - **Renewal:** the same as New, plus List of Past Projects, Financial Statement,
   Summary of Evaluation.
 
-### Activity Calendar term is a global, admin-controlled setting
+### Current period is a global, admin-controlled setting
 
-Not a per-submission dropdown. SDAO/admin sets the current term system-wide. New
-calendar submissions always use the current term automatically; existing,
-already-submitted calendars retain the term they were submitted under and are
-never changed by a later term update.
+Not a per-submission dropdown. SDAO/admin sets BOTH the current term AND the
+current academic year system-wide, together, via one setting
+(`App\Support\CurrentPeriod`) — the academic year is no longer derived from the
+wall clock and can be corrected directly. New calendar/proposal submissions
+always use the current period automatically; existing, already-submitted
+documents retain the period they were submitted (or, for registrations,
+approved) under, and are never changed by a later period update.
+
+**Setting the term to 3rd opens organization renewal season.** This is the
+signal that renewal is now due: it notifies the active officers of every
+organization whose renewal is genuinely due (see the renewal-cadence rule
+above), once per academic year — an admin correcting 3rd → 2nd → 3rd within
+the same year must not re-notify. Advancing to 1st term (a new academic year)
+closes the window again until 3rd term comes round the following year.
 
 ### Real names for provisioned roles
 
@@ -341,7 +373,9 @@ approximate these.
 
 ## Commands
 
-- **Run tests:** `php artisan test --compact` (filter: `--filter=testName`)
+- **Run tests:** `php artisan test --compact --exclude-testsuite=Browser`
+  (filter: `--filter=testName`) — the Browser suite hangs on
+  `NotificationBellClickTest.php`, a known issue.
 - **Run dev server:** `composer run dev` (runs Vite + PHP server together)
 - **Format PHP:** `vendor/bin/pint --dirty --format agent`
 - **Lint JS:** `npm run lint`

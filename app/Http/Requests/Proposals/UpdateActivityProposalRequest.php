@@ -5,7 +5,6 @@ namespace App\Http\Requests\Proposals;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
 use App\Enums\Sdg;
-use App\Enums\Term;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,7 +41,9 @@ class UpdateActivityProposalRequest extends FormRequest
             'activity_date' => ['nullable', 'date'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'term' => ['nullable', Rule::enum(Term::class)],
+            // Term is NOT a per-submission field — it's a global,
+            // admin-controlled setting read via CurrentPeriod::get(), same as
+            // StoreProposalStepOneRequest. No rule here.
             // Optional on-calendar activity re-link
             'calendar_activity_id' => ['nullable', 'integer', Rule::exists('calendar_activities', 'id')],
             // Exact field corrections (Phase 2 item 7 slice 4a) — optional

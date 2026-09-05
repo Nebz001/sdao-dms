@@ -3,10 +3,11 @@
 use App\Support\AcademicYear;
 use Carbon\Carbon;
 
-test('AcademicYear::current() returns a year-range string', function () {
-    $result = AcademicYear::current();
-    expect($result)->toMatch('/^\d{4}-\d{4}$/');
-});
+// AcademicYear::current() now delegates to the stored CurrentPeriod setting
+// (DB + cache), so it needs the framework booted — see
+// tests/Feature/CurrentPeriodSettingTest.php for its coverage. forDate()
+// stays a pure function of the clock and is tested here without booting
+// Laravel at all.
 
 test('a date in August starts the new academic year', function () {
     $date = Carbon::create(2026, 8, 1);

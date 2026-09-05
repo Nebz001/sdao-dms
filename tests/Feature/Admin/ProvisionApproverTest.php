@@ -100,6 +100,70 @@ test('an SDAO member can provision a global role with no scope', function () {
     expect($ra->organization_id)->toBeNull();
 });
 
+// Regression coverage for the "document stuck after SDAO, Assistant
+// Director never sees it" bug: a single-holder global role (Assistant/
+// Academic/Executive Director) must never accumulate more than one
+// RoleAssignment row — RoleDirectory::resolveGlobal() can only resolve one.
+// IdentitySeeder (seeded in beforeEach) already assigned a placeholder
+// holder for each of these three roles, so every test below provisions a
+// SECOND holder and asserts it REPLACES the first rather than creating an
+// ambiguous duplicate.
+test('provisioning a new Assistant Director REPLACES the existing holder rather than duplicating the role', function () {
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'New Asst Director',
+        email: 'new-asst-director@nu-lipa.edu.ph',
+        role: Role::AssistantDirectorAcademicServices,
+        scope: [],
+    );
+
+    expect(RoleAssignment::where('role', Role::AssistantDirectorAcademicServices->value)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::AssistantDirectorAcademicServices->value)->value('user_id'))
+        ->toBe($newHolder->id);
+});
+
+test('provisioning a new Academic Director REPLACES the existing holder rather than duplicating the role', function () {
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'New Academic Director',
+        email: 'new-academic-director@nu-lipa.edu.ph',
+        role: Role::AcademicDirector,
+        scope: [],
+    );
+
+    expect(RoleAssignment::where('role', Role::AcademicDirector->value)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::AcademicDirector->value)->value('user_id'))
+        ->toBe($newHolder->id);
+});
+
+test('provisioning a new Executive Director REPLACES the existing holder rather than duplicating the role', function () {
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'New Executive Director',
+        email: 'new-executive-director@nu-lipa.edu.ph',
+        role: Role::ExecutiveDirector,
+        scope: [],
+    );
+
+    expect(RoleAssignment::where('role', Role::ExecutiveDirector->value)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::ExecutiveDirector->value)->value('user_id'))
+        ->toBe($newHolder->id);
+});
+
+test('provisioning a new SDAO member still ADDS a row — the multi-holder role is unaffected by the single-holder fix', function () {
+    $before = RoleAssignment::where('role', Role::SdaoMember->value)->count();
+
+    $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'New SDAO Member',
+        email: 'new-sdao-member@nu-lipa.edu.ph',
+        role: Role::SdaoMember,
+        scope: [],
+    );
+
+    expect(RoleAssignment::where('role', Role::SdaoMember->value)->count())->toBe($before + 1);
+});
+
 test('provisioning Student is rejected — students self-register and are adviser-bound, never admin-provisioned', function () {
     expect(fn () => $this->action->execute(
         actor: $this->sdaoA,

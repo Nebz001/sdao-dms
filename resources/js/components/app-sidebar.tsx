@@ -33,7 +33,7 @@ import * as activityLog from '@/routes/admin/activity';
 import * as approvers from '@/routes/admin/approvers';
 import * as archive from '@/routes/admin/archive';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
-import * as currentTermSettings from '@/routes/admin/settings/term';
+import * as currentPeriodSettings from '@/routes/admin/settings/period';
 import * as calendar from '@/routes/calendar';
 import * as documentHistory from '@/routes/document-history';
 import * as officers from '@/routes/officers';
@@ -273,8 +273,8 @@ export function AppSidebar() {
                 icon: History,
             },
             {
-                title: 'Current Term',
-                href: currentTermSettings.edit(),
+                title: 'Current Period',
+                href: currentPeriodSettings.edit(),
                 icon: CalendarCog,
             },
         );

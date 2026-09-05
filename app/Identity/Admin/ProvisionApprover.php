@@ -64,13 +64,24 @@ class ProvisionApprover
             'account_status' => AccountStatus::Verified,
         ]);
 
-        RoleAssignment::create([
-            'user_id' => $user->id,
-            'role' => $role,
-            'school_id' => $scope['school_id'] ?? null,
-            'program_id' => $scope['program_id'] ?? null,
-            'organization_id' => $scope['organization_id'] ?? null,
-        ]);
+        if ($role->hasSingleGlobalHolder()) {
+            // Must never have more than one row — RoleDirectory::
+            // resolveGlobal() can only resolve a single holder. Provisioning
+            // a new one supersedes whichever account currently holds it,
+            // rather than creating an ambiguous second row.
+            RoleAssignment::updateOrCreate(
+                ['role' => $role, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+                ['user_id' => $user->id],
+            );
+        } else {
+            RoleAssignment::create([
+                'user_id' => $user->id,
+                'role' => $role,
+                'school_id' => $scope['school_id'] ?? null,
+                'program_id' => $scope['program_id'] ?? null,
+                'organization_id' => $scope['organization_id'] ?? null,
+            ]);
+        }
 
         try {
             $user->notify(new ApproverProvisionedNotification($role, self::DEFAULT_PASSWORD));

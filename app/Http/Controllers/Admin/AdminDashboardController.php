@@ -16,7 +16,7 @@ use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
-use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -27,10 +27,10 @@ use Inertia\Response;
  * SDAO's operational overview — the richer replacement for the two static
  * counts that used to be the only admin-facing content on the shared
  * dashboard. Every figure here is read-only and derived from existing data;
- * no new schema. See PLAN.md-adjacent investigation notes: "current term"
- * only exists on Activity Calendar rows, so time-scoped sections use the
- * current ACADEMIC YEAR instead — computed uniformly across all five form
- * types via `documents.created_at`, not a literal term field.
+ * no new schema. Time-scoped sections use the current ACADEMIC YEAR (from
+ * App\Support\CurrentPeriod) — computed uniformly across all five form types
+ * via `documents.created_at`, since documents themselves carry no literal
+ * period field.
  */
 class AdminDashboardController extends Controller
 {
@@ -76,8 +76,9 @@ class AdminDashboardController extends Controller
         // (HandleInertiaRequests::share()) driving the persistent navbar
         // context strip, so every page gets it, not just this one. Still
         // needed here as a local value for orgCompliance()'s scoping.
-        $academicYear = AcademicYear::current();
-        [$yearStart, $yearEnd] = AcademicYear::currentRange();
+        $period = CurrentPeriod::get();
+        $academicYear = $period->academicYear;
+        [$yearStart, $yearEnd] = $period->academicYearRange();
 
         return Inertia::render('admin/dashboard', [
             'quickStats' => $this->quickStats($user, $resolver),
@@ -400,14 +401,19 @@ class AdminDashboardController extends Controller
      * Two read-only lists: orgs with an in-flight document right now (the
      * same [Draft, InReview, Returned] idiom already used as a guard in
      * SubmitOrganizationRegistration and OrganizationOfficerController), and
-     * orgs that haven't renewed for the current academic year — reusing
-     * SubmitOrganizationRenewal::hasNonRejectedRenewal(), already documented
-     * as the single source of truth for that check, rather than duplicating
-     * it as a new subquery. At this org count (single digits to dozens),
-     * checking per-org in a loop is simpler and safer than re-deriving the
-     * predicate. No "fully compliant" badge: that concept isn't expressible
-     * from existing data (no compliance table, no defined requirement list)
-     * — deliberately not approximated.
+     * orgs that don't have a non-rejected renewal COVERING the current
+     * academic year — reusing
+     * SubmitOrganizationRenewal::hasNonRejectedRenewalCovering() rather than
+     * duplicating it as a new subquery. At this org count (single digits to
+     * dozens), checking per-org in a loop is simpler and safer than
+     * re-deriving the predicate.
+     *
+     * KNOWN LIMITATION, to be replaced by App\Organizations\OrganizationStatusResolver:
+     * this still flags a brand-new org founded this academic year (registration
+     * coverage is stamped on approval, not via a renewal), and does not
+     * distinguish "genuinely overdue" from "never approved at all". No "fully
+     * compliant" badge for the same reason — deliberately not approximated
+     * until the resolver lands.
      *
      * @return array{pending: array<int, array{organizationId: int, organizationName: string, count: int}>, notRenewed: array<int, array{organizationId: int, organizationName: string}>}
      */
@@ -433,7 +439,7 @@ class AdminDashboardController extends Controller
 
         $notRenewed = Organization::query()
             ->get(['id', 'name'])
-            ->reject(fn (Organization $org) => $renewalCheck->hasNonRejectedRenewal($org, $academicYear))
+            ->reject(fn (Organization $org) => $renewalCheck->hasNonRejectedRenewalCovering($org, $academicYear))
             ->map(fn (Organization $org) => ['organizationId' => $org->id, 'organizationName' => $org->name])
             ->values()
             ->all();
