@@ -3,6 +3,7 @@
 use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -53,12 +54,16 @@ test('a self-registered, verified user CAN propose a new organization (Phase 2 i
     // AccountVerificationGateTest and elsewhere), which still require an
     // existing officer binding this bare account doesn't have.
     $school = School::query()->firstOrFail();
+    // A Co-Curricular org at a regular school must have a program
+    // (StoreRegistrationRequest, fix plan 2026_09_09_100000).
+    $program = Program::where('school_id', $school->id)->firstOrFail();
     $adviser = User::factory()->create();
     RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);
 
     $response = $this->actingAs($user)->post(route('registrations.store'), [
         'name' => 'Bare User Founded Org',
         'school_id' => $school->id,
+        'program_id' => $program->id,
         'adviser_id' => $adviser->id,
         'organization_type' => 'co_curricular',
         'purpose_of_organization' => 'A brand-new organization.',

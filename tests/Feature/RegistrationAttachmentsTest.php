@@ -5,6 +5,7 @@ use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\Organization;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -34,6 +35,18 @@ function foundingRegistrationPayload(array $overrides = []): array
         'email_address' => 'contact@example.test',
         'date_organized' => '2020-06-01',
     ], $overrides);
+}
+
+/**
+ * A real program at "School of Computing and IT" — since fix plan
+ * 2026_09_09_100000 closed StoreRegistrationRequest's required_if gap, every
+ * foundingRegistrationPayload() call that sets school_id for a Co-Curricular
+ * org (the default organization_type) must also pass this, unless the test is
+ * specifically exercising that missing-program rejection.
+ */
+function attachmentsTestProgramId(): int
+{
+    return Program::where('name', 'BS Computer Science')->value('id');
 }
 
 function unboundAdviserForAttachmentsTest(): User
@@ -74,7 +87,7 @@ test('store is blocked when any one of the 6 required attachments is missing, wi
         unset($files[$slotKey]);
 
         $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-            foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+            foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
             ['attachments' => $files],
         ));
 
@@ -91,7 +104,7 @@ test('store succeeds once all 6 required attachments are present', function () {
     $adviser = unboundAdviserForAttachmentsTest();
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 
@@ -115,7 +128,7 @@ test('a wrong-mime-type file is rejected by validation', function () {
     $files['letter_of_intent'] = UploadedFile::fake()->create('malware.exe', 100, 'application/x-msdownload');
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
         ['attachments' => $files],
     ));
 
@@ -130,7 +143,7 @@ test('an oversize file is rejected by validation', function () {
     $files['letter_of_intent'] = UploadedFile::fake()->create('huge.pdf', 20000, 'application/pdf'); // 20MB > 10MB cap
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
         ['attachments' => $files],
     ));
 
@@ -142,7 +155,7 @@ test('resubmit preserves untouched slots and replaces a re-uploaded one', functi
     $adviser = unboundAdviserForAttachmentsTest();
 
     $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 
@@ -191,7 +204,7 @@ test('download is authorized for the submitter and the reviewing SDAO member, fo
     $adviser = unboundAdviserForAttachmentsTest();
 
     $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 

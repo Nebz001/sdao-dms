@@ -7,6 +7,7 @@ use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Program;
+use App\Models\School;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -98,6 +99,20 @@ class StoreRegistrationRequest extends FormRequest
                 }
 
                 return;
+            }
+
+            // A Co-Curricular org at a regular (non-SHS) school must have a
+            // program — only the frontend's formValid stopped this before,
+            // which a hand-crafted POST bypasses entirely, reaching the same
+            // program-less RoleDirectory shape ExtraCurricular is guarded
+            // against above. Senior High School has no programs, so this
+            // does not apply there.
+            if ($organizationType === OrganizationType::CoCurricular && $programId === null) {
+                $belongsToSeniorHighSchool = $schoolId !== null && School::where('id', $schoolId)->where('type', 'senior_high')->exists();
+
+                if (! $belongsToSeniorHighSchool) {
+                    $validator->errors()->add('program_id', 'Select a program for this organization.');
+                }
             }
 
             if ($programId !== null) {

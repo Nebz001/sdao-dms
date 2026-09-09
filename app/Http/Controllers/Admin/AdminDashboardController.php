@@ -22,6 +22,7 @@ use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -140,7 +141,9 @@ class AdminDashboardController extends Controller
                     $step = $d->workflowTemplate?->steps->firstWhere('position', $d->current_step_position);
 
                     return $step && $resolver->approversFor($step, $d)->contains('id', $user->id);
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    Log::error('Approver resolution failed while filtering queue', ['exception' => $e->getMessage()]);
+
                     return false;
                 }
             })

@@ -4,6 +4,7 @@ use App\Approval\ApprovalEngine;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -98,8 +99,12 @@ test('a student mid-resubmission of a Returned registration still gets real advi
 
     $founder = User::factory()->create();
 
+    // A Co-Curricular org at a regular school must have a program
+    // (StoreRegistrationRequest, fix plan 2026_09_09_100000).
+    $program = Program::where('school_id', $this->school->id)->firstOrFail();
+
     $this->actingAs($founder)->post(route('registrations.store'), array_merge(
-        adviserSearchFoundingPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        adviserSearchFoundingPayload(['school_id' => $this->school->id, 'program_id' => $program->id, 'adviser_id' => $adviser->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 

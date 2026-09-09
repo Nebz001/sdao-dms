@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Enums\TransitionAction;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -37,7 +38,10 @@ function submitPendingRegistration(User $student): Document
 
     return app(SubmitOrganizationRegistration::class)->execute(
         name: 'Orphan Test Org',
-        programId: null,
+        // A Co-Curricular org at a regular school must have a program
+        // (SubmitOrganizationRegistration::execute()'s action-layer guard,
+        // fix plan 2026_09_09_100000).
+        programId: Program::where('school_id', test()->school->id)->value('id'),
         organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'A brand-new student organization.',
         contactPerson: 'Founding Student',

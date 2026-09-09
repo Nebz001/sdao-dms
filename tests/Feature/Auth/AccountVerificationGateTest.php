@@ -163,6 +163,10 @@ test('an unverified officer is forbidden from proposing a new organization', fun
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
         'name' => 'Should Never Be Created',
         'school_id' => $this->org->school_id,
+        // A Co-Curricular org at a regular school must have a program
+        // (StoreRegistrationRequest, fix plan 2026_09_09_100000) — keep the
+        // payload otherwise schema-valid, per the comment below.
+        'program_id' => $this->org->program_id,
         'adviser_id' => $this->adviser->id,
         'organization_type' => 'co_curricular',
         'purpose_of_organization' => 'Should never be created.',
@@ -183,6 +187,7 @@ test('a rejected officer is forbidden from proposing a new organization', functi
     $response = $this->actingAs($officer)->post(route('registrations.store'), [
         'name' => 'Should Never Be Created Either',
         'school_id' => $this->org->school_id,
+        'program_id' => $this->org->program_id,
         'adviser_id' => $this->adviser->id,
         'organization_type' => 'co_curricular',
         'purpose_of_organization' => 'Should never be created.',

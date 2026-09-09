@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -74,11 +75,16 @@ function submitFoundingRegistration(User $actor, string $name, ?User $adviser = 
         'role' => Role::Adviser->value,
     ]));
 
+    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+
     return app(SubmitOrganizationRegistration::class)->execute(
         actor: $actor,
         name: $name,
-        schoolId: School::where('name', 'School of Computing and IT')->firstOrFail()->id,
-        programId: null,
+        schoolId: $school->id,
+        // A Co-Curricular org at a regular school must have a program
+        // (SubmitOrganizationRegistration::execute()'s action-layer guard,
+        // fix plan 2026_09_09_100000).
+        programId: Program::where('school_id', $school->id)->value('id'),
         adviserId: $adviser->id,
         organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Description.',

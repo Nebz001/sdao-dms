@@ -201,6 +201,54 @@ test('affiliated officer can submit a renewal once renewal season opens', functi
     expect($renewal->registrationDetail->covers_academic_year)->toBe('2031-2032');
 });
 
+// ── Action-layer invariant guard (2026_09_09_100000 fix plan) ──────────────
+//
+// Unlike registration, execute() here doesn't take school_id/program_id —
+// they're the organization's existing, immutable values. What's being
+// guarded is a renewal choosing an organization_type that contradicts them,
+// which would recreate the same data-integrity violation the migration
+// corrects. StoreRenewalRequest enforces this at the HTTP layer, but execute()
+// is directly callable, same reasoning as SubmitRegistrationTest's sibling
+// coverage.
+
+test('execute() throws when renewing a school-affiliated org as Extra-Curricular', function () {
+    submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
+    openRenewalSeason();
+    $p = renewalPayload(['organizationType' => OrganizationType::ExtraCurricular]);
+
+    expect(fn () => $this->renewalAction->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        organizationType: $p['organizationType'],
+        purposeOfOrganization: $p['purposeOfOrganization'],
+        contactPerson: $p['contactPerson'],
+        contactNo: $p['contactNo'],
+        emailAddress: $p['emailAddress'],
+        dateOrganized: $p['dateOrganized'],
+        attachmentFiles: renewalAttachmentFiles(),
+    ))->toThrow(InvalidArgumentException::class);
+});
+
+test('execute() throws when renewing a college-less org as Co-Curricular', function () {
+    $collegeLessOrg = Organization::where('name', 'University Chess Club')->firstOrFail();
+    $studentEpsilon = User::where('email', 'student-epsilon@students.nu-lipa.edu.ph')->firstOrFail();
+    submitAndApproveRegistrationFor($studentEpsilon, $collegeLessOrg, ['organizationType' => OrganizationType::ExtraCurricular]);
+    openRenewalSeason();
+    $p = renewalPayload(['organizationType' => OrganizationType::CoCurricular]);
+
+    expect(fn () => $this->renewalAction->execute(
+        actor: $studentEpsilon,
+        organization: $collegeLessOrg,
+        organizationType: $p['organizationType'],
+        purposeOfOrganization: $p['purposeOfOrganization'],
+        contactPerson: $p['contactPerson'],
+        contactNo: $p['contactNo'],
+        emailAddress: $p['emailAddress'],
+        dateOrganized: $p['dateOrganized'],
+        attachmentFiles: renewalAttachmentFiles(),
+    ))->toThrow(InvalidArgumentException::class);
+});
+
 test('a second renewal for the same covered year is blocked while the first is non-rejected', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();

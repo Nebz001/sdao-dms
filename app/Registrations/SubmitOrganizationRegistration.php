@@ -12,6 +12,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\RoleAssignment;
+use App\Models\School;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
@@ -55,6 +56,24 @@ class SubmitOrganizationRegistration
         string $dateOrganized,
         array $attachmentFiles = [],
     ): Document {
+        // Enforced at the FormRequest layer too (StoreRegistrationRequest),
+        // but this action is directly callable — DemoDataSeeder is proof,
+        // it's how every bad-shape org in this codebase's history was
+        // created — so the invariant belongs here as the real boundary, not
+        // only at the HTTP layer. A caller/programmer bug, not user input:
+        // \InvalidArgumentException, not ValidationException.
+        if ($organizationType === OrganizationType::ExtraCurricular && ($schoolId !== null || $programId !== null)) {
+            throw new \InvalidArgumentException('An Extra-Curricular organization cannot have a school or program.');
+        }
+
+        if ($organizationType === OrganizationType::CoCurricular && $programId === null) {
+            $isSeniorHigh = $schoolId !== null && School::where('id', $schoolId)->where('type', 'senior_high')->exists();
+
+            if (! $isSeniorHigh) {
+                throw new \InvalidArgumentException('A Co-Curricular organization at a regular school must have a program.');
+            }
+        }
+
         if (! $actor->isVerifiedAccount()) {
             throw ValidationException::withMessages([
                 'organization' => 'Your account has not been SDAO-verified yet.',

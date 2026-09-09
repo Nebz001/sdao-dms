@@ -41,18 +41,25 @@ class RoleDirectory
 
     /**
      * Only valid for regular-school organizations (those with both a school
-     * and a program).
+     * and a program) — enforced below, not just documented: a school with no
+     * program is a data-integrity violation (see the 2026_09_09_100000
+     * migration), and must fail loudly here rather than reach firstOrFail()
+     * and 404 silently.
      *
      * @throws ModelNotFoundException|\LogicException
      */
     public function programChairFor(Organization $organization): User
     {
         if ($organization->hasNoSchool()) {
-            throw new \LogicException('An Extra-Curricular organization with no college has no program chair.');
+            throw new \LogicException("Organization {$organization->id} ({$organization->name}) is Extra-Curricular with no college — cannot resolve a program chair.");
         }
 
         if ($organization->belongsToSeniorHighSchool()) {
-            throw new \LogicException('Senior High School organizations have no program chair.');
+            throw new \LogicException("Organization {$organization->id} ({$organization->name}) is Senior High School — has no program chair.");
+        }
+
+        if ($organization->program_id === null) {
+            throw new \LogicException("Organization {$organization->id} ({$organization->name}) has a school but no program — cannot resolve a program chair. This indicates a data-integrity violation.");
         }
 
         return RoleAssignment::query()

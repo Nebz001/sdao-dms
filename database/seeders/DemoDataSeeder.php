@@ -290,7 +290,6 @@ class DemoDataSeeder extends Seeder
         $sace = School::where('name', 'School of Architecture, Computing, and Engineering')->orderBy('id')->firstOrFail();
         $sahs = School::where('name', 'School of Allied Health and Sciences')->orderBy('id')->firstOrFail();
         $sabm = School::where('name', 'School of Accountancy, Business, and Management')->orderBy('id')->firstOrFail();
-        $shs = School::where('name', 'Senior High School')->where('type', 'senior_high')->orderBy('id')->firstOrFail();
 
         $programCs = Program::where('school_id', $sace->id)->where('name', 'BS Computer Science')->firstOrFail();
         $programArchitecture = Program::where('school_id', $sace->id)->where('name', 'BS Architecture')->firstOrFail();
@@ -306,8 +305,15 @@ class DemoDataSeeder extends Seeder
             'Psychology Org' => [$sahs->id, $programPsychology->id, OrganizationType::CoCurricular, 'the BS Psychology student organization'],
             'MTSC' => [$sahs->id, $programMedTech->id, OrganizationType::CoCurricular, 'the Medical Technology Student Council'],
             'JPIA' => [$sabm->id, $programAccountancy->id, OrganizationType::CoCurricular, 'the Junior Philippine Institute of Accountants chapter'],
-            'Red Cross Youth' => [$sahs->id, null, OrganizationType::ExtraCurricular, 'the campus Red Cross Youth volunteer corps'],
-            'Venaris Esports' => [$shs->id, null, OrganizationType::ExtraCurricular, 'the Senior High School competitive esports club'],
+            // Extra-Curricular orgs are university-wide and have no
+            // college/program at all — enforced by
+            // SubmitOrganizationRegistration::execute() (see the
+            // 2026_09_09_100000 migration and fix plan). Both fixtures used
+            // to carry a school_id despite being Extra-Curricular; that was
+            // itself the bad-data shape the migration corrects, so seeding
+            // it here would now throw.
+            'Red Cross Youth' => [null, null, OrganizationType::ExtraCurricular, 'the campus Red Cross Youth volunteer corps'],
+            'Venaris Esports' => [null, null, OrganizationType::ExtraCurricular, 'the Senior High School competitive esports club'],
         ];
 
         $orgs = [];
@@ -369,9 +375,7 @@ class DemoDataSeeder extends Seeder
     private function seedRegistrationStatusSpread(array $accounts): void
     {
         $sabm = School::where('name', 'School of Accountancy, Business, and Management')->orderBy('id')->firstOrFail();
-        $sace = School::where('name', 'School of Architecture, Computing, and Engineering')->orderBy('id')->firstOrFail();
         $programMarketing = Program::where('school_id', $sabm->id)->where('name', 'BS Business Administration (Marketing Management)')->firstOrFail();
-        $programIt = Program::where('school_id', $sace->id)->where('name', 'BS Information Technology')->firstOrFail();
 
         $anyAdviser = RoleAssignment::where('role', Role::Adviser->value)->whereNotNull('user_id')->inRandomOrder()->firstOrFail();
         // Deliberately an ALREADY-BOUND adviser (CODECS's), so the Returned
@@ -387,12 +391,16 @@ class DemoDataSeeder extends Seeder
         // Draft — G17 (sustainability org), hand-built up to the same point
         // SubmitOrganizationRegistration itself would leave it at, since
         // that action has no save-as-draft entry point (see class docblock).
+        // Extra-Curricular has no college/program at all — see the
+        // 2026_09_09_100000 fix plan; this fixture used to carry both
+        // despite being Extra-Curricular, the same bad-data shape that plan
+        // corrects.
         $this->createDraftRegistrationLikeDocument(
             formType: FormType::OrganizationRegistration,
             actor: $accounts['regSpreadStudents']['draft'],
             orgName: 'G17',
-            schoolId: $programIt->school_id,
-            programId: $programIt->id,
+            schoolId: null,
+            programId: null,
             adviserId: $anyAdviser->user_id,
             organizationType: OrganizationType::ExtraCurricular,
         );
@@ -401,8 +409,8 @@ class DemoDataSeeder extends Seeder
         $nexusDoc = $this->submitRegistration->execute(
             actor: $accounts['regSpreadStudents']['in_review_partial'],
             name: 'NEXUS',
-            schoolId: $programIt->school_id,
-            programId: $programIt->id,
+            schoolId: null,
+            programId: null,
             adviserId: $spareAdviserId,
             organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: 'A cross-program networking and leadership org for NU Lipa students.',
@@ -441,8 +449,8 @@ class DemoDataSeeder extends Seeder
         $crea8ivesDoc = $this->submitRegistration->execute(
             actor: $accounts['regSpreadStudents']['rejected'],
             name: 'CREA8ives',
-            schoolId: $programMarketing->school_id,
-            programId: $programMarketing->id,
+            schoolId: null,
+            programId: null,
             adviserId: $anyAdviser->user_id,
             organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: 'A creatives and multimedia arts collective.',
@@ -565,12 +573,15 @@ class DemoDataSeeder extends Seeder
         $jpiaDoc->refresh();
         $this->engine->approve($jpiaDoc, $this->zaira);
 
-        // Rejected — Red Cross Youth.
+        // Rejected — Red Cross Youth. Extra-Curricular (college-less, see
+        // foundOrganizations()) — $renewalFields()'s default organizationType
+        // is Co-Curricular, which SubmitOrganizationRenewal::execute() now
+        // refuses for a college-less org (fix plan 2026_09_09_100000).
         $rcyFields = $renewalFields($orgs['Red Cross Youth']);
         $rcyDoc = $this->submitRenewal->execute(
             actor: $this->presidentOf($orgs['Red Cross Youth']),
             organization: $orgs['Red Cross Youth'],
-            organizationType: $rcyFields['organizationType'],
+            organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: $rcyFields['purposeOfOrganization'],
             contactPerson: $rcyFields['contactPerson'],
             contactNo: $rcyFields['contactNo'],
@@ -756,7 +767,9 @@ class DemoDataSeeder extends Seeder
         );
         $statusCounts['returned']++;
 
-        // 4. Approved — Venaris Esports, on-calendar (shs_on_calendar), full chain.
+        // 4. Approved — Venaris Esports, on-calendar (extra_curricular_on_calendar
+        // — college-less per foundOrganizations(), fix plan 2026_09_09_100000
+        // — not shs_on_calendar despite the org's own SHS-flavored naming), full chain.
         $venarisPresident = $this->presidentOf($orgs['Venaris Esports']);
         $venarisOnDoc = $this->startProposalDraft->execute(
             actor: $venarisPresident,
@@ -781,7 +794,8 @@ class DemoDataSeeder extends Seeder
         $proposals['venaris_approved'] = $venarisApprovedDoc->activityProposal;
         $statusCounts['approved']++;
 
-        // 5. Rejected — Venaris Esports, off-calendar (shs_off_calendar).
+        // 5. Rejected — Venaris Esports, off-calendar (extra_curricular_off_calendar
+        // — see note above).
         $venarisOffDoc = $this->startProposalDraft->execute(
             actor: $venarisPresident,
             organization: $orgs['Venaris Esports'],
@@ -1085,7 +1099,7 @@ class DemoDataSeeder extends Seeder
         FormType $formType,
         User $actor,
         string $orgName,
-        int $schoolId,
+        ?int $schoolId,
         ?int $programId,
         int $adviserId,
         OrganizationType $organizationType,

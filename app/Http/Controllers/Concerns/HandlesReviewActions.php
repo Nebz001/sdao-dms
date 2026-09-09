@@ -7,8 +7,10 @@ use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Models\Document;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Shared approve/reject/return guards for the five *ReviewController
@@ -54,6 +56,13 @@ trait HandlesReviewActions
      * re-check exceptions (InvalidTransitionException, UnauthorizedApproverException,
      * DuplicateApprovalException — all unhandled RuntimeExceptions that would
      * otherwise 500) into the same friendly stale-action redirect.
+     *
+     * Deliberately NOT broadened to \Throwable: RegistrationReviewController's
+     * founding-flow adviser re-check throws ValidationException on the same
+     * call this wraps, and that must keep reaching the user as `errors.approve`
+     * via Laravel's default handling — a broad catch here would rewrite it
+     * into this trait's generic "already finalized" message and discard the
+     * actual, actionable error.
      */
     private function runReviewAction(callable $action, string $queueRoute): ?RedirectResponse
     {
@@ -63,12 +72,30 @@ trait HandlesReviewActions
             return null;
         } catch (InvalidTransitionException|UnauthorizedApproverException|DuplicateApprovalException) {
             return $this->staleReviewAction($queueRoute);
+        } catch (ModelNotFoundException|\LogicException $e) {
+            // A misconfigured approval chain (e.g. RoleDirectory unable to
+            // resolve the next approver for this org's shape) — previously an
+            // uncaught, unlogged 404 with zero user feedback. See RoleDirectory
+            // and the 2026_09_09_100000 migration for the root cause this
+            // guards against.
+            Log::error('Approval chain resolution failed', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return redirect()->route($queueRoute)
+                ->with('flash', [
+                    'type' => 'error',
+                    'message' => 'This document could not be processed — its next approver could not be determined. SDAO has been notified.',
+                ]);
         }
     }
 
     private function staleReviewAction(string $queueRoute): RedirectResponse
     {
         return redirect()->route($queueRoute)
-            ->with('flash', ['message' => 'That document was already finalized by another approver.']);
+            ->with('flash', [
+                'type' => 'warning',
+                'message' => 'That document was already finalized by another approver.',
+            ]);
     }
 }

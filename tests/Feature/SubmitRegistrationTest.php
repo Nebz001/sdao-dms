@@ -6,6 +6,7 @@ use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\ApprovalNotification;
 use App\Models\OrganizationMembership;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -34,9 +35,14 @@ function availableAdviser(): User
 
 function foundingPayload(array $overrides = []): array
 {
+    // A Co-Curricular org at a regular school must have a program
+    // (SubmitOrganizationRegistration::execute()'s action-layer guard, fix
+    // plan 2026_09_09_100000) — default to a real one at "School of
+    // Computing and IT" so every call site not specifically exercising that
+    // invariant gets a genuinely valid baseline shape.
     return array_merge([
         'name' => 'Founding Test Org',
-        'programId' => null,
+        'programId' => Program::where('name', 'BS Computer Science')->value('id'),
         'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'A brand-new student organization.',
         'contactPerson' => 'Founding Student',
@@ -144,7 +150,7 @@ test('an Extra-Curricular organization can be founded with no college', function
     $adviser = availableAdviser();
 
     $document = $this->action->execute(
-        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular]),
+        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular, 'programId' => null]),
         actor: $student,
         schoolId: null,
         adviserId: $adviser->id,
@@ -153,4 +159,51 @@ test('an Extra-Curricular organization can be founded with no college', function
     expect($document->organization->school_id)->toBeNull();
     expect($document->organization->program_id)->toBeNull();
     expect($document->organization->hasNoSchool())->toBeTrue();
+});
+
+// ── Action-layer invariant guard (2026_09_09_100000 fix plan) ──────────────
+//
+// StoreRegistrationRequest enforces this at the HTTP layer, but execute() is
+// directly callable — DemoDataSeeder is proof: it created Red Cross Youth and
+// Venaris Esports in exactly this bad shape by calling execute() directly,
+// bypassing the FormRequest entirely. These pin the real invariant boundary.
+
+test('execute() throws for an Extra-Curricular org with a school or program, bypassing the FormRequest entirely', function () {
+    $student = User::factory()->create();
+    $adviser = availableAdviser();
+
+    expect(fn () => $this->action->execute(
+        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular]),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser->id,
+    ))->toThrow(InvalidArgumentException::class);
+});
+
+test('execute() throws for a Co-Curricular org at a regular school with no program, bypassing the FormRequest entirely', function () {
+    $student = User::factory()->create();
+    $adviser = availableAdviser();
+
+    expect(fn () => $this->action->execute(
+        ...foundingPayload(['organizationType' => OrganizationType::CoCurricular, 'programId' => null]),
+        actor: $student,
+        schoolId: $this->school->id,
+        adviserId: $adviser->id,
+    ))->toThrow(InvalidArgumentException::class);
+});
+
+test('execute() allows a Co-Curricular org at Senior High School with no program', function () {
+    $student = User::factory()->create();
+    $adviser = availableAdviser();
+    $shs = School::where('type', 'senior_high')->firstOrFail();
+
+    $document = $this->action->execute(
+        ...foundingPayload(['organizationType' => OrganizationType::CoCurricular, 'programId' => null]),
+        actor: $student,
+        schoolId: $shs->id,
+        adviserId: $adviser->id,
+    );
+
+    expect($document->organization->school_id)->toBe($shs->id);
+    expect($document->organization->program_id)->toBeNull();
 });

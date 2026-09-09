@@ -3,6 +3,7 @@
 use App\Approval\ApprovalEngine;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\Program;
 use App\Models\School;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
@@ -52,8 +53,14 @@ test('resubmit rejects picking a non-adviser account as the new adviser', functi
     $adviser = unboundAdviserForAttachmentsTest();
     $notAnAdviser = User::factory()->create();
 
+    // A Co-Curricular org at a regular school must have a program
+    // (StoreRegistrationRequest, fix plan 2026_09_09_100000) — unlike the two
+    // rejection tests above, this one needs the initial submission to
+    // actually succeed.
+    $program = Program::where('school_id', $this->school->id)->firstOrFail();
+
     $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['school_id' => $this->school->id, 'adviser_id' => $adviser->id]),
+        foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => $program->id, 'adviser_id' => $adviser->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 

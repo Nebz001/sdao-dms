@@ -8,6 +8,7 @@ use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -47,9 +48,14 @@ function unboundAdviser(): User
 
 function oneOrgPayload(array $overrides = []): array
 {
+    // A Co-Curricular org at a regular school must have a program
+    // (SubmitOrganizationRegistration::execute()'s action-layer guard, fix
+    // plan 2026_09_09_100000) — default to a real one at "School of
+    // Computing and IT" so every call site not specifically exercising that
+    // invariant gets a genuinely valid baseline shape.
     return array_merge([
         'name' => 'One-Org Test Org',
-        'programId' => null,
+        'programId' => Program::where('name', 'BS Computer Science')->value('id'),
         'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'Description.',
         'contactPerson' => 'Contact Person',

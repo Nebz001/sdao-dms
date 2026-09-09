@@ -67,6 +67,21 @@ class SubmitOrganizationRenewal
         string $dateOrganized,
         array $attachmentFiles = [],
     ): Document {
+        // Enforced at the FormRequest layer too (StoreRenewalRequest), but
+        // this action is directly callable — same real-boundary reasoning as
+        // SubmitOrganizationRegistration::execute(). Unlike registration,
+        // school_id/program_id are not submitted here — they're the org's
+        // existing, immutable values — so a renewal choosing a contradicting
+        // organization_type is what's being rejected, not a school/program
+        // combination.
+        if ($organizationType === OrganizationType::ExtraCurricular && ($organization->school_id !== null || $organization->program_id !== null)) {
+            throw new \InvalidArgumentException('An Extra-Curricular organization cannot have a school or program.');
+        }
+
+        if ($organizationType === OrganizationType::CoCurricular && $organization->hasNoSchool()) {
+            throw new \InvalidArgumentException('A Co-Curricular organization must have a school.');
+        }
+
         $membership = $this->membershipService->activeMembershipFor($actor, $organization);
 
         if ($membership === null) {

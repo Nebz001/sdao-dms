@@ -107,6 +107,25 @@ test('throws when requesting principal for a regular-school organization', funct
     expect(fn () => $directory->principalFor($org))->toThrow(LogicException::class);
 });
 
+// ── School-but-no-program (data-integrity violation) ────────────────────────
+//
+// A regular-school org with no program is not a legitimate shape — it's the
+// bad data the 2026_09_09_100000 migration corrects (produced only by a
+// caller bypassing StoreRegistrationRequest/SubmitOrganizationRegistration's
+// invariant checks, e.g. a seeder constructing the org directly). Before this
+// guard, programChairFor() reached firstOrFail() with program_id = null,
+// throwing an uncaught, unlogged ModelNotFoundException instead of a clear
+// LogicException identifying the violation.
+
+test('throws \LogicException, not ModelNotFoundException, when requesting program chair for a school-but-no-program organization', function () {
+    $school = makeRegularSchool();
+    $org = Organization::factory()->create(['school_id' => $school->id, 'program_id' => null]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect(fn () => $directory->programChairFor($org))->toThrow(LogicException::class);
+});
+
 // ── College-less (Extra-Curricular) resolution ──────────────────────────────
 //
 // Before Phase 2 remediation item 3, belongsToSeniorHighSchool() checked

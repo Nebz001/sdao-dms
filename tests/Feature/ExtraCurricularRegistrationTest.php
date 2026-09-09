@@ -103,6 +103,41 @@ test('an Extra-Curricular registration submission enters the SDAO approval chain
         ->and($document->current_step_position)->toBe(1);
 });
 
+test('a Co-Curricular registration at a regular school is rejected without a program', function () {
+    $student = User::factory()->create();
+
+    $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
+        foundingRegistrationPayload([
+            'organization_type' => 'co_curricular',
+            'school_id' => $this->school->id,
+            'adviser_id' => unboundAdviserForAttachmentsTest()->id,
+        ]),
+        ['attachments' => registrationAttachmentFiles()],
+    ));
+
+    $response->assertInvalid(['program_id']);
+    expect(Organization::where('name', 'Attachments Test Org')->exists())->toBeFalse();
+});
+
+test('a Co-Curricular registration at Senior High School succeeds without a program', function () {
+    $student = User::factory()->create();
+    $shs = School::where('type', 'senior_high')->firstOrFail();
+
+    $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
+        foundingRegistrationPayload([
+            'organization_type' => 'co_curricular',
+            'school_id' => $shs->id,
+            'adviser_id' => unboundAdviserForAttachmentsTest()->id,
+        ]),
+        ['attachments' => registrationAttachmentFiles()],
+    ));
+
+    $response->assertSessionHasNoErrors();
+    $org = Organization::where('name', 'Attachments Test Org')->firstOrFail();
+    expect($org->school_id)->toBe($shs->id);
+    expect($org->program_id)->toBeNull();
+});
+
 test('an Extra-Curricular registration is rejected if a program is also submitted', function () {
     $student = User::factory()->create();
     $program = $this->school->programs()->first() ?? Program::factory()->create(['school_id' => $this->school->id]);
