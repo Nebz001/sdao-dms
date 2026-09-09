@@ -2,7 +2,6 @@
 
 use App\Enums\DocumentStatus;
 use App\Enums\OfficerPosition;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
@@ -35,7 +34,6 @@ function foundingOrgPayload(array $overrides = []): array
     return array_merge([
         'name' => 'Founding Org',
         'programId' => Program::where('name', 'BS Computer Science')->value('id'),
-        'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'Description.',
         'contactPerson' => 'Contact Person',
         'contactNo' => '09170000000',
@@ -134,7 +132,6 @@ test('return-for-revision preserves the ability to pick a new adviser and resubm
     app(UpdateOrganizationRegistration::class)->execute(
         actor: $student,
         document: $document,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Description.',
         contactPerson: 'Contact Person',
         contactNo: '09170000000',
@@ -265,7 +262,6 @@ test('adviser and founding student remain unbound through every non-terminal sta
     app(UpdateOrganizationRegistration::class)->execute(
         actor: $student,
         document: $document,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Revised description.',
         contactPerson: 'Contact Person',
         contactNo: '09170000000',

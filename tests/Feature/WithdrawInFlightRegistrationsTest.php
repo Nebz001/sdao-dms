@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\DocumentStatus;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Enums\TransitionAction;
 use App\Models\Document;
@@ -42,7 +41,6 @@ function submitPendingRegistration(User $student): Document
         // (SubmitOrganizationRegistration::execute()'s action-layer guard,
         // fix plan 2026_09_09_100000).
         programId: Program::where('school_id', test()->school->id)->value('id'),
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'A brand-new student organization.',
         contactPerson: 'Founding Student',
         contactNo: '09171234567',

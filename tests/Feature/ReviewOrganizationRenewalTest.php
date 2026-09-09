@@ -78,7 +78,6 @@ function submittedRenewal(): Document
     return app(SubmitOrganizationRenewal::class)->execute(
         actor: $student,
         organization: $org,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Renewed Contact',
         contactNo: '09172222222',

@@ -59,7 +59,6 @@ class SubmitOrganizationRenewal
     public function execute(
         User $actor,
         Organization $organization,
-        OrganizationType $organizationType,
         string $purposeOfOrganization,
         string $contactPerson,
         string $contactNo,
@@ -67,21 +66,10 @@ class SubmitOrganizationRenewal
         string $dateOrganized,
         array $attachmentFiles = [],
     ): Document {
-        // Enforced at the FormRequest layer too (StoreRenewalRequest), but
-        // this action is directly callable — same real-boundary reasoning as
-        // SubmitOrganizationRegistration::execute(). Unlike registration,
-        // school_id/program_id are not submitted here — they're the org's
-        // existing, immutable values — so a renewal choosing a contradicting
-        // organization_type is what's being rejected, not a school/program
-        // combination.
-        if ($organizationType === OrganizationType::ExtraCurricular && ($organization->school_id !== null || $organization->program_id !== null)) {
-            throw new \InvalidArgumentException('An Extra-Curricular organization cannot have a school or program.');
-        }
-
-        if ($organizationType === OrganizationType::CoCurricular && $organization->hasNoSchool()) {
-            throw new \InvalidArgumentException('A Co-Curricular organization must have a school.');
-        }
-
+        // organization_type is derived from the organization's school_id
+        // (structural fix, 2026-09-09 plan) — no longer a caller-supplied
+        // value. school_id/program_id are immutable after founding, so there
+        // is no longer any combination to validate here at all.
         $membership = $this->membershipService->activeMembershipFor($actor, $organization);
 
         if ($membership === null) {
@@ -101,7 +89,7 @@ class SubmitOrganizationRenewal
         $adviser = $this->roleDirectory->adviserFor($organization);
 
         return DB::transaction(function () use (
-            $actor, $organization, $organizationType, $purposeOfOrganization,
+            $actor, $organization, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized,
             $adviser, $period, $coversAcademicYear, $attachmentFiles
         ) {
@@ -118,7 +106,7 @@ class SubmitOrganizationRenewal
 
             OrganizationRegistrationDetail::create([
                 'document_id' => $document->id,
-                'organization_type' => $organizationType->value,
+                'organization_type' => OrganizationType::fromOrganization($organization)->value,
                 'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
                 'contact_no' => $contactNo,

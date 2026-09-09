@@ -4,7 +4,6 @@ namespace App\Http\Requests\Registrations;
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Program;
 use App\Models\School;
@@ -27,15 +26,19 @@ class StoreRegistrationRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            // Extra-Curricular orgs are university-wide and have no college
-            // (Phase 2 remediation item 3) — required only for Co-Curricular.
-            'school_id' => ['nullable', 'integer', 'exists:schools,id', 'required_if:organization_type,'.OrganizationType::CoCurricular->value],
+            // school_id is genuinely optional (Extra-Curricular orgs are
+            // university-wide and have no college — Phase 2 remediation item
+            // 3) — but organization_type is no longer a separate submitted
+            // field (structural fix, 2026-09-09 plan: it's derived from
+            // school_id), so there is nothing left to require it_if against.
+            // The frontend's own "Type of Organization" select still decides
+            // whether the College field is shown at all, purely client-side.
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             // Must be a real, admin-provisioned adviser account — role-scoped
             // so a valid-but-non-adviser user id is rejected here, not just
             // deeper in SubmitOrganizationRegistration.
             'adviser_id' => ['required', 'integer', Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value)],
-            'organization_type' => ['required', 'string', Rule::enum(OrganizationType::class)],
             'purpose_of_organization' => ['required', 'string', 'max:5000'],
             'contact_person' => ['required', 'string', 'max:255'],
             'contact_no' => ['required', 'string', 'max:50'],
@@ -56,7 +59,6 @@ class StoreRegistrationRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'organization_type' => 'Type of Organization',
             'purpose_of_organization' => 'Purpose of Organization',
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',
@@ -79,36 +81,18 @@ class StoreRegistrationRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $organizationType = OrganizationType::tryFrom($this->string('organization_type')->toString());
             $schoolId = $this->input('school_id') !== null ? $this->integer('school_id') : null;
             $programId = $this->input('program_id') !== null ? $this->integer('program_id') : null;
 
-            // Extra-Curricular orgs are university-wide and have no college —
-            // reject a half-set combination outright rather than silently
-            // dropping whichever the client sent. Without this, a college
-            // could get attached to an org that RoleDirectory/
-            // ProposalVariantResolver assume has none (they key off
-            // hasNoSchool(), not organization_type).
-            if ($organizationType === OrganizationType::ExtraCurricular) {
-                if ($schoolId !== null) {
-                    $validator->errors()->add('school_id', 'An Extra-Curricular organization has no college — leave this blank.');
-                }
-
-                if ($programId !== null) {
-                    $validator->errors()->add('program_id', 'An Extra-Curricular organization has no program — leave this blank.');
-                }
-
-                return;
-            }
-
-            // A Co-Curricular org at a regular (non-SHS) school must have a
-            // program — only the frontend's formValid stopped this before,
-            // which a hand-crafted POST bypasses entirely, reaching the same
-            // program-less RoleDirectory shape ExtraCurricular is guarded
-            // against above. Senior High School has no programs, so this
-            // does not apply there.
-            if ($organizationType === OrganizationType::CoCurricular && $programId === null) {
-                $belongsToSeniorHighSchool = $schoolId !== null && School::where('id', $schoolId)->where('type', 'senior_high')->exists();
+            // A regular (non-SHS) school requires a program — Senior High
+            // School has no programs, so this doesn't apply there.
+            // organization_type is no longer a separate submitted field
+            // (structural fix, 2026-09-09 plan: it's derived from school_id)
+            // — whether a school was submitted at all is the only input that
+            // matters now. A school submitted alongside a program that
+            // doesn't belong to it is still caught below.
+            if ($schoolId !== null && $programId === null) {
+                $belongsToSeniorHighSchool = School::where('id', $schoolId)->where('type', 'senior_high')->exists();
 
                 if (! $belongsToSeniorHighSchool) {
                     $validator->errors()->add('program_id', 'Select a program for this organization.');

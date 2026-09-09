@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Enums\SchoolType;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -67,7 +68,7 @@ class Organization extends Model
      */
     public function belongsToSeniorHighSchool(): bool
     {
-        return $this->school?->type === 'senior_high';
+        return $this->school?->type === SchoolType::SeniorHigh;
     }
 
     /**

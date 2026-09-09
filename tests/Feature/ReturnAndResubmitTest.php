@@ -51,7 +51,6 @@ test('officer can edit and resubmit a returned registration', function () {
     $resubmitted = $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        organizationType: OrganizationType::ExtraCurricular,
         purposeOfOrganization: 'Updated description.',
         contactPerson: 'Student Alpha',
         contactNo: '09171234567',
@@ -63,8 +62,76 @@ test('officer can edit and resubmit a returned registration', function () {
     $resubmitted->refresh();
     expect($resubmitted->status)->toBe(DocumentStatus::InReview);
     expect($resubmitted->current_step_position)->toBe(1);
-    expect($resubmitted->registrationDetail->organization_type)->toBe(OrganizationType::ExtraCurricular);
     expect($resubmitted->registrationDetail->purpose_of_organization)->toBe('Updated description.');
+});
+
+// Structural fix (2026-09-09 plan): organization_type is derived from the
+// org's school_id, computed once at creation and never written again —
+// execute() no longer even accepts it as input. Computing Society has a
+// school, so its detail was seeded CoCurricular by returnedRegistration();
+// resubmitting must leave it exactly that, regardless of anything else about
+// the request. This directly replaces the old assertion above (which used to
+// prove the opposite — that resubmit COULD flip organization_type freely).
+test('resubmitting a returned registration never changes organization_type', function () {
+    $doc = returnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA);
+    expect($doc->registrationDetail->organization_type)->toBe(OrganizationType::CoCurricular);
+
+    $resubmitted = $this->updateAction->execute(
+        actor: $this->studentAlpha,
+        document: $doc,
+        purposeOfOrganization: 'Updated description.',
+        contactPerson: 'Student Alpha',
+        contactNo: '09171234567',
+        emailAddress: 'cs@nu-lipa.edu.ph',
+        dateOrganized: '2020-06-01',
+        attachmentFiles: registrationAttachmentFiles(),
+    );
+
+    expect($resubmitted->registrationDetail->organization_type)->toBe(OrganizationType::CoCurricular);
+});
+
+// Decision 2 (2026-09-09 plan): historical organization_type values are NOT
+// corrected, deliberately — revision history stays faithful to what was
+// recorded, and nothing functional depends on it (routing already reads
+// Organization::hasNoSchool() directly, never this column). This is the
+// positive expression of that decision: a document whose stored
+// organization_type already disagrees with its org's actual school_id (the
+// exact kind of pre-existing drift the 2026_09_09_100000 migration corrected
+// at the org level, one layer up) is left exactly as-is by an ordinary
+// resubmit — nothing in the application ever reads it back and rewrites it.
+test('a pre-existing organization_type that disagrees with the org\'s school_id is left untouched by resubmit', function () {
+    $doc = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->org->id, // Computing Society — has a school
+        'status' => DocumentStatus::Draft,
+        'submitted_by' => $this->studentAlpha->id,
+    ]);
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $doc->id,
+        // Deliberately drifted: this org HAS a school, but the stored value
+        // says Extra-Curricular — simulating a historical row from before
+        // this fix, or a subsequent org-level correction like Red Cross
+        // Youth's.
+        'organization_type' => OrganizationType::ExtraCurricular,
+    ]);
+    $this->engine->submit($doc, $this->studentAlpha);
+    $doc->refresh();
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please revise.');
+    $doc->refresh();
+
+    $resubmitted = $this->updateAction->execute(
+        actor: $this->studentAlpha,
+        document: $doc,
+        purposeOfOrganization: 'Updated description.',
+        contactPerson: 'Student Alpha',
+        contactNo: '09171234567',
+        emailAddress: 'cs@nu-lipa.edu.ph',
+        dateOrganized: '2020-06-01',
+        attachmentFiles: registrationAttachmentFiles(),
+    );
+
+    // Still drifted — untouched, exactly as decided.
+    expect($resubmitted->registrationDetail->organization_type)->toBe(OrganizationType::ExtraCurricular);
 });
 
 test('resubmit resumes at SDAO step and both must re-approve', function () {
@@ -74,7 +141,6 @@ test('resubmit resumes at SDAO step and both must re-approve', function () {
     $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Revised.',
         contactPerson: 'Alpha',
         contactNo: '09171234567',
@@ -107,7 +173,6 @@ test('a different student cannot edit another student\'s returned registration',
     expect(fn () => $this->updateAction->execute(
         actor: $outsider,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Malicious edit.',
         contactPerson: 'Outsider',
         contactNo: '123',
@@ -128,7 +193,6 @@ test('cannot update a document that is not Returned', function () {
     expect(fn () => $this->updateAction->execute(
         actor: $this->studentAlpha,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'test',
         contactPerson: 'Test',
         contactNo: '123',

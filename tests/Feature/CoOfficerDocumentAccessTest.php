@@ -70,7 +70,6 @@ test('secretary can edit and resubmit a returned registration submitted by the p
     $resubmitted = $this->updateAction->execute(
         actor: $this->secretary,
         document: $doc,
-        organizationType: OrganizationType::ExtraCurricular,
         purposeOfOrganization: 'Updated by secretary.',
         contactPerson: 'Student Delta',
         contactNo: '09171234567',
@@ -153,7 +152,6 @@ test('an outsider still cannot edit another org\'s returned registration', funct
     expect(fn () => $this->updateAction->execute(
         actor: $this->outsider,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Malicious edit.',
         contactPerson: 'Outsider',
         contactNo: '123',
@@ -185,7 +183,6 @@ test('an unverified secretary still cannot edit the president\'s returned regist
     expect(fn () => $this->updateAction->execute(
         actor: $this->secretary->fresh(),
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'test',
         contactPerson: 'Test',
         contactNo: '123',

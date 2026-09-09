@@ -131,7 +131,6 @@ class RenewalController extends Controller
         $document = $action->execute(
             actor: $user,
             organization: $membership->organization,
-            organizationType: OrganizationType::from($request->string('organization_type')->toString()),
             purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
             contactNo: $request->string('contact_no')->toString(),
@@ -221,17 +220,17 @@ class RenewalController extends Controller
                 ],
             ],
             'detail' => $detail ? [
-                'organization_type' => $detail->organization_type->value,
+                // organization_type is no longer editable here (structural
+                // fix, 2026-09-09 plan) — computed once at creation from the
+                // org's school_id and frozen forever after, so only its label
+                // is shown, read-only.
+                'organization_type_label' => $detail->organization_type->label(),
                 'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
                 'contact_no' => $detail->contact_no,
                 'email_address' => $detail->email_address,
                 'date_organized' => $detail->date_organized?->toDateString(),
             ] : null,
-            'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
@@ -245,7 +244,6 @@ class RenewalController extends Controller
         $action->execute(
             actor: Auth::user(),
             document: $document,
-            organizationType: OrganizationType::from($request->string('organization_type')->toString()),
             purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
             contactNo: $request->string('contact_no')->toString(),

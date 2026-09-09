@@ -163,7 +163,6 @@ test('PendingReview outranks NeedsRenewal — a lapsed org with a renewal alread
     $renewal = $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Renewed Contact',
         contactNo: '09172222222',
@@ -228,7 +227,6 @@ test('renewalDue always agrees with SubmitOrganizationRenewal::eligibilityFor()-
     $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Renewed Contact',
         contactNo: '09172222222',
@@ -287,7 +285,6 @@ test('a rejected renewal does not read as in flight and does not block a fresh r
     $renewal = $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Renewed Contact',
         contactNo: '09172222222',
@@ -310,7 +307,6 @@ test('a rejected renewal does not read as in flight and does not block a fresh r
     $secondRenewal = $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Second attempt after rejection.',
         contactPerson: 'Second Attempt',
         contactNo: '09172222222',

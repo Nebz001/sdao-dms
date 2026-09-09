@@ -19,7 +19,13 @@ class OrganizationRegistrationDetailFactory extends Factory
     {
         return [
             'document_id' => Document::factory(),
-            'organization_type' => fake()->randomElement(OrganizationType::cases()),
+            // organization_type is derived from the org's school_id in real
+            // application flow (structural fix, 2026-09-09 plan) — the
+            // factory has no resolved Organization to derive from at
+            // definition time, so it defaults to Co-Curricular. Tests that
+            // care about the Extra-Curricular shape must override this
+            // explicitly to match whatever org they attach the detail to.
+            'organization_type' => OrganizationType::CoCurricular,
             'purpose_of_organization' => fake()->paragraph(),
             'contact_person' => fake()->name(),
             'contact_no' => fake()->phoneNumber(),

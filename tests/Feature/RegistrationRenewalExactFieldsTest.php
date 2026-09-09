@@ -203,7 +203,6 @@ test('a Senior High School organization shows College with no Program (no progra
     $renewal = $renewalAction->execute(
         actor: $shsStudent,
         organization: $shsOrg,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'SHS renewal.',
         contactPerson: 'SHS Contact',
         contactNo: '09170000000',

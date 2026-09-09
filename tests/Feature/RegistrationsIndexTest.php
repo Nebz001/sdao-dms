@@ -86,7 +86,6 @@ function submitFoundingRegistration(User $actor, string $name, ?User $adviser = 
         // fix plan 2026_09_09_100000).
         programId: Program::where('school_id', $school->id)->value('id'),
         adviserId: $adviser->id,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Description.',
         contactPerson: 'Contact Person',
         contactNo: '09170000000',

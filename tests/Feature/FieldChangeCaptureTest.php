@@ -90,7 +90,6 @@ test('registration resubmit captures old and new values for exactly the flagged 
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'New Person',
         contactNo: '09179999999',
@@ -127,11 +126,13 @@ test('a flagged field the student did not touch is recorded with changed false',
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        // organization_details resubmitted BYTE-IDENTICAL, including the enum
-        // and the date — the two values that would false-positive if the
+        // organization_type is no longer part of this call at all (structural
+        // fix, 2026-09-09 plan) — UpdateOrganizationRegistration never writes
+        // it, so it is now UNCONDITIONALLY unchanged on every resubmit, not
+        // merely resubmitted byte-identical. date_organized IS resubmitted
+        // byte-identical here — the value that would false-positive if the
         // after-side were built from the raw request payload rather than a
         // re-read through the same casts.
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'New Person',
         contactNo: '09170000000',
@@ -363,7 +364,6 @@ test('field_changes is null when the return carried no flags', function () {
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::ExtraCurricular,
         purposeOfOrganization: 'Completely rewritten.',
         contactPerson: 'New Person',
         contactNo: '09179999999',
@@ -384,7 +384,6 @@ test('field_changes is null when only truly field-less sections were flagged', f
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::ExtraCurricular,
         purposeOfOrganization: 'Rewritten.',
         contactPerson: 'New Person',
         contactNo: '09179999999',
@@ -407,7 +406,6 @@ test('a flagged attachment slot with no prior file is recorded as added', functi
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'Old Person',
         contactNo: '09170000000',
@@ -436,7 +434,6 @@ test('a flagged attachment slot with a prior file is recorded as replaced when a
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'Old Person',
         contactNo: '09170000000',
@@ -466,7 +463,6 @@ test('a flagged attachment slot the student never touched is recorded as unchang
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'Old Person',
         contactNo: '09170000000',
@@ -554,7 +550,6 @@ test('HTTP: the review show page exposes field_changes on the resubmit history e
     $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Original purpose.',
         contactPerson: 'New Person',
         contactNo: '09170000000',

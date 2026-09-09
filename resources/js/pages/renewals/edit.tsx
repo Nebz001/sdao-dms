@@ -8,20 +8,8 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { FlaggedRevisionProps } from '@/types';
-
-type OrganizationTypeOption = {
-    value: string;
-    label: string;
-};
 
 type DocumentData = {
     id: number;
@@ -30,7 +18,7 @@ type DocumentData = {
 };
 
 type DetailData = {
-    organization_type: string;
+    organization_type_label: string;
     purpose_of_organization: string;
     contact_person: string;
     contact_no: string;
@@ -41,7 +29,6 @@ type DetailData = {
 type Props = {
     document: DocumentData;
     detail: DetailData;
-    organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
 } & FlaggedRevisionProps;
@@ -49,7 +36,6 @@ type Props = {
 export default function EditRenewal({
     document,
     detail,
-    organizationTypes,
     attachmentSlots,
     attachments,
     flaggedSections,
@@ -66,12 +52,20 @@ export default function EditRenewal({
                     description="Update the details below and resubmit for SDAO review."
                 />
 
-                {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —
-                    read-only field-presence parity; not editable here. */}
+                {/* Organization Name / Type / College / Program — read-only;
+                    not editable here. Type of Organization is derived from
+                    the organization's college binding, fixed at founding, so
+                    resubmitting can no longer change it (structural fix,
+                    2026-09-09 plan). */}
                 <div className="grid gap-1 rounded-md border p-4 text-sm">
                     <p>
                         <span className="font-medium">Organization Name:</span> {document.organization.name}
                     </p>
+                    {detail && (
+                        <p>
+                            <span className="font-medium">Type of Organization:</span> {detail.organization_type_label}
+                        </p>
+                    )}
                     <p>
                         <span className="font-medium">College:</span> {document.organization.college ?? '—'}
                     </p>
@@ -103,28 +97,6 @@ export default function EditRenewal({
                                 sectionComment={flaggedSectionComments.organization_details}
                             >
                             <div className="space-y-6">
-                            {/* Organization type */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="organization_type">Type of Organization</Label>
-                                <Select
-                                    name="organization_type"
-                                    defaultValue={detail?.organization_type}
-                                    required
-                                >
-                                    <SelectTrigger id="organization_type" className="w-full">
-                                        <SelectValue placeholder="Select type…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {organizationTypes.map((t) => (
-                                            <SelectItem key={t.value} value={t.value}>
-                                                {t.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.organization_type} />
-                            </div>
-
                             {/* Date organized */}
                             <div className="grid gap-2">
                                 <Label htmlFor="date_organized">Date Organized</Label>

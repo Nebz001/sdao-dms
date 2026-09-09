@@ -175,7 +175,6 @@ class RegistrationController extends Controller
             schoolId: $request->filled('school_id') ? $request->integer('school_id') : null,
             programId: $request->filled('program_id') ? $request->integer('program_id') : null,
             adviserId: $request->integer('adviser_id'),
-            organizationType: OrganizationType::from($request->string('organization_type')->toString()),
             purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
             contactNo: $request->string('contact_no')->toString(),
@@ -311,7 +310,11 @@ class RegistrationController extends Controller
                 ],
             ],
             'detail' => $detail ? [
-                'organization_type' => $detail->organization_type->value,
+                // organization_type is no longer editable here (structural
+                // fix, 2026-09-09 plan) — computed once at creation from
+                // school_id and frozen forever after, so only its label is
+                // shown, read-only.
+                'organization_type_label' => $detail->organization_type->label(),
                 'purpose_of_organization' => $detail->purpose_of_organization,
                 'contact_person' => $detail->contact_person,
                 'contact_no' => $detail->contact_no,
@@ -319,10 +322,6 @@ class RegistrationController extends Controller
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['id' => $detail->adviser->id, 'name' => $detail->adviser->name] : null,
             ] : null,
-            'organizationTypes' => collect(OrganizationType::cases())->map(fn ($t) => [
-                'value' => $t->value,
-                'label' => $t->label(),
-            ]),
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
@@ -336,7 +335,6 @@ class RegistrationController extends Controller
         $action->execute(
             actor: Auth::user(),
             document: $document,
-            organizationType: OrganizationType::from($request->string('organization_type')->toString()),
             purposeOfOrganization: $request->string('purpose_of_organization')->toString(),
             contactPerson: $request->string('contact_person')->toString(),
             contactNo: $request->string('contact_no')->toString(),

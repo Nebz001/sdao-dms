@@ -4,7 +4,6 @@ namespace App\Http\Requests\Registrations;
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,7 +22,10 @@ class UpdateRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_type' => ['required', 'string', Rule::enum(OrganizationType::class)],
+            // organization_type is no longer a submitted field (structural
+            // fix, 2026-09-09 plan) — it's computed once at creation from
+            // school_id and frozen forever after; resubmitting a Returned
+            // document can no longer change it.
             'purpose_of_organization' => ['required', 'string', 'max:5000'],
             'contact_person' => ['required', 'string', 'max:255'],
             'contact_no' => ['required', 'string', 'max:50'],
@@ -52,7 +54,6 @@ class UpdateRegistrationRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'organization_type' => 'Type of Organization',
             'purpose_of_organization' => 'Purpose of Organization',
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',

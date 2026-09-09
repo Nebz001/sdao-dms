@@ -8,7 +8,6 @@ use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
-use App\Enums\OrganizationType;
 use App\Models\Document;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
@@ -32,7 +31,6 @@ class UpdateOrganizationRenewal
     public function execute(
         User $actor,
         Document $document,
-        OrganizationType $organizationType,
         string $purposeOfOrganization,
         string $contactPerson,
         string $contactNo,
@@ -49,7 +47,7 @@ class UpdateOrganizationRenewal
         }
 
         return DB::transaction(function () use (
-            $actor, $document, $organizationType, $purposeOfOrganization,
+            $actor, $document, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized, $attachmentFiles
         ) {
             // Field-level revision diffs — see UpdateOrganizationRegistration
@@ -76,8 +74,10 @@ class UpdateOrganizationRenewal
             // (SubmitOrganizationRenewal) and must never change across the
             // return/resubmit cycle — covers_academic_year in particular is
             // the uniqueness key hasNonRejectedRenewalForExactYear() matches on.
+            // organization_type is likewise excluded — it is computed from
+            // the org's school_id once at creation and never written again
+            // (structural fix, 2026-09-09 plan).
             $document->registrationDetail()->update([
-                'organization_type' => $organizationType->value,
                 'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
                 'contact_no' => $contactNo,

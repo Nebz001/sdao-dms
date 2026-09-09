@@ -8,7 +8,6 @@ use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\RoleAssignment;
@@ -36,7 +35,6 @@ class UpdateOrganizationRegistration
     public function execute(
         User $actor,
         Document $document,
-        OrganizationType $organizationType,
         string $purposeOfOrganization,
         string $contactPerson,
         string $contactNo,
@@ -54,7 +52,7 @@ class UpdateOrganizationRegistration
         }
 
         return DB::transaction(function () use (
-            $actor, $document, $organizationType, $purposeOfOrganization,
+            $actor, $document, $purposeOfOrganization,
             $contactPerson, $contactNo, $emailAddress, $dateOrganized, $adviserId, $attachmentFiles
         ) {
             // Field-level revision diffs: freeze the CURRENT values of every
@@ -74,8 +72,12 @@ class UpdateOrganizationRegistration
                 ? []
                 : FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
+            // organization_type is intentionally NOT included: it is computed
+            // from school_id once at creation (SubmitOrganizationRegistration)
+            // and never written again — school_id is immutable, so there is
+            // nothing left to recompute on resubmit (structural fix,
+            // 2026-09-09 plan).
             $updates = [
-                'organization_type' => $organizationType->value,
                 'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
                 'contact_no' => $contactNo,

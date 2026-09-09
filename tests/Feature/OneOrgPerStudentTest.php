@@ -4,7 +4,6 @@ use App\Approval\ApprovalEngine;
 use App\Approval\Exceptions\InvalidTransitionException;
 use App\Enums\DocumentStatus;
 use App\Enums\OfficerPosition;
-use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
@@ -56,7 +55,6 @@ function oneOrgPayload(array $overrides = []): array
     return array_merge([
         'name' => 'One-Org Test Org',
         'programId' => Program::where('name', 'BS Computer Science')->value('id'),
-        'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'Description.',
         'contactPerson' => 'Contact Person',
         'contactNo' => '09170000000',

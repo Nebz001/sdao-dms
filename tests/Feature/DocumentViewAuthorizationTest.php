@@ -191,7 +191,6 @@ test('renewal show: org officer can view, different-org officer cannot, current-
     $doc = app(SubmitOrganizationRenewal::class)->execute(
         actor: $this->studentAlpha,
         organization: $this->computingSociety,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Contact Person',
         contactNo: '09170000000',

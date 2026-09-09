@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DocumentStatus;
+use App\Enums\OrganizationType;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Program;
@@ -12,34 +13,28 @@ use Database\Seeders\WorkflowTemplateSeeder;
 
 /**
  * Phase 2 remediation item 3 — an Extra-Curricular organization is
- * university-wide and has no college. HTTP-level coverage for
- * StoreRegistrationRequest's conditional school_id requirement; the
- * corresponding action-class coverage lives in SubmitRegistrationTest, and
- * the resulting proposal-routing coverage lives in
- * ProposalVariantSelectionTest.
+ * university-wide and has no college. HTTP-level coverage for what
+ * StoreRegistrationRequest actually enforces around school/program selection.
+ *
+ * Structural fix (2026-09-09 plan): organization_type is no longer a
+ * submitted, independently-validated field at all — posting one is inert,
+ * the value in the request body is never read. Whether an org ends up
+ * Co-Curricular or Extra-Curricular is now determined purely by whether a
+ * school_id was submitted; OrganizationType::fromSchoolId() derives it at
+ * write time. The corresponding action-class coverage lives in
+ * SubmitRegistrationTest, and the resulting proposal-routing coverage lives
+ * in ProposalVariantSelectionTest.
  */
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
 });
 
-test('a Co-Curricular registration is rejected without a college', function () {
+test('a registration with no college computes an Extra-Curricular organization', function () {
     $student = User::factory()->create();
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['organization_type' => 'co_curricular', 'adviser_id' => unboundAdviserForAttachmentsTest()->id]),
-        ['attachments' => registrationAttachmentFiles()],
-    ));
-
-    $response->assertInvalid(['school_id']);
-    expect(Organization::where('name', 'Attachments Test Org')->exists())->toBeFalse();
-});
-
-test('an Extra-Curricular registration succeeds with no college', function () {
-    $student = User::factory()->create();
-
-    $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['organization_type' => 'extra_curricular', 'adviser_id' => unboundAdviserForAttachmentsTest()->id]),
+        foundingRegistrationPayload(['adviser_id' => unboundAdviserForAttachmentsTest()->id]),
         ['attachments' => registrationAttachmentFiles()],
     ));
 
@@ -47,22 +42,8 @@ test('an Extra-Curricular registration succeeds with no college', function () {
     $org = Organization::where('name', 'Attachments Test Org')->firstOrFail();
     expect($org->school_id)->toBeNull();
     expect($org->program_id)->toBeNull();
-});
-
-test('an Extra-Curricular registration is rejected if a college is also submitted', function () {
-    $student = User::factory()->create();
-
-    $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload([
-            'organization_type' => 'extra_curricular',
-            'school_id' => $this->school->id,
-            'adviser_id' => unboundAdviserForAttachmentsTest()->id,
-        ]),
-        ['attachments' => registrationAttachmentFiles()],
-    ));
-
-    $response->assertInvalid(['school_id']);
-    expect(Organization::where('name', 'Attachments Test Org')->exists())->toBeFalse();
+    $document = Document::where('organization_id', $org->id)->firstOrFail();
+    expect($document->registrationDetail->organization_type)->toBe(OrganizationType::ExtraCurricular);
 });
 
 /**
@@ -71,7 +52,7 @@ test('an Extra-Curricular registration is rejected if a college is also submitte
  * 2026_08_29_130000_make_organizations_school_id_nullable had never been
  * applied there — organizations.school_id was still NOT NULL, so the
  * Organization::create() at SubmitOrganizationRegistration.php:113 threw
- * SQLSTATE[23502] for the null school_id that only the Extra-Curricular path
+ * SQLSTATE[23502] for the null school_id that only the college-less path
  * supplies. The two tests below pin the schema invariant and the full
  * submission respectively, so a reverted/unapplied migration fails here
  * rather than only in production.
@@ -86,11 +67,11 @@ test('an organization can be persisted with no college', function () {
     expect($organization->refresh()->school_id)->toBeNull();
 });
 
-test('an Extra-Curricular registration submission enters the SDAO approval chain', function () {
+test('a college-less registration submission enters the SDAO approval chain', function () {
     $student = User::factory()->create();
 
     $this->actingAs($student)->post(route('registrations.store'), array_merge(
-        foundingRegistrationPayload(['organization_type' => 'extra_curricular', 'adviser_id' => unboundAdviserForAttachmentsTest()->id]),
+        foundingRegistrationPayload(['adviser_id' => unboundAdviserForAttachmentsTest()->id]),
         ['attachments' => registrationAttachmentFiles()],
     ))->assertSessionHasNoErrors();
 
@@ -103,12 +84,11 @@ test('an Extra-Curricular registration submission enters the SDAO approval chain
         ->and($document->current_step_position)->toBe(1);
 });
 
-test('a Co-Curricular registration at a regular school is rejected without a program', function () {
+test('a registration at a regular school is rejected without a program', function () {
     $student = User::factory()->create();
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
         foundingRegistrationPayload([
-            'organization_type' => 'co_curricular',
             'school_id' => $this->school->id,
             'adviser_id' => unboundAdviserForAttachmentsTest()->id,
         ]),
@@ -119,13 +99,12 @@ test('a Co-Curricular registration at a regular school is rejected without a pro
     expect(Organization::where('name', 'Attachments Test Org')->exists())->toBeFalse();
 });
 
-test('a Co-Curricular registration at Senior High School succeeds without a program', function () {
+test('a registration at Senior High School succeeds without a program', function () {
     $student = User::factory()->create();
     $shs = School::where('type', 'senior_high')->firstOrFail();
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
         foundingRegistrationPayload([
-            'organization_type' => 'co_curricular',
             'school_id' => $shs->id,
             'adviser_id' => unboundAdviserForAttachmentsTest()->id,
         ]),
@@ -138,13 +117,12 @@ test('a Co-Curricular registration at Senior High School succeeds without a prog
     expect($org->program_id)->toBeNull();
 });
 
-test('an Extra-Curricular registration is rejected if a program is also submitted', function () {
+test('a registration with no college is rejected if a program is submitted anyway', function () {
     $student = User::factory()->create();
     $program = $this->school->programs()->first() ?? Program::factory()->create(['school_id' => $this->school->id]);
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(
         foundingRegistrationPayload([
-            'organization_type' => 'extra_curricular',
             'program_id' => $program->id,
             'adviser_id' => unboundAdviserForAttachmentsTest()->id,
         ]),

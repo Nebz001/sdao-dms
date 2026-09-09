@@ -39,11 +39,12 @@ function foundingPayload(array $overrides = []): array
     // (SubmitOrganizationRegistration::execute()'s action-layer guard, fix
     // plan 2026_09_09_100000) — default to a real one at "School of
     // Computing and IT" so every call site not specifically exercising that
-    // invariant gets a genuinely valid baseline shape.
+    // invariant gets a genuinely valid baseline shape. organizationType is no
+    // longer an execute() parameter at all (structural fix, 2026-09-09 plan)
+    // — it's derived from schoolId.
     return array_merge([
         'name' => 'Founding Test Org',
         'programId' => Program::where('name', 'BS Computer Science')->value('id'),
-        'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'A brand-new student organization.',
         'contactPerson' => 'Founding Student',
         'contactNo' => '09171234567',
@@ -150,7 +151,7 @@ test('an Extra-Curricular organization can be founded with no college', function
     $adviser = availableAdviser();
 
     $document = $this->action->execute(
-        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular, 'programId' => null]),
+        ...foundingPayload(['programId' => null]),
         actor: $student,
         schoolId: null,
         adviserId: $adviser->id,
@@ -159,6 +160,9 @@ test('an Extra-Curricular organization can be founded with no college', function
     expect($document->organization->school_id)->toBeNull();
     expect($document->organization->program_id)->toBeNull();
     expect($document->organization->hasNoSchool())->toBeTrue();
+    // organization_type is derived from school_id (structural fix,
+    // 2026-09-09 plan) — no school given, so it computes Extra-Curricular.
+    expect($document->registrationDetail->organization_type)->toBe(OrganizationType::ExtraCurricular);
 });
 
 // ── Action-layer invariant guard (2026_09_09_100000 fix plan) ──────────────
@@ -167,25 +171,20 @@ test('an Extra-Curricular organization can be founded with no college', function
 // directly callable — DemoDataSeeder is proof: it created Red Cross Youth and
 // Venaris Esports in exactly this bad shape by calling execute() directly,
 // bypassing the FormRequest entirely. These pin the real invariant boundary.
-
-test('execute() throws for an Extra-Curricular org with a school or program, bypassing the FormRequest entirely', function () {
-    $student = User::factory()->create();
-    $adviser = availableAdviser();
-
-    expect(fn () => $this->action->execute(
-        ...foundingPayload(['organizationType' => OrganizationType::ExtraCurricular]),
-        actor: $student,
-        schoolId: $this->school->id,
-        adviserId: $adviser->id,
-    ))->toThrow(InvalidArgumentException::class);
-});
+//
+// Note: the sibling "Extra-Curricular org with a school or program" guard
+// test that used to live here is gone, not just modified — since
+// organization_type is no longer an independent execute() input (structural
+// fix, 2026-09-09 plan), that contradiction can no longer be constructed at
+// all. A school_id being passed always means Co-Curricular now, by
+// construction — a stronger guarantee than the runtime check it replaces.
 
 test('execute() throws for a Co-Curricular org at a regular school with no program, bypassing the FormRequest entirely', function () {
     $student = User::factory()->create();
     $adviser = availableAdviser();
 
     expect(fn () => $this->action->execute(
-        ...foundingPayload(['organizationType' => OrganizationType::CoCurricular, 'programId' => null]),
+        ...foundingPayload(['programId' => null]),
         actor: $student,
         schoolId: $this->school->id,
         adviserId: $adviser->id,
@@ -198,7 +197,7 @@ test('execute() allows a Co-Curricular org at Senior High School with no program
     $shs = School::where('type', 'senior_high')->firstOrFail();
 
     $document = $this->action->execute(
-        ...foundingPayload(['organizationType' => OrganizationType::CoCurricular, 'programId' => null]),
+        ...foundingPayload(['programId' => null]),
         actor: $student,
         schoolId: $shs->id,
         adviserId: $adviser->id,

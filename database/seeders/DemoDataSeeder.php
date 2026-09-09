@@ -329,7 +329,6 @@ class DemoDataSeeder extends Seeder
                 schoolId: $schoolId,
                 programId: $programId,
                 adviserId: $adviserAssignment->user_id,
-                organizationType: $type,
                 purposeOfOrganization: "Founded to serve {$purpose} of NU Lipa.",
                 contactPerson: $president->name,
                 contactNo: '0917'.random_int(1000000, 9999999),
@@ -412,7 +411,6 @@ class DemoDataSeeder extends Seeder
             schoolId: null,
             programId: null,
             adviserId: $spareAdviserId,
-            organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: 'A cross-program networking and leadership org for NU Lipa students.',
             contactPerson: $accounts['regSpreadStudents']['in_review_partial']->name,
             contactNo: '0917'.random_int(1000000, 9999999),
@@ -429,7 +427,6 @@ class DemoDataSeeder extends Seeder
             schoolId: $programMarketing->school_id,
             programId: $programMarketing->id,
             adviserId: $boundAdviser->user_id,
-            organizationType: OrganizationType::CoCurricular,
             purposeOfOrganization: 'Community extension and outreach programs for NU Lipa student organizations.',
             contactPerson: $accounts['regSpreadStudents']['returned']->name,
             contactNo: '0917'.random_int(1000000, 9999999),
@@ -452,7 +449,6 @@ class DemoDataSeeder extends Seeder
             schoolId: null,
             programId: null,
             adviserId: $anyAdviser->user_id,
-            organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: 'A creatives and multimedia arts collective.',
             contactPerson: $accounts['regSpreadStudents']['rejected']->name,
             contactNo: '0917'.random_int(1000000, 9999999),
@@ -498,8 +494,9 @@ class DemoDataSeeder extends Seeder
      */
     private function seedRenewalDocuments(array $orgs): void
     {
+        // organization_type is no longer a field here at all (structural fix,
+        // 2026-09-09 plan) — it's derived from each org's school_id.
         $renewalFields = fn (Organization $org) => [
-            'organizationType' => OrganizationType::CoCurricular,
             'purposeOfOrganization' => "Renewing {$org->name}'s recognition for the current academic year.",
             'contactPerson' => $org->name.' Officers',
             'contactNo' => '0917'.random_int(1000000, 9999999),
@@ -525,7 +522,6 @@ class DemoDataSeeder extends Seeder
         $uapsaDoc = $this->submitRenewal->execute(
             actor: $this->presidentOf($orgs['UAPSA']),
             organization: $orgs['UAPSA'],
-            organizationType: $uapsaFields['organizationType'],
             purposeOfOrganization: $uapsaFields['purposeOfOrganization'],
             contactPerson: $uapsaFields['contactPerson'],
             contactNo: $uapsaFields['contactNo'],
@@ -540,7 +536,6 @@ class DemoDataSeeder extends Seeder
         $piceDoc = $this->submitRenewal->execute(
             actor: $this->presidentOf($orgs['PICE']),
             organization: $orgs['PICE'],
-            organizationType: $piceFields['organizationType'],
             purposeOfOrganization: $piceFields['purposeOfOrganization'],
             contactPerson: $piceFields['contactPerson'],
             contactNo: $piceFields['contactNo'],
@@ -561,7 +556,6 @@ class DemoDataSeeder extends Seeder
         $jpiaDoc = $this->submitRenewal->execute(
             actor: $this->presidentOf($orgs['JPIA']),
             organization: $orgs['JPIA'],
-            organizationType: $jpiaFields['organizationType'],
             purposeOfOrganization: $jpiaFields['purposeOfOrganization'],
             contactPerson: $jpiaFields['contactPerson'],
             contactNo: $jpiaFields['contactNo'],
@@ -574,14 +568,14 @@ class DemoDataSeeder extends Seeder
         $this->engine->approve($jpiaDoc, $this->zaira);
 
         // Rejected — Red Cross Youth. Extra-Curricular (college-less, see
-        // foundOrganizations()) — $renewalFields()'s default organizationType
-        // is Co-Curricular, which SubmitOrganizationRenewal::execute() now
-        // refuses for a college-less org (fix plan 2026_09_09_100000).
+        // foundOrganizations()) — organization_type is no longer a submitted
+        // choice at all (structural fix, 2026-09-09 plan); it's derived from
+        // the org's school_id, which is already null here, so this correctly
+        // computes Extra-Curricular regardless of $renewalFields()'s default.
         $rcyFields = $renewalFields($orgs['Red Cross Youth']);
         $rcyDoc = $this->submitRenewal->execute(
             actor: $this->presidentOf($orgs['Red Cross Youth']),
             organization: $orgs['Red Cross Youth'],
-            organizationType: OrganizationType::ExtraCurricular,
             purposeOfOrganization: $rcyFields['purposeOfOrganization'],
             contactPerson: $rcyFields['contactPerson'],
             contactNo: $rcyFields['contactNo'],

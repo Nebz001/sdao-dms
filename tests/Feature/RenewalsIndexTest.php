@@ -68,7 +68,6 @@ function submitRenewalFor(User $actor, Organization $org): void
     app(SubmitOrganizationRenewal::class)->execute(
         actor: $actor,
         organization: $org,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'Renewed description.',
         contactPerson: 'Renewed Contact',
         contactNo: '09172222222',

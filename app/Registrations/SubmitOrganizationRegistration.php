@@ -48,7 +48,6 @@ class SubmitOrganizationRegistration
         ?int $schoolId,
         ?int $programId,
         int $adviserId,
-        OrganizationType $organizationType,
         string $purposeOfOrganization,
         string $contactPerson,
         string $contactNo,
@@ -56,21 +55,22 @@ class SubmitOrganizationRegistration
         string $dateOrganized,
         array $attachmentFiles = [],
     ): Document {
-        // Enforced at the FormRequest layer too (StoreRegistrationRequest),
-        // but this action is directly callable — DemoDataSeeder is proof,
-        // it's how every bad-shape org in this codebase's history was
-        // created — so the invariant belongs here as the real boundary, not
-        // only at the HTTP layer. A caller/programmer bug, not user input:
-        // \InvalidArgumentException, not ValidationException.
-        if ($organizationType === OrganizationType::ExtraCurricular && ($schoolId !== null || $programId !== null)) {
-            throw new \InvalidArgumentException('An Extra-Curricular organization cannot have a school or program.');
-        }
-
-        if ($organizationType === OrganizationType::CoCurricular && $programId === null) {
-            $isSeniorHigh = $schoolId !== null && School::where('id', $schoolId)->where('type', 'senior_high')->exists();
+        // organization_type is derived from school_id (structural fix,
+        // 2026-09-09 plan) — no longer a caller-supplied value, so there is
+        // nothing left to cross-check it against. The one invariant that
+        // survives, reframed in terms of school_id/program_id alone: a
+        // regular-school org needs a program. Enforced at the FormRequest
+        // layer too (StoreRegistrationRequest), but this action is directly
+        // callable — DemoDataSeeder is proof, it's how every bad-shape org in
+        // this codebase's history was created — so the invariant belongs here
+        // as the real boundary, not only at the HTTP layer. A caller/
+        // programmer bug, not user input: \InvalidArgumentException, not
+        // ValidationException.
+        if ($schoolId !== null && $programId === null) {
+            $isSeniorHigh = School::where('id', $schoolId)->where('type', 'senior_high')->exists();
 
             if (! $isSeniorHigh) {
-                throw new \InvalidArgumentException('A Co-Curricular organization at a regular school must have a program.');
+                throw new \InvalidArgumentException('An organization at a regular school must have a program.');
             }
         }
 
@@ -122,7 +122,7 @@ class SubmitOrganizationRegistration
         $academicYear = AcademicYear::current();
 
         return DB::transaction(function () use (
-            $actor, $name, $schoolId, $programId, $adviserId, $organizationType,
+            $actor, $name, $schoolId, $programId, $adviserId,
             $purposeOfOrganization, $contactPerson, $contactNo, $emailAddress,
             $dateOrganized, $academicYear, $attachmentFiles
         ) {
@@ -148,7 +148,7 @@ class SubmitOrganizationRegistration
 
             OrganizationRegistrationDetail::create([
                 'document_id' => $document->id,
-                'organization_type' => $organizationType->value,
+                'organization_type' => OrganizationType::fromSchoolId($schoolId)->value,
                 'purpose_of_organization' => $purposeOfOrganization,
                 'contact_person' => $contactPerson,
                 'contact_no' => $contactNo,

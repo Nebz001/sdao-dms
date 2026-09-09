@@ -130,8 +130,10 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
 
 function renewalPayload(array $overrides = []): array
 {
+    // organizationType is no longer a SubmitOrganizationRenewal::execute()
+    // parameter at all (structural fix, 2026-09-09 plan) — it's derived from
+    // the organization's school_id.
     return array_merge([
-        'organizationType' => OrganizationType::CoCurricular,
         'purposeOfOrganization' => 'Renewed description.',
         'contactPerson' => 'Renewed Contact',
         'contactNo' => '09172222222',
@@ -147,7 +149,6 @@ test('renewal requires a prior approved registration', function () {
     expect(fn () => $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -166,7 +167,6 @@ test('unaffiliated user cannot submit a renewal even with a prior approved regis
     expect(fn () => $this->renewalAction->execute(
         actor: $outsider,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -184,7 +184,6 @@ test('affiliated officer can submit a renewal once renewal season opens', functi
     $renewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -201,53 +200,14 @@ test('affiliated officer can submit a renewal once renewal season opens', functi
     expect($renewal->registrationDetail->covers_academic_year)->toBe('2031-2032');
 });
 
-// ── Action-layer invariant guard (2026_09_09_100000 fix plan) ──────────────
+// ── organization_type derivation (structural fix, 2026-09-09 plan) ─────────
 //
-// Unlike registration, execute() here doesn't take school_id/program_id —
-// they're the organization's existing, immutable values. What's being
-// guarded is a renewal choosing an organization_type that contradicts them,
-// which would recreate the same data-integrity violation the migration
-// corrects. StoreRenewalRequest enforces this at the HTTP layer, but execute()
-// is directly callable, same reasoning as SubmitRegistrationTest's sibling
-// coverage.
-
-test('execute() throws when renewing a school-affiliated org as Extra-Curricular', function () {
-    submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
-    openRenewalSeason();
-    $p = renewalPayload(['organizationType' => OrganizationType::ExtraCurricular]);
-
-    expect(fn () => $this->renewalAction->execute(
-        actor: $this->studentAlpha,
-        organization: $this->org,
-        organizationType: $p['organizationType'],
-        purposeOfOrganization: $p['purposeOfOrganization'],
-        contactPerson: $p['contactPerson'],
-        contactNo: $p['contactNo'],
-        emailAddress: $p['emailAddress'],
-        dateOrganized: $p['dateOrganized'],
-        attachmentFiles: renewalAttachmentFiles(),
-    ))->toThrow(InvalidArgumentException::class);
-});
-
-test('execute() throws when renewing a college-less org as Co-Curricular', function () {
-    $collegeLessOrg = Organization::where('name', 'University Chess Club')->firstOrFail();
-    $studentEpsilon = User::where('email', 'student-epsilon@students.nu-lipa.edu.ph')->firstOrFail();
-    submitAndApproveRegistrationFor($studentEpsilon, $collegeLessOrg, ['organizationType' => OrganizationType::ExtraCurricular]);
-    openRenewalSeason();
-    $p = renewalPayload(['organizationType' => OrganizationType::CoCurricular]);
-
-    expect(fn () => $this->renewalAction->execute(
-        actor: $studentEpsilon,
-        organization: $collegeLessOrg,
-        organizationType: $p['organizationType'],
-        purposeOfOrganization: $p['purposeOfOrganization'],
-        contactPerson: $p['contactPerson'],
-        contactNo: $p['contactNo'],
-        emailAddress: $p['emailAddress'],
-        dateOrganized: $p['dateOrganized'],
-        attachmentFiles: renewalAttachmentFiles(),
-    ))->toThrow(InvalidArgumentException::class);
-});
+// The two former "execute() throws when renewing ... as [contradicting
+// type]" guard tests that used to live here are gone, not just modified —
+// organization_type is no longer an independent execute() input, so that
+// contradiction can no longer be constructed at all. See
+// ExtraCurricularRenewalTest for the HTTP-level replacement coverage proving
+// the derivation itself is correct in both directions.
 
 test('a second renewal for the same covered year is blocked while the first is non-rejected', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
@@ -257,7 +217,6 @@ test('a second renewal for the same covered year is blocked while the first is n
     $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -269,7 +228,6 @@ test('a second renewal for the same covered year is blocked while the first is n
     expect(fn () => $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: 'A second attempt.',
         contactPerson: 'Second Attempt',
         contactNo: $p['contactNo'],
@@ -287,7 +245,6 @@ test('a rejected renewal frees the slot — a new renewal for the same covered y
     $firstRenewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -303,7 +260,6 @@ test('a rejected renewal frees the slot — a new renewal for the same covered y
     $secondRenewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: 'Second attempt after rejection.',
         contactPerson: 'Second Attempt',
         contactNo: $p['contactNo'],
@@ -324,7 +280,6 @@ test('the prior approved record is preserved — renewal creates a new row, neve
     $renewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -351,7 +306,6 @@ test('renewal coverage is unchanged after a renewal is returned for revision and
     $renewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -370,7 +324,6 @@ test('renewal coverage is unchanged after a renewal is returned for revision and
     $this->updateRenewalAction->execute(
         actor: $this->studentAlpha,
         document: $renewal,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: 'Revised description.',
         contactPerson: 'Revised Contact',
         contactNo: '09179999999',
@@ -402,7 +355,6 @@ test('renewing an already-renewed org carries forward from the most recent renew
     $renewalAY1 = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'AY1 renewal description.',
         contactPerson: 'AY1 Renewal Person',
         contactNo: '09171111111',
@@ -461,7 +413,6 @@ test('an organization approved DURING 3rd term is not yet due — grace', functi
     expect(fn () => $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: OrganizationType::CoCurricular,
         purposeOfOrganization: 'x',
         contactPerson: 'x',
         contactNo: '09170000000',
@@ -487,7 +438,6 @@ test('filing a second renewal in the same season reports AlreadyFiledThisYear wi
     $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],
@@ -509,7 +459,6 @@ test('after renewing, advancing to next years 1st term closes the season and the
     $renewal = $this->renewalAction->execute(
         actor: $this->studentAlpha,
         organization: $this->org,
-        organizationType: $p['organizationType'],
         purposeOfOrganization: $p['purposeOfOrganization'],
         contactPerson: $p['contactPerson'],
         contactNo: $p['contactNo'],

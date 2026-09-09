@@ -4,10 +4,8 @@ namespace App\Http\Requests\Renewals;
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
-use App\Enums\OrganizationType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateRenewalRequest extends FormRequest
 {
@@ -22,7 +20,8 @@ class UpdateRenewalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_type' => ['required', 'string', Rule::enum(OrganizationType::class)],
+            // organization_type is no longer a submitted field (structural
+            // fix, 2026-09-09 plan) — see UpdateRegistrationRequest.
             'purpose_of_organization' => ['required', 'string', 'max:5000'],
             'contact_person' => ['required', 'string', 'max:255'],
             'contact_no' => ['required', 'string', 'max:50'],
@@ -44,7 +43,6 @@ class UpdateRenewalRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'organization_type' => 'Type of Organization',
             'purpose_of_organization' => 'Purpose of Organization',
             'contact_no' => 'Contact No.',
             'email_address' => 'Email Address',
