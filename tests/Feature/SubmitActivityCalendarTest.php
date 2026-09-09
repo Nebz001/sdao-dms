@@ -1,5 +1,6 @@
 <?php
 
+use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -10,7 +11,9 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -20,6 +23,7 @@ use Illuminate\Validation\ValidationException;
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(SubmitActivityCalendar::class);
+    $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $this->studentDelta = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail();
@@ -233,4 +237,76 @@ test('intra-calendar self-overlap is a validation error', function () {
             ['name' => 'Event B', 'venue' => 'Gymnasium', 'activity_date' => '2026-09-15', 'start_time' => '11:00', 'end_time' => '14:00'],
         ],
     ))->toThrow(ValidationException::class);
+});
+
+// --- One activity calendar per term -------------------------------------
+
+test('a second submission for the same term is blocked while the first is Draft/InReview/Returned', function () {
+    $p = calendarPayload();
+    $first = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+    expect($first['document']->status)->toBe(DocumentStatus::InReview);
+
+    expect(fn () => $this->action->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        activities: $p['activities'],
+    ))->toThrow(ValidationException::class);
+
+    // Returned also blocks — same document, still occupies the slot.
+    $this->engine->returnForRevision($first['document'], $this->sdaoA, 'Please add more detail.');
+    $first['document']->refresh();
+    expect($first['document']->status)->toBe(DocumentStatus::Returned);
+
+    expect(fn () => $this->action->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        activities: $p['activities'],
+    ))->toThrow(ValidationException::class);
+});
+
+test('a second submission is blocked even after the first calendar is approved — Approved is not merely in-flight', function () {
+    $p = calendarPayload();
+    $first = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+
+    $this->engine->approve($first['document'], $this->sdaoA);
+    $this->engine->approve($first['document'], $this->sdaoB);
+    $first['document']->refresh();
+    expect($first['document']->status)->toBe(DocumentStatus::Approved);
+
+    // This is the case that would silently break if the eligibility check
+    // reused DocumentStatus::isInFlight() instead of a non-rejected check —
+    // isInFlight() excludes Approved, which would wrongly allow this.
+    expect(fn () => $this->action->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        activities: $p['activities'],
+    ))->toThrow(ValidationException::class, 'has already been approved');
+});
+
+test('a rejected calendar frees the term — a new submission succeeds', function () {
+    $p = calendarPayload();
+    $first = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+
+    $this->engine->reject($first['document'], $this->sdaoA, 'Incomplete.');
+    $first['document']->refresh();
+    expect($first['document']->status)->toBe(DocumentStatus::Rejected);
+
+    $second = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+
+    expect($second['document']->status)->toBe(DocumentStatus::InReview);
+    expect($second['document']->id)->not->toBe($first['document']->id);
+});
+
+test('advancing the period to the next term unblocks a previously blocked org', function () {
+    $p = calendarPayload();
+    $first = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+    expect($first['document']->status)->toBe(DocumentStatus::InReview);
+
+    $current = CurrentPeriod::get();
+    CurrentPeriod::set(new AcademicPeriod($current->academicYear, Term::SecondTerm));
+
+    $second = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
+
+    expect($second['document']->status)->toBe(DocumentStatus::InReview);
+    expect($second['document']->activityCalendar->term)->toBe(Term::SecondTerm);
 });

@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
+use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -42,16 +43,25 @@ class SubmitActivityCalendar
             throw new AuthorizationException('You must be an active officer of this organization to submit an activity calendar.');
         }
 
+        // Period is a global, admin-controlled setting, not a per-submission
+        // choice — read whatever is current right now and stamp it on the
+        // row. A later admin change never rewrites this.
+        $period = CurrentPeriod::get();
+
+        // One calendar per term (the "term plan"): block a second filing for
+        // the same org/period unless the prior one was Rejected.
+        $eligibility = $this->eligibilityFor($organization, $period);
+
+        if (! $eligibility->isEligible()) {
+            throw ValidationException::withMessages(['period' => $eligibility->message()]);
+        }
+
         // Intra-calendar self-overlap check
         $this->guardIntraCalendarOverlap($activities);
 
         // Hard-block: any activity overlapping an already-Approved slot
         $this->guardConfirmedConflicts($activities);
 
-        // Period is a global, admin-controlled setting, not a per-submission
-        // choice — read whatever is current right now and stamp it on the
-        // row. A later admin change never rewrites this.
-        $period = CurrentPeriod::get();
         $academicYear = $period->academicYear;
         $term = $period->term;
 
@@ -199,5 +209,46 @@ class SubmitActivityCalendar
         }
 
         return $warnings;
+    }
+
+    /**
+     * Governs Activity CALENDAR submission only ("one per term" — the term
+     * plan). Must NEVER be called from App\ActivityProposals\* to gate an
+     * activity proposal (on- or off-calendar) — the off-calendar variant
+     * exists precisely so an org can propose something outside its approved
+     * calendar, and must stay unaffected by this org's calendar status for
+     * the term. If a future change wants to relate proposals to calendar
+     * state, that is a new, separate decision — do not reach for this method.
+     */
+    public function eligibilityFor(Organization $organization, ?AcademicPeriod $asOf = null): ActivityCalendarEligibilityResult
+    {
+        $period = $asOf ?? CurrentPeriod::get();
+        $existing = $this->existingNonRejectedCalendarFor($organization, $period);
+
+        return new ActivityCalendarEligibilityResult($period, $existing);
+    }
+
+    /**
+     * The single source of truth for "does this org already have a slot used
+     * for this term". Non-rejected, not merely in-flight — an Approved
+     * calendar still counts: once a term's calendar is approved, that term's
+     * one submission is used, and the org does not get a second bite. This is
+     * deliberately NOT DocumentStatus::isInFlight(), which excludes Approved
+     * (it means "still moving through the chain") — that is the right
+     * meaning for the org-status resolver but the wrong one here.
+     *
+     * Scope warning: same as eligibilityFor() above — Activity Calendar only,
+     * never Activity Proposal.
+     */
+    public function existingNonRejectedCalendarFor(Organization $organization, AcademicPeriod $period): ?Document
+    {
+        return Document::query()
+            ->where('organization_id', $organization->id)
+            ->where('form_type', FormType::ActivityCalendar->value)
+            ->where('status', '!=', DocumentStatus::Rejected->value)
+            ->whereHas('activityCalendar', fn ($q) => $q
+                ->where('academic_year', $period->academicYear)
+                ->where('term', $period->term->value))
+            ->first();
     }
 }
