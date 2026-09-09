@@ -6,6 +6,7 @@ use App\Approval\StepApproverResolver;
 use App\Enums\AccountStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Enums\OrganizationStatus;
 use App\Enums\ProposalVariant;
 use App\Enums\Role;
 use App\Enums\TransitionAction;
@@ -15,7 +16,8 @@ use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\User;
-use App\Renewals\SubmitOrganizationRenewal;
+use App\Organizations\OrganizationStatusResolver;
+use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -69,7 +71,7 @@ class AdminDashboardController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
-    public function index(StepApproverResolver $resolver, SubmitOrganizationRenewal $renewalCheck): Response
+    public function index(StepApproverResolver $resolver, OrganizationStatusResolver $statusResolver): Response
     {
         $user = Auth::user();
         // Not sent as a page prop anymore — it's now a globally shared prop
@@ -77,7 +79,6 @@ class AdminDashboardController extends Controller
         // context strip, so every page gets it, not just this one. Still
         // needed here as a local value for orgCompliance()'s scoping.
         $period = CurrentPeriod::get();
-        $academicYear = $period->academicYear;
         [$yearStart, $yearEnd] = $period->academicYearRange();
 
         return Inertia::render('admin/dashboard', [
@@ -87,7 +88,7 @@ class AdminDashboardController extends Controller
             'proposalFunnel' => $this->proposalFunnel(),
             'recentActivity' => $this->recentActivity(),
             'oldestInReview' => $this->oldestInReview(),
-            'orgCompliance' => $this->orgCompliance($renewalCheck, $academicYear),
+            'orgCompliance' => $this->orgCompliance($statusResolver, $period),
         ]);
     }
 
@@ -400,24 +401,24 @@ class AdminDashboardController extends Controller
     /**
      * Two read-only lists: orgs with an in-flight document right now (the
      * same [Draft, InReview, Returned] idiom already used as a guard in
-     * SubmitOrganizationRegistration and OrganizationOfficerController), and
-     * orgs that don't have a non-rejected renewal COVERING the current
-     * academic year — reusing
-     * SubmitOrganizationRenewal::hasNonRejectedRenewalCovering() rather than
-     * duplicating it as a new subquery. At this org count (single digits to
-     * dozens), checking per-org in a loop is simpler and safer than
-     * re-deriving the predicate.
+     * SubmitOrganizationRegistration and OrganizationOfficerController,
+     * across ALL form types — deliberately broader than the resolver's
+     * registration/renewal-only in-flight check, since this card means
+     * "has something pending", not specifically "renewing"), and orgs whose
+     * OrganizationStatusResolver-derived status is NeedsRenewal.
      *
-     * KNOWN LIMITATION, to be replaced by App\Organizations\OrganizationStatusResolver:
-     * this still flags a brand-new org founded this academic year (registration
-     * coverage is stamped on approval, not via a renewal), and does not
-     * distinguish "genuinely overdue" from "never approved at all". No "fully
-     * compliant" badge for the same reason — deliberately not approximated
-     * until the resolver lands.
+     * Sourcing `notRenewed` from the resolver (rather than the old
+     * hasNonRejectedRenewalCovering()-based approximation) fixes the bug that
+     * approximation admitted: a brand-new org founded this academic year is
+     * no longer false-flagged (its registration-sourced coverage is now
+     * correctly recognized via coversAcademicYearOrLater()), and this list no
+     * longer conflates "genuinely overdue" with "never approved at all" —
+     * an org that was never approved and has nothing in flight resolves
+     * Inactive, not NeedsRenewal, and is correctly absent from this list.
      *
      * @return array{pending: array<int, array{organizationId: int, organizationName: string, count: int}>, notRenewed: array<int, array{organizationId: int, organizationName: string}>}
      */
-    private function orgCompliance(SubmitOrganizationRenewal $renewalCheck, string $academicYear): array
+    private function orgCompliance(OrganizationStatusResolver $statusResolver, AcademicPeriod $period): array
     {
         $pending = Document::query()
             ->with('organization:id,name')
@@ -437,9 +438,11 @@ class AdminDashboardController extends Controller
             ->values()
             ->all();
 
-        $notRenewed = Organization::query()
-            ->get(['id', 'name'])
-            ->reject(fn (Organization $org) => $renewalCheck->hasNonRejectedRenewalCovering($org, $academicYear))
+        $organizations = Organization::query()->get(['id', 'name']);
+        $statuses = $statusResolver->forMany($organizations, $period);
+
+        $notRenewed = $organizations
+            ->filter(fn (Organization $org) => $statuses->get($org->id)?->status === OrganizationStatus::NeedsRenewal)
             ->map(fn (Organization $org) => ['organizationId' => $org->id, 'organizationName' => $org->name])
             ->values()
             ->all();

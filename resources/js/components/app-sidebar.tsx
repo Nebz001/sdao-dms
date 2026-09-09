@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Archive,
+    Building2,
     CalendarCog,
     CalendarDays,
     FilePlus2,
@@ -32,11 +33,13 @@ import * as activityProposals from '@/routes/activity-proposals';
 import * as activityLog from '@/routes/admin/activity';
 import * as approvers from '@/routes/admin/approvers';
 import * as archive from '@/routes/admin/archive';
+import * as adminOrganizations from '@/routes/admin/organizations';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentPeriodSettings from '@/routes/admin/settings/period';
 import * as calendar from '@/routes/calendar';
 import * as documentHistory from '@/routes/document-history';
 import * as officers from '@/routes/officers';
+import * as myOrganization from '@/routes/organizations';
 import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
 import * as renewals from '@/routes/renewals';
@@ -139,6 +142,11 @@ export function AppSidebar() {
         sections.push({
             label: 'My Documents',
             items: [
+                {
+                    title: 'My Organization',
+                    href: myOrganization.mine(),
+                    icon: Building2,
+                },
                 {
                     title: 'My Registrations',
                     href: registrations.index(),
@@ -252,6 +260,11 @@ export function AppSidebar() {
 
     if (isSdao) {
         manageItems.push(
+            {
+                title: 'Organizations',
+                href: adminOrganizations.index(),
+                icon: Building2,
+            },
             {
                 title: 'Provision Approvers',
                 href: approvers.index(),

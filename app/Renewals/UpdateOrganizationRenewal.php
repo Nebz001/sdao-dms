@@ -75,7 +75,7 @@ class UpdateOrganizationRenewal
             // NOT included: they are set once at creation
             // (SubmitOrganizationRenewal) and must never change across the
             // return/resubmit cycle — covers_academic_year in particular is
-            // the uniqueness key hasNonRejectedRenewalCovering() matches on.
+            // the uniqueness key hasNonRejectedRenewalForExactYear() matches on.
             $document->registrationDetail()->update([
                 'organization_type' => $organizationType->value,
                 'purpose_of_organization' => $purposeOfOrganization,

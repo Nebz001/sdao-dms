@@ -7,6 +7,7 @@ use App\Enums\FormType;
 use App\Enums\ProposalVariant;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +42,21 @@ class Document extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Still moving through the chain — see DocumentStatus::isInFlight() for
+     * why Rejected is deliberately excluded.
+     *
+     * @param  Builder<Document>  $query
+     */
+    public function scopeInFlight(Builder $query): void
+    {
+        $inFlightValues = collect(DocumentStatus::cases())
+            ->filter(fn (DocumentStatus $status) => $status->isInFlight())
+            ->map(fn (DocumentStatus $status) => $status->value);
+
+        $query->whereIn('status', $inFlightValues);
     }
 
     /** @return BelongsTo<WorkflowTemplate, $this> */

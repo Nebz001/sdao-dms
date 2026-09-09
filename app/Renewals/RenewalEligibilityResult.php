@@ -9,9 +9,10 @@ use App\Support\AcademicPeriod;
 /**
  * The result of SubmitOrganizationRenewal::eligibilityFor() — the single
  * source of truth every renewal-adjacent surface (the submit action itself,
- * RenewalController::create()'s UX, and OrganizationStatusResolver's
- * `renewalDue` flag) must agree with. Never build competing "can this org
- * renew right now" logic elsewhere.
+ * RenewalController::create()'s UX, and
+ * App\Organizations\OrganizationStatusResolver's `renewalDue` flag) must
+ * agree with. Never build competing "can this org renew right now" logic
+ * elsewhere.
  */
 final readonly class RenewalEligibilityResult
 {

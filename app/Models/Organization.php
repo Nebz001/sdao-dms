@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\Role;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -41,6 +43,20 @@ class Organization extends Model
     public function roleAssignments(): HasMany
     {
         return $this->hasMany(RoleAssignment::class);
+    }
+
+    /**
+     * The bound adviser's role assignment, or null if none is bound yet.
+     * Deliberately nullable — unlike RoleDirectory::adviserFor(), which
+     * throws ModelNotFoundException, this is for "does this org have an
+     * adviser?" call sites that need a plain boolean/optional answer (e.g.
+     * OrganizationStatusResolver) rather than a control-flow exception.
+     *
+     * @return HasOne<RoleAssignment, $this>
+     */
+    public function adviser(): HasOne
+    {
+        return $this->hasOne(RoleAssignment::class)->where('role', Role::Adviser);
     }
 
     /**

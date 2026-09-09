@@ -37,7 +37,7 @@ use Illuminate\Validation\ValidationException;
  * Registration stamps its coverage at APPROVE time (see
  * ApproveOrganizationRegistration) because it records when the org became
  * active. Renewal stamps its coverage at SUBMIT time, deliberately — its
- * coverage year is the uniqueness key hasNonRejectedRenewalCovering()
+ * coverage year is the uniqueness key hasNonRejectedRenewalForExactYear()
  * matches on, and must exist while the renewal is still InReview. Do not
  * unify these two.
  */
@@ -113,7 +113,7 @@ class SubmitOrganizationRenewal
                 // Renewal's coverage is fixed at SUBMIT time, unlike a
                 // registration's (see class docblock) — it must exist while
                 // this renewal is InReview, since it's the uniqueness key
-                // hasNonRejectedRenewalCovering() matches on.
+                // hasNonRejectedRenewalForExactYear() matches on.
                 'academic_year' => $period->academicYear,
                 'term' => $period->term->value,
                 'covers_academic_year' => $coversAcademicYear,
@@ -180,7 +180,7 @@ class SubmitOrganizationRenewal
 
         $nextYear = $current->nextAcademicYear();
 
-        if ($this->hasNonRejectedRenewalCovering($organization, $nextYear)) {
+        if ($this->hasNonRejectedRenewalForExactYear($organization, $nextYear)) {
             return new RenewalEligibilityResult(RenewalEligibility::AlreadyFiledThisYear, $current, $organization->name, $coversThrough, $record);
         }
 
@@ -195,13 +195,26 @@ class SubmitOrganizationRenewal
     }
 
     /**
-     * Uniqueness guard: at most one non-rejected renewal per org per COVERED
-     * academic year. Only a Rejected renewal frees the slot — reject is
-     * terminal, so the org must be able to file a brand-new renewal for the
-     * same covered year (invariant #2: a rejected document is never revived;
-     * the student files anew).
+     * Uniqueness guard: at most one non-rejected renewal per org per EXACT
+     * COVERED academic year. Only a Rejected renewal frees the slot — reject
+     * is terminal, so the org must be able to file a brand-new renewal for
+     * the same covered year (invariant #2: a rejected document is never
+     * revived; the student files anew).
+     *
+     * This answers a DIFFERENT question from
+     * OrganizationStatusResolver::coversAcademicYearOrLater(), and the two
+     * must never be merged:
+     *  - this method: "has THIS EXACT year already been claimed by a
+     *    renewal?" — renewals only, exact-year match. It exists to stop a
+     *    duplicate filing, not to describe standing.
+     *  - coversAcademicYearOrLater(): "is this org in good standing for year
+     *    Y or later, right now?" — registration OR renewal, `>=` match.
+     * Using this method where the resolver's is needed would wrongly block a
+     * fresh renewal after a rejection reads as still-covered; using the
+     * resolver's here would let a second renewal slip in once the org's
+     * *registration* alone already covers the year.
      */
-    public function hasNonRejectedRenewalCovering(Organization $organization, string $academicYear): bool
+    public function hasNonRejectedRenewalForExactYear(Organization $organization, string $academicYear): bool
     {
         return Document::query()
             ->where('organization_id', $organization->id)

@@ -67,6 +67,35 @@ function adminDashboardApprovedActivity(Organization $org): CalendarActivity
     ]);
 }
 
+/**
+ * An org that WAS approved but whose coverage has lapsed — the
+ * OrganizationStatusResolver NeedsRenewal case, built directly rather than
+ * through SubmitOrganizationRegistration/ApproveOrganizationRegistration
+ * since only the resulting data (an Approved registration whose
+ * covers_academic_year is behind the current academic year) matters here.
+ */
+function adminDashboardLapsedRegistration(Organization $org): Document
+{
+    $doc = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $org->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+
+    $startYear = (int) explode('-', AcademicYear::current())[0];
+    $lapsedYear = ($startYear - 1).'-'.$startYear;
+
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $doc->id,
+        'organization_type' => OrganizationType::CoCurricular,
+        'academic_year' => $lapsedYear,
+        'term' => 'first_term',
+        'covers_academic_year' => $lapsedYear,
+    ]);
+
+    return $doc;
+}
+
 function inReviewRegistration(Organization $org, ApprovalEngine $engine, User $submitter): Document
 {
     $doc = Document::factory()->create([
@@ -290,8 +319,14 @@ test('quick stats carry a weekly baseline for awaiting-review and pending-accoun
         );
 });
 
-test('org compliance lists organizations with pending items and organizations not yet renewed this year', function () {
+test('org compliance lists organizations with pending items and organizations genuinely overdue for renewal', function () {
     inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    // itGuild has a lapsed approved registration — the org WAS approved, but
+    // its coverage is behind the current academic year, so it is genuinely
+    // overdue. This is the OrganizationStatusResolver-derived NeedsRenewal
+    // case orgCompliance()'s notRenewed list now sources from.
+    adminDashboardLapsedRegistration($this->itGuild);
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
@@ -300,8 +335,21 @@ test('org compliance lists organizations with pending items and organizations no
             ->has('orgCompliance.pending', 1)
             ->where('orgCompliance.pending.0.organizationName', 'Computing Society')
             ->where('orgCompliance.pending.0.count', 1)
-            // No org in this seed has an approved renewal for the current
-            // academic year, so every org appears here.
-            ->where('orgCompliance.notRenewed', fn ($orgs) => count($orgs) >= 1)
+            ->where('orgCompliance.notRenewed', fn ($orgs) => count($orgs) === 1)
+            ->where('orgCompliance.notRenewed.0.organizationName', 'IT Guild')
+        );
+});
+
+test('org compliance does not flag an organization that was never approved as not renewed', function () {
+    // Neither Computing Society nor IT Guild has ever been approved in this
+    // seed (MembershipSeeder wires memberships directly, not through
+    // SubmitOrganizationRegistration/Approve) — this is the exact bug the
+    // OrganizationStatusResolver-based rewrite fixes: a never-approved org
+    // must read Inactive/PendingReview, never NeedsRenewal.
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('orgCompliance.notRenewed', fn ($orgs) => count($orgs) === 0)
         );
 });

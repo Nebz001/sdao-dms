@@ -113,3 +113,47 @@ export function ActionBadge({ action, className }: ActionBadgeProps) {
         </Badge>
     );
 }
+
+/**
+ * Colors an App\Enums\OrganizationStatus value, sharing statusStyles'
+ * info/success/warning/muted family. Active reads success (in good
+ * standing); NeedsRenewal reads warning (action needed, but not urgent —
+ * distinct from a document actually returned for revision); PendingReview
+ * reads info (something is moving, same family as a document In Review);
+ * Inactive reads the neutral muted chip, same treatment as Draft.
+ */
+const organizationStatusStyles: Record<string, string> = {
+    active: 'border-transparent bg-success text-background',
+    needs_renewal: 'border-transparent bg-warning text-background',
+    pending_review: 'border-transparent bg-info text-background',
+    inactive: 'border-transparent bg-muted text-muted-foreground',
+};
+
+type OrganizationStatusBadgeProps = {
+    status: string;
+    className?: string;
+};
+
+/**
+ * The org-status sibling of StatusBadge/ActionBadge — same solid-chip
+ * recipe, different palette key, since an organization's derived status
+ * (App\Organizations\OrganizationStatusResolver) is a distinct vocabulary
+ * from a document's status even though both use the word "status".
+ */
+export function OrganizationStatusBadge({
+    status,
+    className,
+}: OrganizationStatusBadgeProps) {
+    return (
+        <Badge
+            variant="outline"
+            className={cn(
+                'rounded-full font-semibold',
+                organizationStatusStyles[status] ?? DEFAULT_ACTION_STYLE,
+                className,
+            )}
+        >
+            {statusLabel(status)}
+        </Badge>
+    );
+}

@@ -2,12 +2,11 @@
 
 namespace App\Renewals;
 
-use App\Enums\RenewalEligibility;
 use App\Enums\Term;
-use App\Models\Organization;
 use App\Models\Setting;
 use App\Notifications\RenewalWindowOpenedNotification;
 use App\Organizations\OrganizationMembershipService;
+use App\Organizations\OrganizationStatusResolver;
 use App\Support\AcademicPeriod;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -23,20 +22,19 @@ use Throwable;
  * class exclusively owns — same one-key-per-owner convention as
  * App\Support\CurrentPeriod).
  *
- * Recipient computation loops eligibilityFor() per organization — a bounded
- * N+1 at NU Lipa's scale (dozens of organizations), run once per admin action
- * rather than per request. This intentionally reuses
- * SubmitOrganizationRenewal::eligibilityFor() as the single source of truth
- * rather than re-deriving "is this org due" here — when
- * App\Organizations\OrganizationStatusResolver lands, its bounded-query
- * organizationIdsWithRenewalDue() should replace this loop.
+ * Recipient computation delegates to
+ * OrganizationStatusResolver::organizationIdsWithRenewalDue(), which itself
+ * loops SubmitOrganizationRenewal::eligibilityFor() per organization — a
+ * bounded N+1 at NU Lipa's scale (dozens of organizations), run once per
+ * admin action rather than per request. Do not re-derive "is this org due"
+ * here; the resolver is the single source of truth.
  */
 class OpenRenewalSeason
 {
     private const string SENT_FOR_KEY = 'renewal_notice_sent_for';
 
     public function __construct(
-        private readonly SubmitOrganizationRenewal $renewalAction,
+        private readonly OrganizationStatusResolver $statusResolver,
         private readonly OrganizationMembershipService $membershipService,
     ) {}
 
@@ -49,10 +47,7 @@ class OpenRenewalSeason
             return 0;
         }
 
-        $dueOrganizationIds = Organization::query()
-            ->get(['id', 'name'])
-            ->filter(fn (Organization $org) => $this->renewalAction->eligibilityFor($org)->status === RenewalEligibility::Eligible)
-            ->pluck('id');
+        $dueOrganizationIds = $this->statusResolver->organizationIdsWithRenewalDue($new);
 
         if ($dueOrganizationIds->isEmpty()) {
             $this->markSent($new->academicYear);

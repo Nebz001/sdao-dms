@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ApproverController;
 use App\Http\Controllers\Admin\CurrentPeriodController;
 use App\Http\Controllers\Admin\DocumentArchiveController;
+use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JoinOrganizationController;
 use App\Http\Controllers\JoinRequestReviewController;
+use App\Http\Controllers\MyOrganizationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
@@ -80,6 +82,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Literal path before any {document} wildcard below, same convention as
     // /notifications and /organizations/join.
     Route::get('/document-history', [DocumentHistoryController::class, 'index'])->name('document-history.index');
+
+    // Officer — the caller's own organization: status, requirements
+    // checklist, officers, adviser, coverage. Literal path declared before
+    // the {organization} wildcard below, same convention as organizations/join.
+    Route::get('/organizations/mine', [MyOrganizationController::class, 'show'])->name('organizations.mine');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');
@@ -213,6 +220,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // the term to 3rd opens organization renewal season.
         Route::get('/settings/period', [CurrentPeriodController::class, 'edit'])->name('settings.period.edit');
         Route::put('/settings/period', [CurrentPeriodController::class, 'update'])->name('settings.period.update');
+
+        // SDAO admin — every organization with its derived status
+        // (App\Organizations\OrganizationStatusResolver) and requirements
+        // checklist.
+        Route::get('/organizations', [AdminOrganizationController::class, 'index'])->name('organizations.index');
     });
 });
 
