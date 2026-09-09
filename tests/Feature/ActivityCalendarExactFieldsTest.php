@@ -127,6 +127,71 @@ test('Date Received renders on the index list from the document\'s real created_
     expect($result['document']->created_at)->not->toBeNull();
 });
 
+// --- One activity calendar per term — create() eligibility prop --------
+
+test('create() reports eligible when the org has no calendar for the current term', function () {
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-calendars.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('activity-calendars/create')
+            ->where('eligibility.status', 'eligible')
+            ->where('eligibility.message', null)
+        );
+});
+
+test('create() reports already_filed with a pending-review message while the existing calendar is Draft/InReview', function () {
+    $result = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: [exactFieldsActivity()]);
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-calendars.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('eligibility.status', 'already_filed')
+            ->where('eligibility.message', fn ($m) => str_contains($m, 'pending SDAO review'))
+            ->where('eligibility.existingDocument.id', $result['document']->id)
+            ->where('eligibility.existingDocument.status', 'in_review')
+            ->where('eligibility.existingDocument.href', route('activity-calendars.show', $result['document']))
+        );
+});
+
+test('create() points at editing the existing calendar when it was Returned', function () {
+    $result = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: [exactFieldsActivity()]);
+    $this->engine->returnForRevision($result['document'], $this->sdaoA, 'Needs more detail.');
+    $result['document']->refresh();
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-calendars.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('eligibility.status', 'already_filed')
+            ->where('eligibility.message', fn ($m) => str_contains($m, 'returned for revision'))
+            ->where('eligibility.existingDocument.status', 'returned')
+            ->where('eligibility.existingDocument.href', route('activity-calendars.edit', $result['document']))
+        );
+});
+
+test('create() reports the already-approved message once the existing calendar is Approved', function () {
+    $result = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: [exactFieldsActivity()]);
+    $this->engine->approve($result['document'], $this->sdaoA);
+    $this->engine->approve($result['document'], $this->sdaoB);
+    $result['document']->refresh();
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-calendars.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('eligibility.status', 'already_filed')
+            ->where('eligibility.message', fn ($m) => str_contains($m, 'already been approved'))
+            ->where('eligibility.existingDocument.status', 'approved')
+            ->where('eligibility.existingDocument.href', route('activity-calendars.show', $result['document']))
+        );
+});
+
 // --- Regression: new fields don't affect venue-conflict detection -------
 
 test('venue-conflict detection is unaffected by differing SDG/participant/budget values (CLAUDE.md invariant #6)', function () {

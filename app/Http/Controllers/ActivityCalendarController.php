@@ -6,6 +6,7 @@ use App\Approval\SectionFlags;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
 use App\Calendar\VenueConflictChecker;
+use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Sdg;
 use App\Http\Requests\Calendar\ConflictCheckRequest;
@@ -53,7 +54,7 @@ class ActivityCalendarController extends Controller
         return Inertia::render('activity-calendars/index', ['calendars' => $documents]);
     }
 
-    public function create(): Response
+    public function create(SubmitActivityCalendar $action): Response
     {
         $user = Auth::user();
 
@@ -62,6 +63,8 @@ class ActivityCalendarController extends Controller
             ->where('user_id', $user->id)
             ->where('is_active', true)
             ->first();
+
+        $eligibility = $membership !== null ? $action->eligibilityFor($membership->organization) : null;
 
         return Inertia::render('activity-calendars/create', [
             'membership' => $membership ? [
@@ -77,6 +80,20 @@ class ActivityCalendarController extends Controller
             // shown read-only so the student knows what they're submitting
             // under, but it is never user-selectable.
             'current_term_label' => CurrentPeriod::get()->term->label(),
+            // One calendar per term — see SubmitActivityCalendar::eligibilityFor().
+            // Null when there's no membership; the not-an-officer state takes
+            // precedence on the frontend either way.
+            'eligibility' => $eligibility !== null ? [
+                'status' => $eligibility->isEligible() ? 'eligible' : 'already_filed',
+                'message' => $eligibility->message(),
+                'existingDocument' => $eligibility->existingDocument !== null ? [
+                    'id' => $eligibility->existingDocument->id,
+                    'status' => $eligibility->existingDocument->status->value,
+                    'href' => $eligibility->existingDocument->status === DocumentStatus::Returned
+                        ? route('activity-calendars.edit', $eligibility->existingDocument)
+                        : route('activity-calendars.show', $eligibility->existingDocument),
+                ] : null,
+            ] : null,
             // Exact field corrections (Phase 2 item 7 slice 1).
             'sdgs' => collect(Sdg::cases())->map(fn (Sdg $s) => [
                 'value' => $s->value,

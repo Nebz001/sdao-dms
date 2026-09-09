@@ -3,6 +3,8 @@
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
+use App\Approval\ApprovalEngine;
+use App\Calendar\SubmitActivityCalendar;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
@@ -203,4 +205,47 @@ test('HTTP: draft auto-save returns a plain JSON response, not an Inertia respon
     $document->refresh()->load('activityProposal');
     expect($document->activityProposal->objectives)->toBe('HTTP autosave objectives');
     expect($document->activityProposal->narrative)->toBe('HTTP autosave narrative');
+});
+
+// Regression guard for the "one activity calendar per term" rule
+// (SubmitActivityCalendar::eligibilityFor()): that check must NEVER gate
+// activity proposal submission, on- or off-calendar. This pins it — an org
+// whose activity calendar for the current term is already Approved (i.e.
+// blocked from submitting a second calendar) must still be free to start an
+// off-calendar proposal draft for that same org and period.
+test('off-calendar proposal draft is unaffected by activity calendar eligibility for the same org/period', function () {
+    $submitCalendar = app(SubmitActivityCalendar::class);
+    $engine = app(ApprovalEngine::class);
+    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
+
+    $calendarResult = $submitCalendar->execute(
+        actor: $this->student,
+        organization: $this->org,
+        activities: [[
+            'name' => 'Term Kickoff',
+            'venue' => 'Gymnasium',
+            'activity_date' => '2026-09-15',
+            'start_time' => '09:00',
+            'end_time' => '12:00',
+        ]],
+    );
+    $engine->approve($calendarResult['document'], $sdaoA);
+    $engine->approve($calendarResult['document'], $sdaoB);
+    $calendarResult['document']->refresh();
+    expect($calendarResult['document']->status)->toBe(DocumentStatus::Approved);
+
+    // Sanity check: the org genuinely IS blocked from a second calendar.
+    expect($submitCalendar->eligibilityFor($this->org)->isEligible())->toBeFalse();
+
+    // The off-calendar proposal draft must still succeed regardless.
+    $document = $this->startDraft->execute(
+        actor: $this->student,
+        organization: $this->org,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: draftOffCalendarData(),
+    );
+
+    expect($document->status)->toBe(DocumentStatus::Draft);
+    expect($document->form_type)->toBe(FormType::ActivityProposal);
 });
