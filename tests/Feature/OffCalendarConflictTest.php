@@ -104,6 +104,7 @@ function offCalSubmitDraft(User $student, Organization $org, string $venue, stri
             'end_time' => $end,
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     return app(SubmitActivityProposal::class)->execute(
@@ -131,6 +132,7 @@ test('off-calendar submit overlapping an Approved activity is a hard block', fun
             'end_time' => '13:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect(fn () => $this->submitProposal->execute(
@@ -161,6 +163,7 @@ test('off-calendar submit overlapping an InReview activity submits with warning'
             'end_time' => '13:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(
@@ -195,6 +198,7 @@ test('off-calendar submit at a different venue is allowed (no conflict)', functi
                 'end_time' => '13:00',
                 'term' => 'first_term',
             ],
+            attachmentFiles: proposalStepOneAttachmentFiles(),
         ),
         objectives: 'Objectives',
         narrative: 'Narrative',
@@ -221,6 +225,7 @@ test('off-calendar submit with touching (not overlapping) times is allowed', fun
                 'end_time' => '12:00',
                 'term' => 'first_term',
             ],
+            attachmentFiles: proposalStepOneAttachmentFiles(),
         ),
         objectives: 'Objectives',
         narrative: 'Narrative',
@@ -282,6 +287,7 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
             'end_time' => '10:30',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect(fn () => app(SubmitActivityProposal::class)->execute(
@@ -308,6 +314,7 @@ test('off-calendar proposal CalendarActivity is invisible to checker while Draft
             'end_time' => '11:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     // A rival submission to the same slot should not see a conflict (since draft is invisible)
@@ -326,6 +333,7 @@ test('off-calendar proposal CalendarActivity is invisible to checker while Draft
             'end_time' => '10:30',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = app(SubmitActivityProposal::class)->execute(

@@ -86,6 +86,7 @@ function badShapeOrgWithSubmittedProposal(): array
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document = app(SubmitActivityProposal::class)->execute(

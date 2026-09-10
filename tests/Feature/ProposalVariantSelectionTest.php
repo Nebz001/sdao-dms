@@ -76,6 +76,7 @@ function startOffCalendarDraft(User $student, Organization $org): Document
             'end_time' => '11:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 }
 
@@ -121,6 +122,7 @@ test('regular on-calendar: submitted doc binds template with adviser-first step'
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(
@@ -170,6 +172,7 @@ test('SHS on-calendar: submitted doc binds template with adviser then principal'
         organization: $this->shsCouncil,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(
@@ -207,6 +210,7 @@ test('SHS off-calendar: submitted doc binds template with SDAO-first then advise
             'end_time' => '11:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(
@@ -242,6 +246,7 @@ test('college-less on-calendar: submitted doc binds template with adviser then S
         organization: $this->chessClub,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(
@@ -281,6 +286,7 @@ test('college-less off-calendar: submitted doc binds template with SDAO-first th
             'end_time' => '11:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $result = $this->submitProposal->execute(

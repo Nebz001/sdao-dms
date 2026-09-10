@@ -274,6 +274,7 @@ test('a new off-calendar proposal automatically uses the current term with no us
             'end_time' => '11:00',
             // Deliberately no 'term' key — proves it's no longer read from input.
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document->load('activityProposal.calendarActivity.calendar');
@@ -295,9 +296,10 @@ test('POST /activity-proposals succeeds with no term field for off-calendar and 
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
         'partner_organizations' => ['Partner Org'],
-        'target_sdg' => 'quality_education',
+        'target_sdg' => ['quality_education'],
         'proposed_budget' => '10000.00',
-        'budget_source' => 'Org funds',
+        'budget_source' => 'rso_fund',
+        'attachments' => proposalStepOneAttachmentFiles(),
     ]);
 
     $response->assertSessionHasNoErrors();

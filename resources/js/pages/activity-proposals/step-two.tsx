@@ -1,7 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
-import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +29,7 @@ type ProposalData = {
     expenses: string | null;
     expense_items: ExpenseItem[] | null;
     proposed_budget: string | null;
-    budget_source: string | null;
+    budget_source_label: string | null;
 } | null;
 
 type DocumentData = {
@@ -43,11 +41,9 @@ type Props = {
     document: DocumentData;
     proposal: ProposalData;
     activity: ActivitySummary;
-    attachmentSlots: AttachmentSlotDef[];
-    attachments: Record<string, ExistingAttachment[]>;
 };
 
-export default function StepTwo({ document: doc, proposal, activity, attachmentSlots, attachments }: Props) {
+export default function StepTwo({ document: doc, proposal, activity }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const narrativeRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
@@ -139,9 +135,9 @@ clearTimeout(saveTimer.current);
                                     {proposal.proposed_budget}
                                 </p>
                             )}
-                            {proposal?.budget_source && (
+                            {proposal?.budget_source_label && (
                                 <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">Budget Source:</span> {proposal.budget_source}
+                                    <span className="font-medium text-foreground">Budget Source:</span> {proposal.budget_source_label}
                                 </p>
                             )}
                         </CardContent>
@@ -298,14 +294,8 @@ clearTimeout(saveTimer.current);
                             <InputError message={errors.expense_items} />
                         </div>
 
-                        {attachmentSlots.map((slot) => (
-                            <ImmediateAttachmentUpload
-                                key={slot.key}
-                                documentId={doc.id}
-                                slot={slot}
-                                existing={attachments[slot.key]?.[0] ?? null}
-                            />
-                        ))}
+                        {/* Group C item 3 — all attachment slots moved to
+                            step 1; step 2 no longer collects any. */}
 
                         <InputError message={errors.activity} />
 

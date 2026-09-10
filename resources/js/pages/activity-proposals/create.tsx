@@ -1,6 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import AttachmentSlotField from '@/components/attachment-slot-field';
 import InputError from '@/components/input-error';
+import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -50,6 +53,8 @@ type Props = {
     activityNatures: OptionItem[];
     activityTypes: OptionItem[];
     sdgs: OptionItem[];
+    budgetSources: OptionItem[];
+    attachmentSlots: AttachmentSlotDef[];
 };
 
 export default function CreateActivityProposal({
@@ -59,9 +64,12 @@ export default function CreateActivityProposal({
     activityNatures,
     activityTypes,
     sdgs,
+    budgetSources,
+    attachmentSlots,
 }: Props) {
     const minDate = todayDateString();
     const [calendarMode, setCalendarMode] = useState('');
+    const [targetSdg, setTargetSdg] = useState<string[]>([]);
     const [onCalendarActivities, setOnCalendarActivities] = useState<
         OnCalendarActivity[]
     >([]);
@@ -586,24 +594,16 @@ export default function CreateActivityProposal({
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="target_sdg">
-                                            Target SDG
+                                        <Label>
+                                            Target SDG (select one or more)
                                         </Label>
-                                        <Select name="target_sdg">
-                                            <SelectTrigger id="target_sdg">
-                                                <SelectValue placeholder="Select SDG…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sdgs.map((s) => (
-                                                    <SelectItem
-                                                        key={s.value}
-                                                        value={s.value}
-                                                    >
-                                                        {s.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <SdgCheckboxGroup
+                                            idPrefix="target-sdg"
+                                            name="target_sdg[]"
+                                            options={sdgs}
+                                            selected={targetSdg}
+                                            onChange={setTargetSdg}
+                                        />
                                         <InputError
                                             message={errors.target_sdg}
                                         />
@@ -629,15 +629,37 @@ export default function CreateActivityProposal({
                                         <Label htmlFor="budget_source">
                                             Budget Source
                                         </Label>
-                                        <Input
-                                            id="budget_source"
-                                            name="budget_source"
-                                            placeholder="e.g. Org funds, sponsorship…"
-                                        />
+                                        <Select name="budget_source">
+                                            <SelectTrigger id="budget_source">
+                                                <SelectValue placeholder="Select source…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {budgetSources.map((b) => (
+                                                    <SelectItem
+                                                        key={b.value}
+                                                        value={b.value}
+                                                    >
+                                                        {b.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <InputError
                                             message={errors.budget_source}
                                         />
                                     </div>
+
+                                    {attachmentSlots.map((slot) => (
+                                        <AttachmentSlotField
+                                            key={slot.key}
+                                            slot={slot}
+                                            error={
+                                                errors[
+                                                    `attachments.${slot.key}`
+                                                ]
+                                            }
+                                        />
+                                    ))}
                                 </>
                             )}
 

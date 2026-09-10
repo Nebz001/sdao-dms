@@ -80,6 +80,7 @@ test('regular on-calendar full chain: adviser → chair → dean → SDAO(×2) �
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -141,6 +142,7 @@ test('notification fired to each next-step approver on every hand-off (invariant
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -168,6 +170,7 @@ test('SDAO single approval (split) does not advance the document', function () {
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -205,6 +208,7 @@ test('SHS on-calendar: adviser → principal → SDAO(×2) → asstDir → acadD
         organization: $this->shsCouncil,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(

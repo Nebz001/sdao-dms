@@ -88,6 +88,7 @@ test('return at step 6 keeps lower-step approvals and holds position at 6', func
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -145,6 +146,7 @@ test('resubmit after step-6 return resumes at step 6, not step 1', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -184,6 +186,7 @@ test('after step-6 return and resubmit, acad dir approves → advances to exec d
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -232,6 +235,7 @@ test('return at dean (step 3) keeps steps 1–2 and resumes at step 3', function
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -295,6 +299,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
             'start_time' => '09:00',
             'end_time' => '11:00',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(

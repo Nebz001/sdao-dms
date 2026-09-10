@@ -68,9 +68,12 @@ function step1ExactFields(array $overrides = []): array
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
         'partner_organizations' => ['Partner Org A', 'Partner Org B'],
-        'target_sdg' => 'quality_education',
+        'target_sdg' => ['quality_education'],
         'proposed_budget' => '15000.00',
-        'budget_source' => 'Org funds',
+        'budget_source' => 'rso_fund',
+        // Step-1 required attachments (Group C item 3) — apply regardless of
+        // calendar_mode, same as the fields above.
+        'attachments' => proposalStepOneAttachmentFiles(),
     ], $overrides);
 }
 
@@ -134,7 +137,7 @@ test('on-calendar submission succeeds once the new step-1 fields are supplied', 
         ->firstOrFail();
 
     expect($document->activityProposal->activity_nature->value)->toBe('co_curricular');
-    expect($document->activityProposal->target_sdg->value)->toBe('quality_education');
+    expect($document->activityProposal->target_sdg->first()->value)->toBe('quality_education');
     expect((float) $document->activityProposal->proposed_budget)->toBe(15000.00);
 });
 
@@ -146,14 +149,15 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OffCalendar,
         data: offCalendarStep1Payload(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $proposal = $document->activityProposal;
     expect($proposal->activity_nature->value)->toBe('co_curricular');
     expect($proposal->activity_type->value)->toBe('seminar_workshop');
     expect($proposal->partner_organizations)->toBe(['Partner Org A', 'Partner Org B']);
-    expect($proposal->target_sdg->value)->toBe('quality_education');
-    expect($proposal->budget_source)->toBe('Org funds');
+    expect($proposal->target_sdg->first()->value)->toBe('quality_education');
+    expect($proposal->budget_source->value)->toBe('rso_fund');
     expect((float) $proposal->proposed_budget)->toBe(15000.00);
 
     // Step 2 continue view — Proposed Budget/Budget Source shown read-only.
@@ -164,7 +168,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
         ->assertInertia(fn ($page) => $page
             ->component('activity-proposals/step-two')
             ->where('proposal.proposed_budget', '15000.00')
-            ->where('proposal.budget_source', 'Org funds')
+            ->where('proposal.budget_source_label', 'RSO Fund')
         );
 
     // Submit step 2 to reach a real (non-Draft) document for show/review-show.
@@ -189,8 +193,8 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
             ->where('proposal.activity_nature_label', 'Co-Curricular')
             ->where('proposal.activity_type_label', 'Seminar/Workshop')
             ->where('proposal.partner_organizations', ['Partner Org A', 'Partner Org B'])
-            ->where('proposal.target_sdg_label', 'Quality Education')
-            ->where('proposal.budget_source', 'Org funds')
+            ->where('proposal.target_sdg_labels', ['Quality Education'])
+            ->where('proposal.budget_source_label', 'RSO Fund')
             ->where('proposal.proposed_budget', '15000.00')
         );
 
@@ -221,6 +225,7 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OffCalendar,
         data: offCalendarStep1Payload(['venue' => 'Conflict Hall']),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, objectives: 'Objectives', narrative: 'Narrative');
     $firstDoc->refresh();
@@ -253,10 +258,11 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
             'activity_nature' => 'community_extension',
             'activity_type' => 'outreach',
             'partner_organizations' => ['Totally Different Org'],
-            'target_sdg' => 'climate_action',
+            'target_sdg' => ['climate_action'],
             'proposed_budget' => '1.00',
-            'budget_source' => 'Different source',
+            'budget_source' => 'external',
         ]),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect(fn () => $submitAction->execute(
@@ -275,6 +281,7 @@ test('on-calendar linking to an existing Approved CalendarActivity still works w
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: array_merge(['calendar_activity_id' => $activity->id], step1ExactFields()),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->activityProposal->calendar_activity_id)->toBe($activity->id);
@@ -322,6 +329,7 @@ test('an "others" selection with its specify text round-trips through submission
             'activity_type' => 'others',
             'activity_type_other' => 'Photo walk',
         ]),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $proposal = $document->activityProposal;
@@ -366,6 +374,7 @@ test('a non-others selection\'s label is unaffected by a stray _other value (onl
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OffCalendar,
         data: offCalendarStep1Payload(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->activityProposal->activityNatureLabel)->toBe('Co-Curricular');

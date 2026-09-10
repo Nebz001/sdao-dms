@@ -139,6 +139,7 @@ function submitViewAuthProposal(Organization $org, User $actor, string $activity
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
@@ -231,6 +232,7 @@ test('activity proposal show: org officer and the CURRENT step approver can view
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
@@ -443,6 +445,7 @@ test('viewArchive does not widen access to an in-review document: an SDAO member
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
@@ -478,6 +481,7 @@ test('after-activity report show: org officer can view, different-org officer ca
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,

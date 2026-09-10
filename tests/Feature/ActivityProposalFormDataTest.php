@@ -107,7 +107,7 @@ function activityProposalPrintDocument(
         'activity_nature' => ActivityNature::CoCurricular->value,
         'activity_type' => ActivityType::Competition->value,
         'partner_organizations' => ['Partner A', 'Partner B'],
-        'target_sdg' => Sdg::LifeOnLand->value,
+        'target_sdg' => [Sdg::LifeOnLand->value],
         'objectives' => 'Objectives text',
         'narrative' => 'Narrative text',
         'criteria_mechanics' => 'Criteria text',
@@ -115,7 +115,7 @@ function activityProposalPrintDocument(
         'source_of_funding' => 'Sponsors',
         'expenses' => 'Venue rental',
         'proposed_budget' => 5000,
-        'budget_source' => 'Org funds',
+        'budget_source' => 'rso_fund',
         'form_step' => 2,
     ], $proposalOverrides));
 
@@ -149,7 +149,7 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($data['partner_organizations'])->toBe(['Partner A', 'Partner B']);
     expect($data['target_sdg'])->toBe('SDG 15 — Life on Land');
     expect($data['proposed_budget'])->toBe('5,000.00');
-    expect($data['budget_source'])->toBe('Org funds');
+    expect($data['budget_source'])->toBe('RSO Fund');
     expect($data['date_of_activity'])->toBe('10/01/2026');
     expect($data['venue'])->toBe('Gym');
     expect($data['proposed_time'])->toBe('09:00 AM – 11:00 AM');

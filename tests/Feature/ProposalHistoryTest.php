@@ -71,6 +71,7 @@ test('transition history is written on submit', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -99,6 +100,7 @@ test('transition history records each approve with actor id', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -129,6 +131,7 @@ test('return for revision is recorded in history with comment', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -163,6 +166,7 @@ test('reject is recorded with final Rejected status in history', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -267,6 +271,7 @@ test('conflict checker excludes self when excludeDocumentId is provided', functi
             'end_time' => '11:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -297,6 +302,7 @@ test('proposal show page renders for the submitting student', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -320,6 +326,7 @@ test('review show page renders for the current-step approver', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(
@@ -344,6 +351,7 @@ test('review show page returns 403 for a wrong-role user', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $this->submitProposal->execute(

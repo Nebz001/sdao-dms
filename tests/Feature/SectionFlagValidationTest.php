@@ -204,7 +204,7 @@ test('return accepts every valid section key for After-Activity Report', functio
     expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
 });
 
-test('return accepts every valid section key for Activity Proposal (combined 9-key union)', function () {
+test('return accepts every valid section key for Activity Proposal (combined 11-key union)', function () {
     $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $startDraft = app(StartProposalDraft::class);
@@ -239,6 +239,7 @@ test('return accepts every valid section key for Activity Proposal (combined 9-k
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $submitProposal->execute(
@@ -249,7 +250,10 @@ test('return accepts every valid section key for Activity Proposal (combined 9-k
     );
 
     $allKeys = collect(SectionFlags::for(FormType::ActivityProposal))->pluck('key')->all();
-    expect($allKeys)->toHaveCount(9);
+    // Group C item 3: the old single "resource_person" flag was replaced by
+    // 3 per-slot attachment flags (request_letter, resume_of_resource_person,
+    // sample_post_survey_form) — net +2 over the prior 9-key union.
+    expect($allKeys)->toHaveCount(11);
 
     $this->actingAs($adviser)
         ->post(route('review.activity-proposals.return', $doc), [

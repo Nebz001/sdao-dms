@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Proposals;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
+use App\Enums\BudgetSource;
+use App\Enums\FormType;
 use App\Enums\Sdg;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -60,8 +63,15 @@ class UpdateActivityProposalRequest extends FormRequest
             'activity_type_other' => [Rule::requiredIf($this->input('activity_type') === ActivityType::Others->value), 'nullable', 'string', 'max:255'],
             'partner_organizations' => ['nullable', 'array', 'min:1'],
             'partner_organizations.*' => ['required', 'string', 'max:255'],
-            'target_sdg' => ['nullable', Rule::enum(Sdg::class)],
-            'budget_source' => ['nullable', 'string', 'max:255'],
+            // Multi-select (Group C item 1) — see StoreProposalStepOneRequest.
+            'target_sdg' => ['nullable', 'array', 'min:1'],
+            'target_sdg.*' => [Rule::enum(Sdg::class)],
+            // Closed dropdown (Group C item 2) — was free text.
+            'budget_source' => ['nullable', Rule::enum(BudgetSource::class)],
+            // Step-1 attachments (Group C item 3) — not required here:
+            // untouched slots from the original submission are preserved,
+            // same as every other resubmit form's attachment rules.
+            ...AttachmentSlots::validationRules(FormType::ActivityProposal, requiredAtWrite: false, step: 1),
         ];
     }
 
@@ -85,6 +95,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'program_flow' => 'Program Flow',
             'source_of_funding' => 'Source of Funding',
             'expense_items' => 'Expenses',
+            ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
         ];
     }
 }

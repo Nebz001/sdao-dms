@@ -38,10 +38,11 @@ beforeEach(function () {
             'activity_nature' => 'co_curricular',
             'activity_type' => 'seminar_workshop',
             'partner_organizations' => ['Partner Org A'],
-            'target_sdg' => 'quality_education',
+            'target_sdg' => ['quality_education'],
             'proposed_budget' => '5000.00',
-            'budget_source' => 'Org funds',
+            'budget_source' => 'rso_fund',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 });
 

@@ -11,6 +11,7 @@ use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
+use App\Enums\BudgetSource;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
@@ -110,6 +111,13 @@ class ActivityProposalController extends Controller
                 'value' => $s->value,
                 'label' => $s->number().'. '.$s->label(),
             ]),
+            // Closed dropdown (Group C item 2).
+            'budgetSources' => collect(BudgetSource::cases())->map(fn ($b) => [
+                'value' => $b->value,
+                'label' => $b->label(),
+            ]),
+            // Step-1 required attachments (Group C item 3).
+            'attachmentSlots' => AttachmentSlots::slotsFor(FormType::ActivityProposal, step: 1),
         ]);
     }
 
@@ -131,6 +139,7 @@ class ActivityProposalController extends Controller
             organization: $membership->organization,
             mode: $mode,
             data: $request->validated(),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::ActivityProposal, step: 1),
         );
 
         return redirect()->route('activity-proposals.continue', $document)
@@ -246,8 +255,10 @@ class ActivityProposalController extends Controller
                 'activity_nature_label' => $proposal->activityNatureLabel,
                 'activity_type_label' => $proposal->activityTypeLabel,
                 'partner_organizations' => $proposal->partner_organizations,
-                'target_sdg_label' => $proposal->target_sdg?->label(),
-                'budget_source' => $proposal->budget_source,
+                // Multi-select (Group C item 1) — one label per selected goal.
+                'target_sdg_labels' => $proposal->target_sdg?->map(fn (Sdg $s) => $s->label())->values()->all() ?? [],
+                // Closed dropdown (Group C item 2).
+                'budget_source_label' => $proposal->budget_source?->label(),
             ] : null,
             'activity' => $activity ? [
                 'id' => $activity->id,
@@ -316,8 +327,9 @@ class ActivityProposalController extends Controller
                 'activity_type' => $proposal->activity_type?->value,
                 'activity_type_other' => $proposal->activity_type_other,
                 'partner_organizations' => $proposal->partner_organizations,
-                'target_sdg' => $proposal->target_sdg?->value,
-                'budget_source' => $proposal->budget_source,
+                // Multi-select (Group C item 1) — raw values for re-checking.
+                'target_sdg' => $proposal->target_sdg?->map(fn (Sdg $s) => $s->value)->values()->all() ?? [],
+                'budget_source' => $proposal->budget_source?->value,
             ] : null,
             'activity' => $activity ? [
                 'id' => $activity->id,
@@ -339,6 +351,10 @@ class ActivityProposalController extends Controller
                 'value' => $s->value,
                 'label' => $s->number().'. '.$s->label(),
             ]),
+            'budgetSources' => collect(BudgetSource::cases())->map(fn ($b) => [
+                'value' => $b->value,
+                'label' => $b->label(),
+            ]),
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
@@ -354,10 +370,9 @@ class ActivityProposalController extends Controller
             abort(403);
         }
 
-        $document->load(['organization', 'activityProposal.calendarActivity', 'attachments']);
+        $document->load(['organization', 'activityProposal.calendarActivity']);
         $proposal = $document->activityProposal;
         $activity = $proposal?->calendarActivity;
-        $attachments = AttachmentSlots::presentForDocument($document);
 
         return Inertia::render('activity-proposals/step-two', [
             'document' => ['id' => $document->id, 'title' => $document->title],
@@ -379,7 +394,8 @@ class ActivityProposalController extends Controller
                 // proposed_budget is read-only here — set once at step 1
                 // (Phase 2 item 7 slice 4a), never re-collected at step 2.
                 'proposed_budget' => $proposal->proposed_budget,
-                'budget_source' => $proposal->budget_source,
+                // Closed dropdown (Group C item 2) — label for read-only display.
+                'budget_source_label' => $proposal->budget_source?->label(),
             ] : null,
             'activity' => $activity ? [
                 'name' => $activity->name,
@@ -388,8 +404,8 @@ class ActivityProposalController extends Controller
                 'start_time' => $activity->start_time,
                 'end_time' => $activity->end_time,
             ] : null,
-            'attachmentSlots' => $attachments['slots'],
-            'attachments' => $attachments['files'],
+            // Group C item 3 — all attachment slots moved to step 1; step 2
+            // has none of its own (no attachmentSlots/attachments prop).
         ]);
     }
 
@@ -456,6 +472,7 @@ class ActivityProposalController extends Controller
             actor: Auth::user(),
             document: $document,
             data: $request->validated(),
+            attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::ActivityProposal, step: 1),
         );
 
         $flash = ['message' => 'Proposal resubmitted for review.'];

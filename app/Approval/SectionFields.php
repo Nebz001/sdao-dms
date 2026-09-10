@@ -95,7 +95,9 @@ class SectionFields
                 ],
                 'partner_orgs_sdg' => [
                     new FieldDefinition('partner_organizations', 'Partner Organizations', 'list'),
-                    new FieldDefinition('target_sdg', 'Target SDG'),
+                    // Multi-select (Group C item 1) — 'list' matches
+                    // CalendarActivity's own sdg FieldDefinition.
+                    new FieldDefinition('target_sdg', 'Target SDG', 'list'),
                 ],
                 // SectionFlags' proposal list is a deduped union of step 1
                 // and step 2, so 'budget' legitimately spans both steps'

@@ -175,6 +175,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
             'start_time' => '09:00',
             'end_time' => '11:00',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $submitProposal->execute(
@@ -240,6 +241,7 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $submitProposal->execute(

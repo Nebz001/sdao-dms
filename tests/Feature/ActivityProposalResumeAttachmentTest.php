@@ -37,6 +37,7 @@ beforeEach(function () {
             'end_time' => '12:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 });
 

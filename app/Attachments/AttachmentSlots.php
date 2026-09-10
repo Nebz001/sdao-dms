@@ -48,7 +48,7 @@ class AttachmentSlots
     /**
      * @return array<int, AttachmentSlot>
      */
-    public static function for(FormType $formType): array
+    private static function definitionsFor(FormType $formType): array
     {
         return match ($formType) {
             FormType::OrganizationRegistration => [
@@ -60,7 +60,7 @@ class AttachmentSlots
                 new AttachmentSlot('proposed_projects_budget', 'List of Proposed Projects with Budget', required: true),
             ],
             FormType::OrganizationRenewal => [
-                ...self::for(FormType::OrganizationRegistration),
+                ...self::definitionsFor(FormType::OrganizationRegistration),
                 new AttachmentSlot('past_projects_list', 'List of Past Projects', required: true),
                 new AttachmentSlot('financial_statement', 'Financial Statement', required: true),
                 new AttachmentSlot('evaluation_summary', 'Summary of Evaluation', required: true),
@@ -70,11 +70,34 @@ class AttachmentSlots
                 new AttachmentSlot('evaluation_form', 'Sample Evaluation Form', required: true),
                 new AttachmentSlot('attendance_sheet', 'Attendance Sheet', required: true),
             ],
+            // Group C item 3 — all 3 collected at step 1 (the Activity
+            // Request Form), per the physical form's own instruction block
+            // (see resources/views/print/activity-proposal.blade.php's
+            // request-letter note). resume_of_resource_person keeps its
+            // existing key and label verbatim — it's a relocation (step 2 to
+            // step 1), not a new slot; existing DocumentAttachment rows
+            // reference this key and must keep resolving.
             FormType::ActivityProposal => [
-                new AttachmentSlot('resume_of_resource_person', 'Resume of Resource Person(s)', required: false),
+                new AttachmentSlot('request_letter', 'Request Letter (must include Rationale, Objectives, and Program)', required: true, step: 1),
+                new AttachmentSlot('resume_of_resource_person', 'Resume of Resource Person(s)', required: false, step: 1),
+                new AttachmentSlot('sample_post_survey_form', 'Sample Post-Survey Form', required: true, step: 1),
             ],
             FormType::ActivityCalendar => [],
         };
+    }
+
+    /**
+     * @return array<int, AttachmentSlot>
+     */
+    public static function for(FormType $formType, ?int $step = null): array
+    {
+        $slots = self::definitionsFor($formType);
+
+        if ($step === null) {
+            return $slots;
+        }
+
+        return array_values(array_filter($slots, fn (AttachmentSlot $slot) => $slot->step === $step));
     }
 
     /**
@@ -85,13 +108,17 @@ class AttachmentSlots
      * attached in the same request, so an untouched slot from a prior
      * submission is never forced to be re-uploaded.
      *
+     * $step (Group C item 3) scopes to only that form type's step-N slots —
+     * omit for a single-step form type (everything defaults to step 1
+     * anyway, so this is a no-op for them).
+     *
      * @return array<string, array<int, mixed>>
      */
-    public static function validationRules(FormType $formType, bool $requiredAtWrite): array
+    public static function validationRules(FormType $formType, bool $requiredAtWrite, ?int $step = null): array
     {
         $rules = [];
 
-        foreach (self::for($formType) as $slot) {
+        foreach (self::for($formType, $step) as $slot) {
             $key = "attachments.{$slot->key}";
             $isRequired = $requiredAtWrite && $slot->required;
 
@@ -114,11 +141,11 @@ class AttachmentSlots
      *
      * @return array<string, string>
      */
-    public static function validationAttributes(FormType $formType): array
+    public static function validationAttributes(FormType $formType, ?int $step = null): array
     {
         $attributes = [];
 
-        foreach (self::for($formType) as $slot) {
+        foreach (self::for($formType, $step) as $slot) {
             $attributes["attachments.{$slot->key}"] = $slot->label;
 
             if ($slot->multiple) {
@@ -136,11 +163,11 @@ class AttachmentSlots
      *
      * @return array<string, UploadedFile|array<int, UploadedFile>>
      */
-    public static function extractUploadedFiles(Request $request, FormType $formType): array
+    public static function extractUploadedFiles(Request $request, FormType $formType, ?int $step = null): array
     {
         $files = [];
 
-        foreach (self::for($formType) as $slot) {
+        foreach (self::for($formType, $step) as $slot) {
             $key = "attachments.{$slot->key}";
 
             if (! $request->hasFile($key)) {
@@ -167,9 +194,9 @@ class AttachmentSlots
      *
      * @return array<int, array{key: string, label: string, required: bool, multiple: bool, accept: string, max_kb: int}>
      */
-    public static function slotsFor(FormType $formType): array
+    public static function slotsFor(FormType $formType, ?int $step = null): array
     {
-        return collect(self::for($formType))->map(fn (AttachmentSlot $slot) => [
+        return collect(self::for($formType, $step))->map(fn (AttachmentSlot $slot) => [
             'key' => $slot->key,
             'label' => $slot->label,
             'required' => $slot->required,

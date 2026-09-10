@@ -144,6 +144,7 @@ test('a proposal-chain approver sees proposals currently at their step', functio
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     app(SubmitActivityProposal::class)->execute(
         actor: $studentAlpha,

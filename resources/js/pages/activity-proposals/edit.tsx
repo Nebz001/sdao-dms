@@ -1,9 +1,10 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
+import AttachmentSlotField from '@/components/attachment-slot-field';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
-import ImmediateAttachmentUpload from '@/components/immediate-attachment-upload';
 import InputError from '@/components/input-error';
+import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,7 @@ type ProposalData = {
     activity_type: string | null;
     activity_type_other: string | null;
     partner_organizations: string[] | null;
-    target_sdg: string | null;
+    target_sdg: string[];
     budget_source: string | null;
 } | null;
 
@@ -54,6 +55,7 @@ type Props = {
     activityNatures: OptionItem[];
     activityTypes: OptionItem[];
     sdgs: OptionItem[];
+    budgetSources: OptionItem[];
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
 } & FlaggedRevisionProps;
@@ -65,6 +67,7 @@ export default function EditActivityProposal({
     activityNatures,
     activityTypes,
     sdgs,
+    budgetSources,
     attachmentSlots,
     attachments,
     flaggedSections,
@@ -76,6 +79,7 @@ export default function EditActivityProposal({
     const [partnerOrgs, setPartnerOrgs] = useState<string[]>(
         proposal?.partner_organizations?.length ? proposal.partner_organizations : [''],
     );
+    const [targetSdg, setTargetSdg] = useState<string[]>(proposal?.target_sdg ?? []);
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(
         proposal?.expense_items?.length ? proposal.expense_items : [{ label: '', amount: '' }],
     );
@@ -361,12 +365,18 @@ export default function EditActivityProposal({
 
                         <div className="space-y-1">
                             <Label htmlFor="budget_source">Budget Source</Label>
-                            <Input
-                                id="budget_source"
-                                name="budget_source"
-                                defaultValue={proposal?.budget_source ?? ''}
-                                placeholder="e.g. Org funds, sponsorship…"
-                            />
+                            <Select name="budget_source" defaultValue={proposal?.budget_source ?? undefined}>
+                                <SelectTrigger id="budget_source">
+                                    <SelectValue placeholder="Select source…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {budgetSources.map((b) => (
+                                        <SelectItem key={b.value} value={b.value}>
+                                            {b.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <InputError message={errors.budget_source} />
                         </div>
                         </div>
@@ -492,41 +502,38 @@ export default function EditActivityProposal({
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="target_sdg">Target SDG</Label>
-                            <Select name="target_sdg" defaultValue={proposal?.target_sdg ?? undefined}>
-                                <SelectTrigger id="target_sdg">
-                                    <SelectValue placeholder="Select SDG…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {sdgs.map((s) => (
-                                        <SelectItem key={s.value} value={s.value}>
-                                            {s.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Target SDG (select one or more)</Label>
+                            <SdgCheckboxGroup
+                                idPrefix="target-sdg"
+                                name="target_sdg[]"
+                                options={sdgs}
+                                selected={targetSdg}
+                                onChange={setTargetSdg}
+                            />
                             <InputError message={errors.target_sdg} />
                         </div>
                         </div>
                         </FlaggedSectionWrapper>
 
-                        <FlaggedSectionWrapper
-                                sectionKey="resource_person"
+                        {/* Step-1 attachments (Group C item 3) — now Mode A
+                            (bundled into this same resubmit PUT), one
+                            FlaggedSectionWrapper per slot, same pattern as
+                            registrations/edit.tsx. */}
+                        {attachmentSlots.map((slot) => (
+                            <FlaggedSectionWrapper
+                                key={slot.key}
+                                sectionKey={slot.key}
                                 flagged={flaggedSections}
                                 comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.resource_person}
+                                sectionComment={flaggedSectionComments[slot.key]}
                             >
-                        <div className="space-y-4">
-                        {attachmentSlots.map((slot) => (
-                            <ImmediateAttachmentUpload
-                                key={slot.key}
-                                documentId={doc.id}
-                                slot={slot}
-                                existing={attachments[slot.key]?.[0] ?? null}
-                            />
+                                <AttachmentSlotField
+                                    slot={slot}
+                                    existing={attachments[slot.key]}
+                                    error={errors[`attachments.${slot.key}`]}
+                                />
+                            </FlaggedSectionWrapper>
                         ))}
-                        </div>
-                        </FlaggedSectionWrapper>
 
                         <InputError message={errors.activity} />
 

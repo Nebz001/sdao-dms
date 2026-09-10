@@ -50,7 +50,13 @@ class SectionFlags
                 new SectionFlag('schedule_venue', 'Schedule & Venue'),
                 new SectionFlag('objectives', 'Objectives'),
                 new SectionFlag('activity_description', 'Activity Description'),
-                new SectionFlag('resource_person', 'Resource Person'),
+                // Group C item 3 — all 3 step-1 attachment slots
+                // (request_letter, resume_of_resource_person,
+                // sample_post_survey_form) are now Mode A, so they're
+                // derived the same generic way Registration/Renewal/Report's
+                // attachment flags already are — one flaggable section per
+                // required document, never a second hand-written list.
+                ...self::attachmentSlotFlags(FormType::ActivityProposal),
                 new SectionFlag('general', 'General'),
             ],
             FormType::AfterActivityReport => [

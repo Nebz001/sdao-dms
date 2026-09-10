@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Proposals;
 
+use App\Attachments\AttachmentSlots;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
+use App\Enums\BudgetSource;
+use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Sdg;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -58,9 +61,20 @@ class StoreProposalStepOneRequest extends FormRequest
             'activity_type_other' => [Rule::requiredIf($this->input('activity_type') === ActivityType::Others->value), 'nullable', 'string', 'max:255'],
             'partner_organizations' => ['required', 'array', 'min:1'],
             'partner_organizations.*' => ['required', 'string', 'max:255'],
-            'target_sdg' => ['required', Rule::enum(Sdg::class)],
+            // Multi-select (Group C item 1) — at least one goal, each a real
+            // Sdg case; lives on activity_proposals directly (one row per
+            // document), so no array-index wildcards are needed the way
+            // calendar_activities.sdg needed activities.*.sdg.*.
+            'target_sdg' => ['required', 'array', 'min:1'],
+            'target_sdg.*' => [Rule::enum(Sdg::class)],
             'proposed_budget' => ['required', 'numeric', 'min:0'],
-            'budget_source' => ['required', 'string', 'max:255'],
+            // Closed dropdown (Group C item 2) — was free text.
+            'budget_source' => ['required', Rule::enum(BudgetSource::class)],
+            // Step-1 required attachments (Group C item 3): Request Letter,
+            // Resume of Resource Person(s) (optional), Sample Post-Survey
+            // Form — same Mode A bundled pattern as
+            // StoreRegistrationRequest's required attachments.
+            ...AttachmentSlots::validationRules(FormType::ActivityProposal, requiredAtWrite: true, step: 1),
         ];
     }
 
@@ -80,6 +94,7 @@ class StoreProposalStepOneRequest extends FormRequest
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
+            ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
         ];
     }
 }

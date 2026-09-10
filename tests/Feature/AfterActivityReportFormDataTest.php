@@ -81,6 +81,7 @@ function printFormApprovedProposal(Organization $org, User $student): ActivityPr
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(

@@ -96,6 +96,7 @@ function approvedProposalForComputingSociety(Organization $org, User $student): 
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = $submitProposal->execute(
@@ -134,6 +135,7 @@ test('a report cannot be filed against a proposal that is not approved', functio
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,

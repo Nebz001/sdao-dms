@@ -45,6 +45,7 @@ test('step 1 creates a Draft document — not yet InReview', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->status)->toBe(DocumentStatus::Draft);
@@ -60,6 +61,7 @@ test('step 1 creates the ActivityProposal record with form_step = 2', function (
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $proposal = $document->activityProposal;
@@ -77,6 +79,7 @@ test('off-calendar step 1 creates the ActivityCalendar container and CalendarAct
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $proposal = $document->activityProposal;
@@ -96,6 +99,7 @@ test('auto-save updates narrative fields and keeps Draft status', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document->load('activityProposal');
@@ -119,6 +123,7 @@ test('auto-save by another user throws AuthorizationException', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document->load('activityProposal');
@@ -134,6 +139,7 @@ test('document enters chain only after step-2 submit', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document->load('activityProposal');
@@ -163,6 +169,7 @@ test('saved narrative is available for resume via the model', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $document->load('activityProposal');
@@ -190,6 +197,7 @@ test('HTTP: draft auto-save returns a plain JSON response, not an Inertia respon
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $response = $this->actingAs($this->student)
@@ -244,6 +252,7 @@ test('off-calendar proposal draft is unaffected by activity calendar eligibility
         organization: $this->org,
         mode: ProposalCalendarMode::OffCalendar,
         data: draftOffCalendarData(),
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->status)->toBe(DocumentStatus::Draft);

@@ -88,6 +88,7 @@ test('on-calendar step 1 links the selected Approved CalendarActivity', function
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->status)->toBe(DocumentStatus::Draft);
@@ -106,6 +107,7 @@ test('on-calendar step 1 does NOT create a new CalendarActivity', function () {
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect(CalendarActivity::count())->toBe($countAfterSeed);
@@ -119,6 +121,7 @@ test('on-calendar rejects a non-Approved (InReview) CalendarActivity', function 
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $inReviewActivity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     ))->toThrow(ModelNotFoundException::class);
 });
 
@@ -130,6 +133,7 @@ test('on-calendar rejects a CalendarActivity from another org', function () {
         organization: $this->computingSociety, // Computing Society student trying to use IT Guild's activity
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $otherOrgActivity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     ))->toThrow(ModelNotFoundException::class);
 });
 
@@ -141,6 +145,7 @@ test('on-calendar title is derived from the CalendarActivity name', function () 
         organization: $this->computingSociety,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($document->title)->toContain('Annual CS Summit');

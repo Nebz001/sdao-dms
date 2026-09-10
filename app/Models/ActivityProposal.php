@@ -4,15 +4,18 @@ namespace App\Models;
 
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
+use App\Enums\BudgetSource;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Sdg;
 use Database\Factories\ActivityProposalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * @property int $id
@@ -27,7 +30,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $activity_type_other Free text when activity_type is
  *                                            ActivityType::Others (Group B item 5); meaningless otherwise.
  * @property array<int, string>|null $partner_organizations
- * @property Sdg|null $target_sdg
+ * @property Collection<int, Sdg>|null $target_sdg Multi-select (Group C item
+ *                                                 1) — at least one goal in real student submissions (validation enforces
+ *                                                 min:1), stored as a json array; same shape as
+ *                                                 CalendarActivity::$sdg.
  * @property string|null $objectives
  * @property string|null $narrative
  * @property string|null $criteria_mechanics
@@ -44,7 +50,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string|null $activityTypeLabel activity_type's label, with
  *     activity_type_other appended when it's Others (Group B item 5).
  * @property float|null $proposed_budget
- * @property string|null $budget_source
+ * @property BudgetSource|null $budget_source Group C item 2 — RSO Fund / RSO
+ *                                            Savings / External; was free text.
  * @property int $form_step
  */
 #[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
@@ -59,9 +66,10 @@ class ActivityProposal extends Model
         'activity_nature' => ActivityNature::class,
         'activity_type' => ActivityType::class,
         'partner_organizations' => 'array',
-        'target_sdg' => Sdg::class,
+        'target_sdg' => AsEnumCollection::class.':'.Sdg::class,
         'expense_items' => 'array',
         'proposed_budget' => 'decimal:2',
+        'budget_source' => BudgetSource::class,
     ];
 
     /**

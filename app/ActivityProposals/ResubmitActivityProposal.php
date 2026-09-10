@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
+use App\Attachments\AttachmentStorage;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -15,6 +16,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +26,7 @@ class ResubmitActivityProposal
         private readonly ApprovalEngine $engine,
         private readonly VenueConflictChecker $conflictChecker,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
     /**
@@ -34,12 +37,13 @@ class ResubmitActivityProposal
      * re-runs against the new values (excluding the document's own rows).
      *
      * @param  array<string, mixed>  $data
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
      * @return array{document: Document, warnings: array<int, mixed>}
      *
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, Document $document, array $data): array
+    public function execute(User $actor, Document $document, array $data, array $attachmentFiles = []): array
     {
         if ($document->status !== DocumentStatus::Returned) {
             throw new AuthorizationException('Only Returned documents can be resubmitted.');
@@ -86,7 +90,14 @@ class ResubmitActivityProposal
             FormType::ActivityProposal,
             array_values(array_diff($flagged, ['schedule_venue'])),
         );
-        $trackAnything = $activityDefs !== [] || $proposalDefs !== [];
+        // Group C item 3: an attachment-only flagged key (request_letter,
+        // resume_of_resource_person, sample_post_survey_form) has no scalar
+        // FieldDefinition — $activityDefs/$proposalDefs alone would miss it.
+        // FieldChangeSet::build() already handles attachment-slot keys via
+        // its own AttachmentSlots lookup, so "anything flagged at all" is
+        // the correct, simpler gate — it silently no-ops for any key with
+        // neither scalar defs nor a matching slot.
+        $trackAnything = $flagged !== [];
 
         $oldValues = $trackAnything
             ? array_merge(
@@ -94,6 +105,12 @@ class ResubmitActivityProposal
                 FieldChangeSet::snapshot($proposal->calendarActivity, $activityDefs),
             )
             : [];
+
+        // Step-1 attachment slots (Group C item 3) are now Mode A and
+        // section-flaggable like every other form type's — snapshot BEFORE
+        // AttachmentStorage::storeMany() runs below, same as every other
+        // resubmit action's own attachment-presence snapshot.
+        $hadAttachmentsBefore = FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
         // For off-calendar, optionally update the CalendarActivity details first.
         if ($isOffCalendar) {
@@ -118,7 +135,8 @@ class ResubmitActivityProposal
         }
 
         $document = DB::transaction(function () use (
-            $actor, $document, $proposal, $data, $flagged, $proposalDefs, $activityDefs, $oldValues, $trackAnything
+            $actor, $document, $proposal, $data, $flagged, $proposalDefs, $activityDefs, $oldValues, $trackAnything,
+            $attachmentFiles, $hadAttachmentsBefore,
         ) {
             $proposal->update([
                 'objectives' => $data['objectives'],
@@ -147,6 +165,14 @@ class ResubmitActivityProposal
                 $proposal->update(['title' => $data['title']]);
             }
 
+            // Step-1 attachments (Group C item 3) — only newly re-uploaded
+            // slots are in $attachmentFiles; untouched slots from the
+            // original submission are left in place.
+            // assertRequiredSlotsFilled checks persisted rows + anything
+            // just stored, so completeness still holds.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
+
             // Both models were updated in place and are already current
             // ($activity->refresh() ran above, before this transaction
             // opened; $proposal->update() just wrote through this same
@@ -161,6 +187,8 @@ class ResubmitActivityProposal
                     FieldChangeSet::snapshot($proposal, $proposalDefs),
                     FieldChangeSet::snapshot($proposal->calendarActivity, $activityDefs),
                 ),
+                $hadAttachmentsBefore,
+                $attachmentFiles,
             ) : null;
 
             $this->engine->resubmit($document, $actor, $fieldChanges);

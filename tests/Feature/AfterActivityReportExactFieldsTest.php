@@ -82,6 +82,7 @@ function exactFieldsApprovedProposal(Organization $org, User $student): Activity
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(

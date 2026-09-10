@@ -97,6 +97,7 @@ function approvedProposalForVerificationGate(Organization $org, User $student): 
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
@@ -217,6 +218,7 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
             'end_time' => '12:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     // Simulate SDAO later rejecting the account after the draft was started.
@@ -250,6 +252,7 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
             'end_time' => '12:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     // Simulate the account never having been SDAO-verified in the first place.
@@ -366,9 +369,10 @@ test('an unverified officer is forbidden from creating an activity-proposal draf
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
         'partner_organizations' => ['Partner Org'],
-        'target_sdg' => 'quality_education',
+        'target_sdg' => ['quality_education'],
         'proposed_budget' => '5000.00',
-        'budget_source' => 'Org funds',
+        'budget_source' => 'rso_fund',
+        'attachments' => proposalStepOneAttachmentFiles(),
     ]);
 
     $response->assertForbidden();

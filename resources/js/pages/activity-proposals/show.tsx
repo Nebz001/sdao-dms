@@ -40,8 +40,8 @@ type ProposalData = {
     activity_nature_label: string | null;
     activity_type_label: string | null;
     partner_organizations: string[] | null;
-    target_sdg_label: string | null;
-    budget_source: string | null;
+    target_sdg_labels: string[];
+    budget_source_label: string | null;
 } | null;
 
 type ActivityData = {
@@ -213,10 +213,12 @@ export default function ShowActivityProposal({
                                         </ul>
                                     </div>
                                 )}
-                            {proposal.target_sdg_label && (
+                            {proposal.target_sdg_labels.length > 0 && (
                                 <Row
                                     label="Target SDG"
-                                    value={proposal.target_sdg_label}
+                                    value={proposal.target_sdg_labels.join(
+                                        ', ',
+                                    )}
                                 />
                             )}
                             {proposal.proposed_budget && (
@@ -225,10 +227,10 @@ export default function ShowActivityProposal({
                                     value={`₱${proposal.proposed_budget}`}
                                 />
                             )}
-                            {proposal.budget_source && (
+                            {proposal.budget_source_label && (
                                 <Row
                                     label="Budget Source"
-                                    value={proposal.budget_source}
+                                    value={proposal.budget_source_label}
                                 />
                             )}
                         </CardContent>

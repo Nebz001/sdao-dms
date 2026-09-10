@@ -117,6 +117,7 @@ test('secretary can continue, autosave, and submit the president\'s Draft propos
             'end_time' => '12:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $this->actingAs($this->secretary)->withoutVite()->get(route('activity-proposals.continue', $document))->assertOk();
@@ -206,6 +207,7 @@ test('activity proposal index shows a document submitted by the org co-officer',
             'end_time' => '12:00',
             'term' => 'first_term',
         ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     $this->actingAs($this->secretary)

@@ -154,9 +154,10 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
         'partner_organizations' => ['Partner Org A'],
-        'target_sdg' => 'quality_education',
+        'target_sdg' => ['quality_education'],
         'proposed_budget' => '15000.00',
-        'budget_source' => 'Org funds',
+        'budget_source' => 'rso_fund',
+        'attachments' => proposalStepOneAttachmentFiles(),
     ];
 
     $storeResponse = $this->actingAs($student)->post(route('activity-proposals.store'), $step1Payload);

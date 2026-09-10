@@ -203,6 +203,7 @@ test('the proposal funnel groups an in-review proposal by variant and labels the
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     app(SubmitActivityProposal::class)->execute(

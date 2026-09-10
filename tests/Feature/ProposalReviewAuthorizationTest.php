@@ -71,6 +71,7 @@ function authSubmittedProposal(StartProposalDraft $start, SubmitActivityProposal
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     return $submit->execute(
@@ -134,6 +135,7 @@ test('unaffiliated user cannot start a draft for the org', function () {
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     ))->toThrow(AuthorizationException::class);
 });
 
@@ -147,6 +149,7 @@ test('user affiliated with a different org cannot start a draft for this org', f
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     ))->toThrow(AuthorizationException::class);
 });
 
@@ -161,6 +164,7 @@ test('secretary can start a draft and submit a proposal for their org', function
         organization: $this->org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
 
     expect($draft->status)->toBe(DocumentStatus::Draft);

@@ -694,8 +694,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'co_curricular',
                 'activity_type' => 'seminar_workshop',
                 'proposed_budget' => 15000,
-                'budget_source' => 'Organization funds',
+                'budget_source' => 'rso_fund',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $statusCounts['draft']++;
 
@@ -714,8 +715,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'co_curricular',
                 'activity_type' => 'off_campus_activity',
                 'proposed_budget' => 8000,
-                'budget_source' => 'Organization funds',
+                'budget_source' => 'rso_fund',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $picePresident,
@@ -738,8 +740,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'co_curricular',
                 'activity_type' => 'competition',
                 'proposed_budget' => 25000,
-                'budget_source' => 'Organization funds and sponsorships',
+                'budget_source' => 'rso_savings',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $uapsaPresident,
@@ -774,8 +777,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'non_curricular',
                 'activity_type' => 'competition',
                 'proposed_budget' => 12000,
-                'budget_source' => 'Organization funds',
+                'budget_source' => 'rso_fund',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $venarisPresident,
@@ -803,8 +807,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'non_curricular',
                 'activity_type' => 'others',
                 'proposed_budget' => 6000,
-                'budget_source' => 'Organization funds',
+                'budget_source' => 'rso_fund',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $venarisPresident,
@@ -826,8 +831,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'co_curricular',
                 'activity_type' => 'seminar_workshop',
                 'proposed_budget' => 5000,
-                'budget_source' => 'Organization funds',
+                'budget_source' => 'rso_fund',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $codecsPresident,
@@ -853,8 +859,9 @@ class DemoDataSeeder extends Seeder
                 'activity_nature' => 'co_curricular',
                 'activity_type' => 'recruitment_audition',
                 'proposed_budget' => 10000,
-                'budget_source' => 'Organization funds and partner sponsorships',
+                'budget_source' => 'external',
             ],
+            attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
         );
         $result = $this->submitProposal->execute(
             actor: $picePresident,

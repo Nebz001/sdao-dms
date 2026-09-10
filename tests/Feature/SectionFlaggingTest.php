@@ -206,9 +206,21 @@ test('SectionFlags::labelsFor() reuses AttachmentSlots labels verbatim, not a se
     }
 });
 
-test('Activity Proposal is unaffected — its resource_person key already existed and is untouched', function () {
+test('Activity Proposal now also derives its attachment-slot keys generically (Group C item 3)', function () {
     $keys = collect(SectionFlags::for(FormType::ActivityProposal))->pluck('key')->all();
 
-    expect($keys)->toContain('resource_person');
-    expect($keys)->toHaveCount(9); // unchanged from before this feature
+    // Group C item 3: request_letter and sample_post_survey_form are new
+    // required step-1 slots; resume_of_resource_person is the same
+    // pre-existing optional slot, relocated from step 2 to step 1 — all 3
+    // are now derived the same generic way Registration/Renewal/Report's
+    // attachment flags already are, replacing the old single hand-written
+    // 'resource_person' entry.
+    foreach (AttachmentSlots::for(FormType::ActivityProposal) as $slot) {
+        expect($keys)->toContain($slot->key);
+    }
+
+    // 7 non-attachment sections (rso_info, activity_details,
+    // partner_orgs_sdg, budget, schedule_venue, objectives,
+    // activity_description) + 3 attachment slots + general.
+    expect($keys)->toHaveCount(7 + 3 + 1);
 });

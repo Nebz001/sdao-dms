@@ -295,9 +295,10 @@ keys), not just a comment string. Section definitions per form type:
 - **Registration/Renewal:** Contact Information, Organization Details, Adviser
   Selection, Attachments, General
 - **Activity Request Form (proposal step 1):** RSO Info, Activity Details
-  (Nature/Type), Partner Orgs & SDG, Budget, Schedule & Venue, General
+  (Nature/Type), Partner Orgs & SDG, Budget, Schedule & Venue, Request Letter,
+  Resume of Resource Person(s), Sample Post-Survey Form, General
 - **Proposal narrative (step 2):** Objectives, Activity Description, Budget,
-  Resource Person, General
+  General
 - **Activity Calendar:** each activity row is its own flaggable unit (no shared
   sections)
 - **After-Activity Report:** Event Details, Summary/Program, Evaluation,
@@ -313,6 +314,22 @@ schema-only/deferred for this form type.
   List of Proposed Projects with Budget.
 - **Renewal:** the same as New, plus List of Past Projects, Financial Statement,
   Summary of Evaluation.
+
+### Activity Proposal step 1 required attachments
+Sourced from the physical Activity Request Form's own instruction block (a
+single note attached to the request-letter line, not a per-field checklist).
+Collected at step 1, alongside the rest of that form's exact fields — none of
+these are step-2/narrative attachments.
+- **Request Letter** — required. One upload; the physical form's instruction
+  is that this letter must itself contain Rationale, Objectives, and Program
+  as its content. There is no per-content validation — this app cannot check
+  what a PDF contains — the requirement is guidance text to the student, not
+  three separate upload fields.
+- **Resume of Resource Person(s)** — optional. The physical form calls this
+  "Resume of the speaker (for workshops, seminars, etc.)" — same document,
+  kept under its existing digital-system key and label (moved here from
+  step 2, not duplicated).
+- **Sample Post-Survey Form** — required.
 
 ### Current period is a global, admin-controlled setting
 Not a per-submission dropdown. SDAO/admin sets BOTH the current term AND the
@@ -347,15 +364,17 @@ approximate these.
   Others), Type of Activity (Seminar/Workshop, General Assembly, Orientation,
   Competition, Recruitment/Audition, Donation Drive/Fundraising Activity,
   Outreach, Off-campus Activity, Others), Partner Organization(s)/School(s)/RSO,
-  Target SDG, Proposed Budget, Budget Source, Date of Activity, Venue.
+  Target SDG (multi-select — one or more goals per proposal), Proposed Budget,
+  Budget Source (RSO Fund / RSO Savings / External), Date of Activity, Venue.
 - **Proposal narrative (step 2):** Project/Activity Title, Proposed Date(s),
   Proposed Time, Venue, Objectives, Criteria/Mechanics, Program Flow, Proposed
   Budget, Source of Funding, Expenses, Resume of Resource Person(s) if
   applicable.
-- **Activity Calendar:** RSO Name, Date, Activity Name, SDG, Venue,
-  Participant/Program Assigned, Budget. Status and Date Received are NOT
-  user-input fields — derive Status from the document's actual approval status
-  and Date Received from its actual submission timestamp.
+- **Activity Calendar:** RSO Name, Date, Activity Name, SDG (multi-select —
+  one or more goals per activity), Venue, Participant/Program Assigned,
+  Budget. Status and Date Received are NOT user-input fields — derive Status
+  from the document's actual approval status and Date Received from its
+  actual submission timestamp.
 - **After-Activity Report:** Name of Event, Date and Time of Event, Activity
   Chair/s, Prepared By, Date Submitted, Summary, Program, Photos (attachment),
   Activity Evaluation Report (% target participants + sample eval form,

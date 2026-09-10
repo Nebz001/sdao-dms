@@ -159,13 +159,16 @@ class ActivityProposalForm implements PrintableForm
             'nature_checklist' => $this->checklistRows(self::NATURE_CHECKLIST, $proposal->activity_nature),
             'type_checklist' => $this->checklistRows(self::TYPE_CHECKLIST, $proposal->activity_type),
             'partner_organizations' => $proposal->partner_organizations ?? [],
-            'target_sdg' => $proposal->target_sdg !== null
-                ? "SDG {$proposal->target_sdg->number()} — {$proposal->target_sdg->label()}"
-                : null,
+            // Multi-select (Group C item 1) — one "SDG N — Label" per
+            // selected goal, same join as ActivityCalendarForm.
+            'target_sdg' => $proposal->target_sdg === null || $proposal->target_sdg->isEmpty()
+                ? null
+                : $proposal->target_sdg->map(fn ($s) => "SDG {$s->number()} — {$s->label()}")->implode('; '),
             'proposed_budget' => $proposal->proposed_budget !== null
                 ? number_format((float) $proposal->proposed_budget, 2)
                 : null,
-            'budget_source' => $proposal->budget_source,
+            // Closed dropdown (Group C item 2).
+            'budget_source' => $proposal->budget_source?->label(),
             'date_of_activity' => $activity?->activity_date?->format('m/d/Y'),
             'venue' => $activity?->venue,
             'tail_signatures' => [

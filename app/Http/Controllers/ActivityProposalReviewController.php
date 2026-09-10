@@ -10,6 +10,7 @@ use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\Sdg;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
@@ -135,8 +136,10 @@ class ActivityProposalReviewController extends Controller
                 'activity_nature_label' => $proposal->activityNatureLabel,
                 'activity_type_label' => $proposal->activityTypeLabel,
                 'partner_organizations' => $proposal->partner_organizations,
-                'target_sdg_label' => $proposal->target_sdg?->label(),
-                'budget_source' => $proposal->budget_source,
+                // Multi-select (Group C item 1) — one label per selected goal.
+                'target_sdg_labels' => $proposal->target_sdg?->map(fn (Sdg $s) => $s->label())->values()->all() ?? [],
+                // Closed dropdown (Group C item 2).
+                'budget_source_label' => $proposal->budget_source?->label(),
             ] : null,
             'activity' => $activity ? [
                 'name' => $activity->name,

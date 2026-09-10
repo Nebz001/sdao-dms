@@ -145,11 +145,17 @@ test('assertRequiredSlotsFilled() passes once every required slot has a file', f
 });
 
 test('assertRequiredSlotsFilled() ignores the optional slot entirely', function () {
+    // Group C item 3 — ActivityProposal now has 2 required step-1 slots
+    // (request_letter, sample_post_survey_form) alongside the 1 optional one
+    // (resume_of_resource_person). Fill only the required two; the optional
+    // slot stays empty and must not block.
     $document = Document::factory()->create(['form_type' => FormType::ActivityProposal]);
+    $this->storage->store($document, 'request_letter', UploadedFile::fake()->create('letter.pdf', 50, 'application/pdf'), $this->actor, multiple: false);
+    $this->storage->store($document, 'sample_post_survey_form', UploadedFile::fake()->create('survey.pdf', 50, 'application/pdf'), $this->actor, multiple: false);
 
     $this->storage->assertRequiredSlotsFilled($document);
 
-    expect(true)->toBeTrue(); // resume_of_resource_person is optional — no exception even with zero attachments
+    expect(true)->toBeTrue(); // resume_of_resource_person is optional — no exception even though it's empty
 });
 
 test('delete() removes the row and the file from disk', function () {

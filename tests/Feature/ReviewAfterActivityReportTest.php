@@ -68,6 +68,7 @@ function submittedReportForComputingSociety(): Document
         organization: $org,
         mode: ProposalCalendarMode::OnCalendar,
         data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
     );
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $student,

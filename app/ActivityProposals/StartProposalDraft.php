@@ -2,6 +2,7 @@
 
 namespace App\ActivityProposals;
 
+use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +23,7 @@ class StartProposalDraft
 {
     public function __construct(
         private readonly OrganizationMembershipService $membershipService,
+        private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
     /**
@@ -33,6 +36,7 @@ class StartProposalDraft
      *   below, same as SubmitActivityCalendar.
      *
      * @param  array<string, mixed>  $data
+     * @param  array<string, UploadedFile|array<int, UploadedFile>>  $attachmentFiles
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -42,6 +46,7 @@ class StartProposalDraft
         Organization $organization,
         ProposalCalendarMode $mode,
         array $data,
+        array $attachmentFiles = [],
     ): Document {
         $membership = $this->membershipService->activeMembershipFor($actor, $organization);
 
@@ -49,12 +54,19 @@ class StartProposalDraft
             throw new AuthorizationException('You must be an active officer to submit for this organization.');
         }
 
-        return DB::transaction(function () use ($actor, $organization, $mode, $data) {
-            if ($mode === ProposalCalendarMode::OnCalendar) {
-                return $this->startOnCalendar($actor, $organization, $data);
-            }
+        return DB::transaction(function () use ($actor, $organization, $mode, $data, $attachmentFiles) {
+            $document = $mode === ProposalCalendarMode::OnCalendar
+                ? $this->startOnCalendar($actor, $organization, $data)
+                : $this->startOffCalendar($actor, $organization, $data);
 
-            return $this->startOffCalendar($actor, $organization, $data);
+            // Step-1 required attachments (Group C item 3): Request Letter,
+            // Resume of Resource Person(s) (optional), Sample Post-Survey
+            // Form — same Mode A bundled pattern as
+            // SubmitOrganizationRegistration.
+            $this->attachmentStorage->storeMany($document, $attachmentFiles, $actor);
+            $this->attachmentStorage->assertRequiredSlotsFilled($document);
+
+            return $document;
         });
     }
 

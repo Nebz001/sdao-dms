@@ -138,6 +138,22 @@ function renewalAttachmentFiles(): array
 }
 
 /**
+ * Activity Proposal step 1's required attachment slots (Group C item 3).
+ * resume_of_resource_person is optional — deliberately omitted here so
+ * callers get the minimum valid set; pass it explicitly (array_merge) in a
+ * test that specifically exercises the optional slot.
+ *
+ * @return array<string, UploadedFile>
+ */
+function proposalStepOneAttachmentFiles(): array
+{
+    return [
+        'request_letter' => UploadedFile::fake()->create('request-letter.pdf', 100, 'application/pdf'),
+        'sample_post_survey_form' => UploadedFile::fake()->create('sample-post-survey.pdf', 100, 'application/pdf'),
+    ];
+}
+
+/**
  * After-Activity Report's 3 required slots — Photos is multi-file.
  *
  * @return array<string, UploadedFile|array<int, UploadedFile>>
