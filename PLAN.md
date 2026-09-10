@@ -155,6 +155,35 @@ renumber or replace any slice above; they are sequenced follow-on work.
     shadcn/ui consistency, spacing/density, loading & success/error feedback,
     confirmation modals for destructive actions.
 
+### Closed: 2026-09-10 — dev-DB cleanup pass (Academic/Non-Academic structural fix)
+
+Follow-on to the 2026-09-09 organization_type structural fix (organization_type
+now derives from school_id — Co-Curricular/academic requires a school+program,
+Extra-Curricular/non-academic has neither). Committed together with `b85f6dc`.
+
+- **Org 11 (Red Cross Youth)** — a rejected renewal (co_curricular) was
+  outranking an earlier approved registration (extra_curricular) when deriving
+  organization_type, leaving the org with a school but no program: unroutable
+  at the program-chair step. Added a corrective migration
+  (`2026_09_10_092831_null_school_and_program_on_rejected_type_change`) that
+  excludes Rejected documents from that derivation; org 11's
+  `school_id`/`program_id` are now null and it correctly routes to the
+  `extra_curricular_*` templates. Covered by
+  `NullSchoolAndProgramOnRejectedTypeChangeMigrationTest`.
+- **Documents #45 and #46** (Red Cross Youth activity proposals, hand-created
+  during the investigation) — withdrawn (`ApprovalEngine::withdraw()`,
+  terminal Rejected, no approver attribution).
+- **Document #53** (Venaris Esports) — briefly withdrawn, then reverted: it
+  had progressed correctly through a real multi-step chain and wasn't broken,
+  so retiring it wasn't warranted. Restored to `in_review` at step 3 with all
+  six original transitions intact.
+- **Orgs 18/19** ("Raw Response Check…", "Correctly Approved Fresh Org") and
+  their documents #48/#49/#50 — confirmed script/test artifacts (`.test`
+  contact emails, synthetic placeholder attachments) and deleted outright,
+  including their Supabase-stored attachment files and dangling
+  `notifications` rows. Adviser role_assignment freed (`nullOnDelete`), not
+  deleted.
+
 ---
 
 ## Working agreement
