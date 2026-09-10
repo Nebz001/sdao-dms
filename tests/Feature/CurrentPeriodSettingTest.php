@@ -38,7 +38,7 @@ function currentTermPayload(): array
             // Required by StoreActivityCalendarRequest (Phase 2 item 7 slice 1) —
             // included here since this payload is also used by the one
             // HTTP-level test in this file (direct action calls ignore these).
-            'sdg' => 'quality_education',
+            'sdg' => ['quality_education'],
             'participant_program_assigned' => 'All Year Levels',
             'budget' => '5000.00',
         ]],

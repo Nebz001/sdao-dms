@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Enums\Sdg;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
@@ -114,7 +115,8 @@ class ActivityCalendarReviewController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
-                    'sdg_label' => $a->sdg?->label(),
+                    // Multi-select (Group B item 1) — one label per selected goal.
+                    'sdg_labels' => $a->sdg?->map(fn (Sdg $s) => $s->label())->values()->all() ?? [],
                     'participant_program_assigned' => $a->participant_program_assigned,
                     'budget' => $a->budget,
                 ]),

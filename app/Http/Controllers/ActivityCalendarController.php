@@ -163,7 +163,8 @@ class ActivityCalendarController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
-                    'sdg_label' => $a->sdg?->label(),
+                    // Multi-select (Group B item 1) — one label per selected goal.
+                    'sdg_labels' => $a->sdg?->map(fn (Sdg $s) => $s->label())->values()->all() ?? [],
                     'participant_program_assigned' => $a->participant_program_assigned,
                     'budget' => $a->budget,
                 ]),
@@ -213,7 +214,8 @@ class ActivityCalendarController extends Controller
                     'activity_date' => $a->activity_date->toDateString(),
                     'start_time' => $a->start_time,
                     'end_time' => $a->end_time,
-                    'sdg' => $a->sdg?->value,
+                    // Multi-select (Group B item 1) — raw values for re-checking in the editable form.
+                    'sdg' => $a->sdg?->map(fn (Sdg $s) => $s->value)->values()->all() ?? [],
                     'participant_program_assigned' => $a->participant_program_assigned,
                     'budget' => $a->budget,
                 ]),

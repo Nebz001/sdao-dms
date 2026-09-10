@@ -2,17 +2,12 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
+import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { todayDateString } from '@/lib/utils';
 
 type SdgOption = { value: string; label: string };
 
@@ -24,7 +19,7 @@ type ActivityData = {
     start_time: string;
     end_time: string;
     description: string | null;
-    sdg: string | null;
+    sdg: string[];
     participant_program_assigned: string | null;
     budget: string | null;
 };
@@ -48,7 +43,7 @@ type ActivityRow = {
     start_time: string;
     end_time: string;
     description: string;
-    sdg: string;
+    sdg: string[];
     participant_program_assigned: string;
     budget: string;
 };
@@ -60,7 +55,7 @@ const emptyRow = (): ActivityRow => ({
     start_time: '',
     end_time: '',
     description: '',
-    sdg: '',
+    sdg: [],
     participant_program_assigned: '',
     budget: '',
 });
@@ -74,7 +69,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
             start_time: a.start_time,
             end_time: a.end_time,
             description: a.description ?? '',
-            sdg: a.sdg ?? '',
+            sdg: a.sdg,
             participant_program_assigned: a.participant_program_assigned ?? '',
             budget: a.budget ?? '',
         })) ?? [emptyRow()],
@@ -82,8 +77,9 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
 
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const minDate = todayDateString();
 
-    function updateActivity(index: number, field: keyof ActivityRow, value: string) {
+    function updateActivity<K extends keyof ActivityRow>(index: number, field: K, value: ActivityRow[K]) {
         setActivities((prev) => {
             const next = [...prev];
             next[index] = { ...next[index], [field]: value };
@@ -196,6 +192,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         <Input
                                             type="date"
                                             value={activity.activity_date}
+                                            min={minDate}
                                             onChange={(e) => updateActivity(i, 'activity_date', e.target.value)}
                                             required
                                         />
@@ -230,23 +227,13 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`sdg-${i}`}>SDG</Label>
-                                    <Select
-                                        value={activity.sdg}
-                                        onValueChange={(value) => updateActivity(i, 'sdg', value)}
-                                        required
-                                    >
-                                        <SelectTrigger id={`sdg-${i}`} className="w-full">
-                                            <SelectValue placeholder="Select SDG…" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sdgs.map((s) => (
-                                                <SelectItem key={s.value} value={s.value}>
-                                                    {s.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Label>SDG (select one or more)</Label>
+                                    <SdgCheckboxGroup
+                                        idPrefix={`sdg-${i}`}
+                                        options={sdgs}
+                                        selected={activity.sdg}
+                                        onChange={(next) => updateActivity(i, 'sdg', next)}
+                                    />
                                     {errors[`activities.${i}.sdg`] && (
                                         <p className="text-sm text-destructive">{errors[`activities.${i}.sdg`]}</p>
                                     )}

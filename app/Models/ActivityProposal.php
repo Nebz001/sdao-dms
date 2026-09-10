@@ -21,7 +21,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $calendar_activity_id
  * @property string $title
  * @property ActivityNature|null $activity_nature
+ * @property string|null $activity_nature_other Free text when activity_nature
+ *                                              is ActivityNature::Others (Group B item 5); meaningless otherwise.
  * @property ActivityType|null $activity_type
+ * @property string|null $activity_type_other Free text when activity_type is
+ *                                            ActivityType::Others (Group B item 5); meaningless otherwise.
  * @property array<int, string>|null $partner_organizations
  * @property Sdg|null $target_sdg
  * @property string|null $objectives
@@ -35,11 +39,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<int, array{label: string, amount: string}>|null $expense_items
  * @property-read string|null $expenseItemsTotal Formatted ("1,234.56") grand
  *     total of expense_items, or null when there are no rows to sum.
+ * @property-read string|null $activityNatureLabel activity_nature's label,
+ *     with activity_nature_other appended when it's Others (Group B item 5).
+ * @property-read string|null $activityTypeLabel activity_type's label, with
+ *     activity_type_other appended when it's Others (Group B item 5).
  * @property float|null $proposed_budget
  * @property string|null $budget_source
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_type', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */
@@ -78,6 +86,39 @@ class ActivityProposal extends Model
                 return number_format($centavos / 100, 2);
             },
         );
+    }
+
+    /**
+     * activity_nature's label, with the free-text detail appended when the
+     * selection is Others (Group B item 5) — e.g. "Others — Cosplay meetup".
+     */
+    protected function activityNatureLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => self::otherAwareLabel($this->activity_nature, $this->activity_nature_other),
+        );
+    }
+
+    /** Same as activityNatureLabel(), for activity_type. */
+    protected function activityTypeLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => self::otherAwareLabel($this->activity_type, $this->activity_type_other),
+        );
+    }
+
+    private static function otherAwareLabel(ActivityNature|ActivityType|null $case, ?string $other): ?string
+    {
+        if ($case === null) {
+            return null;
+        }
+
+        $isOthers = ($case instanceof ActivityNature && $case === ActivityNature::Others)
+            || ($case instanceof ActivityType && $case === ActivityType::Others);
+
+        return $isOthers && $other !== null && $other !== ''
+            ? "{$case->label()} — {$other}"
+            : $case->label();
     }
 
     /** @return BelongsTo<Document, $this> */

@@ -70,6 +70,20 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 /**
+ * Today's date as "YYYY-MM-DD", in the browser's local timezone — the value
+ * a native `<input type="date" min="...">` expects. Built from local
+ * getFullYear/Month/Date (not `toISOString`, which is UTC and can roll the
+ * date back a day for a viewer west of UTC in the evening).
+ */
+export function todayDateString(): string {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/**
  * Bar-fill width as a percentage of a shared max — used to scale progress /
  * funnel bars against a max computed ACROSS the whole dataset (e.g. every
  * group's steps), not just the current bar's own local peer group. Scaling

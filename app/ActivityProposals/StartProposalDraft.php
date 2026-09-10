@@ -160,7 +160,9 @@ class StartProposalDraft
     {
         return [
             'activity_nature' => $data['activity_nature'] ?? null,
+            'activity_nature_other' => $data['activity_nature_other'] ?? null,
             'activity_type' => $data['activity_type'] ?? null,
+            'activity_type_other' => $data['activity_type_other'] ?? null,
             'partner_organizations' => $data['partner_organizations'] ?? null,
             'target_sdg' => $data['target_sdg'] ?? null,
             'proposed_budget' => $data['proposed_budget'] ?? null,

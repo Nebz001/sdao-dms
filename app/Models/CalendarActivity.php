@@ -7,11 +7,13 @@ use App\Enums\Sdg;
 use Database\Factories\CalendarActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * @property int $id
@@ -22,7 +24,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon $activity_date
  * @property string $start_time
  * @property string $end_time
- * @property Sdg|null $sdg
+ * @property Collection<int, Sdg>|null $sdg Multi-select (Group B item 1) —
+ *                                          at least one goal per activity in real student submissions
+ *                                          (StoreActivityCalendarRequest enforces min:1), stored as a json array;
+ *                                          mirrors ActivityProposal::$partner_organizations' array shape.
  * @property string|null $participant_program_assigned
  * @property float|null $budget
  */
@@ -34,7 +39,7 @@ class CalendarActivity extends Model
 
     protected $casts = [
         'activity_date' => 'date',
-        'sdg' => Sdg::class,
+        'sdg' => AsEnumCollection::class.':'.Sdg::class,
         'budget' => 'decimal:2',
     ];
 

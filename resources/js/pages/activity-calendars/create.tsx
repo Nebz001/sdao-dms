@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
+import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import {
     Empty,
@@ -12,14 +13,8 @@ import {
 } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { todayDateString } from '@/lib/utils';
 
 type SdgOption = { value: string; label: string };
 
@@ -37,7 +32,7 @@ type ActivityRow = {
     start_time: string;
     end_time: string;
     description: string;
-    sdg: string;
+    sdg: string[];
     participant_program_assigned: string;
     budget: string;
 };
@@ -62,7 +57,7 @@ const emptyRow = (): ActivityRow => ({
     start_time: '',
     end_time: '',
     description: '',
-    sdg: '',
+    sdg: [],
     participant_program_assigned: '',
     budget: '',
 });
@@ -97,6 +92,7 @@ export default function CreateActivityCalendar({
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const minDate = todayDateString();
 
     function submit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -113,10 +109,10 @@ export default function CreateActivityCalendar({
         );
     }
 
-    function updateActivity(
+    function updateActivity<K extends keyof ActivityRow>(
         index: number,
-        field: keyof ActivityRow,
-        value: string,
+        field: K,
+        value: ActivityRow[K],
     ) {
         setActivities((prev) => {
             const next = [...prev];
@@ -374,6 +370,7 @@ export default function CreateActivityCalendar({
                                         <Input
                                             type="date"
                                             value={activity.activity_date}
+                                            min={minDate}
                                             onChange={(e) =>
                                                 updateActivity(
                                                     i,
@@ -448,31 +445,15 @@ export default function CreateActivityCalendar({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`sdg-${i}`}>SDG</Label>
-                                    <Select
-                                        value={activity.sdg}
-                                        onValueChange={(value) =>
-                                            updateActivity(i, 'sdg', value)
+                                    <Label>SDG (select one or more)</Label>
+                                    <SdgCheckboxGroup
+                                        idPrefix={`sdg-${i}`}
+                                        options={sdgs}
+                                        selected={activity.sdg}
+                                        onChange={(next) =>
+                                            updateActivity(i, 'sdg', next)
                                         }
-                                        required
-                                    >
-                                        <SelectTrigger
-                                            id={`sdg-${i}`}
-                                            className="w-full"
-                                        >
-                                            <SelectValue placeholder="Select SDG…" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sdgs.map((s) => (
-                                                <SelectItem
-                                                    key={s.value}
-                                                    value={s.value}
-                                                >
-                                                    {s.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    />
                                     {errors[`activities.${i}.sdg`] && (
                                         <p className="text-sm text-destructive">
                                             {errors[`activities.${i}.sdg`]}

@@ -158,7 +158,7 @@ class SectionFields
             new FieldDefinition('activity_date', 'Date'),
             new FieldDefinition('start_time', 'Start Time'),
             new FieldDefinition('end_time', 'End Time'),
-            new FieldDefinition('sdg', 'SDG'),
+            new FieldDefinition('sdg', 'SDG', 'list'),
             new FieldDefinition('participant_program_assigned', 'Participants / Program'),
             new FieldDefinition('budget', 'Budget', 'money'),
             new FieldDefinition('description', 'Description'),

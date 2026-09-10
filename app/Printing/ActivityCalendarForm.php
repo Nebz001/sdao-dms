@@ -83,7 +83,10 @@ class ActivityCalendarForm implements PrintableForm
                 'rso_name' => $organization->name,
                 'date' => $activity->activity_date->format('m/d/Y'),
                 'activity_name' => $activity->name,
-                'sdg' => $activity->sdg !== null ? "SDG {$activity->sdg->number()} — {$activity->sdg->label()}" : null,
+                // Multi-select (Group B item 1) — one "SDG N — Label" per selected goal.
+                'sdg' => $activity->sdg === null || $activity->sdg->isEmpty()
+                    ? null
+                    : $activity->sdg->map(fn ($s) => "SDG {$s->number()} — {$s->label()}")->implode('; '),
                 'venue' => $activity->venue,
                 'participant_program_assigned' => $activity->participant_program_assigned,
                 'budget' => $activity->budget !== null ? number_format((float) $activity->budget, 2) : null,

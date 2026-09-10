@@ -30,7 +30,7 @@ type ActivityData = {
     start_time: string;
     end_time: string;
     description: string | null;
-    sdg_label: string | null;
+    sdg_labels: string[];
     participant_program_assigned: string | null;
     budget: string | null;
 };
@@ -235,8 +235,12 @@ export default function ReviewActivityCalendarShow({
                                             )}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            {a.sdg_label && (
-                                                <>SDG: {a.sdg_label} · </>
+                                            {a.sdg_labels.length > 0 && (
+                                                <>
+                                                    SDG:{' '}
+                                                    {a.sdg_labels.join(', ')}{' '}
+                                                    ·{' '}
+                                                </>
                                             )}
                                             {a.participant_program_assigned && (
                                                 <>

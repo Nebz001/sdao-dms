@@ -135,7 +135,9 @@ class ResubmitActivityProposal
                 // Exact field corrections (Phase 2 item 7 slice 4a) — editable
                 // on resubmission, same as proposed_budget already is.
                 'activity_nature' => $data['activity_nature'] ?? $proposal->activity_nature,
+                'activity_nature_other' => $data['activity_nature_other'] ?? $proposal->activity_nature_other,
                 'activity_type' => $data['activity_type'] ?? $proposal->activity_type,
+                'activity_type_other' => $data['activity_type_other'] ?? $proposal->activity_type_other,
                 'partner_organizations' => $data['partner_organizations'] ?? $proposal->partner_organizations,
                 'target_sdg' => $data['target_sdg'] ?? $proposal->target_sdg,
                 'budget_source' => $data['budget_source'] ?? $proposal->budget_source,

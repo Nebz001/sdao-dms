@@ -26,7 +26,7 @@ class SubmitActivityCalendar
     ) {}
 
     /**
-     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null, sdg?: string|null, participant_program_assigned?: string|null, budget?: string|float|null}>  $activities
+     * @param  array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, description?: string|null, sdg?: array<int, string>|null, participant_program_assigned?: string|null, budget?: string|float|null}>  $activities
      * @return array{document: Document, warnings: array<int, array{activity_index: int, conflicts: array<int, array{name: string, venue: string, activity_date: string, start_time: string, end_time: string, organization: string}>}>}
      *
      * @throws AuthorizationException

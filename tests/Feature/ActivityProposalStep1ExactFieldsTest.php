@@ -281,3 +281,93 @@ test('on-calendar linking to an existing Approved CalendarActivity still works w
     expect($document->activityProposal->title)->toBe('Regression Check Event');
     expect($document->title)->toContain('Regression Check Event');
 });
+
+// --- "Others" conditional text field (Group B item 5) -------------------
+
+test('store validation requires activity_nature_other when activity_nature is others', function () {
+    $response = $this->actingAs($this->studentAlpha)->post(
+        route('activity-proposals.store'),
+        offCalendarStep1Payload(['activity_nature' => 'others']),
+    );
+
+    $response->assertInvalid(['activity_nature_other']);
+});
+
+test('store validation requires activity_type_other when activity_type is others', function () {
+    $response = $this->actingAs($this->studentAlpha)->post(
+        route('activity-proposals.store'),
+        offCalendarStep1Payload(['activity_type' => 'others']),
+    );
+
+    $response->assertInvalid(['activity_type_other']);
+});
+
+test('store validation does not require either specify field when neither selection is others', function () {
+    $response = $this->actingAs($this->studentAlpha)->post(
+        route('activity-proposals.store'),
+        offCalendarStep1Payload(),
+    );
+
+    $response->assertValid(['activity_nature_other', 'activity_type_other']);
+});
+
+test('an "others" selection with its specify text round-trips through submission and both show pages', function () {
+    $document = $this->startDraft->execute(
+        actor: $this->studentAlpha,
+        organization: $this->computingSociety,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: offCalendarStep1Payload([
+            'activity_nature' => 'others',
+            'activity_nature_other' => 'Cosplay meetup',
+            'activity_type' => 'others',
+            'activity_type_other' => 'Photo walk',
+        ]),
+    );
+
+    $proposal = $document->activityProposal;
+    expect($proposal->activity_nature->value)->toBe('others');
+    expect($proposal->activity_nature_other)->toBe('Cosplay meetup');
+    expect($proposal->activity_type_other)->toBe('Photo walk');
+
+    $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
+        'objectives' => 'Objectives',
+        'narrative' => 'Narrative',
+        'criteria_mechanics' => 'Criteria/Mechanics',
+        'program_flow' => 'Program Flow',
+        'source_of_funding' => 'Source of Funding',
+        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+    ]);
+    $document->refresh();
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('activity-proposals.show', $document))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('activity-proposals/show')
+            ->where('proposal.activity_nature_label', 'Others — Cosplay meetup')
+            ->where('proposal.activity_type_label', 'Others — Photo walk')
+        );
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->get(route('review.activity-proposals.show', $document))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('review/activity-proposals/show')
+            ->where('proposal.activity_nature_label', 'Others — Cosplay meetup')
+            ->where('proposal.activity_type_label', 'Others — Photo walk')
+        );
+});
+
+test('a non-others selection\'s label is unaffected by a stray _other value (only Others appends it)', function () {
+    $document = $this->startDraft->execute(
+        actor: $this->studentAlpha,
+        organization: $this->computingSociety,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: offCalendarStep1Payload(),
+    );
+
+    expect($document->activityProposal->activityNatureLabel)->toBe('Co-Curricular');
+    expect($document->activityProposal->activityTypeLabel)->toBe('Seminar/Workshop');
+});

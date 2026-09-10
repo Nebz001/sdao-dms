@@ -4,6 +4,7 @@ namespace App\Approval;
 
 use BackedEnum;
 use DateTimeInterface;
+use Illuminate\Support\Collection;
 
 /**
  * Turns a raw Eloquent cast value into the display-ready string frozen onto
@@ -66,6 +67,14 @@ final class FieldValueFormatter
 
     private static function formatList(mixed $value): ?string
     {
+        // AsEnumCollection (e.g. CalendarActivity::$sdg) yields a Collection
+        // of BackedEnum items, not a plain array — accepted here alongside
+        // array so this stays the one formatter for every "list" field,
+        // enum-backed or plain strings (e.g. partner_organizations).
+        if ($value instanceof Collection) {
+            $value = $value->all();
+        }
+
         if (! is_array($value)) {
             return self::formatScalar($value);
         }
@@ -73,11 +82,13 @@ final class FieldValueFormatter
         $parts = [];
 
         foreach ($value as $item) {
-            if (! is_scalar($item)) {
+            if ($item instanceof BackedEnum) {
+                $text = method_exists($item, 'label') ? $item->label() : (string) $item->value;
+            } elseif (is_scalar($item)) {
+                $text = trim((string) $item);
+            } else {
                 continue;
             }
-
-            $text = trim((string) $item);
 
             if ($text !== '') {
                 $parts[] = $text;

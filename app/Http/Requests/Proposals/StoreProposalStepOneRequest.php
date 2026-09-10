@@ -39,7 +39,7 @@ class StoreProposalStepOneRequest extends FormRequest
             // Off-calendar fields
             'title' => [Rule::requiredIf($isOffCalendar), 'nullable', 'string', 'max:255'],
             'venue' => [Rule::requiredIf($isOffCalendar), 'nullable', 'string', 'max:255'],
-            'activity_date' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date'],
+            'activity_date' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date', 'after_or_equal:today'],
             'start_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i'],
             'end_time' => [Rule::requiredIf($isOffCalendar), 'nullable', 'date_format:H:i', 'after:start_time'],
             // Term is NOT a per-submission field — it's a global,
@@ -50,7 +50,12 @@ class StoreProposalStepOneRequest extends FormRequest
             // regardless of calendar_mode; proposal-level classification/
             // budget data, not schedule data.
             'activity_nature' => ['required', Rule::enum(ActivityNature::class)],
+            // "Others" conditional text field (Group B item 5) — required
+            // only when the matching select is actually "others"; the enum's
+            // raw value ('others'), not its label, is what the select posts.
+            'activity_nature_other' => [Rule::requiredIf($this->input('activity_nature') === ActivityNature::Others->value), 'nullable', 'string', 'max:255'],
             'activity_type' => ['required', Rule::enum(ActivityType::class)],
+            'activity_type_other' => [Rule::requiredIf($this->input('activity_type') === ActivityType::Others->value), 'nullable', 'string', 'max:255'],
             'partner_organizations' => ['required', 'array', 'min:1'],
             'partner_organizations.*' => ['required', 'string', 'max:255'],
             'target_sdg' => ['required', Rule::enum(Sdg::class)],
@@ -68,7 +73,9 @@ class StoreProposalStepOneRequest extends FormRequest
             'title' => 'Title of Activity',
             'activity_date' => 'Date of Activity',
             'activity_nature' => 'Nature of Activity',
+            'activity_nature_other' => 'Nature of Activity — please specify',
             'activity_type' => 'Type of Activity',
+            'activity_type_other' => 'Type of Activity — please specify',
             'partner_organizations' => 'Partner Organization(s)/School(s)/RSO',
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',

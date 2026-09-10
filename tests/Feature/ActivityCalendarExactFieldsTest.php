@@ -3,6 +3,7 @@
 use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;
 use App\Enums\Sdg;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
@@ -35,7 +36,7 @@ function exactFieldsActivity(array $overrides = []): array
         'activity_date' => '2026-09-15',
         'start_time' => '09:00',
         'end_time' => '12:00',
-        'sdg' => Sdg::QualityEducation->value,
+        'sdg' => [Sdg::QualityEducation->value],
         'participant_program_assigned' => 'BSCS — All Year Levels',
         'budget' => '15000.00',
     ], $overrides);
@@ -60,10 +61,37 @@ test('store validation rejects a submission missing sdg, participant_program_ass
 test('store validation rejects an invalid sdg value', function () {
     $response = $this->actingAs($this->studentAlpha)
         ->post(route('activity-calendars.store'), [
-            'activities' => [exactFieldsActivity(['sdg' => 'not_a_real_sdg'])],
+            'activities' => [exactFieldsActivity(['sdg' => ['not_a_real_sdg']])],
+        ]);
+
+    $response->assertInvalid(['activities.0.sdg.0']);
+});
+
+test('store validation rejects an empty sdg selection (multi-select, min:1)', function () {
+    $response = $this->actingAs($this->studentAlpha)
+        ->post(route('activity-calendars.store'), [
+            'activities' => [exactFieldsActivity(['sdg' => []])],
         ]);
 
     $response->assertInvalid(['activities.0.sdg']);
+});
+
+test('store accepts and round-trips multiple selected SDGs on one activity', function () {
+    $response = $this->actingAs($this->studentAlpha)
+        ->post(route('activity-calendars.store'), [
+            'activities' => [exactFieldsActivity([
+                'sdg' => [Sdg::QualityEducation->value, Sdg::GenderEquality->value, Sdg::ClimateAction->value],
+            ])],
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $document = Document::where('form_type', 'activity_calendar')->latest('id')->firstOrFail();
+    $activity = $document->activityCalendar->activities->first();
+
+    expect($activity->sdg->map(fn (Sdg $s) => $s->value)->sort()->values()->all())
+        ->toBe(collect([Sdg::QualityEducation, Sdg::GenderEquality, Sdg::ClimateAction])
+            ->map(fn (Sdg $s) => $s->value)->sort()->values()->all());
 });
 
 // --- Round-trip: submit -> stored -> shown (student + approver) --------
@@ -77,7 +105,8 @@ test('SDG, Participant/Program Assigned, and Budget round-trip through submissio
     $document = $result['document'];
 
     $activity = $document->activityCalendar->activities->first();
-    expect($activity->sdg)->toBe(Sdg::QualityEducation);
+    expect($activity->sdg)->toHaveCount(1);
+    expect($activity->sdg->first())->toBe(Sdg::QualityEducation);
     expect($activity->participant_program_assigned)->toBe('BSCS — All Year Levels');
     expect((float) $activity->budget)->toBe(15000.00);
 
@@ -88,7 +117,7 @@ test('SDG, Participant/Program Assigned, and Budget round-trip through submissio
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('activity-calendars/show')
-            ->where('calendar.activities.0.sdg_label', Sdg::QualityEducation->label())
+            ->where('calendar.activities.0.sdg_labels', [Sdg::QualityEducation->label()])
             ->where('calendar.activities.0.participant_program_assigned', 'BSCS — All Year Levels')
             ->where('document.rso_name', $this->org->name)
             ->has('document.date_received')
@@ -101,7 +130,7 @@ test('SDG, Participant/Program Assigned, and Budget round-trip through submissio
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('review/activity-calendars/show')
-            ->where('calendar.activities.0.sdg_label', Sdg::QualityEducation->label())
+            ->where('calendar.activities.0.sdg_labels', [Sdg::QualityEducation->label()])
             ->where('calendar.activities.0.participant_program_assigned', 'BSCS — All Year Levels')
             ->where('document.rso_name', $this->org->name)
             ->has('document.date_received')
@@ -200,7 +229,7 @@ test('venue-conflict detection is unaffected by differing SDG/participant/budget
         actor: $this->studentAlpha,
         organization: $this->org,
         activities: [exactFieldsActivity([
-            'sdg' => Sdg::ClimateAction->value,
+            'sdg' => [Sdg::ClimateAction->value],
             'budget' => '1000.00',
         ])],
     );
@@ -217,7 +246,7 @@ test('venue-conflict detection is unaffected by differing SDG/participant/budget
         actor: $studentBeta,
         organization: $itGuild,
         activities: [exactFieldsActivity([
-            'sdg' => Sdg::GenderEquality->value,
+            'sdg' => [Sdg::GenderEquality->value],
             'participant_program_assigned' => 'Completely different audience',
             'budget' => '999999.00',
         ])],

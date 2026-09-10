@@ -58,7 +58,7 @@ function activityCalendarPrintDocument(Organization $org, DocumentStatus $status
             'activity_date' => '2026-11-01',
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'sdg' => Sdg::QualityEducation->value,
+            'sdg' => [Sdg::QualityEducation->value],
             'participant_program_assigned' => 'All programs',
             'budget' => 1000,
         ], $activity));
@@ -113,7 +113,7 @@ test('STATUS prints the real DocumentStatus label, not the source spreadsheet\'s
 
 test('each row maps its own SDG, venue, budget, and participant/program assigned', function () {
     $doc = activityCalendarPrintDocument($this->org, DocumentStatus::Approved, [
-        ['name' => 'Activity One', 'sdg' => Sdg::ClimateAction->value, 'venue' => 'Room 101', 'budget' => 2500, 'participant_program_assigned' => 'BS CS only'],
+        ['name' => 'Activity One', 'sdg' => [Sdg::ClimateAction->value], 'venue' => 'Room 101', 'budget' => 2500, 'participant_program_assigned' => 'BS CS only'],
     ]);
 
     $data = dataForCalendar($doc);
@@ -124,6 +124,16 @@ test('each row maps its own SDG, venue, budget, and participant/program assigned
     expect($row['venue'])->toBe('Room 101');
     expect($row['budget'])->toBe('2,500.00');
     expect($row['participant_program_assigned'])->toBe('BS CS only');
+});
+
+test('a row with multiple selected SDGs prints every one, semicolon-separated', function () {
+    $doc = activityCalendarPrintDocument($this->org, DocumentStatus::Approved, [
+        ['name' => 'Activity One', 'sdg' => [Sdg::ClimateAction->value, Sdg::QualityEducation->value]],
+    ]);
+
+    $data = dataForCalendar($doc);
+
+    expect($data['rows'][0]['sdg'])->toBe('SDG 13 — Climate Action; SDG 4 — Quality Education');
 });
 
 test('Date Received uses the latest submitted-or-resubmitted transition, not the first one', function () {

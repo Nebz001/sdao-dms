@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { todayDateString } from '@/lib/utils';
 import * as activityProposals from '@/routes/activity-proposals';
 import type { FlaggedRevisionProps } from '@/types';
 
@@ -29,7 +30,9 @@ type ProposalData = {
     expense_items: ExpenseItem[] | null;
     proposed_budget: string | null;
     activity_nature: string | null;
+    activity_nature_other: string | null;
     activity_type: string | null;
+    activity_type_other: string | null;
     partner_organizations: string[] | null;
     target_sdg: string | null;
     budget_source: string | null;
@@ -68,6 +71,7 @@ export default function EditActivityProposal({
     flaggedComment,
     flaggedSectionComments,
 }: Props) {
+    const minDate = todayDateString();
     const isOffCalendar = proposal?.calendar_mode === 'off_calendar';
     const [partnerOrgs, setPartnerOrgs] = useState<string[]>(
         proposal?.partner_organizations?.length ? proposal.partner_organizations : [''],
@@ -76,6 +80,13 @@ export default function EditActivityProposal({
         proposal?.expense_items?.length ? proposal.expense_items : [{ label: '', amount: '' }],
     );
     const expenseTotal = expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+    // Nature/Type of Activity — controlled so the "Others" conditional
+    // specify-field (Group B item 5) can key off the current selection.
+    const [activityNature, setActivityNature] = useState(proposal?.activity_nature ?? '');
+    const [activityNatureOther, setActivityNatureOther] = useState(proposal?.activity_nature_other ?? '');
+    const [activityType, setActivityType] = useState(proposal?.activity_type ?? '');
+    const [activityTypeOther, setActivityTypeOther] = useState(proposal?.activity_type_other ?? '');
 
     return (
         <>
@@ -152,6 +163,7 @@ export default function EditActivityProposal({
                                             name="activity_date"
                                             type="date"
                                             defaultValue={activity?.activity_date ?? ''}
+                                            min={minDate}
                                         />
                                         <InputError message={errors.activity_date} />
                                     </div>
@@ -369,7 +381,7 @@ export default function EditActivityProposal({
                         <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="activity_nature">Nature of Activity</Label>
-                            <Select name="activity_nature" defaultValue={proposal?.activity_nature ?? undefined}>
+                            <Select name="activity_nature" value={activityNature} onValueChange={setActivityNature}>
                                 <SelectTrigger id="activity_nature">
                                     <SelectValue placeholder="Select nature…" />
                                 </SelectTrigger>
@@ -382,11 +394,23 @@ export default function EditActivityProposal({
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.activity_nature} />
+                            {activityNature === 'others' && (
+                                <div className="space-y-1 pt-1">
+                                    <Label htmlFor="activity_nature_other">Please specify</Label>
+                                    <Input
+                                        id="activity_nature_other"
+                                        name="activity_nature_other"
+                                        value={activityNatureOther}
+                                        onChange={(e) => setActivityNatureOther(e.target.value)}
+                                    />
+                                    <InputError message={errors.activity_nature_other} />
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-1">
                             <Label htmlFor="activity_type">Type of Activity</Label>
-                            <Select name="activity_type" defaultValue={proposal?.activity_type ?? undefined}>
+                            <Select name="activity_type" value={activityType} onValueChange={setActivityType}>
                                 <SelectTrigger id="activity_type">
                                     <SelectValue placeholder="Select type…" />
                                 </SelectTrigger>
@@ -399,6 +423,18 @@ export default function EditActivityProposal({
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.activity_type} />
+                            {activityType === 'others' && (
+                                <div className="space-y-1 pt-1">
+                                    <Label htmlFor="activity_type_other">Please specify</Label>
+                                    <Input
+                                        id="activity_type_other"
+                                        name="activity_type_other"
+                                        value={activityTypeOther}
+                                        onChange={(e) => setActivityTypeOther(e.target.value)}
+                                    />
+                                    <InputError message={errors.activity_type_other} />
+                                </div>
+                            )}
                         </div>
                         </div>
                         </FlaggedSectionWrapper>

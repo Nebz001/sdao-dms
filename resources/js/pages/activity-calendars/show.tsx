@@ -26,7 +26,7 @@ type ActivityData = {
     start_time: string;
     end_time: string;
     description: string | null;
-    sdg_label: string | null;
+    sdg_labels: string[];
     participant_program_assigned: string | null;
     budget: string | null;
 };
@@ -137,7 +137,9 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                                                 {a.venue} · {a.activity_date} · {a.start_time}–{a.end_time}
                                             </p>
                                             <p className="mt-1 text-sm text-muted-foreground">
-                                                {a.sdg_label && <>SDG: {a.sdg_label} · </>}
+                                                {a.sdg_labels.length > 0 && (
+                                                    <>SDG: {a.sdg_labels.join(', ')} · </>
+                                                )}
                                                 {a.participant_program_assigned && (
                                                     <>Participant/Program Assigned: {a.participant_program_assigned} · </>
                                                 )}

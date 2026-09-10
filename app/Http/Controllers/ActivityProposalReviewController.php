@@ -131,8 +131,9 @@ class ActivityProposalReviewController extends Controller
                 'expenses' => $proposal->expenses,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a).
-                'activity_nature_label' => $proposal->activity_nature?->label(),
-                'activity_type_label' => $proposal->activity_type?->label(),
+                // Group B item 5 — these accessors fold in the "Others" free text.
+                'activity_nature_label' => $proposal->activityNatureLabel,
+                'activity_type_label' => $proposal->activityTypeLabel,
                 'partner_organizations' => $proposal->partner_organizations,
                 'target_sdg_label' => $proposal->target_sdg?->label(),
                 'budget_source' => $proposal->budget_source,
