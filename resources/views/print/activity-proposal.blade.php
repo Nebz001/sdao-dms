@@ -225,8 +225,11 @@
     </div>
 
     <div class="h2">VI. Responsible Person/s</div>
-    {{-- No backing field — DEFERRED, see ActivityProposalForm::data() docblock. --}}
-    <div class="rule"></div>
+    @forelse ($responsible_persons as $name)
+        <div>{{ $name }}</div>
+    @empty
+        <div class="rule"></div>
+    @endforelse
 
     <table class="bordered-table section" style="margin-top: 8pt;">
         <colgroup>

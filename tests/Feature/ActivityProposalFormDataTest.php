@@ -268,7 +268,7 @@ test('nature checklist maps 1:1 to all 4 ActivityNature cases with no duplicates
     expect($checked->first()['label'])->toContain('Community Extension');
 });
 
-test('"VI. Responsible Person/s" has no backing field and prepared_by_president is blank without an active president', function () {
+test('"VI. Responsible Person/s" is an empty list and prepared_by_president is blank without an active president', function () {
     // A freshly factory-made org has no seeded officer memberships at all
     // (unlike Computing Society, which MembershipSeeder already binds
     // Student Alpha to as President).
@@ -277,7 +277,16 @@ test('"VI. Responsible Person/s" has no backing field and prepared_by_president 
     $data = dataForProposal($doc);
 
     expect($data['prepared_by_president'])->toBeNull();
-    expect($data)->not->toHaveKey('responsible_persons');
+    expect($data['responsible_persons'])->toBe([]);
+});
+
+test('"VI. Responsible Person/s" includes the actual names when the proposal has responsible persons set', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'responsible_persons' => ['Juan Dela Cruz', 'Maria Santos'],
+    ]);
+    $data = dataForProposal($doc);
+
+    expect($data['responsible_persons'])->toBe(['Juan Dela Cruz', 'Maria Santos']);
 });
 
 // ── Signature auto-fill vs blank ─────────────────────────────────────────

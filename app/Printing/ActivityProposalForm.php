@@ -224,11 +224,10 @@ class ActivityProposalForm implements PrintableForm
             'expense_items_total' => $proposal->expenseItemsTotal,
             'expenses' => $proposal->expenses,
             'has_resource_person_resume' => $document->attachments->contains('slot_key', 'resume_of_resource_person'),
-            // "VI. Responsible Person/s" has no backing field on
-            // activity_proposals — DEFERRED pending client confirmation on
-            // how the office intends this to be filled. Prints as a blank
-            // cell, same treatment as College Dean/CRSO in the pilot. Do NOT
-            // auto-fill from OrganizationMembershipService::activeOfficersFor().
+            // "VI. Responsible Person/s" — Group E backlog: typed in
+            // directly by the submitting officer, not auto-filled from
+            // OrganizationMembershipService::activeOfficersFor().
+            'responsible_persons' => $proposal->responsible_persons ?? [],
             'prepared_by_president' => $this->presidentName($organization),
             'narrative_signatures' => [
                 'adviser' => $this->resolveSignature(
