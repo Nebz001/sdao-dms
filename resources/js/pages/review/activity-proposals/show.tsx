@@ -71,6 +71,7 @@ type Props = {
     sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
+    canAct: boolean;
     currentStepRole: string | null;
     requiredApprovals: number;
     activityConflict: ConflictInfo;
@@ -121,6 +122,7 @@ export default function ReviewActivityProposalShow({
     sectionFlags,
     currentStepApprovals,
     hasApproved,
+    canAct,
     currentStepRole,
     requiredApprovals,
     activityConflict,
@@ -135,6 +137,7 @@ export default function ReviewActivityProposalShow({
         'history',
         'currentStepApprovals',
         'hasApproved',
+        'canAct',
         'currentStepRole',
         'requiredApprovals',
         'activityConflict',
@@ -334,7 +337,7 @@ export default function ReviewActivityProposalShow({
                 <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Approver actions */}
-                {isInReview && (
+                {canAct && (
                     <ApprovalActionsCard
                         title={
                             <>
@@ -342,7 +345,7 @@ export default function ReviewActivityProposalShow({
                                     ? 'SDAO Approval'
                                     : `${roleLabel(currentStepRole)} Approval`}
                                 {isSdaoStep && (
-                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    <span className="ml-2 whitespace-nowrap text-xs font-normal text-muted-foreground">
                                         ({currentStepApprovals.length}/
                                         {requiredApprovals} approved)
                                     </span>
@@ -413,6 +416,13 @@ export default function ReviewActivityProposalShow({
                                 'This is permanent — the submitter cannot revive this document. They must file a brand-new proposal.',
                         }}
                     />
+                )}
+
+                {isInReview && !canAct && (
+                    <p className="text-sm text-muted-foreground">
+                        This proposal has moved on to the next approver. No
+                        further action is needed from you.
+                    </p>
                 )}
 
                 {!isInReview && (

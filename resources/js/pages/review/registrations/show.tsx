@@ -55,6 +55,7 @@ type Props = {
     sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
+    canAct: boolean;
     adviserAvailable: boolean;
 };
 
@@ -92,6 +93,7 @@ export default function ReviewRegistrationShow({
     sectionFlags,
     currentStepApprovals,
     hasApproved,
+    canAct,
     adviserAvailable,
 }: Props) {
     useDocumentUpdates([
@@ -101,6 +103,7 @@ export default function ReviewRegistrationShow({
         'history',
         'currentStepApprovals',
         'hasApproved',
+        'canAct',
         'adviserAvailable',
     ]);
 
@@ -232,7 +235,7 @@ export default function ReviewRegistrationShow({
                 <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Review actions */}
-                {isInReview && !hasApproved && (
+                {canAct && !hasApproved && (
                     <ApprovalActionsCard
                         title="Review Actions"
                         approve={{
@@ -274,10 +277,17 @@ export default function ReviewRegistrationShow({
                     />
                 )}
 
-                {isInReview && hasApproved && (
+                {canAct && hasApproved && (
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the
                         other SDAO member.
+                    </p>
+                )}
+
+                {isInReview && !canAct && (
+                    <p className="text-sm text-muted-foreground">
+                        This registration has moved on to the next approver.
+                        No further action is needed from you.
                     </p>
                 )}
 

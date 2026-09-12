@@ -143,6 +143,15 @@ class RegistrationReviewController extends Controller
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,
+            // Group E item 1 — same current-step-approver gate the action
+            // endpoints already enforce (HandlesReviewActions), reused so the
+            // review screen never offers an action the POST would reject. A
+            // no-op here today (SDAO is this chain's only step), but keeps
+            // this controller consistent with ActivityProposalReviewController,
+            // where a single-approval role's own approve() advances the step
+            // and hasApproved alone can no longer distinguish "waiting on
+            // quorum" from "no longer your turn".
+            'canAct' => Gate::allows('review', $document),
         ]);
     }
 

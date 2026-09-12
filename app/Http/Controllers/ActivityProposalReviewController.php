@@ -167,6 +167,20 @@ class ActivityProposalReviewController extends Controller
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,
+            // Group E item 1 — whether the viewer is still an approver of the
+            // CURRENT step, not merely whether they hold an approval row on
+            // it. `hasApproved` alone only stays meaningful for a step whose
+            // quorum survives a single approval (SDAO's required_approvals =
+            // 2): a single-approval role's own approve() call immediately
+            // advances current_step_position, so hasApproved re-evaluates
+            // against the NEW step (where they never approved) and would
+            // otherwise flip back to false — reopening the Approve button for
+            // someone DocumentPolicy::review() no longer authorizes to use
+            // it. Reuses the same `review` ability the action endpoints
+            // already gate on (HandlesReviewActions::authorizeReviewAction()),
+            // so "can the action card render" and "can this POST succeed"
+            // can never disagree.
+            'canAct' => Gate::allows('review', $document),
             'currentStepRole' => $step?->role?->value,
             'requiredApprovals' => $step?->required_approvals ?? 1,
             'activityConflict' => $activityConflict,

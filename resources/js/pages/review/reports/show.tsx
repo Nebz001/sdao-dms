@@ -57,6 +57,7 @@ type Props = {
     sectionFlags: SectionFlagDef[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
+    canAct: boolean;
 };
 
 function actionLabel(action: string): string {
@@ -93,6 +94,7 @@ export default function ReviewReportShow({
     sectionFlags,
     currentStepApprovals,
     hasApproved,
+    canAct,
 }: Props) {
     useDocumentUpdates([
         'document',
@@ -101,6 +103,7 @@ export default function ReviewReportShow({
         'history',
         'currentStepApprovals',
         'hasApproved',
+        'canAct',
     ]);
 
     const isInReview = document.status === 'in_review';
@@ -268,7 +271,7 @@ export default function ReviewReportShow({
                 <AttachmentsCard slots={attachmentSlots} files={attachments} />
 
                 {/* Review actions */}
-                {isInReview && !hasApproved && (
+                {canAct && !hasApproved && (
                     <ApprovalActionsCard
                         title="Review Actions"
                         approve={{
@@ -300,10 +303,17 @@ export default function ReviewReportShow({
                     />
                 )}
 
-                {isInReview && hasApproved && (
+                {canAct && hasApproved && (
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the
                         other SDAO member.
+                    </p>
+                )}
+
+                {isInReview && !canAct && (
+                    <p className="text-sm text-muted-foreground">
+                        This report has moved on to the next approver. No
+                        further action is needed from you.
                     </p>
                 )}
 

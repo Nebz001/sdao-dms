@@ -120,6 +120,9 @@ class AfterActivityReportReviewController extends Controller
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,
+            // Group E item 1 — see RegistrationReviewController::show() for
+            // why this is reused here even though it's a no-op today.
+            'canAct' => Gate::allows('review', $document),
         ]);
     }
 

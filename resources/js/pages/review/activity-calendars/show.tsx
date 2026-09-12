@@ -68,6 +68,7 @@ type Props = {
     history: TransitionEntry[];
     currentStepApprovals: StepApproval[];
     hasApproved: boolean;
+    canAct: boolean;
     activityConflicts: Record<number, ConflictState>;
     hasConfirmedConflict: boolean;
     errors?: Record<string, string>;
@@ -114,6 +115,7 @@ export default function ReviewActivityCalendarShow({
     history,
     currentStepApprovals,
     hasApproved,
+    canAct,
     activityConflicts,
     hasConfirmedConflict,
     errors = {},
@@ -124,6 +126,7 @@ export default function ReviewActivityCalendarShow({
         'history',
         'currentStepApprovals',
         'hasApproved',
+        'canAct',
         'activityConflicts',
         'hasConfirmedConflict',
     ]);
@@ -280,7 +283,7 @@ export default function ReviewActivityCalendarShow({
                 )}
 
                 {/* Review actions */}
-                {isInReview && !hasApproved && (
+                {canAct && !hasApproved && (
                     <ApprovalActionsCard
                         title="Review Actions"
                         approve={{
@@ -332,10 +335,17 @@ export default function ReviewActivityCalendarShow({
                     />
                 )}
 
-                {isInReview && hasApproved && (
+                {canAct && hasApproved && (
                     <p className="text-sm text-muted-foreground">
                         You have already approved this step. Waiting for the
                         other SDAO member.
+                    </p>
+                )}
+
+                {isInReview && !canAct && (
+                    <p className="text-sm text-muted-foreground">
+                        This activity calendar has moved on to the next
+                        approver. No further action is needed from you.
                     </p>
                 )}
 
