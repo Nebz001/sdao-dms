@@ -24,6 +24,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
+use Laravel\Fortify\Features;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -77,10 +79,21 @@ class AppServiceProvider extends ServiceProvider
      * own debug page is more useful for chasing down a real bug. Both
      * bypasses fall through to `null`, which leaves Laravel's normal
      * rendering untouched.
+     *
+     * The one exception to both bypasses: a throttled login attempt (429 on
+     * `login.store`, thrown by Fortify's `throttle:login` middleware — see
+     * FortifyServiceProvider::configureRateLimiting()) never falls through
+     * to the generic error page swap, in ANY environment (including local,
+     * so the countdown UI stays testable without a staging deploy) — see
+     * renderThrottledLogin().
      */
     protected function configureErrorPages(): void
     {
         Inertia::handleExceptionsUsing(function (ExceptionResponse $response) {
+            if ($this->isThrottledLoginAttempt($response)) {
+                return $this->renderThrottledLogin($response);
+            }
+
             if (app()->environment('local') || $response->request->is('api/*')) {
                 return null;
             }
@@ -95,6 +108,33 @@ class AppServiceProvider extends ServiceProvider
                 'status' => $response->statusCode(),
             ])->withSharedData();
         });
+    }
+
+    private function isThrottledLoginAttempt(ExceptionResponse $response): bool
+    {
+        return $response->statusCode() === 429
+            && $response->request->route()?->getName() === 'login.store';
+    }
+
+    /**
+     * Re-renders the login page itself (same props Fortify's own
+     * `Fortify::loginView()` supplies) with an added `retryAfterSeconds`
+     * prop, instead of swapping to the generic `errors/error` page — the
+     * user stays on the login form and sees a countdown telling them how
+     * long to wait, rather than losing their place to a full-page "Slow
+     * down a little" swap.
+     */
+    private function renderThrottledLogin(ExceptionResponse $response): ExceptionResponse
+    {
+        $retryAfter = $response->exception instanceof HttpExceptionInterface
+            ? (int) ($response->exception->getHeaders()['Retry-After'] ?? 0)
+            : 0;
+
+        return $response->render('auth/login', [
+            'canResetPassword' => Features::enabled(Features::resetPasswords()),
+            'status' => $response->request->session()->get('status'),
+            'retryAfterSeconds' => $retryAfter,
+        ])->withSharedData();
     }
 
     /**

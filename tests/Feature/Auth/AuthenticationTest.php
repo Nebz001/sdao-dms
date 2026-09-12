@@ -98,3 +98,25 @@ test('users are rate limited', function () {
 
     $response->assertTooManyRequests();
 });
+
+// ── Login-specific throttle messaging (Group E backlog) ─────────────────────
+// A throttled login attempt stays on the login page itself with a countdown,
+// instead of swapping to the generic errors/error page — see
+// AppServiceProvider::renderThrottledLogin().
+
+test('a rate-limited login re-renders the login page itself with a positive retryAfterSeconds, not the generic error page', function () {
+    $user = User::factory()->create();
+
+    RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ]);
+
+    $response->assertTooManyRequests();
+    $response->assertInertia(fn ($page) => $page
+        ->component('auth/login')
+        ->where('retryAfterSeconds', fn (int $seconds) => $seconds > 0)
+    );
+});

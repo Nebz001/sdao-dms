@@ -1,7 +1,10 @@
 import { Form, Head } from '@inertiajs/react';
+import { AlertCircleIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -14,9 +17,40 @@ import { request } from '@/routes/password';
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    /** Present only when this response IS the throttled-login re-render —
+     *  see AppServiceProvider::renderThrottledLogin(). */
+    retryAfterSeconds?: number;
 };
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({ status, canResetPassword, retryAfterSeconds }: Props) {
+    const [secondsRemaining, setSecondsRemaining] = useState(retryAfterSeconds ?? 0);
+
+    // Inertia re-renders this same mounted component on a fresh throttled
+    // response rather than remounting it, so a new retryAfterSeconds value
+    // (a second over-the-limit submit after the first countdown finished)
+    // needs to reset the countdown during render — the pattern React's own
+    // docs recommend for "adjust state when a prop changes", not an effect.
+    const [prevRetryAfterSeconds, setPrevRetryAfterSeconds] = useState(retryAfterSeconds);
+
+    if (retryAfterSeconds !== prevRetryAfterSeconds) {
+        setPrevRetryAfterSeconds(retryAfterSeconds);
+        setSecondsRemaining(retryAfterSeconds ?? 0);
+    }
+
+    useEffect(() => {
+        if (secondsRemaining <= 0) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setSecondsRemaining((seconds) => Math.max(0, seconds - 1));
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [secondsRemaining]);
+
+    const throttled = secondsRemaining > 0;
+
     return (
         <>
             <Head title="Log in" />
@@ -25,6 +59,16 @@ export default function Login({ status, canResetPassword }: Props) {
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
                     {status}
                 </div>
+            )}
+
+            {throttled && (
+                <Alert variant="destructive" className="mb-4">
+                    <AlertCircleIcon />
+                    <AlertTitle>Too many attempts</AlertTitle>
+                    <AlertDescription>
+                        Please wait {secondsRemaining}s before trying again.
+                    </AlertDescription>
+                </Alert>
             )}
 
             <Form
@@ -88,11 +132,11 @@ export default function Login({ status, canResetPassword }: Props) {
                                 variant="brand-fixed"
                                 className="mt-4 w-full"
                                 tabIndex={4}
-                                disabled={processing}
+                                disabled={processing || throttled}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                {throttled ? `Try again in ${secondsRemaining}s` : 'Log in'}
                             </Button>
                         </div>
 
