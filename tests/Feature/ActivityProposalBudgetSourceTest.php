@@ -26,7 +26,7 @@ beforeEach(function () {
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function budgetSourceApprovedActivity(Organization $org): CalendarActivity
@@ -79,8 +79,9 @@ test('store accepts each of the three real BudgetSource options', function (Budg
 })->with(BudgetSource::cases());
 
 test('the selected budget source round-trips through submission and both show pages as its label', function () {
-    // Off-calendar: SDAO is step 1 (invariant #8), so SDAO can view the
-    // review-show page immediately after step-2 submit.
+    // Off-calendar here is only a convenient shortcut to a fresh draft
+    // (skips the approved-calendar-activity setup) — calendar mode doesn't
+    // affect who reviews step 1, which is the adviser for both.
     $document = $this->startDraft->execute(
         actor: $this->student,
         organization: $this->org,
@@ -109,7 +110,7 @@ test('the selected budget source round-trips through submission and both show pa
             ->where('proposal.budget_source_label', 'RSO Savings')
         );
 
-    $this->actingAs($this->sdaoA)
+    $this->actingAs($this->adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $document))
         ->assertOk()

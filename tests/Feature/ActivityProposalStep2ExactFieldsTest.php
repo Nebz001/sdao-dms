@@ -28,7 +28,6 @@ beforeEach(function () {
     $this->startDraft = app(StartProposalDraft::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society
-    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->document = $this->startDraft->execute(
         actor: $this->studentAlpha,
@@ -162,8 +161,10 @@ test('overall_goal, specific_objectives, criteria_mechanics, and program_flow ro
             ->where('proposal.expense_items_total', '6,500.50')
         );
 
-    // Approver (current-step) review show page.
-    $this->actingAs($this->sdaoA)
+    // Approver (current-step) review show page — adviser is step 1
+    // regardless of calendar mode (invariant #8).
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->actingAs($adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $document))
         ->assertOk()
@@ -258,12 +259,10 @@ test('resubmitting a Returned proposal round-trips edited values of every step-2
         ->post(route('activity-proposals.submit', $document), step2NarrativeFields());
     $document->refresh();
 
-    // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is first.
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
     $engine = app(ApprovalEngine::class);
-    $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
-    $engine->approve($document, $this->sdaoA);
-    $document->refresh();
-    $engine->returnForRevision($document, $sdaoB, 'Please revise the mechanics and expenses.');
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $engine->returnForRevision($document, $adviser, 'Please revise the mechanics and expenses.');
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::Returned);
 

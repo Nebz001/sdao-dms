@@ -309,10 +309,10 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
         specificObjectives: 'Specific Objectives',
     );
 
-    // Off-calendar: SDAO is first (invariant #8).
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
     expect($doc->current_step_position)->toBe(1);
 
-    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please fix the schedule.');
+    $this->engine->returnForRevision($doc, $this->adviser, 'Please fix the schedule.');
     $doc->refresh();
     expect($doc->status)->toBe(DocumentStatus::Returned);
 

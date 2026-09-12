@@ -124,10 +124,10 @@ class CheckWorkflowTemplates extends Command
                 [Role::ExecutiveDirector, 1],
             ]],
             [FormType::ActivityProposal, ProposalVariant::RegularOffCalendar, [
-                [Role::SdaoMember, 2],
                 [Role::Adviser, 1],
                 [Role::ProgramChair, 1],
                 [Role::Dean, 1],
+                [Role::SdaoMember, 2],
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],
@@ -141,9 +141,9 @@ class CheckWorkflowTemplates extends Command
                 [Role::ExecutiveDirector, 1],
             ]],
             [FormType::ActivityProposal, ProposalVariant::ShsOffCalendar, [
-                [Role::SdaoMember, 2],
                 [Role::Adviser, 1],
                 [Role::Principal, 1],
+                [Role::SdaoMember, 2],
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],
@@ -156,8 +156,8 @@ class CheckWorkflowTemplates extends Command
                 [Role::ExecutiveDirector, 1],
             ]],
             [FormType::ActivityProposal, ProposalVariant::ExtraCurricularOffCalendar, [
-                [Role::SdaoMember, 2],
                 [Role::Adviser, 1],
+                [Role::SdaoMember, 2],
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],

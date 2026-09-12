@@ -139,11 +139,12 @@ test('HTTP: SDAO reject terminates a registration and the rejecting member can s
         ->assertOk();
 });
 
-// QA test-plan gap (5.2): the proposal reject test above only covers the
-// on-calendar variant (step 1 = adviser). Off-calendar relocates SDAO to
-// step 1 (invariant #8) — a different resolved role, never exercised by a
+// QA test-plan gap (5.2), updated for Group E's off-calendar routing fix:
+// the proposal reject test above covers the on-calendar variant (step 1 =
+// adviser); this pins that off-calendar's step 1 is the SAME role — calendar
+// status has no effect on chain order (invariant #8) — never exercised by a
 // reject test.
-test('HTTP: SDAO reject terminates an off-calendar proposal at step 1 and the rejecting member can still view it', function () {
+test('HTTP: adviser reject terminates an off-calendar proposal at step 1 (same role as on-calendar) and the rejecting adviser can still view it', function () {
     $draft = startOffCalendarDraft($this->studentAlpha, $this->org);
 
     $doc = $this->submitProposal->execute(
@@ -155,13 +156,13 @@ test('HTTP: SDAO reject terminates an off-calendar proposal at step 1 and the re
 
     expect($doc->current_step_position)->toBe(1);
 
-    $this->actingAs($this->sdaoA)->withoutVite()
+    $this->actingAs($this->adviser)->withoutVite()
         ->post(route('review.activity-proposals.reject', $doc), ['comment' => 'Not approved.'])
         ->assertRedirect(route('review.activity-proposals.index'));
 
     expect($doc->refresh()->status)->toBe(DocumentStatus::Rejected);
 
-    $this->actingAs($this->sdaoA)->withoutVite()
+    $this->actingAs($this->adviser)->withoutVite()
         ->get(route('review.activity-proposals.show', $doc))
         ->assertOk();
 });

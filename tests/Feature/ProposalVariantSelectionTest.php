@@ -14,6 +14,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use App\Models\WorkflowTemplate;
 use App\Support\AcademicYear;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -144,7 +145,7 @@ test('regular on-calendar: submitted doc binds template with adviser-first step'
     expect($firstStep->role)->toBe(Role::Adviser);
 });
 
-test('regular off-calendar: submitted doc binds template with SDAO-first step', function () {
+test('regular off-calendar: submitted doc binds template with adviser-first step, same as on-calendar', function () {
     $draft = startOffCalendarDraft($this->studentAlpha, $this->computingSociety);
 
     $result = $this->submitProposal->execute(
@@ -161,7 +162,7 @@ test('regular off-calendar: submitted doc binds template with SDAO-first step', 
         ->where('position', 1)
         ->firstOrFail();
 
-    expect($firstStep->role)->toBe(Role::SdaoMember);
+    expect($firstStep->role)->toBe(Role::Adviser);
 });
 
 test('SHS on-calendar: submitted doc binds template with adviser then principal', function () {
@@ -197,7 +198,7 @@ test('SHS on-calendar: submitted doc binds template with adviser then principal'
     expect($secondStep->role)->toBe(Role::Principal); // no ProgramChair or Dean
 });
 
-test('SHS off-calendar: submitted doc binds template with SDAO-first then adviser then principal', function () {
+test('SHS off-calendar: submitted doc binds template with adviser then principal then SDAO, same as on-calendar', function () {
     $draft = app(StartProposalDraft::class)->execute(
         actor: $this->studentGamma,
         organization: $this->shsCouncil,
@@ -233,9 +234,9 @@ test('SHS off-calendar: submitted doc binds template with SDAO-first then advise
         ->where('position', 3)
         ->firstOrFail();
 
-    expect($firstStep->role)->toBe(Role::SdaoMember);
-    expect($secondStep->role)->toBe(Role::Adviser);
-    expect($thirdStep->role)->toBe(Role::Principal);
+    expect($firstStep->role)->toBe(Role::Adviser);
+    expect($secondStep->role)->toBe(Role::Principal);
+    expect($thirdStep->role)->toBe(Role::SdaoMember);
 });
 
 test('college-less on-calendar: submitted doc binds template with adviser then SDAO, skipping chair/dean', function () {
@@ -273,7 +274,7 @@ test('college-less on-calendar: submitted doc binds template with adviser then S
     ]);
 });
 
-test('college-less off-calendar: submitted doc binds template with SDAO-first then adviser, skipping chair/dean', function () {
+test('college-less off-calendar: submitted doc binds template with adviser then SDAO, skipping chair/dean, same as on-calendar', function () {
     $draft = app(StartProposalDraft::class)->execute(
         actor: $this->studentEpsilon,
         organization: $this->chessClub,
@@ -304,10 +305,49 @@ test('college-less off-calendar: submitted doc binds template with SDAO-first th
         ->pluck('role');
 
     expect($steps->all())->toBe([
-        Role::SdaoMember,
         Role::Adviser,
+        Role::SdaoMember,
         Role::AssistantDirectorAcademicServices,
         Role::AcademicDirector,
         Role::ExecutiveDirector,
     ]);
+});
+
+// ── Regression: on-calendar and off-calendar chains must be identical ──────
+// Group E backlog — off-calendar previously relocated SDAO to the front;
+// confirmed with the client that calendar status must have NO effect on
+// chain order at all. These assert role-list equality directly, rather than
+// pinning today's order by hand, so a future accidental re-introduction of
+// an on/off-calendar branch in the chain shape is caught regardless of which
+// order someone picks.
+
+test('on-calendar and off-calendar chains are identical for every school structure', function () {
+    $pairs = [
+        [ProposalVariant::RegularOnCalendar, ProposalVariant::RegularOffCalendar],
+        [ProposalVariant::ShsOnCalendar, ProposalVariant::ShsOffCalendar],
+        [ProposalVariant::ExtraCurricularOnCalendar, ProposalVariant::ExtraCurricularOffCalendar],
+    ];
+
+    foreach ($pairs as [$onVariant, $offVariant]) {
+        $onTemplate = WorkflowTemplate::where('form_type', FormType::ActivityProposal)
+            ->where('variant', $onVariant)
+            ->firstOrFail();
+        $offTemplate = WorkflowTemplate::where('form_type', FormType::ActivityProposal)
+            ->where('variant', $offVariant)
+            ->firstOrFail();
+
+        $onShape = WorkflowStep::where('workflow_template_id', $onTemplate->id)
+            ->orderBy('position')
+            ->get(['role', 'required_approvals'])
+            ->map(fn ($s) => [$s->role, $s->required_approvals])
+            ->all();
+
+        $offShape = WorkflowStep::where('workflow_template_id', $offTemplate->id)
+            ->orderBy('position')
+            ->get(['role', 'required_approvals'])
+            ->map(fn ($s) => [$s->role, $s->required_approvals])
+            ->all();
+
+        expect($offShape)->toBe($onShape);
+    }
 });

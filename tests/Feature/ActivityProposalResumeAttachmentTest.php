@@ -178,9 +178,9 @@ test('an uploaded resume appears on the student show page and the reviewer show 
     );
     $this->document->refresh();
 
-    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
-    // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is first.
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
     $this->actingAs($this->studentAlpha)
         ->withoutVite()
         ->get(route('activity-proposals.show', $this->document))
@@ -190,7 +190,7 @@ test('an uploaded resume appears on the student show page and the reviewer show 
             ->has('attachments.resume_of_resource_person', 1)
         );
 
-    $this->actingAs($sdaoA)
+    $this->actingAs($adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $this->document))
         ->assertOk()

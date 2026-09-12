@@ -726,7 +726,7 @@ class DemoDataSeeder extends Seeder
             specificObjectives: "Observe live structural work on an active construction site.\nHold a Q&A session with the site's practicing engineers.",
         );
         $piceOffDoc = $result['document'];
-        $this->engine->approve($piceOffDoc, $this->carl);
+        $piceOffDoc = $this->approveUpToPartialSdaoQuorum($piceOffDoc, $orgs['PICE']);
         $statusCounts['in_review']++;
 
         // 3. Returned, flagged sections — UAPSA, on-calendar (regular_on_calendar).
@@ -817,6 +817,11 @@ class DemoDataSeeder extends Seeder
             specificObjectives: "Give at least 10 SHS students a stage for their talent.\nRun an open-mic format outside the approved activity calendar.",
         );
         $venarisOffDoc = $result['document'];
+        // Adviser is step 1 regardless of calendar mode (invariant #8) —
+        // advance past it so SDAO (the actual rejecting party in this
+        // demo narrative) is the current-step approver.
+        $this->engine->approve($venarisOffDoc, $this->currentAdviserOf($orgs['Venaris Esports']));
+        $venarisOffDoc->refresh();
         $this->engine->reject($venarisOffDoc, $this->zaira, comment: 'Duplicates an already-approved event on the calendar this term. Please coordinate timing with SDAO before resubmitting.');
         $statusCounts['rejected']++;
 
@@ -894,6 +899,44 @@ class DemoDataSeeder extends Seeder
                 ->where('workflow_template_id', $document->workflow_template_id)
                 ->where('position', $document->current_step_position)
                 ->firstOrFail();
+
+            foreach ($this->approversForRole($step->role, $organization) as $approver) {
+                $this->engine->approve($document, $approver);
+                $document->refresh();
+
+                if ($document->status !== DocumentStatus::InReview) {
+                    break;
+                }
+            }
+        }
+
+        return $document;
+    }
+
+    /**
+     * Walks a Draft/InReview document through every step BEFORE the SDAO
+     * step (resolving each approver from the org's own structure, same as
+     * approveEntireChain()), then records exactly ONE of the two SDAO
+     * members' approvals — leaving the document InReview with a partial
+     * SDAO quorum, for a demo document that should look "waiting on the
+     * second SDAO signature" rather than fully approved.
+     */
+    private function approveUpToPartialSdaoQuorum(Document $document, Organization $organization): Document
+    {
+        $document->refresh();
+
+        while ($document->status === DocumentStatus::InReview) {
+            $step = WorkflowStep::query()
+                ->where('workflow_template_id', $document->workflow_template_id)
+                ->where('position', $document->current_step_position)
+                ->firstOrFail();
+
+            if ($step->role === Role::SdaoMember) {
+                $this->engine->approve($document, $this->carl);
+                $document->refresh();
+
+                return $document;
+            }
 
             foreach ($this->approversForRole($step->role, $organization) as $approver) {
                 $this->engine->approve($document, $approver);

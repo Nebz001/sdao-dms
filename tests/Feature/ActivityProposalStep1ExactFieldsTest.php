@@ -197,8 +197,10 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
             ->where('proposal.proposed_budget', '15000.00')
         );
 
-    // Approver (current-step) review show page.
-    $this->actingAs($this->sdaoA)
+    // Approver (current-step) review show page — adviser is step 1
+    // regardless of calendar mode (invariant #8).
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->actingAs($adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $document))
         ->assertOk()
@@ -229,14 +231,17 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
     $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
     $firstDoc->refresh();
 
-    // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is FIRST,
-    // then adviser -> chair -> dean -> asst dir -> acad dir -> exec dir.
+    // Off-calendar chain order matches on-calendar exactly (invariant #8):
+    // adviser -> chair -> dean -> SDAO (both) -> asst dir -> acad dir -> exec dir.
+    foreach (['adviser-one@nu-lipa.edu.ph', 'chair-cs@nu-lipa.edu.ph', 'dean-ccit@nu-lipa.edu.ph'] as $email) {
+        $engine->approve($firstDoc, User::where('email', $email)->firstOrFail());
+        $firstDoc->refresh();
+    }
     $engine->approve($firstDoc, $this->sdaoA);
     $firstDoc->refresh();
     $engine->approve($firstDoc, $sdaoB);
     $firstDoc->refresh();
     foreach ([
-        'adviser-one@nu-lipa.edu.ph', 'chair-cs@nu-lipa.edu.ph', 'dean-ccit@nu-lipa.edu.ph',
         'asst-director@nu-lipa.edu.ph', 'academic-director@nu-lipa.edu.ph', 'executive-director@nu-lipa.edu.ph',
     ] as $email) {
         $engine->approve($firstDoc, User::where('email', $email)->firstOrFail());
@@ -355,7 +360,8 @@ test('an "others" selection with its specify text round-trips through submission
             ->where('proposal.activity_type_label', 'Others — Photo walk')
         );
 
-    $this->actingAs($this->sdaoA)
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->actingAs($adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $document))
         ->assertOk()

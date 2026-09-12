@@ -177,8 +177,9 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
     ])->assertRedirect();
     $document->refresh();
 
-    // Off-calendar: SDAO is first (invariant #8).
-    app(ApprovalEngine::class)->returnForRevision($document, $this->sdaoA, 'Please fix the schedule.');
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    app(ApprovalEngine::class)->returnForRevision($document, $adviser, 'Please fix the schedule.');
     $document->refresh();
 
     assertResubmitRedirectSucceeds($student, route('activity-proposals.update', $document), [

@@ -185,10 +185,11 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
         specificObjectives: 'Specific Objectives',
     );
 
-    // Off-calendar: SDAO is step 1 (invariant #8).
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->engine->returnForRevision(
         $doc,
-        $this->sdaoA,
+        $adviser,
         'Fix the venue and the budget.',
         ['schedule_venue', 'budget'],
     );

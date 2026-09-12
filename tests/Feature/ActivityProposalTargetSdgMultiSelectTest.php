@@ -27,7 +27,6 @@ beforeEach(function () {
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
-    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 
 function targetSdgApprovedActivity(Organization $org): CalendarActivity
@@ -129,7 +128,9 @@ test('multiple selected SDGs round-trip through submission and both show pages',
             ->where('proposal.target_sdg_labels', $expectedLabels)
         );
 
-    $this->actingAs($this->sdaoA)
+    // Adviser is step 1 regardless of calendar mode (invariant #8).
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->actingAs($adviser)
         ->withoutVite()
         ->get(route('review.activity-proposals.show', $document))
         ->assertOk()

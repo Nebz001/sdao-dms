@@ -243,8 +243,10 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
         $this->student, $this->org, 'Hall C', '2026-11-10', '09:00', '11:00'
     );
 
-    // Advance through the off-calendar chain for Computing Society:
-    // [SdaoMember(×2), Adviser, ProgramChair, Dean, AsstDir, AcadDir, ExecDir]
+    // Advance through the off-calendar chain for Computing Society — same
+    // order as on-calendar (Group E backlog: calendar status has no effect
+    // on chain order): [Adviser, ProgramChair, Dean, SdaoMember(×2), AsstDir,
+    // AcadDir, ExecDir]
     $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
     $dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
@@ -252,15 +254,15 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
     $acadDir = User::where('email', 'academic-director@nu-lipa.edu.ph')->firstOrFail();
     $execDir = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
 
-    $this->engine->approve($approvedProposalDoc, $this->sdaoA);
-    $approvedProposalDoc->refresh();
-    $this->engine->approve($approvedProposalDoc, $this->sdaoB);
-    $approvedProposalDoc->refresh();
     $this->engine->approve($approvedProposalDoc, $adviser);
     $approvedProposalDoc->refresh();
     $this->engine->approve($approvedProposalDoc, $chair);
     $approvedProposalDoc->refresh();
     $this->engine->approve($approvedProposalDoc, $dean);
+    $approvedProposalDoc->refresh();
+    $this->engine->approve($approvedProposalDoc, $this->sdaoA);
+    $approvedProposalDoc->refresh();
+    $this->engine->approve($approvedProposalDoc, $this->sdaoB);
     $approvedProposalDoc->refresh();
     $this->engine->approve($approvedProposalDoc, $asstDir);
     $approvedProposalDoc->refresh();

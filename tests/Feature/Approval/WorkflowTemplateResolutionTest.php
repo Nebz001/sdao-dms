@@ -37,19 +37,19 @@ test('regular on-calendar resolves 7 steps in correct order', function () {
     expect($template->steps)->toHaveCount(7);
 });
 
-test('regular off-calendar has SDAO at position 1', function () {
+test('regular off-calendar has the same step order as on-calendar (SDAO not relocated)', function () {
     $template = $this->resolver->resolve(FormType::ActivityProposal, ProposalVariant::RegularOffCalendar);
     $steps = $template->steps;
 
-    expect($steps->first()->role)->toBe(Role::SdaoMember);
+    expect($steps->first()->role)->toBe(Role::Adviser);
     expect($steps->first()->position)->toBe(1);
 
     $roles = $steps->pluck('role');
     expect($roles)->sequence(
-        fn ($r) => $r->toBe(Role::SdaoMember),
         fn ($r) => $r->toBe(Role::Adviser),
         fn ($r) => $r->toBe(Role::ProgramChair),
         fn ($r) => $r->toBe(Role::Dean),
+        fn ($r) => $r->toBe(Role::SdaoMember),
         fn ($r) => $r->toBe(Role::AssistantDirectorAcademicServices),
         fn ($r) => $r->toBe(Role::AcademicDirector),
         fn ($r) => $r->toBe(Role::ExecutiveDirector),
@@ -73,14 +73,14 @@ test('SHS on-calendar has adviser, principal, SDAO, then 3 directors — no chai
     expect($roles->contains(Role::Dean))->toBeFalse();
 });
 
-test('SHS off-calendar has SDAO at front and principal in place of chair and dean', function () {
+test('SHS off-calendar has the same step order as on-calendar — principal in place of chair and dean, SDAO not relocated', function () {
     $template = $this->resolver->resolve(FormType::ActivityProposal, ProposalVariant::ShsOffCalendar);
     $roles = $template->steps->pluck('role');
 
     expect($roles)->sequence(
-        fn ($r) => $r->toBe(Role::SdaoMember),
         fn ($r) => $r->toBe(Role::Adviser),
         fn ($r) => $r->toBe(Role::Principal),
+        fn ($r) => $r->toBe(Role::SdaoMember),
         fn ($r) => $r->toBe(Role::AssistantDirectorAcademicServices),
         fn ($r) => $r->toBe(Role::AcademicDirector),
         fn ($r) => $r->toBe(Role::ExecutiveDirector),

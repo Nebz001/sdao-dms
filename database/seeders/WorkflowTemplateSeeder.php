@@ -11,7 +11,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeds all eight workflow templates as configuration data (invariant #1).
+ * Seeds all 10 workflow templates as configuration data (invariant #1).
  *
  * Short chains (4): Registration, Renewal, ActivityCalendar, AfterActivityReport
  *   — each is a single SDAO step requiring both members to approve.
@@ -19,10 +19,12 @@ use Illuminate\Database\Seeder;
  * Proposal variants (6): RegularOnCalendar, RegularOffCalendar, ShsOnCalendar,
  *   ShsOffCalendar, ExtraCurricularOnCalendar, ExtraCurricularOffCalendar —
  *   each variant is its own template row, not a code branch. SDAO appears
- *   exactly once in every variant; off-calendar moves it to step 1. SHS
- *   replaces ProgramChair + Dean with a single Principal (invariant #8);
- *   ExtraCurricular (a college-less org, Phase 2 remediation item 3) skips
- *   both outright rather than substituting a replacement role.
+ *   exactly once in every variant, in the SAME position regardless of
+ *   calendar mode — on/off-calendar has no effect on chain order (invariant
+ *   #8); it only affects venue-conflict handling and step-1 field
+ *   requirements elsewhere. SHS replaces ProgramChair + Dean with a single
+ *   Principal; ExtraCurricular (a college-less org, Phase 2 remediation
+ *   item 3) skips both outright rather than substituting a replacement role.
  */
 class WorkflowTemplateSeeder extends Seeder
 {
@@ -55,10 +57,10 @@ class WorkflowTemplateSeeder extends Seeder
             ProposalVariant::RegularOffCalendar,
             'Activity Proposal — Regular School, Off-Calendar',
             [
-                [Role::SdaoMember, 2],  // SDAO relocated to front for off-calendar
                 [Role::Adviser, 1],
                 [Role::ProgramChair, 1],
                 [Role::Dean, 1],
+                [Role::SdaoMember, 2],  // same position as on-calendar
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],
@@ -84,9 +86,9 @@ class WorkflowTemplateSeeder extends Seeder
             ProposalVariant::ShsOffCalendar,
             'Activity Proposal — Senior High School, Off-Calendar',
             [
-                [Role::SdaoMember, 2],  // SDAO relocated to front for off-calendar
                 [Role::Adviser, 1],
                 [Role::Principal, 1],
+                [Role::SdaoMember, 2],  // same position as on-calendar
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],
@@ -112,8 +114,9 @@ class WorkflowTemplateSeeder extends Seeder
             ProposalVariant::ExtraCurricularOffCalendar,
             'Activity Proposal — Extra-Curricular (No College), Off-Calendar',
             [
-                [Role::SdaoMember, 2],  // SDAO relocated to front for off-calendar
                 [Role::Adviser, 1],
+                // No ProgramChair/Dean step — a college-less org has neither.
+                [Role::SdaoMember, 2],  // same position as on-calendar
                 [Role::AssistantDirectorAcademicServices, 1],
                 [Role::AcademicDirector, 1],
                 [Role::ExecutiveDirector, 1],

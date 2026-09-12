@@ -97,24 +97,31 @@ These are product rules, not suggestions. Do not "simplify" them away.
 
 7. **Full revision history is kept** for every document across all transitions.
 
-8. **Activity proposal chains vary by on/off-calendar flag AND by school
-   structure.** SDAO appears exactly ONCE in every variant (both members
-   required, per #3). Off-calendar moves the single SDAO step to the front — it
-   is NOT an extra step, just relocated because the activity is outside the
-   approved calendar. Each variant below is its own workflow template (chains
-   are configuration), not a special-case branch in code.
+8. **Activity proposal chains vary by school structure ONLY — calendar
+   status (on/off) has NO effect on the approval chain.** SDAO appears
+   exactly ONCE in every variant (both members required, per #3), in the
+   SAME position regardless of on/off-calendar. On/off-calendar is still
+   tracked (it drives venue-conflict handling — tentative warning vs. hard
+   block — and which step-1 fields are required), it just never changes who
+   approves or in what order. Each school-structure/calendar-status
+   combination is its own workflow template (chains are configuration), not
+   a special-case branch in code — including the on/off-calendar pair, which
+   are separate template rows with identical step lists.
 
    Regular school (program chair from the org's program, dean from its school):
-   - *On-calendar*: adviser → program chair → dean → SDAO → asst. director of
-     academic services → academic director → executive director
-   - *Off-calendar*: SDAO → adviser → program chair → dean → asst. director of
-     academic services → academic director → executive director
+   - *On-calendar and off-calendar (identical):* adviser → program chair →
+     dean → SDAO → asst. director of academic services → academic director
+     → executive director
 
    Senior High School (single principal replaces both chair and dean steps):
-   - *On-calendar*: adviser → principal → SDAO → asst. director of academic
-     services → academic director → executive director
-   - *Off-calendar*: SDAO → adviser → principal → asst. director of academic
-     services → academic director → executive director
+   - *On-calendar and off-calendar (identical):* adviser → principal → SDAO
+     → asst. director of academic services → academic director → executive
+     director
+
+   Extra-Curricular org (no college — Phase 2 remediation item 3; skips
+   program chair AND dean outright rather than substituting a role):
+   - *On-calendar and off-calendar (identical):* adviser → SDAO → asst.
+     director of academic services → academic director → executive director
 
 9. **Approver notification on every hand-off.** When the engine advances a
    document to the next approver, it fires a notification to that approver
