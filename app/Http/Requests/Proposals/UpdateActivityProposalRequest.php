@@ -39,6 +39,10 @@ class UpdateActivityProposalRequest extends FormRequest
             'expense_items.*.material' => ['required', 'string', 'max:255'],
             'expense_items.*.quantity' => ['required', 'numeric', 'min:0'],
             'expense_items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            // Group E backlog — typed in directly by the submitting officer,
+            // not a picker (see ActivityProposal's responsible_persons docblock).
+            'responsible_persons' => ['required', 'array', 'min:1'],
+            'responsible_persons.*' => ['required', 'string', 'max:255'],
             'proposed_budget' => ['nullable', 'numeric', 'min:0'],
             // Optional off-calendar activity update fields
             'title' => ['nullable', 'string', 'max:255'],
@@ -98,6 +102,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',
             'expense_items' => 'Expenses',
+            'responsible_persons' => 'Responsible Person(s)',
             ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
         ];
     }

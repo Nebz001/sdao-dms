@@ -50,6 +50,9 @@ class SectionFlags
                 new SectionFlag('schedule_venue', 'Schedule & Venue'),
                 new SectionFlag('objectives', 'Objectives'),
                 new SectionFlag('activity_description', 'Activity Description'),
+                // Group E backlog — matches the print form's own standalone
+                // "VI. Responsible Person/s" section.
+                new SectionFlag('responsible_persons', 'Responsible Persons'),
                 // Group C item 3 — all 3 step-1 attachment slots
                 // (request_letter, resume_of_resource_person,
                 // sample_post_survey_form) are now Mode A, so they're

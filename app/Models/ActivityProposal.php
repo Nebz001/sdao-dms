@@ -44,6 +44,11 @@ use Illuminate\Support\Collection;
  *                                 fallback for proposals submitted before expense_items existed — see
  *                                 App\Printing\ActivityProposalForm.
  * @property array<int, array{material: string, quantity: string, unit_price: string}>|null $expense_items Group D item 3 — was {label, amount}.
+ * @property array<int, string>|null $responsible_persons Group E backlog —
+ *                                                        typed in directly by the submitting officer (President or Secretary),
+ *                                                        not sourced from org membership: the system only ever tracks those two
+ *                                                        as "members", too small a pool to stand in for who is actually
+ *                                                        responsible for running an activity.
  * @property-read string|null $expenseItemsTotal Formatted ("1,234.56") grand
  *     total of expense_items, or null when there are no rows to sum.
  * @property-read string|null $activityNatureLabel activity_nature's label,
@@ -55,7 +60,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */
@@ -69,6 +74,7 @@ class ActivityProposal extends Model
         'partner_organizations' => 'array',
         'target_sdg' => AsEnumCollection::class.':'.Sdg::class,
         'expense_items' => 'array',
+        'responsible_persons' => 'array',
         'proposed_budget' => 'decimal:2',
         'budget_source' => BudgetSource::class,
     ];

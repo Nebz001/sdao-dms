@@ -130,6 +130,9 @@ class ActivityProposalReviewController extends Controller
                 'expense_items' => $proposal->expense_items,
                 'expense_items_total' => $proposal->expenseItemsTotal,
                 'expenses' => $proposal->expenses,
+                // Group E backlog — typed in directly by the officer, not
+                // sourced from org membership.
+                'responsible_persons' => $proposal->responsible_persons,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a).
                 // Group B item 5 — these accessors fold in the "Others" free text.

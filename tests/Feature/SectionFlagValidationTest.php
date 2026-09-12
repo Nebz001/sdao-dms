@@ -252,8 +252,9 @@ test('return accepts every valid section key for Activity Proposal (combined 11-
     $allKeys = collect(SectionFlags::for(FormType::ActivityProposal))->pluck('key')->all();
     // Group C item 3: the old single "resource_person" flag was replaced by
     // 3 per-slot attachment flags (request_letter, resume_of_resource_person,
-    // sample_post_survey_form) — net +2 over the prior 9-key union.
-    expect($allKeys)->toHaveCount(11);
+    // sample_post_survey_form) — net +2 over the prior 9-key union. Group E
+    // backlog added "responsible_persons" — net +1 more.
+    expect($allKeys)->toHaveCount(12);
 
     $this->actingAs($adviser)
         ->post(route('review.activity-proposals.return', $doc), [

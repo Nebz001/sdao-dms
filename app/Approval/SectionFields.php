@@ -131,6 +131,11 @@ class SectionFields
                     new FieldDefinition('criteria_mechanics', 'Criteria / Mechanics'),
                     new FieldDefinition('program_flow', 'Program Flow'),
                 ],
+                // Group E backlog — matches the print form's own standalone
+                // "VI. Responsible Person/s" section.
+                'responsible_persons' => [
+                    new FieldDefinition('responsible_persons', 'Responsible Persons', 'list'),
+                ],
             ],
 
             FormType::AfterActivityReport => [

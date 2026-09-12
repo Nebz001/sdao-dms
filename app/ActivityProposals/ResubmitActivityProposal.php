@@ -74,9 +74,9 @@ class ResubmitActivityProposal
         // The two field-key sets are disjoint (proposal: title,
         // activity_nature, activity_type, partner_organizations, target_sdg,
         // overall_goal, specific_objectives, criteria_mechanics,
-        // program_flow, expense_items, proposed_budget, budget_source;
-        // activity: venue, activity_date, start_time, end_time), so merging
-        // them into one flat snapshot is safe.
+        // program_flow, expense_items, responsible_persons, proposed_budget,
+        // budget_source; activity: venue, activity_date, start_time,
+        // end_time), so merging them into one flat snapshot is safe.
         $flagged = SectionFlags::currentlyFlagged($document);
 
         if (! $isOffCalendar) {
@@ -150,6 +150,7 @@ class ResubmitActivityProposal
                 // see App\Models\ActivityProposal's docblock. Group D item 3
                 // — rows are {material, quantity, unit_price}.
                 'expense_items' => $data['expense_items'],
+                'responsible_persons' => $data['responsible_persons'],
                 'proposed_budget' => $data['proposed_budget'] ?? $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — editable
                 // on resubmission, same as proposed_budget already is.

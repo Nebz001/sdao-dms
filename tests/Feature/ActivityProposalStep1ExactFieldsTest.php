@@ -178,6 +178,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
     ]);
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);
@@ -347,6 +348,7 @@ test('an "others" selection with its specify text round-trips through submission
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
     ]);
     $document->refresh();
 

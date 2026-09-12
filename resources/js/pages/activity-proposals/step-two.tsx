@@ -28,6 +28,7 @@ type ProposalData = {
     program_flow: string | null;
     expenses: string | null;
     expense_items: ExpenseItem[] | null;
+    responsible_persons: string[] | null;
     proposed_budget: string | null;
     budget_source_label: string | null;
     // Group D item 5 — step 1 → step 2 carryover.
@@ -80,6 +81,19 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
 
     const expenseTotal = expenseItems.reduce((sum, item) => sum + rowTotal(item), 0);
 
+    // Typed in directly by the submitting officer — not a picker sourced
+    // from org membership (see ActivityProposal's responsible_persons
+    // docblock). Same dynamic-row-list shape as expenseItems above.
+    const [responsiblePersons, setResponsiblePersons] = useState<string[]>(
+        proposal?.responsible_persons && proposal.responsible_persons.length > 0
+            ? proposal.responsible_persons
+            : [''],
+    );
+    const responsiblePersonsRef = useRef(responsiblePersons);
+    useEffect(() => {
+        responsiblePersonsRef.current = responsiblePersons;
+    }, [responsiblePersons]);
+
     function xsrfToken(): string {
         return decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
     }
@@ -111,6 +125,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
                     expense_items: expenseItemsRef.current,
+                    responsible_persons: responsiblePersonsRef.current,
                 }),
             }).catch(() => {
                 // Best-effort autosave — a failed ping is silently retried
@@ -331,6 +346,58 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                 <span className="font-semibold tabular-nums">₱{money(expenseTotal)}</span>
                             </div>
                             <InputError message={errors.expense_items} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                                <Label>Responsible Person(s)</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setResponsiblePersons((prev) => [...prev, '']);
+                                        scheduleSave();
+                                    }}
+                                >
+                                    + Add
+                                </Button>
+                            </div>
+                            {responsiblePersons.map((name, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            name={`responsible_persons[${i}]`}
+                                            value={name}
+                                            onChange={(e) => {
+                                                setResponsiblePersons((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = e.target.value;
+
+                                                    return next;
+                                                });
+                                                scheduleSave();
+                                            }}
+                                            placeholder="Full name"
+                                        />
+                                        {responsiblePersons.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setResponsiblePersons((prev) => prev.filter((_, idx) => idx !== i));
+                                                    scheduleSave();
+                                                }}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <InputError message={errors[`responsible_persons.${i}`]} />
+                                </div>
+                            ))}
+                            <InputError message={errors.responsible_persons} />
                         </div>
 
                         {/* Group C item 3 — all attachment slots moved to

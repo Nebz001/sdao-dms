@@ -32,6 +32,10 @@ class SubmitProposalRequest extends FormRequest
             'expense_items.*.material' => ['required', 'string', 'max:255'],
             'expense_items.*.quantity' => ['required', 'numeric', 'min:0'],
             'expense_items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            // Group E backlog — typed in directly by the submitting officer,
+            // not a picker (see ActivityProposal's responsible_persons docblock).
+            'responsible_persons' => ['required', 'array', 'min:1'],
+            'responsible_persons.*' => ['required', 'string', 'max:255'],
             // proposed_budget is no longer collected at step 2 (Phase 2
             // item 7 slice 4a) — it's set once at step 1. source_of_funding
             // is gone entirely (Group D item 4) — step 2 echoes step 1's
@@ -50,6 +54,7 @@ class SubmitProposalRequest extends FormRequest
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',
             'expense_items' => 'Expenses',
+            'responsible_persons' => 'Responsible Person(s)',
         ];
     }
 }

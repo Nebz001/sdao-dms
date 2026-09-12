@@ -203,6 +203,7 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
         'attachments' => [
             'request_letter' => UploadedFile::fake()->create('new-request-letter.pdf', 100, 'application/pdf'),
         ],
@@ -255,5 +256,6 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
     ]))->toThrow(ValidationException::class);
 });

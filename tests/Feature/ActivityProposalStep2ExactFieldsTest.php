@@ -63,6 +63,7 @@ function step2NarrativeFields(array $overrides = []): array
             ['material' => 'Venue rental', 'quantity' => '1', 'unit_price' => '5000.00'],
             ['material' => 'Refreshments', 'quantity' => '2', 'unit_price' => '750.25'],
         ],
+        'responsible_persons' => ['Responsible Person'],
     ], $overrides);
 }
 
@@ -72,7 +73,7 @@ test('submit validation rejects a step-2 submission missing any required narrati
     $document = $this->document;
     $base = step2NarrativeFields();
 
-    foreach (['overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expense_items'] as $field) {
+    foreach (['overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expense_items', 'responsible_persons'] as $field) {
         $payload = $base;
         unset($payload[$field]);
 
@@ -142,6 +143,7 @@ test('overall_goal, specific_objectives, criteria_mechanics, and program_flow ro
     ]);
     // 1×5000.00 + 2×750.25 = 6,500.50
     expect($proposal->expenseItemsTotal)->toBe('6,500.50');
+    expect($proposal->responsible_persons)->toBe(['Responsible Person']);
 
     // Student show page.
     $this->actingAs($this->studentAlpha)
@@ -159,6 +161,7 @@ test('overall_goal, specific_objectives, criteria_mechanics, and program_flow ro
                 ['material' => 'Refreshments', 'quantity' => '2', 'unit_price' => '750.25'],
             ])
             ->where('proposal.expense_items_total', '6,500.50')
+            ->where('proposal.responsible_persons', ['Responsible Person'])
         );
 
     // Approver (current-step) review show page — adviser is step 1
@@ -175,6 +178,7 @@ test('overall_goal, specific_objectives, criteria_mechanics, and program_flow ro
             ->where('proposal.criteria_mechanics', 'Criteria/Mechanics')
             ->where('proposal.program_flow', 'Program Flow')
             ->where('proposal.expense_items_total', '6,500.50')
+            ->where('proposal.responsible_persons', ['Responsible Person'])
         );
 });
 
@@ -208,6 +212,7 @@ test('autosave persists overall_goal, specific_objectives, criteria_mechanics, p
             'criteria_mechanics' => 'Autosaved Criteria',
             'program_flow' => 'Autosaved Flow',
             'expense_items' => [['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']],
+            'responsible_persons' => ['Autosaved Person'],
         ]);
 
     $response->assertOk();
@@ -221,6 +226,7 @@ test('autosave persists overall_goal, specific_objectives, criteria_mechanics, p
     expect($proposal->criteria_mechanics)->toBe('Autosaved Criteria');
     expect($proposal->program_flow)->toBe('Autosaved Flow');
     expect($proposal->expense_items)->toBe([['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']]);
+    expect($proposal->responsible_persons)->toBe(['Autosaved Person']);
 
     // Step-2 continue view echoes the autosaved values back.
     $this->actingAs($this->studentAlpha)
@@ -234,6 +240,7 @@ test('autosave persists overall_goal, specific_objectives, criteria_mechanics, p
             ->where('proposal.criteria_mechanics', 'Autosaved Criteria')
             ->where('proposal.program_flow', 'Autosaved Flow')
             ->where('proposal.expense_items', [['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']])
+            ->where('proposal.responsible_persons', ['Autosaved Person'])
         );
 });
 
@@ -275,6 +282,7 @@ test('resubmitting a Returned proposal round-trips edited values of every step-2
                 'criteria_mechanics' => 'Revised Criteria',
                 'program_flow' => 'Revised Flow',
                 'expense_items' => [['material' => 'Revised Item', 'quantity' => '3', 'unit_price' => '333.33']],
+                'responsible_persons' => ['Revised Person'],
             ],
         ));
 
@@ -288,4 +296,5 @@ test('resubmitting a Returned proposal round-trips edited values of every step-2
     expect($proposal->criteria_mechanics)->toBe('Revised Criteria');
     expect($proposal->program_flow)->toBe('Revised Flow');
     expect($proposal->expense_items)->toBe([['material' => 'Revised Item', 'quantity' => '3', 'unit_price' => '333.33']]);
+    expect($proposal->responsible_persons)->toBe(['Revised Person']);
 });

@@ -174,6 +174,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
     ])->assertRedirect();
     $document->refresh();
 
@@ -188,6 +189,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
         'title' => 'Resubmit Redirect Test Activity',
         'venue' => 'Room 400',
         'activity_date' => '2026-12-10',

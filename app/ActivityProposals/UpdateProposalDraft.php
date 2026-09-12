@@ -47,6 +47,7 @@ class UpdateProposalDraft
             // App\Models\ActivityProposal's docblock. Group D item 3 — rows
             // are {material, quantity, unit_price}.
             'expense_items' => $data['expense_items'] ?? $proposal->expense_items,
+            'responsible_persons' => $data['responsible_persons'] ?? $proposal->responsible_persons,
         ]);
 
         return $document;

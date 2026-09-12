@@ -33,6 +33,9 @@ class UpdateProposalDraftRequest extends FormRequest
             'expense_items.*.material' => ['nullable', 'string', 'max:255'],
             'expense_items.*.quantity' => ['nullable', 'string', 'max:32'],
             'expense_items.*.unit_price' => ['nullable', 'string', 'max:32'],
+            // Group E backlog — typed in directly by the submitting officer.
+            'responsible_persons' => ['nullable', 'array'],
+            'responsible_persons.*' => ['nullable', 'string', 'max:255'],
             // proposed_budget is no longer part of step-2 autosave (Phase 2
             // item 7 slice 4a) — it's set once at step 1. source_of_funding
             // is gone entirely (Group D item 4).

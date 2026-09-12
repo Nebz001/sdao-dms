@@ -28,6 +28,7 @@ type ProposalData = {
     program_flow: string | null;
     expenses: string | null;
     expense_items: ExpenseItem[] | null;
+    responsible_persons: string[] | null;
     proposed_budget: string | null;
     activity_nature: string | null;
     activity_nature_other: string | null;
@@ -91,6 +92,9 @@ export default function EditActivityProposal({
         proposal?.expense_items?.length ? proposal.expense_items : [{ material: '', quantity: '', unit_price: '' }],
     );
     const expenseTotal = expenseItems.reduce((sum, item) => sum + rowTotal(item), 0);
+    const [responsiblePersons, setResponsiblePersons] = useState<string[]>(
+        proposal?.responsible_persons?.length ? proposal.responsible_persons : [''],
+    );
 
     // Nature/Type of Activity — controlled so the "Others" conditional
     // specify-field (Group B item 5) can key off the current selection.
@@ -263,6 +267,58 @@ export default function EditActivityProposal({
                             />
                             <InputError message={errors.program_flow} />
                         </div>
+                        </div>
+                        </FlaggedSectionWrapper>
+
+                        <FlaggedSectionWrapper
+                                sectionKey="responsible_persons"
+                                flagged={flaggedSections}
+                                comment={flaggedComment}
+                                sectionComment={flaggedSectionComments.responsible_persons}
+                            >
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                                <Label>Responsible Person(s)</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setResponsiblePersons((prev) => [...prev, ''])}
+                                >
+                                    + Add
+                                </Button>
+                            </div>
+                            {responsiblePersons.map((name, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            name={`responsible_persons[${i}]`}
+                                            value={name}
+                                            onChange={(e) =>
+                                                setResponsiblePersons((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = e.target.value;
+
+                                                    return next;
+                                                })
+                                            }
+                                            placeholder="Full name"
+                                        />
+                                        {responsiblePersons.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setResponsiblePersons((prev) => prev.filter((_, idx) => idx !== i))}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <InputError message={errors[`responsible_persons.${i}`]} />
+                                </div>
+                            ))}
+                            <InputError message={errors.responsible_persons} />
                         </div>
                         </FlaggedSectionWrapper>
 

@@ -35,6 +35,7 @@ type ProposalData = {
     expenses: string | null;
     expense_items: { material: string; quantity: string; unit_price: string }[] | null;
     expense_items_total: string | null;
+    responsible_persons: string[] | null;
     proposed_budget: string | null;
     form_step: number;
     activity_nature_label: string | null;
@@ -291,6 +292,21 @@ export default function ShowActivityProposal({
                                 total={proposal.expense_items_total}
                                 legacyText={proposal.expenses}
                             />
+                            {proposal.responsible_persons &&
+                                proposal.responsible_persons.length > 0 && (
+                                    <div>
+                                        <p className="mb-1 font-medium">
+                                            Responsible Person(s)
+                                        </p>
+                                        <ul className="list-disc pl-4 text-muted-foreground">
+                                            {proposal.responsible_persons.map(
+                                                (name, i) => (
+                                                    <li key={i}>{name}</li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
                         </CardContent>
                     </Card>
                 )}

@@ -133,6 +133,7 @@ test('secretary can continue, autosave, and submit the president\'s Draft propos
         'criteria_mechanics' => 'Criteria.',
         'program_flow' => 'Flow.',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
     ]);
     $response->assertRedirect();
 

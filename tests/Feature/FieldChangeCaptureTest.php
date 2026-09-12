@@ -201,6 +201,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
+        'responsible_persons' => ['Responsible Person'],
         'proposed_budget' => '5000',
         'title' => 'Coding Night',
         'venue' => 'Main Gymnasium',
@@ -261,6 +262,7 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [],
+        'responsible_persons' => ['Responsible Person'],
     ]);
 
     $changes = fcResubmitTransition($doc)->field_changes;

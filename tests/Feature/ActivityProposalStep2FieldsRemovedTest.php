@@ -60,6 +60,7 @@ test('a submit request still carrying the old narrative/source_of_funding keys s
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
         // Stale client / old bookmark / stale JS bundle still sending the
         // removed keys — must be silently ignored, not error, not persisted.
         'narrative' => 'This should go nowhere.',

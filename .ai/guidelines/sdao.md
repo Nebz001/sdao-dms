@@ -309,7 +309,7 @@ keys), not just a comment string. Section definitions per form type:
   `narrative` was removed as a leftover scaffold field never reconciled into
   the exact field list; do not re-add it), Budget (Proposed Budget, Budget
   Source, Expenses — no separate Source of Funding; it duplicated Budget
-  Source and now just echoes it read-only), General
+  Source and now just echoes it read-only), Responsible Persons, General
 - **Activity Calendar:** each activity row is its own flaggable unit (no shared
   sections)
 - **After-Activity Report:** Event Details, Summary/Program, Evaluation,
@@ -382,11 +382,14 @@ approximate these.
   Objectives — was a single field), Criteria/Mechanics, Program Flow, Proposed
   Budget, Expenses (itemized: Material, Quantity, Unit Price, with an
   auto-calculated row total and grand total — was a flat label/amount row),
-  Resume of Resource Person(s) if applicable. There is no separate Source of
-  Funding field at step 2 — it duplicated step 1's Budget Source, so step 2
-  now just displays that value read-only instead of asking again. There is no
-  "Narrative" field either — it was a leftover from the original scaffold,
-  never part of the client's real form; do not re-add it.
+  Resume of Resource Person(s) if applicable, Responsible Person(s) (a
+  repeatable list of names — typed in directly by the submitting officer,
+  President or Secretary; NOT a picker sourced from org membership, since
+  the system only ever tracks those two as "members"). There is no separate
+  Source of Funding field at step 2 — it duplicated step 1's Budget Source,
+  so step 2 now just displays that value read-only instead of asking again.
+  There is no "Narrative" field either — it was a leftover from the original
+  scaffold, never part of the client's real form; do not re-add it.
 - **Activity Calendar:** RSO Name, Date, Activity Name, SDG (multi-select —
   one or more goals per activity), Venue, Participant/Program Assigned,
   Budget. Status and Date Received are NOT user-input fields — derive Status

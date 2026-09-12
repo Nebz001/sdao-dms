@@ -724,6 +724,7 @@ class DemoDataSeeder extends Seeder
             document: $piceOffDoc,
             overallGoal: 'Expose members to real-world structural engineering practices.',
             specificObjectives: "Observe live structural work on an active construction site.\nHold a Q&A session with the site's practicing engineers.",
+            responsiblePersons: ['Juan Dela Cruz', 'Maria Santos'],
         );
         $piceOffDoc = $result['document'];
         $piceOffDoc = $this->approveUpToPartialSdaoQuorum($piceOffDoc, $orgs['PICE']);
@@ -749,6 +750,7 @@ class DemoDataSeeder extends Seeder
             document: $uapsaDraftDoc,
             overallGoal: 'Showcase student architectural design work to the NU Lipa community.',
             specificObjectives: "Exhibit at least 15 student architectural models and boards.\nInvite all schools on campus to attend the exhibit.",
+            responsiblePersons: ['Ana Reyes'],
         );
         $uapsaProposalDoc = $result['document'];
         $adviserUapsa = $this->currentAdviserOf($orgs['UAPSA']);
@@ -786,6 +788,7 @@ class DemoDataSeeder extends Seeder
             overallGoal: 'Promote esports as a legitimate co-curricular activity among SHS students.',
             specificObjectives: "Field at least 8 SHS student teams in the tournament.\nRun the bracket to completion within a single day.",
             programFlow: 'Opening remarks, group stage, playoffs, awarding.',
+            responsiblePersons: ['Marco Villanueva', 'Kim Aquino'],
         );
         $venarisApprovedDoc = $this->approveEntireChain($result['document'], $orgs['Venaris Esports']);
         $proposals['venaris_approved'] = $venarisApprovedDoc->activityProposal;
@@ -815,6 +818,7 @@ class DemoDataSeeder extends Seeder
             document: $venarisOffDoc,
             overallGoal: 'Showcase SHS student talent outside of esports.',
             specificObjectives: "Give at least 10 SHS students a stage for their talent.\nRun an open-mic format outside the approved activity calendar.",
+            responsiblePersons: ['Marco Villanueva'],
         );
         $venarisOffDoc = $result['document'];
         // Adviser is step 1 regardless of calendar mode (invariant #8) —
@@ -844,6 +848,7 @@ class DemoDataSeeder extends Seeder
             document: $codecsOnDoc,
             overallGoal: 'Improve code quality practices among CODECS members.',
             specificObjectives: "Walk through code review etiquette with hands-on exercises.\nIntroduce static analysis tooling members can adopt immediately.",
+            responsiblePersons: ['Patricia Lim', 'James Bautista'],
         );
         $codecsApprovedDoc = $this->approveEntireChain($result['document'], $orgs['CODECS']);
         $proposals['codecs_approved'] = $codecsApprovedDoc->activityProposal;
@@ -872,6 +877,7 @@ class DemoDataSeeder extends Seeder
             document: $piceOffDoc2,
             overallGoal: 'Connect graduating civil engineering students with local firms.',
             specificObjectives: "Bring in at least 6 construction and engineering firms from Batangas.\nGive graduating students direct access to on-site recruiters.",
+            responsiblePersons: ['Juan Dela Cruz'],
         );
         $piceApprovedDoc = $this->approveEntireChain($result['document'], $orgs['PICE']);
         $proposals['pice_approved'] = $piceApprovedDoc->activityProposal;

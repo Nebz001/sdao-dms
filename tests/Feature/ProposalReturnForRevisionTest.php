@@ -341,6 +341,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+        'responsible_persons' => ['Responsible Person'],
         'title' => 'Time Format Test Activity',
         'venue' => 'Room 400',
         'activity_date' => '2026-12-10',

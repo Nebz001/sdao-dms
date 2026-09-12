@@ -219,8 +219,8 @@ test('Activity Proposal now also derives its attachment-slot keys generically (G
         expect($keys)->toContain($slot->key);
     }
 
-    // 7 non-attachment sections (rso_info, activity_details,
+    // 8 non-attachment sections (rso_info, activity_details,
     // partner_orgs_sdg, budget, schedule_venue, objectives,
-    // activity_description) + 3 attachment slots + general.
-    expect($keys)->toHaveCount(7 + 3 + 1);
+    // activity_description, responsible_persons) + 3 attachment slots + general.
+    expect($keys)->toHaveCount(8 + 3 + 1);
 });

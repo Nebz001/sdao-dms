@@ -248,6 +248,9 @@ class ActivityProposalController extends Controller
                 'expense_items' => $proposal->expense_items,
                 'expense_items_total' => $proposal->expenseItemsTotal,
                 'expenses' => $proposal->expenses,
+                // Group E backlog — typed in directly by the officer, not
+                // sourced from org membership.
+                'responsible_persons' => $proposal->responsible_persons,
                 'proposed_budget' => $proposal->proposed_budget,
                 'form_step' => $proposal->form_step,
                 // Exact field corrections (Phase 2 item 7 slice 4a). Group B
@@ -319,6 +322,8 @@ class ActivityProposalController extends Controller
                 // from — see the model docblock.
                 'expense_items' => $proposal->expense_items,
                 'expenses' => $proposal->expenses,
+                // Group E backlog — typed in directly by the officer.
+                'responsible_persons' => $proposal->responsible_persons,
                 'proposed_budget' => $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — raw
                 // values for re-selecting in the editable form.
@@ -391,6 +396,8 @@ class ActivityProposalController extends Controller
                 // from — see the model docblock.
                 'expense_items' => $proposal->expense_items,
                 'expenses' => $proposal->expenses,
+                // Group E backlog — typed in directly by the officer.
+                'responsible_persons' => $proposal->responsible_persons,
                 // proposed_budget is read-only here — set once at step 1
                 // (Phase 2 item 7 slice 4a), never re-collected at step 2.
                 'proposed_budget' => $proposal->proposed_budget,
@@ -457,6 +464,7 @@ class ActivityProposalController extends Controller
             criteriaMechanics: $request->string('criteria_mechanics')->toString(),
             programFlow: $request->string('program_flow')->toString(),
             expenseItems: $request->array('expense_items'),
+            responsiblePersons: $request->array('responsible_persons'),
         );
 
         $flash = ['message' => 'Proposal submitted for review.'];

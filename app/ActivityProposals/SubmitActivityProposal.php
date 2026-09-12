@@ -43,6 +43,7 @@ class SubmitActivityProposal
         ?string $criteriaMechanics = null,
         ?string $programFlow = null,
         ?array $expenseItems = null,
+        ?array $responsiblePersons = null,
     ): array {
         if ($document->status !== DocumentStatus::Draft) {
             throw new AuthorizationException('Only Draft documents can be submitted to the chain.');
@@ -65,7 +66,7 @@ class SubmitActivityProposal
 
         $document = DB::transaction(function () use (
             $actor, $document, $proposal, $variant, $overallGoal, $specificObjectives,
-            $criteriaMechanics, $programFlow, $expenseItems,
+            $criteriaMechanics, $programFlow, $expenseItems, $responsiblePersons,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
             // intentionally NOT touched here — they're set once at step 1
@@ -84,6 +85,7 @@ class SubmitActivityProposal
                 // see App\Models\ActivityProposal's docblock. Group D item 3
                 // — rows are {material, quantity, unit_price}.
                 'expense_items' => $expenseItems,
+                'responsible_persons' => $responsiblePersons,
             ]);
 
             $document->variant = $variant;
