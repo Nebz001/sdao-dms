@@ -34,15 +34,16 @@ use Illuminate\Support\Collection;
  *                                                 1) — at least one goal in real student submissions (validation enforces
  *                                                 min:1), stored as a json array; same shape as
  *                                                 CalendarActivity::$sdg.
- * @property string|null $objectives
- * @property string|null $narrative
+ * @property string|null $overall_goal Group D item 1 — split out of the
+ *                                     original single `objectives` field.
+ * @property string|null $specific_objectives Group D item 1 — split out of
+ *                                            the original single `objectives` field.
  * @property string|null $criteria_mechanics
  * @property string|null $program_flow
- * @property string|null $source_of_funding
  * @property string|null $expenses Legacy free-text expenses, kept only as a
  *                                 fallback for proposals submitted before expense_items existed — see
  *                                 App\Printing\ActivityProposalForm.
- * @property array<int, array{label: string, amount: string}>|null $expense_items
+ * @property array<int, array{material: string, quantity: string, unit_price: string}>|null $expense_items Group D item 3 — was {label, amount}.
  * @property-read string|null $expenseItemsTotal Formatted ("1,234.56") grand
  *     total of expense_items, or null when there are no rows to sum.
  * @property-read string|null $activityNatureLabel activity_nature's label,
@@ -54,7 +55,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'narrative', 'criteria_mechanics', 'program_flow', 'source_of_funding', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */
@@ -73,7 +74,8 @@ class ActivityProposal extends Model
     ];
 
     /**
-     * Grand total of expense_items, summed in integer centavos (not floats)
+     * Grand total of expense_items (quantity × unit_price per row, Group D
+     * item 3 — was a flat `amount`), summed in integer centavos (not floats)
      * to avoid drift artifacts like "20000.000000001" on the printed total.
      * Null when there are no rows — callers fall back to the legacy
      * `expenses` prose in that case, never print a misleading "0.00".
@@ -87,7 +89,7 @@ class ActivityProposal extends Model
                 }
 
                 $centavos = array_sum(array_map(
-                    fn (array $row) => (int) round(((float) $row['amount']) * 100),
+                    fn (array $row) => (int) round(((float) ($row['quantity'] ?? 0)) * ((float) ($row['unit_price'] ?? 0)) * 100),
                     $this->expense_items,
                 ));
 

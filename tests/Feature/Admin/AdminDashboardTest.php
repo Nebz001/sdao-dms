@@ -209,12 +209,11 @@ test('the proposal funnel groups an in-review proposal by variant and labels the
     app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
-        sourceOfFunding: 'Funding',
-        expenseItems: [['label' => 'Expenses', 'amount' => '100.00']],
+        expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     );
 
     $this->actingAs($this->sdaoA)->withoutVite()

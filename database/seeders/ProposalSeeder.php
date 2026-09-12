@@ -84,8 +84,8 @@ class ProposalSeeder extends Seeder
         $this->submitProposal->execute(
             actor: $studentGamma,
             document: $document,
-            objectives: 'Develop leadership skills among SHS student representatives.',
-            narrative: 'A full-day leadership summit for SHS officers featuring workshops and guest speakers.',
+            overallGoal: 'Develop leadership skills among SHS student representatives.',
+            specificObjectives: "Equip officers with practical delegation and communication techniques.\nBuild a peer network across SHS student councils.",
         );
     }
 }

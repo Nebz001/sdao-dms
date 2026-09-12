@@ -36,15 +36,16 @@ class UpdateProposalDraft
         // once at step 1 (Phase 2 item 7 slice 4a) and is not part of the
         // step-2 narrative autosave.
         $proposal->update([
-            'objectives' => $data['objectives'] ?? $proposal->objectives,
-            'narrative' => $data['narrative'] ?? $proposal->narrative,
+            // Group D item 1 — split out of the single `objectives` field.
+            'overall_goal' => $data['overall_goal'] ?? $proposal->overall_goal,
+            'specific_objectives' => $data['specific_objectives'] ?? $proposal->specific_objectives,
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => $data['criteria_mechanics'] ?? $proposal->criteria_mechanics,
             'program_flow' => $data['program_flow'] ?? $proposal->program_flow,
-            'source_of_funding' => $data['source_of_funding'] ?? $proposal->source_of_funding,
             // Itemized expenses (client request, post-Part-2) — legacy
             // `expenses` prose is intentionally never rewritten here, see
-            // App\Models\ActivityProposal's docblock.
+            // App\Models\ActivityProposal's docblock. Group D item 3 — rows
+            // are {material, quantity, unit_price}.
             'expense_items' => $data['expense_items'] ?? $proposal->expense_items,
         ]);
 

@@ -149,8 +149,8 @@ test('HTTP: SDAO reject terminates an off-calendar proposal at step 1 and the re
     $doc = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     )['document'];
 
     expect($doc->current_step_position)->toBe(1);

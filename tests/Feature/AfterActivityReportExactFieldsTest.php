@@ -88,8 +88,8 @@ function exactFieldsApprovedProposal(Organization $org, User $student): Activity
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $engine = app(ApprovalEngine::class);

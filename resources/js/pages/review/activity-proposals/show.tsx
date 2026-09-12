@@ -9,6 +9,7 @@ import AttachmentsCard from '@/components/attachments-card';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
+import { Row } from '@/components/labeled-row';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
@@ -30,13 +31,12 @@ type DocumentData = {
 type ProposalData = {
     calendar_mode: string;
     title: string;
-    objectives: string | null;
-    narrative: string | null;
+    overall_goal: string | null;
+    specific_objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
-    source_of_funding: string | null;
     expenses: string | null;
-    expense_items: { label: string; amount: string }[] | null;
+    expense_items: { material: string; quantity: string; unit_price: string }[] | null;
     expense_items_total: string | null;
     proposed_budget: string | null;
     activity_nature_label: string | null;
@@ -274,7 +274,7 @@ export default function ReviewActivityProposalShow({
                 )}
 
                 {/* Narrative */}
-                {proposal && (proposal.objectives || proposal.narrative) && (
+                {proposal && (proposal.overall_goal || proposal.specific_objectives || proposal.criteria_mechanics || proposal.program_flow) && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
@@ -282,23 +282,23 @@ export default function ReviewActivityProposalShow({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
-                            {proposal.objectives && (
+                            {proposal.overall_goal && (
                                 <div>
                                     <p className="mb-1 font-medium">
-                                        Objectives
+                                        Overall Goal
                                     </p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.objectives}
+                                        {proposal.overall_goal}
                                     </p>
                                 </div>
                             )}
-                            {proposal.narrative && (
+                            {proposal.specific_objectives && (
                                 <div>
                                     <p className="mb-1 font-medium">
-                                        Narrative
+                                        Specific Objectives
                                     </p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.narrative}
+                                        {proposal.specific_objectives}
                                     </p>
                                 </div>
                             )}
@@ -319,16 +319,6 @@ export default function ReviewActivityProposalShow({
                                     </p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">
                                         {proposal.program_flow}
-                                    </p>
-                                </div>
-                            )}
-                            {proposal.source_of_funding && (
-                                <div>
-                                    <p className="mb-1 font-medium">
-                                        Source of Funding
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.source_of_funding}
                                     </p>
                                 </div>
                             )}
@@ -510,15 +500,6 @@ export default function ReviewActivityProposalShow({
                 </Card>
             </div>
         </>
-    );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="grid grid-cols-3 gap-2">
-            <span className="font-medium text-muted-foreground">{label}</span>
-            <span className="col-span-2">{value}</span>
-        </div>
     );
 }
 

@@ -14,7 +14,8 @@ use Illuminate\Database\Eloquent\Model;
  *   'text'          — default; scalars, BackedEnum (via ->label()), dates, bools
  *   'money'         — "₱1,234.56"
  *   'list'          — array of strings, joined with ", "
- *   'expense_items' — array of {label, amount} rows, joined with "; "
+ *   'expense_items' — array of {material, quantity, unit_price} rows, joined
+ *                     with "; " (row total = quantity × unit_price, computed)
  *
  * $using is an optional resolver for the rare field whose display value is
  * NOT the column itself — currently only adviser_id, which is meaningless as

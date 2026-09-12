@@ -77,8 +77,8 @@ test('transition history is written on submit', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $transitions = DocumentTransition::where('document_id', $doc->id)->get();
@@ -106,8 +106,8 @@ test('transition history records each approve with actor id', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $this->engine->approve($doc, $this->adviser);
@@ -137,8 +137,8 @@ test('return for revision is recorded in history with comment', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $this->engine->approve($doc, $this->adviser);
@@ -172,8 +172,8 @@ test('reject is recorded with final Rejected status in history', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $this->engine->reject($doc, $this->adviser, 'Not aligned with academic objectives.');
@@ -277,8 +277,8 @@ test('conflict checker excludes self when excludeDocumentId is provided', functi
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     expect($doc->status)->toBe(DocumentStatus::InReview);
@@ -308,8 +308,8 @@ test('proposal show page renders for the submitting student', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $this->actingAs($this->student)
@@ -332,8 +332,8 @@ test('review show page renders for the current-step approver', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Step 1 = adviser
@@ -357,8 +357,8 @@ test('review show page returns 403 for a wrong-role user', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Chair is step 2, not step 1 — should be 403

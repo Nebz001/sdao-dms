@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
+import { Row } from '@/components/labeled-row';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import * as activityProposals from '@/routes/activity-proposals';
 
-type ExpenseItem = { label: string; amount: string };
+type ExpenseItem = { material: string; quantity: string; unit_price: string };
 
 type ActivitySummary = {
     name: string;
@@ -21,15 +22,19 @@ type ActivitySummary = {
 type ProposalData = {
     calendar_mode: string;
     title: string;
-    objectives: string | null;
-    narrative: string | null;
+    overall_goal: string | null;
+    specific_objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
-    source_of_funding: string | null;
     expenses: string | null;
     expense_items: ExpenseItem[] | null;
     proposed_budget: string | null;
     budget_source_label: string | null;
+    // Group D item 5 — step 1 → step 2 carryover.
+    activity_nature_label: string | null;
+    activity_type_label: string | null;
+    partner_organizations: string[] | null;
+    target_sdg_labels: string[];
 } | null;
 
 type DocumentData = {
@@ -43,12 +48,19 @@ type Props = {
     activity: ActivitySummary;
 };
 
+function rowTotal(item: ExpenseItem): number {
+    return (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+}
+
+function money(amount: number): string {
+    return amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function StepTwo({ document: doc, proposal, activity }: Props) {
-    const objectivesRef = useRef<HTMLTextAreaElement>(null);
-    const narrativeRef = useRef<HTMLTextAreaElement>(null);
+    const overallGoalRef = useRef<HTMLTextAreaElement>(null);
+    const specificObjectivesRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
-    const sourceOfFundingRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Itemized expenses — a dynamic row list can't live behind a single ref
@@ -57,14 +69,16 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
     // latest rows rather than a stale closure over the state at the time
     // scheduleSave was called.
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(
-        proposal?.expense_items && proposal.expense_items.length > 0 ? proposal.expense_items : [{ label: '', amount: '' }],
+        proposal?.expense_items && proposal.expense_items.length > 0
+            ? proposal.expense_items
+            : [{ material: '', quantity: '', unit_price: '' }],
     );
     const expenseItemsRef = useRef(expenseItems);
     useEffect(() => {
         expenseItemsRef.current = expenseItems;
     }, [expenseItems]);
 
-    const expenseTotal = expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const expenseTotal = expenseItems.reduce((sum, item) => sum + rowTotal(item), 0);
 
     function xsrfToken(): string {
         return decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
@@ -72,8 +86,8 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
 
     function scheduleSave() {
         if (saveTimer.current) {
-clearTimeout(saveTimer.current);
-}
+            clearTimeout(saveTimer.current);
+        }
 
         saveTimer.current = setTimeout(() => {
             // Plain fetch, not router.patch — this is a debounced,
@@ -92,11 +106,10 @@ clearTimeout(saveTimer.current);
                     'X-XSRF-TOKEN': xsrfToken(),
                 },
                 body: JSON.stringify({
-                    objectives: objectivesRef.current?.value ?? null,
-                    narrative: narrativeRef.current?.value ?? null,
+                    overall_goal: overallGoalRef.current?.value ?? null,
+                    specific_objectives: specificObjectivesRef.current?.value ?? null,
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
-                    source_of_funding: sourceOfFundingRef.current?.value ?? null,
                     expense_items: expenseItemsRef.current,
                 }),
             }).catch(() => {
@@ -117,29 +130,43 @@ clearTimeout(saveTimer.current);
                     <p className="mt-1 text-sm text-muted-foreground">{doc.title}</p>
                 </div>
 
-                {/* Activity summary + Proposed Budget/Budget Source read-only echo
-                    (Phase 2 item 7 slice 4a — set once at step 1, not editable here) */}
+                {/* Activity summary + step-1 read-only echoes (Phase 2 item 7
+                    slice 4a — set once at step 1, not editable here). Group D
+                    item 5 — Nature/Type/Partners/SDG carried over so the
+                    student can see what they picked at step 1 while writing
+                    step 2. */}
                 {activity && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Activity</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-sm">
-                            <p className="font-medium">{activity.name}</p>
-                            <p className="text-muted-foreground">
-                                {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
-                            </p>
-                            {proposal?.proposed_budget && (
-                                <p className="mt-2 text-muted-foreground">
-                                    <span className="font-medium text-foreground">Proposed Budget:</span>{' '}
-                                    {proposal.proposed_budget}
-                                </p>
-                            )}
-                            {proposal?.budget_source_label && (
+                        <CardContent className="space-y-3 text-sm">
+                            <div>
+                                <p className="font-medium">{activity.name}</p>
                                 <p className="text-muted-foreground">
-                                    <span className="font-medium text-foreground">Budget Source:</span> {proposal.budget_source_label}
+                                    {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
                                 </p>
-                            )}
+                            </div>
+                            <div className="grid gap-1.5">
+                                {proposal?.activity_nature_label && (
+                                    <Row label="Nature of Activity" value={proposal.activity_nature_label} />
+                                )}
+                                {proposal?.activity_type_label && (
+                                    <Row label="Type of Activity" value={proposal.activity_type_label} />
+                                )}
+                                {proposal?.partner_organizations && proposal.partner_organizations.length > 0 && (
+                                    <Row label="Partner Org(s)" value={proposal.partner_organizations.join(', ')} />
+                                )}
+                                {proposal && proposal.target_sdg_labels.length > 0 && (
+                                    <Row label="Target SDG" value={proposal.target_sdg_labels.join(', ')} />
+                                )}
+                                {proposal?.proposed_budget && (
+                                    <Row label="Proposed Budget" value={`₱${proposal.proposed_budget}`} />
+                                )}
+                                {proposal?.budget_source_label && (
+                                    <Row label="Budget Source" value={proposal.budget_source_label} />
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -148,29 +175,29 @@ clearTimeout(saveTimer.current);
                     {({ processing, errors }) => (
                     <div className="space-y-4">
                         <div className="space-y-1">
-                            <Label htmlFor="objectives">Objectives</Label>
+                            <Label htmlFor="overall_goal">Overall Goal</Label>
                             <Textarea
-                                id="objectives"
-                                name="objectives"
-                                ref={objectivesRef}
-                                defaultValue={proposal?.objectives ?? ''}
-                                rows={4}
+                                id="overall_goal"
+                                name="overall_goal"
+                                ref={overallGoalRef}
+                                defaultValue={proposal?.overall_goal ?? ''}
+                                rows={3}
                                 onChange={scheduleSave}
                             />
-                            <InputError message={errors.objectives} />
+                            <InputError message={errors.overall_goal} />
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="narrative">Narrative / Description</Label>
+                            <Label htmlFor="specific_objectives">Specific Objectives</Label>
                             <Textarea
-                                id="narrative"
-                                name="narrative"
-                                ref={narrativeRef}
-                                defaultValue={proposal?.narrative ?? ''}
-                                rows={6}
+                                id="specific_objectives"
+                                name="specific_objectives"
+                                ref={specificObjectivesRef}
+                                defaultValue={proposal?.specific_objectives ?? ''}
+                                rows={4}
                                 onChange={scheduleSave}
                             />
-                            <InputError message={errors.narrative} />
+                            <InputError message={errors.specific_objectives} />
                         </div>
 
                         <div className="space-y-1">
@@ -200,19 +227,6 @@ clearTimeout(saveTimer.current);
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="source_of_funding">Source of Funding</Label>
-                            <Textarea
-                                id="source_of_funding"
-                                name="source_of_funding"
-                                ref={sourceOfFundingRef}
-                                defaultValue={proposal?.source_of_funding ?? ''}
-                                rows={3}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.source_of_funding} />
-                        </div>
-
-                        <div className="space-y-1">
                             <div className="flex items-center justify-between">
                                 <Label>Expenses</Label>
                                 <Button
@@ -220,7 +234,7 @@ clearTimeout(saveTimer.current);
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setExpenseItems((prev) => [...prev, { label: '', amount: '' }]);
+                                        setExpenseItems((prev) => [...prev, { material: '', quantity: '', unit_price: '' }]);
                                         scheduleSave();
                                     }}
                                 >
@@ -236,36 +250,54 @@ clearTimeout(saveTimer.current);
                                 <div key={i} className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Input
-                                            name={`expense_items[${i}][label]`}
-                                            value={item.label}
+                                            name={`expense_items[${i}][material]`}
+                                            value={item.material}
                                             onChange={(e) => {
                                                 setExpenseItems((prev) => {
                                                     const next = [...prev];
-                                                    next[i] = { ...next[i], label: e.target.value };
+                                                    next[i] = { ...next[i], material: e.target.value };
 
                                                     return next;
                                                 });
                                                 scheduleSave();
                                             }}
-                                            placeholder="Item (e.g. Venue rental)"
+                                            placeholder="Material (e.g. Tarpaulin)"
                                             className="flex-1"
                                         />
                                         <Input
-                                            name={`expense_items[${i}][amount]`}
+                                            name={`expense_items[${i}][quantity]`}
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            value={item.amount}
+                                            value={item.quantity}
                                             onChange={(e) => {
                                                 setExpenseItems((prev) => {
                                                     const next = [...prev];
-                                                    next[i] = { ...next[i], amount: e.target.value };
+                                                    next[i] = { ...next[i], quantity: e.target.value };
 
                                                     return next;
                                                 });
                                                 scheduleSave();
                                             }}
-                                            placeholder="0.00"
+                                            placeholder="Qty"
+                                            className="w-20"
+                                        />
+                                        <Input
+                                            name={`expense_items[${i}][unit_price]`}
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={item.unit_price}
+                                            onChange={(e) => {
+                                                setExpenseItems((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = { ...next[i], unit_price: e.target.value };
+
+                                                    return next;
+                                                });
+                                                scheduleSave();
+                                            }}
+                                            placeholder="Unit price"
                                             className="w-28"
                                         />
                                         {expenseItems.length > 1 && (
@@ -282,14 +314,21 @@ clearTimeout(saveTimer.current);
                                             </Button>
                                         )}
                                     </div>
-                                    <InputError message={errors[`expense_items.${i}.label`] ?? errors[`expense_items.${i}.amount`]} />
+                                    <div className="flex justify-end text-xs text-muted-foreground">
+                                        Line total: ₱{money(rowTotal(item))}
+                                    </div>
+                                    <InputError
+                                        message={
+                                            errors[`expense_items.${i}.material`] ??
+                                            errors[`expense_items.${i}.quantity`] ??
+                                            errors[`expense_items.${i}.unit_price`]
+                                        }
+                                    />
                                 </div>
                             ))}
                             <div className="flex items-center justify-end gap-2 border-t pt-2 text-sm">
                                 <span className="font-medium text-muted-foreground">Total</span>
-                                <span className="font-semibold tabular-nums">
-                                    ₱{expenseTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
+                                <span className="font-semibold tabular-nums">₱{money(expenseTotal)}</span>
                             </div>
                             <InputError message={errors.expense_items} />
                         </div>

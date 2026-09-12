@@ -181,8 +181,8 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
     ['document' => $doc] = $submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Off-calendar: SDAO is step 1 (invariant #8).
@@ -195,12 +195,11 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
-        'expense_items' => [['label' => 'Venue', 'amount' => '5000']],
+        'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
         'proposed_budget' => '5000',
         'title' => 'Coding Night',
         'venue' => 'Main Gymnasium',
@@ -224,8 +223,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
 
     // budget's fields live on ActivityProposal, in the same payload.
     $budget = collect($changes['budget']['fields'])->keyBy('key');
-    expect($budget['source_of_funding']['new'])->toBe('Org funds');
-    expect($budget['expense_items']['new'])->toBe('Venue: ₱5,000.00');
+    expect($budget['expense_items']['new'])->toBe('Venue: 1 × ₱5,000.00 = ₱5,000.00');
     expect($budget['proposed_budget']['new'])->toBe('₱5,000.00');
 });
 
@@ -247,8 +245,8 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     ['document' => $doc] = $submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // On-calendar starts at the adviser step; return from there.
@@ -257,11 +255,10 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
-        'objectives' => 'Sharper objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Sharper overall goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
         'expense_items' => [],
     ]);
 
@@ -271,8 +268,10 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     // edit would be misleading, so the section is dropped outright.
     expect($changes)->not->toHaveKey('schedule_venue');
     expect($changes)->toHaveKey('objectives');
-    expect($changes['objectives']['fields'][0]['old'])->toBe('Objectives');
-    expect($changes['objectives']['fields'][0]['new'])->toBe('Sharper objectives');
+    $objectives = collect($changes['objectives']['fields'])->keyBy('key');
+    expect($objectives['overall_goal']['old'])->toBe('Overall Goal');
+    expect($objectives['overall_goal']['new'])->toBe('Sharper overall goal');
+    expect($objectives['specific_objectives']['changed'])->toBeFalse();
 });
 
 // ── (d) calendar positional zip, including a count mismatch ────────────────

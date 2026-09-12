@@ -38,11 +38,10 @@ class SubmitActivityProposal
     public function execute(
         User $actor,
         Document $document,
-        string $objectives,
-        string $narrative,
+        ?string $overallGoal = null,
+        ?string $specificObjectives = null,
         ?string $criteriaMechanics = null,
         ?string $programFlow = null,
-        ?string $sourceOfFunding = null,
         ?array $expenseItems = null,
     ): array {
         if ($document->status !== DocumentStatus::Draft) {
@@ -65,22 +64,25 @@ class SubmitActivityProposal
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
 
         $document = DB::transaction(function () use (
-            $actor, $document, $proposal, $variant, $objectives, $narrative,
-            $criteriaMechanics, $programFlow, $sourceOfFunding, $expenseItems,
+            $actor, $document, $proposal, $variant, $overallGoal, $specificObjectives,
+            $criteriaMechanics, $programFlow, $expenseItems,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
             // intentionally NOT touched here — they're set once at step 1
             // (Phase 2 item 7 slice 4a) and never re-collected at step 2.
+            // source_of_funding no longer exists (Group D item 4) — step 2
+            // echoes step 1's budget_source_label read-only instead.
             $proposal->update([
-                'objectives' => $objectives,
-                'narrative' => $narrative,
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $overallGoal,
+                'specific_objectives' => $specificObjectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $criteriaMechanics,
                 'program_flow' => $programFlow,
-                'source_of_funding' => $sourceOfFunding,
                 // Itemized expenses (client request, post-Part-2) — legacy
                 // `expenses` prose is intentionally never rewritten here,
-                // see App\Models\ActivityProposal's docblock.
+                // see App\Models\ActivityProposal's docblock. Group D item 3
+                // — rows are {material, quantity, unit_price}.
                 'expense_items' => $expenseItems,
             ]);
 

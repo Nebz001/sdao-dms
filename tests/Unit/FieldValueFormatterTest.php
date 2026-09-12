@@ -42,14 +42,14 @@ test('lists join with commas and drop empty entries', function () {
     expect(FieldValueFormatter::format(['', '  '], 'list'))->toBeNull();
 });
 
-test('expense items render as "label: amount", semicolon-joined', function () {
+test('expense items render as "material: qty × unit price = total", semicolon-joined', function () {
     expect(FieldValueFormatter::format([
-        ['label' => 'Venue', 'amount' => '5000'],
-        ['label' => 'Food', 'amount' => '2500.50'],
-    ], 'expense_items'))->toBe('Venue: ₱5,000.00; Food: ₱2,500.50');
+        ['material' => 'Venue rental', 'quantity' => '1', 'unit_price' => '5000'],
+        ['material' => 'Snacks', 'quantity' => '2.5', 'unit_price' => '1000'],
+    ], 'expense_items'))->toBe('Venue rental: 1 × ₱5,000.00 = ₱5,000.00; Snacks: 2.5 × ₱1,000.00 = ₱2,500.00');
 });
 
 test('expense items with no rows format to null', function () {
     expect(FieldValueFormatter::format([], 'expense_items'))->toBeNull();
-    expect(FieldValueFormatter::format([['label' => '', 'amount' => null]], 'expense_items'))->toBeNull();
+    expect(FieldValueFormatter::format([['material' => '', 'quantity' => null, 'unit_price' => null]], 'expense_items'))->toBeNull();
 });

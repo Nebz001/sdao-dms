@@ -98,6 +98,11 @@ final class FieldValueFormatter
         return $parts === [] ? null : implode(', ', $parts);
     }
 
+    /**
+     * Group D item 3: rows are {material, quantity, unit_price}, was
+     * {label, amount}. Row total (quantity × unit_price) is computed here,
+     * never stored — same precedent as ActivityProposal::expenseItemsTotal.
+     */
     private static function formatExpenseItems(mixed $value): ?string
     {
         if (! is_array($value)) {
@@ -111,16 +116,22 @@ final class FieldValueFormatter
                 continue;
             }
 
-            $label = trim((string) ($row['label'] ?? ''));
-            $amount = $row['amount'] ?? null;
+            $material = trim((string) ($row['material'] ?? ''));
+            $quantity = $row['quantity'] ?? null;
+            $unitPrice = $row['unit_price'] ?? null;
 
-            if ($label === '' && ($amount === null || $amount === '')) {
+            if ($material === '' && ($quantity === null || $quantity === '') && ($unitPrice === null || $unitPrice === '')) {
                 continue;
             }
 
-            $parts[] = ($amount === null || $amount === '')
-                ? $label
-                : trim($label.': ₱'.number_format((float) $amount, 2));
+            if ($quantity === null || $quantity === '' || $unitPrice === null || $unitPrice === '') {
+                $parts[] = $material;
+
+                continue;
+            }
+
+            $total = (float) $quantity * (float) $unitPrice;
+            $parts[] = trim("{$material}: {$quantity} × ₱".number_format((float) $unitPrice, 2).' = ₱'.number_format($total, 2));
         }
 
         return $parts === [] ? null : implode('; ', $parts);

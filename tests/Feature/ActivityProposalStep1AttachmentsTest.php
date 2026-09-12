@@ -189,7 +189,7 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
         data: array_merge(['calendar_activity_id' => $activity->id], step1ExactFields()),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $this->submitProposal->execute(actor: $this->student, document: $document, objectives: 'Objectives', narrative: 'Narrative');
+    $this->submitProposal->execute(actor: $this->student, document: $document, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
     $document->refresh();
 
     $originalRequestLetter = $document->attachments()->where('slot_key', 'request_letter')->firstOrFail();
@@ -198,12 +198,11 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
     $document->refresh();
 
     $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
         'attachments' => [
             'request_letter' => UploadedFile::fake()->create('new-request-letter.pdf', 100, 'application/pdf'),
         ],
@@ -236,7 +235,7 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
         data: array_merge(['calendar_activity_id' => $activity->id], step1ExactFields()),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $this->submitProposal->execute(actor: $this->student, document: $document, objectives: 'Objectives', narrative: 'Narrative');
+    $this->submitProposal->execute(actor: $this->student, document: $document, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
     $document->refresh();
 
     // Directly delete the persisted attachment to simulate a document that
@@ -251,11 +250,10 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
     $action = app(ResubmitActivityProposal::class);
 
     expect(fn () => $action->execute($this->student, $document, [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ]))->toThrow(ValidationException::class);
 });

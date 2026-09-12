@@ -722,8 +722,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $picePresident,
             document: $piceOffDoc,
-            objectives: 'Expose members to real-world structural engineering practices.',
-            narrative: 'A guided site visit to an active construction project in Batangas, with a Q&A session with the site engineers.',
+            overallGoal: 'Expose members to real-world structural engineering practices.',
+            specificObjectives: "Observe live structural work on an active construction site.\nHold a Q&A session with the site's practicing engineers.",
         );
         $piceOffDoc = $result['document'];
         $this->engine->approve($piceOffDoc, $this->carl);
@@ -747,9 +747,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $uapsaPresident,
             document: $uapsaDraftDoc,
-            objectives: 'Showcase student architectural design work to the NU Lipa community.',
-            narrative: 'A campus-wide exhibit of student architectural models and boards, open to all schools.',
-            sourceOfFunding: 'Organization funds and sponsorships',
+            overallGoal: 'Showcase student architectural design work to the NU Lipa community.',
+            specificObjectives: "Exhibit at least 15 student architectural models and boards.\nInvite all schools on campus to attend the exhibit.",
         );
         $uapsaProposalDoc = $result['document'];
         $adviserUapsa = $this->currentAdviserOf($orgs['UAPSA']);
@@ -784,8 +783,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $venarisPresident,
             document: $venarisOnDoc,
-            objectives: 'Promote esports as a legitimate co-curricular activity among SHS students.',
-            narrative: 'A campus-wide Valorant tournament open to all SHS student teams, with a small prize pool.',
+            overallGoal: 'Promote esports as a legitimate co-curricular activity among SHS students.',
+            specificObjectives: "Field at least 8 SHS student teams in the tournament.\nRun the bracket to completion within a single day.",
             programFlow: 'Opening remarks, group stage, playoffs, awarding.',
         );
         $venarisApprovedDoc = $this->approveEntireChain($result['document'], $orgs['Venaris Esports']);
@@ -814,8 +813,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $venarisPresident,
             document: $venarisOffDoc,
-            objectives: 'Showcase SHS student talent outside of esports.',
-            narrative: 'An open-mic style talent night for SHS students, off the approved activity calendar.',
+            overallGoal: 'Showcase SHS student talent outside of esports.',
+            specificObjectives: "Give at least 10 SHS students a stage for their talent.\nRun an open-mic format outside the approved activity calendar.",
         );
         $venarisOffDoc = $result['document'];
         $this->engine->reject($venarisOffDoc, $this->zaira, comment: 'Duplicates an already-approved event on the calendar this term. Please coordinate timing with SDAO before resubmitting.');
@@ -838,8 +837,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $codecsPresident,
             document: $codecsOnDoc,
-            objectives: 'Improve code quality practices among CODECS members.',
-            narrative: 'A hands-on bootcamp covering code review etiquette and static analysis tooling.',
+            overallGoal: 'Improve code quality practices among CODECS members.',
+            specificObjectives: "Walk through code review etiquette with hands-on exercises.\nIntroduce static analysis tooling members can adopt immediately.",
         );
         $codecsApprovedDoc = $this->approveEntireChain($result['document'], $orgs['CODECS']);
         $proposals['codecs_approved'] = $codecsApprovedDoc->activityProposal;
@@ -866,8 +865,8 @@ class DemoDataSeeder extends Seeder
         $result = $this->submitProposal->execute(
             actor: $picePresident,
             document: $piceOffDoc2,
-            objectives: 'Connect graduating civil engineering students with local firms.',
-            narrative: 'A career fair featuring construction and engineering firms operating in Batangas.',
+            overallGoal: 'Connect graduating civil engineering students with local firms.',
+            specificObjectives: "Bring in at least 6 construction and engineering firms from Batangas.\nGive graduating students direct access to on-site recruiters.",
         );
         $piceApprovedDoc = $this->approveEntireChain($result['document'], $orgs['PICE']);
         $proposals['pice_approved'] = $piceApprovedDoc->activityProposal;

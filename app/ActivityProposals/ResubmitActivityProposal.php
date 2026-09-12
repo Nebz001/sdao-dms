@@ -73,8 +73,8 @@ class ResubmitActivityProposal
         //
         // The two field-key sets are disjoint (proposal: title,
         // activity_nature, activity_type, partner_organizations, target_sdg,
-        // objectives, narrative, criteria_mechanics, program_flow,
-        // source_of_funding, expense_items, proposed_budget, budget_source;
+        // overall_goal, specific_objectives, criteria_mechanics,
+        // program_flow, expense_items, proposed_budget, budget_source;
         // activity: venue, activity_date, start_time, end_time), so merging
         // them into one flat snapshot is safe.
         $flagged = SectionFlags::currentlyFlagged($document);
@@ -139,15 +139,16 @@ class ResubmitActivityProposal
             $attachmentFiles, $hadAttachmentsBefore,
         ) {
             $proposal->update([
-                'objectives' => $data['objectives'],
-                'narrative' => $data['narrative'],
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $data['overall_goal'],
+                'specific_objectives' => $data['specific_objectives'],
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $data['criteria_mechanics'],
                 'program_flow' => $data['program_flow'],
-                'source_of_funding' => $data['source_of_funding'],
                 // Itemized expenses (client request, post-Part-2) — legacy
                 // `expenses` prose is intentionally never rewritten here,
-                // see App\Models\ActivityProposal's docblock.
+                // see App\Models\ActivityProposal's docblock. Group D item 3
+                // — rows are {material, quantity, unit_price}.
                 'expense_items' => $data['expense_items'],
                 'proposed_budget' => $data['proposed_budget'] ?? $proposal->proposed_budget,
                 // Exact field corrections (Phase 2 item 7 slice 4a) — editable

@@ -169,12 +169,11 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         ->firstOrFail();
 
     $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ])->assertRedirect();
     $document->refresh();
 
@@ -183,12 +182,11 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
     $document->refresh();
 
     assertResubmitRedirectSucceeds($student, route('activity-proposals.update', $document), [
-        'objectives' => 'Updated objectives',
-        'narrative' => 'Updated narrative',
+        'overall_goal' => 'Updated overall goal',
+        'specific_objectives' => 'Updated specific objectives',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
-        'source_of_funding' => 'Org funds',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
         'title' => 'Resubmit Redirect Test Activity',
         'venue' => 'Room 400',
         'activity_date' => '2026-12-10',

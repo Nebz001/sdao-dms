@@ -105,15 +105,15 @@ test('auto-save updates narrative fields and keeps Draft status', function () {
     $document->load('activityProposal');
 
     $this->updateDraft->execute($this->student, $document, [
-        'objectives' => 'My objectives',
-        'narrative' => 'My narrative',
+        'overall_goal' => 'My overall goal',
+        'specific_objectives' => 'My specific objectives',
     ]);
 
     $document->refresh()->load('activityProposal');
 
     expect($document->status)->toBe(DocumentStatus::Draft);
-    expect($document->activityProposal->objectives)->toBe('My objectives');
-    expect($document->activityProposal->narrative)->toBe('My narrative');
+    expect($document->activityProposal->overall_goal)->toBe('My overall goal');
+    expect($document->activityProposal->specific_objectives)->toBe('My specific objectives');
     expect($document->workflow_template_id)->toBeNull();
 });
 
@@ -129,7 +129,7 @@ test('auto-save by another user throws AuthorizationException', function () {
     $document->load('activityProposal');
     $otherUser = User::factory()->create();
 
-    expect(fn () => $this->updateDraft->execute($otherUser, $document, ['objectives' => 'Sneaky']))
+    expect(fn () => $this->updateDraft->execute($otherUser, $document, ['overall_goal' => 'Sneaky']))
         ->toThrow(AuthorizationException::class);
 });
 
@@ -144,8 +144,8 @@ test('document enters chain only after step-2 submit', function () {
 
     $document->load('activityProposal');
     $this->updateDraft->execute($this->student, $document, [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
     ]);
 
     // Still Draft after auto-save
@@ -154,8 +154,8 @@ test('document enters chain only after step-2 submit', function () {
     $result = $this->submitProposal->execute(
         actor: $this->student,
         document: $document,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     expect($result['document']->status)->toBe(DocumentStatus::InReview);
@@ -174,11 +174,11 @@ test('saved narrative is available for resume via the model', function () {
 
     $document->load('activityProposal');
     $this->updateDraft->execute($this->student, $document, [
-        'objectives' => 'Remembered objectives',
+        'overall_goal' => 'Remembered overall goal',
     ]);
 
     $loaded = Document::with('activityProposal')->find($document->id);
-    expect($loaded->activityProposal->objectives)->toBe('Remembered objectives');
+    expect($loaded->activityProposal->overall_goal)->toBe('Remembered overall goal');
     expect($loaded->status)->toBe(DocumentStatus::Draft);
 });
 
@@ -202,8 +202,8 @@ test('HTTP: draft auto-save returns a plain JSON response, not an Inertia respon
 
     $response = $this->actingAs($this->student)
         ->patch(route('activity-proposals.draft', $document), [
-            'objectives' => 'HTTP autosave objectives',
-            'narrative' => 'HTTP autosave narrative',
+            'overall_goal' => 'HTTP autosave overall goal',
+            'specific_objectives' => 'HTTP autosave specific objectives',
         ]);
 
     $response->assertOk();
@@ -211,8 +211,8 @@ test('HTTP: draft auto-save returns a plain JSON response, not an Inertia respon
     $response->assertHeaderMissing('X-Inertia');
 
     $document->refresh()->load('activityProposal');
-    expect($document->activityProposal->objectives)->toBe('HTTP autosave objectives');
-    expect($document->activityProposal->narrative)->toBe('HTTP autosave narrative');
+    expect($document->activityProposal->overall_goal)->toBe('HTTP autosave overall goal');
+    expect($document->activityProposal->specific_objectives)->toBe('HTTP autosave specific objectives');
 });
 
 // Regression guard for the "one activity calendar per term" rule

@@ -178,34 +178,40 @@
     <div>{{ $venue }}</div>
 
     <div class="h2">IV. Objectives</div>
-    <div>{{ $objectives }}</div>
+    <div class="indent"><strong>a. Overall Goal</strong><br>{{ $overall_goal }}</div>
+    <div class="indent"><strong>b. Specific Objectives</strong><br>{{ $specific_objectives }}</div>
 
     <div class="h2">V. Activity Description</div>
-    <div>{{ $narrative }}</div>
     <div class="indent"><strong>a. Criteria/Mechanics</strong><br>{{ $criteria_mechanics }}</div>
     <div class="indent"><strong>b. Program Flow</strong><br>{{ $program_flow }}</div>
     <div class="indent">
         <strong>c. Proposed Budget</strong><br>
-        Source of Funding: {{ $source_of_funding }}<br>
+        Source of Funding: {{ $budget_source }}<br>
         <strong>Expenses:</strong>
         @if (! empty($expense_items))
             <table class="bordered-table" style="margin-top: 3pt;">
                 <colgroup>
                     <col>
+                    <col style="width: 16%">
+                    <col style="width: 20%">
                     <col style="width: 22%">
                 </colgroup>
                 <tr>
-                    <td class="bar">Item</td>
-                    <td class="bar" style="text-align: right;">Amount</td>
+                    <td class="bar">Material</td>
+                    <td class="bar" style="text-align: right;">Qty</td>
+                    <td class="bar" style="text-align: right;">Unit Price</td>
+                    <td class="bar" style="text-align: right;">Total</td>
                 </tr>
                 @foreach ($expense_items as $item)
                     <tr>
-                        <td>{{ $item['label'] }}</td>
-                        <td style="text-align: right;">{{ $item['amount'] }}</td>
+                        <td>{{ $item['material'] }}</td>
+                        <td style="text-align: right;">{{ $item['quantity'] }}</td>
+                        <td style="text-align: right;">{{ $item['unit_price'] }}</td>
+                        <td style="text-align: right;">{{ $item['total'] }}</td>
                     </tr>
                 @endforeach
                 <tr>
-                    <td class="label-col">TOTAL</td>
+                    <td class="label-col" colspan="3">TOTAL</td>
                     <td class="label-col" style="text-align: right;">{{ $expense_items_total }}</td>
                 </tr>
             </table>

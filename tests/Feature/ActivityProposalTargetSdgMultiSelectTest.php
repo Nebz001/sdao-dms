@@ -112,8 +112,8 @@ test('multiple selected SDGs round-trip through submission and both show pages',
     $this->submitProposal->execute(
         actor: $this->student,
         document: $document,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);

@@ -173,12 +173,11 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
 
     // Submit step 2 to reach a real (non-Draft) document for show/review-show.
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
-        'source_of_funding' => 'Source of Funding',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ]);
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);
@@ -227,7 +226,7 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
         data: offCalendarStep1Payload(['venue' => 'Conflict Hall']),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, objectives: 'Objectives', narrative: 'Narrative');
+    $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
     $firstDoc->refresh();
 
     // Off-calendar order (CLAUDE.md invariant #8): SDAO (both) is FIRST,
@@ -268,8 +267,8 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
     expect(fn () => $submitAction->execute(
         actor: $this->studentAlpha,
         document: $secondDoc,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     ))->toThrow(ValidationException::class);
 });
 
@@ -338,12 +337,11 @@ test('an "others" selection with its specify text round-trips through submission
     expect($proposal->activity_type_other)->toBe('Photo walk');
 
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
-        'source_of_funding' => 'Source of Funding',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ]);
     $document->refresh();
 

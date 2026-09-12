@@ -103,11 +103,11 @@ class SectionFields
                 // and step 2, so 'budget' legitimately spans both steps'
                 // budget fields. Nothing in the app distinguishes them today
                 // and this registry deliberately does not introduce that
-                // distinction.
+                // distinction. Group D item 4 — source_of_funding is gone;
+                // it duplicated budget_source, which already covers this.
                 'budget' => [
                     new FieldDefinition('proposed_budget', 'Proposed Budget', 'money'),
                     new FieldDefinition('budget_source', 'Budget Source'),
-                    new FieldDefinition('source_of_funding', 'Source of Funding'),
                     new FieldDefinition('expense_items', 'Expense Items', 'expense_items'),
                 ],
                 // The ONLY section whose fields live on CalendarActivity
@@ -119,11 +119,15 @@ class SectionFields
                     new FieldDefinition('start_time', 'Start Time'),
                     new FieldDefinition('end_time', 'End Time'),
                 ],
+                // Group D item 1 — split out of the single `objectives` field.
                 'objectives' => [
-                    new FieldDefinition('objectives', 'Objectives'),
+                    new FieldDefinition('overall_goal', 'Overall Goal'),
+                    new FieldDefinition('specific_objectives', 'Specific Objectives'),
                 ],
+                // Group D item 2 — `narrative` removed (leftover scaffold
+                // field, never reconciled into the exact field list).
+                // Criteria/Mechanics and Program Flow are real and stay.
                 'activity_description' => [
-                    new FieldDefinition('narrative', 'Narrative'),
                     new FieldDefinition('criteria_mechanics', 'Criteria / Mechanics'),
                     new FieldDefinition('program_flow', 'Program Flow'),
                 ],

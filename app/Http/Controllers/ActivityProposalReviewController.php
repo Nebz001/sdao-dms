@@ -118,12 +118,12 @@ class ActivityProposalReviewController extends Controller
             'proposal' => $proposal ? [
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                'objectives' => $proposal->objectives,
-                'narrative' => $proposal->narrative,
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $proposal->overall_goal,
+                'specific_objectives' => $proposal->specific_objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
-                'source_of_funding' => $proposal->source_of_funding,
                 // Itemized expenses (client request, post-Part-2); `expenses`
                 // is the legacy free-text fallback for pre-existing
                 // proposals that never got rows — see the model docblock.

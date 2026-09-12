@@ -149,8 +149,8 @@ test('a proposal-chain approver sees proposals currently at their step', functio
     app(SubmitActivityProposal::class)->execute(
         actor: $studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Regular on-calendar chain starts at the adviser (CLAUDE.md #8).

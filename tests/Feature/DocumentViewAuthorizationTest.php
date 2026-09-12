@@ -145,8 +145,8 @@ function submitViewAuthProposal(Organization $org, User $actor, string $activity
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $actor,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     return $doc;
@@ -237,8 +237,8 @@ test('activity proposal show: org officer and the CURRENT step approver can view
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Regular on-calendar chain: step 1 = Adviser.
@@ -450,8 +450,8 @@ test('viewArchive does not widen access to an in-review document: an SDAO member
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     expect($doc->current_step_position)->toBe(1); // Adviser — SDAO not reached yet.
@@ -486,8 +486,8 @@ test('after-activity report show: org officer can view, different-org officer ca
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     foreach ([

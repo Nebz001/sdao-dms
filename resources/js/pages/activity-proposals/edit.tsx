@@ -17,16 +17,15 @@ import type { FlaggedRevisionProps } from '@/types';
 
 type OptionItem = { value: string; label: string };
 
-type ExpenseItem = { label: string; amount: string };
+type ExpenseItem = { material: string; quantity: string; unit_price: string };
 
 type ProposalData = {
     calendar_mode: string;
     title: string;
-    objectives: string | null;
-    narrative: string | null;
+    overall_goal: string | null;
+    specific_objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
-    source_of_funding: string | null;
     expenses: string | null;
     expense_items: ExpenseItem[] | null;
     proposed_budget: string | null;
@@ -47,6 +46,14 @@ type ActivityData = {
     start_time: string;
     end_time: string;
 } | null;
+
+function rowTotal(item: ExpenseItem): number {
+    return (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+}
+
+function money(amount: number): string {
+    return amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 type Props = {
     document: { id: number; title: string };
@@ -81,9 +88,9 @@ export default function EditActivityProposal({
     );
     const [targetSdg, setTargetSdg] = useState<string[]>(proposal?.target_sdg ?? []);
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(
-        proposal?.expense_items?.length ? proposal.expense_items : [{ label: '', amount: '' }],
+        proposal?.expense_items?.length ? proposal.expense_items : [{ material: '', quantity: '', unit_price: '' }],
     );
-    const expenseTotal = expenseItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const expenseTotal = expenseItems.reduce((sum, item) => sum + rowTotal(item), 0);
 
     // Nature/Type of Activity — controlled so the "Others" conditional
     // specify-field (Group B item 5) can key off the current selection.
@@ -203,15 +210,27 @@ export default function EditActivityProposal({
                                 comment={flaggedComment}
                                 sectionComment={flaggedSectionComments.objectives}
                             >
+                        <div className="space-y-4">
                         <div className="space-y-1">
-                            <Label htmlFor="objectives">Objectives</Label>
+                            <Label htmlFor="overall_goal">Overall Goal</Label>
                             <Textarea
-                                id="objectives"
-                                name="objectives"
-                                defaultValue={proposal?.objectives ?? ''}
+                                id="overall_goal"
+                                name="overall_goal"
+                                defaultValue={proposal?.overall_goal ?? ''}
+                                rows={3}
+                            />
+                            <InputError message={errors.overall_goal} />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="specific_objectives">Specific Objectives</Label>
+                            <Textarea
+                                id="specific_objectives"
+                                name="specific_objectives"
+                                defaultValue={proposal?.specific_objectives ?? ''}
                                 rows={4}
                             />
-                            <InputError message={errors.objectives} />
+                            <InputError message={errors.specific_objectives} />
+                        </div>
                         </div>
                         </FlaggedSectionWrapper>
 
@@ -222,17 +241,6 @@ export default function EditActivityProposal({
                                 sectionComment={flaggedSectionComments.activity_description}
                             >
                         <div className="space-y-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="narrative">Narrative / Description</Label>
-                            <Textarea
-                                id="narrative"
-                                name="narrative"
-                                defaultValue={proposal?.narrative ?? ''}
-                                rows={6}
-                            />
-                            <InputError message={errors.narrative} />
-                        </div>
-
                         {/* Exact field corrections (Phase 2 item 7 slice 4b). */}
                         <div className="space-y-1">
                             <Label htmlFor="criteria_mechanics">Criteria/Mechanics</Label>
@@ -266,24 +274,13 @@ export default function EditActivityProposal({
                             >
                         <div className="space-y-4">
                         <div className="space-y-1">
-                            <Label htmlFor="source_of_funding">Source of Funding</Label>
-                            <Textarea
-                                id="source_of_funding"
-                                name="source_of_funding"
-                                defaultValue={proposal?.source_of_funding ?? ''}
-                                rows={3}
-                            />
-                            <InputError message={errors.source_of_funding} />
-                        </div>
-
-                        <div className="space-y-1">
                             <div className="flex items-center justify-between">
                                 <Label>Expenses</Label>
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setExpenseItems((prev) => [...prev, { label: '', amount: '' }])}
+                                    onClick={() => setExpenseItems((prev) => [...prev, { material: '', quantity: '', unit_price: '' }])}
                                 >
                                     + Add Item
                                 </Button>
@@ -297,34 +294,51 @@ export default function EditActivityProposal({
                                 <div key={i} className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Input
-                                            name={`expense_items[${i}][label]`}
-                                            value={item.label}
+                                            name={`expense_items[${i}][material]`}
+                                            value={item.material}
                                             onChange={(e) =>
                                                 setExpenseItems((prev) => {
                                                     const next = [...prev];
-                                                    next[i] = { ...next[i], label: e.target.value };
+                                                    next[i] = { ...next[i], material: e.target.value };
 
                                                     return next;
                                                 })
                                             }
-                                            placeholder="Item (e.g. Venue rental)"
+                                            placeholder="Material (e.g. Tarpaulin)"
                                             className="flex-1"
                                         />
                                         <Input
-                                            name={`expense_items[${i}][amount]`}
+                                            name={`expense_items[${i}][quantity]`}
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            value={item.amount}
+                                            value={item.quantity}
                                             onChange={(e) =>
                                                 setExpenseItems((prev) => {
                                                     const next = [...prev];
-                                                    next[i] = { ...next[i], amount: e.target.value };
+                                                    next[i] = { ...next[i], quantity: e.target.value };
 
                                                     return next;
                                                 })
                                             }
-                                            placeholder="0.00"
+                                            placeholder="Qty"
+                                            className="w-20"
+                                        />
+                                        <Input
+                                            name={`expense_items[${i}][unit_price]`}
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={item.unit_price}
+                                            onChange={(e) =>
+                                                setExpenseItems((prev) => {
+                                                    const next = [...prev];
+                                                    next[i] = { ...next[i], unit_price: e.target.value };
+
+                                                    return next;
+                                                })
+                                            }
+                                            placeholder="Unit price"
                                             className="w-28"
                                         />
                                         {expenseItems.length > 1 && (
@@ -338,14 +352,21 @@ export default function EditActivityProposal({
                                             </Button>
                                         )}
                                     </div>
-                                    <InputError message={errors[`expense_items.${i}.label`] ?? errors[`expense_items.${i}.amount`]} />
+                                    <div className="flex justify-end text-xs text-muted-foreground">
+                                        Line total: ₱{money(rowTotal(item))}
+                                    </div>
+                                    <InputError
+                                        message={
+                                            errors[`expense_items.${i}.material`] ??
+                                            errors[`expense_items.${i}.quantity`] ??
+                                            errors[`expense_items.${i}.unit_price`]
+                                        }
+                                    />
                                 </div>
                             ))}
                             <div className="flex items-center justify-end gap-2 border-t pt-2 text-sm">
                                 <span className="font-medium text-muted-foreground">Total</span>
-                                <span className="font-semibold tabular-nums">
-                                    ₱{expenseTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
+                                <span className="font-semibold tabular-nums">₱{money(expenseTotal)}</span>
                             </div>
                             <InputError message={errors.expense_items} />
                         </div>

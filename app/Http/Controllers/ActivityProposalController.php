@@ -236,12 +236,12 @@ class ActivityProposalController extends Controller
                 'id' => $proposal->id,
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                'objectives' => $proposal->objectives,
-                'narrative' => $proposal->narrative,
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $proposal->overall_goal,
+                'specific_objectives' => $proposal->specific_objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
-                'source_of_funding' => $proposal->source_of_funding,
                 // Itemized expenses (client request, post-Part-2); `expenses`
                 // is the legacy free-text fallback for pre-existing
                 // proposals that never got rows — see the model docblock.
@@ -307,12 +307,12 @@ class ActivityProposalController extends Controller
             'proposal' => $proposal ? [
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                'objectives' => $proposal->objectives,
-                'narrative' => $proposal->narrative,
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $proposal->overall_goal,
+                'specific_objectives' => $proposal->specific_objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
-                'source_of_funding' => $proposal->source_of_funding,
                 // Itemized expenses (client request, post-Part-2); `expenses`
                 // is the legacy free-text value shown read-only above the
                 // editable table when there are no rows yet to re-enter it
@@ -379,12 +379,12 @@ class ActivityProposalController extends Controller
             'proposal' => $proposal ? [
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                'objectives' => $proposal->objectives,
-                'narrative' => $proposal->narrative,
+                // Group D item 1 — split out of the single `objectives` field.
+                'overall_goal' => $proposal->overall_goal,
+                'specific_objectives' => $proposal->specific_objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
-                'source_of_funding' => $proposal->source_of_funding,
                 // Itemized expenses (client request, post-Part-2); `expenses`
                 // is the legacy free-text value shown read-only above the
                 // editable table when there are no rows yet to re-enter it
@@ -394,8 +394,17 @@ class ActivityProposalController extends Controller
                 // proposed_budget is read-only here — set once at step 1
                 // (Phase 2 item 7 slice 4a), never re-collected at step 2.
                 'proposed_budget' => $proposal->proposed_budget,
-                // Closed dropdown (Group C item 2) — label for read-only display.
+                // Closed dropdown (Group C item 2) — label for read-only
+                // display. Group D item 4 — this is now ALSO what "Source of
+                // Funding" echoes at step 2; there is no separate field.
                 'budget_source_label' => $proposal->budget_source?->label(),
+                // Group D item 5 — step 1 → step 2 carryover. Same four
+                // accessors show()/edit() already expose, so the student can
+                // see what they picked at step 1 while writing step 2.
+                'activity_nature_label' => $proposal->activityNatureLabel,
+                'activity_type_label' => $proposal->activityTypeLabel,
+                'partner_organizations' => $proposal->partner_organizations,
+                'target_sdg_labels' => $proposal->target_sdg?->map(fn (Sdg $s) => $s->label())->values()->all() ?? [],
             ] : null,
             'activity' => $activity ? [
                 'name' => $activity->name,
@@ -443,11 +452,10 @@ class ActivityProposalController extends Controller
         $result = $action->execute(
             actor: Auth::user(),
             document: $document,
-            objectives: $request->string('objectives')->toString(),
-            narrative: $request->string('narrative')->toString(),
+            overallGoal: $request->string('overall_goal')->toString(),
+            specificObjectives: $request->string('specific_objectives')->toString(),
             criteriaMechanics: $request->string('criteria_mechanics')->toString(),
             programFlow: $request->string('program_flow')->toString(),
-            sourceOfFunding: $request->string('source_of_funding')->toString(),
             expenseItems: $request->array('expense_items'),
         );
 

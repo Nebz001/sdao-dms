@@ -92,8 +92,8 @@ function badShapeOrgWithSubmittedProposal(): array
     $document = app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     )['document'];
 
     expect($document->current_step_position)->toBe(1);

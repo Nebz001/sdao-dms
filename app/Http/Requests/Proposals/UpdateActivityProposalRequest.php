@@ -25,18 +25,20 @@ class UpdateActivityProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'objectives' => ['required', 'string'],
-            'narrative' => ['required', 'string'],
+            // Group D item 1 — split out of the single `objectives` field.
+            'overall_goal' => ['required', 'string'],
+            'specific_objectives' => ['required', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => ['required', 'string'],
             'program_flow' => ['required', 'string'],
-            'source_of_funding' => ['required', 'string'],
             // Itemized expenses (client request, post-Part-2) replace the
             // old free-text `expenses` field going forward — see
-            // App\Models\ActivityProposal's expense_items docblock.
+            // App\Models\ActivityProposal's expense_items docblock. Group D
+            // item 3 — {material, quantity, unit_price}, was {label, amount}.
             'expense_items' => ['required', 'array', 'min:1'],
-            'expense_items.*.label' => ['required', 'string', 'max:255'],
-            'expense_items.*.amount' => ['required', 'numeric', 'min:0'],
+            'expense_items.*.material' => ['required', 'string', 'max:255'],
+            'expense_items.*.quantity' => ['required', 'numeric', 'min:0'],
+            'expense_items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'proposed_budget' => ['nullable', 'numeric', 'min:0'],
             // Optional off-calendar activity update fields
             'title' => ['nullable', 'string', 'max:255'],
@@ -91,9 +93,10 @@ class UpdateActivityProposalRequest extends FormRequest
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
+            'overall_goal' => 'Overall Goal',
+            'specific_objectives' => 'Specific Objectives',
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',
-            'source_of_funding' => 'Source of Funding',
             'expense_items' => 'Expenses',
             ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
         ];

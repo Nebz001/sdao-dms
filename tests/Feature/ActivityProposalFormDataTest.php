@@ -108,11 +108,10 @@ function activityProposalPrintDocument(
         'activity_type' => ActivityType::Competition->value,
         'partner_organizations' => ['Partner A', 'Partner B'],
         'target_sdg' => [Sdg::LifeOnLand->value],
-        'objectives' => 'Objectives text',
-        'narrative' => 'Narrative text',
+        'overall_goal' => 'Overall goal text',
+        'specific_objectives' => 'Specific objectives text',
         'criteria_mechanics' => 'Criteria text',
         'program_flow' => 'Program flow text',
-        'source_of_funding' => 'Sponsors',
         'expenses' => 'Venue rental',
         'proposed_budget' => 5000,
         'budget_source' => 'rso_fund',
@@ -153,11 +152,10 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($data['date_of_activity'])->toBe('10/01/2026');
     expect($data['venue'])->toBe('Gym');
     expect($data['proposed_time'])->toBe('09:00 AM – 11:00 AM');
-    expect($data['objectives'])->toBe('Objectives text');
-    expect($data['narrative'])->toBe('Narrative text');
+    expect($data['overall_goal'])->toBe('Overall goal text');
+    expect($data['specific_objectives'])->toBe('Specific objectives text');
     expect($data['criteria_mechanics'])->toBe('Criteria text');
     expect($data['program_flow'])->toBe('Program flow text');
-    expect($data['source_of_funding'])->toBe('Sponsors');
     expect($data['expenses'])->toBe('Venue rental');
     expect($data['has_resource_person_resume'])->toBeFalse();
     expect($data['is_shs'])->toBeFalse();
@@ -176,15 +174,15 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
 test('expense_items maps to formatted rows plus a formatted grand total, and legacy expenses stays available as a fallback value', function () {
     $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
         'expense_items' => [
-            ['label' => 'Venue rental', 'amount' => '5000'],
-            ['label' => 'Sound system rental', 'amount' => '8000.5'],
+            ['material' => 'Venue rental', 'quantity' => '1', 'unit_price' => '5000'],
+            ['material' => 'Sound system rental', 'quantity' => '2', 'unit_price' => '4000.25'],
         ],
     ]);
     $data = dataForProposal($doc);
 
     expect($data['expense_items'])->toBe([
-        ['label' => 'Venue rental', 'amount' => '5,000.00'],
-        ['label' => 'Sound system rental', 'amount' => '8,000.50'],
+        ['material' => 'Venue rental', 'quantity' => '1', 'unit_price' => '5,000.00', 'total' => '5,000.00'],
+        ['material' => 'Sound system rental', 'quantity' => '2', 'unit_price' => '4,000.25', 'total' => '8,000.50'],
     ]);
     expect($data['expense_items_total'])->toBe('13,000.50');
     // The legacy prose value is still exposed even when expense_items is
@@ -195,8 +193,8 @@ test('expense_items maps to formatted rows plus a formatted grand total, and leg
 test('the grand total sums in integer centavos, not floats, so it never drifts on a repeating-decimal case', function () {
     $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
         'expense_items' => [
-            ['label' => 'Item A', 'amount' => '0.10'],
-            ['label' => 'Item B', 'amount' => '0.20'],
+            ['material' => 'Item A', 'quantity' => '1', 'unit_price' => '0.10'],
+            ['material' => 'Item B', 'quantity' => '1', 'unit_price' => '0.20'],
         ],
     ]);
     $data = dataForProposal($doc);
@@ -219,7 +217,7 @@ test('a proposal with no expense_items rows exposes a null total and only the le
 
 test('the rendered Blade prints an itemized table with a TOTAL row when expense_items is present', function () {
     $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
-        'expense_items' => [['label' => 'Venue rental', 'amount' => '5000']],
+        'expense_items' => [['material' => 'Venue rental', 'quantity' => '1', 'unit_price' => '5000']],
     ]);
     $form = app(ActivityProposalForm::class);
     $doc->load($form->eagerLoads());

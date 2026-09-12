@@ -128,8 +128,8 @@ test('regular on-calendar: submitted doc binds template with adviser-first step'
     $result = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];
@@ -150,8 +150,8 @@ test('regular off-calendar: submitted doc binds template with SDAO-first step', 
     $result = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];
@@ -178,8 +178,8 @@ test('SHS on-calendar: submitted doc binds template with adviser then principal'
     $result = $this->submitProposal->execute(
         actor: $this->studentGamma,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];
@@ -216,8 +216,8 @@ test('SHS off-calendar: submitted doc binds template with SDAO-first then advise
     $result = $this->submitProposal->execute(
         actor: $this->studentGamma,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];
@@ -252,8 +252,8 @@ test('college-less on-calendar: submitted doc binds template with adviser then S
     $result = $this->submitProposal->execute(
         actor: $this->studentEpsilon,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];
@@ -292,8 +292,8 @@ test('college-less off-calendar: submitted doc binds template with SDAO-first th
     $result = $this->submitProposal->execute(
         actor: $this->studentEpsilon,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $doc = $result['document'];

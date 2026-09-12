@@ -73,8 +73,8 @@ function submittedReportForComputingSociety(): Document
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     foreach ([

@@ -103,8 +103,8 @@ function approvedProposalForVerificationGate(Organization $org, User $student): 
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     $engine = app(ApprovalEngine::class);
@@ -225,12 +225,11 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
     $student->update(['account_status' => AccountStatus::Rejected]);
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
-        'source_of_funding' => 'Source of Funding',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ]);
 
     $response->assertForbidden();
@@ -259,12 +258,11 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
     $student->update(['account_status' => AccountStatus::Unverified]);
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'objectives' => 'Objectives',
-        'narrative' => 'Narrative',
+        'overall_goal' => 'Overall Goal',
+        'specific_objectives' => 'Specific Objectives',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
-        'source_of_funding' => 'Source of Funding',
-        'expense_items' => [['label' => 'Expenses', 'amount' => '100.00']],
+        'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
     ]);
 
     $response->assertForbidden();

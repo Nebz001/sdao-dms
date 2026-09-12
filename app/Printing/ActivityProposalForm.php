@@ -195,22 +195,30 @@ class ActivityProposalForm implements PrintableForm
             'proposed_time' => $activity !== null
                 ? $this->formatTime($activity->start_time).' – '.$this->formatTime($activity->end_time)
                 : null,
-            'objectives' => $proposal->objectives,
-            'narrative' => $proposal->narrative,
+            // Group D item 1 — split out of the single `objectives` field.
+            'overall_goal' => $proposal->overall_goal,
+            'specific_objectives' => $proposal->specific_objectives,
+            // Group D item 2 — `narrative` removed; not passed to the view.
             'criteria_mechanics' => $proposal->criteria_mechanics,
             'program_flow' => $proposal->program_flow,
-            'source_of_funding' => $proposal->source_of_funding,
+            // Group D item 4 — `source_of_funding` removed; the blade's
+            // "Source of Funding:" line under "c. Proposed Budget" now reads
+            // $budget_source (already passed above, for page 1) instead.
             // Itemized expenses (client request, post-Part-2): a table +
             // grand total when the proposal has expense_items rows. Falls
             // back to the legacy `expenses` prose for proposals submitted
             // before this existed — see the model docblock. Amounts are
             // formatted here, not in Blade, mirroring how every other money
             // field (proposed_budget above, ActivityCalendarForm's budget
-            // column) is formatted in the PrintableForm class.
+            // column) is formatted in the PrintableForm class. Group D item
+            // 3 — rows are {material, quantity, unit_price}; the row total
+            // (quantity × unit_price) is computed here, never stored.
             'expense_items' => $proposal->expense_items !== null
                 ? array_map(fn (array $row) => [
-                    'label' => $row['label'],
-                    'amount' => number_format((float) $row['amount'], 2),
+                    'material' => $row['material'],
+                    'quantity' => $row['quantity'],
+                    'unit_price' => number_format((float) $row['unit_price'], 2),
+                    'total' => number_format((float) $row['quantity'] * (float) $row['unit_price'], 2),
                 ], $proposal->expense_items)
                 : null,
             'expense_items_total' => $proposal->expenseItemsTotal,

@@ -86,8 +86,8 @@ test('regular on-calendar full chain: adviser → chair → dean → SDAO(×2) �
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Step 1: Adviser
@@ -148,8 +148,8 @@ test('notification fired to each next-step approver on every hand-off (invariant
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // On submit: adviser (step 1) is notified
@@ -176,8 +176,8 @@ test('SDAO single approval (split) does not advance the document', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Advance to SDAO step (step 4)
@@ -214,8 +214,8 @@ test('SHS on-calendar: adviser → principal → SDAO(×2) → asstDir → acadD
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->studentGamma,
         document: $draft,
-        objectives: 'Objectives',
-        narrative: 'Narrative',
+        overallGoal: 'Overall Goal',
+        specificObjectives: 'Specific Objectives',
     );
 
     // Step 1: Adviser
