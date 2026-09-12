@@ -199,6 +199,7 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
 
     $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -251,6 +252,7 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
 
     expect(fn () => $action->execute($this->student, $document, [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

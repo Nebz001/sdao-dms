@@ -196,6 +196,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
 
     $resubmit->execute($this->student, $doc, [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
@@ -255,6 +256,7 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
 
     $resubmit->execute($this->student, $doc, [
         'objectives' => 'Sharper overall goal',
+        'activity_description' => 'Sharper activity description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [],

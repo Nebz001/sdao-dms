@@ -170,6 +170,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
 
     $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -184,6 +185,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
 
     assertResubmitRedirectSucceeds($student, route('activity-proposals.update', $document), [
         'objectives' => 'Updated overall goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

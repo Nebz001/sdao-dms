@@ -225,6 +225,7 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -258,6 +259,7 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

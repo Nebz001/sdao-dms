@@ -39,6 +39,7 @@ class SubmitActivityProposal
         User $actor,
         Document $document,
         ?string $objectives = null,
+        ?string $activityDescription = null,
         ?string $criteriaMechanics = null,
         ?string $programFlow = null,
         ?array $expenseItems = null,
@@ -64,7 +65,7 @@ class SubmitActivityProposal
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
 
         $document = DB::transaction(function () use (
-            $actor, $document, $proposal, $variant, $objectives,
+            $actor, $document, $proposal, $variant, $objectives, $activityDescription,
             $criteriaMechanics, $programFlow, $expenseItems, $responsiblePersons,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
@@ -74,6 +75,8 @@ class SubmitActivityProposal
             // echoes step 1's budget_source_label read-only instead.
             $proposal->update([
                 'objectives' => $objectives,
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $activityDescription,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $criteriaMechanics,
                 'program_flow' => $programFlow,

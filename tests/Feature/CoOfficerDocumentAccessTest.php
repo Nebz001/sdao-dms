@@ -129,6 +129,7 @@ test('secretary can continue, autosave, and submit the president\'s Draft propos
 
     $response = $this->actingAs($this->secretary)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Final overall goal.',
+        'activity_description' => 'Activity Description.',
         'criteria_mechanics' => 'Criteria.',
         'program_flow' => 'Flow.',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

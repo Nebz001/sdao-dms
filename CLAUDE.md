@@ -309,13 +309,14 @@ keys), not just a comment string. Section definitions per form type:
   Selection, Attachments, General
 - **Activity Request Form (proposal step 1):** RSO Info, Activity Details
   (Nature/Type), Partner Orgs & SDG, Budget, Schedule & Venue, General
-- **Proposal narrative (step 2):** Objectives (Overall Goal, Specific
-  Objectives), Activity Description (Criteria/Mechanics, Program Flow —
-  `narrative` was removed as a leftover scaffold field never reconciled into
-  the exact field list; do not re-add it), Budget (Proposed Budget, Budget
-  Source, Expenses — no separate Source of Funding; it duplicated Budget
-  Source and now just echoes it read-only), Resource Person, Responsible
-  Persons, General
+- **Proposal narrative (step 2):** Objectives (a single field — was briefly
+  split into Overall Goal/Specific Objectives, collapsed back), Activity
+  Description (a real, intentional field again — restored under this name,
+  not the old `narrative` column — with Criteria/Mechanics and Program Flow
+  as its subordinate detail), Budget (Proposed Budget, Budget Source,
+  Expenses — no separate Source of Funding; it duplicated Budget Source and
+  now just echoes it read-only), Resource Person, Responsible Persons,
+  General
 - **Activity Calendar:** each activity row is its own flaggable unit (no shared
   sections)
 - **After-Activity Report:** Event Details, Summary/Program, Evaluation,
@@ -371,18 +372,22 @@ approximate these.
   Outreach, Off-campus Activity, Others), Partner Organization(s)/School(s)/RSO,
   Target SDG, Proposed Budget, Budget Source, Date of Activity, Venue.
 - **Proposal narrative (step 2):** Project/Activity Title, Proposed Date(s),
-  Proposed Time, Venue, Objectives (split into Overall Goal and Specific
-  Objectives — was a single field), Criteria/Mechanics, Program Flow, Proposed
-  Budget, Expenses (itemized: Material, Quantity, Unit Price, with an
-  auto-calculated row total and grand total — was a flat label/amount row),
-  Resume of Resource Person(s) if applicable, Responsible Person(s) (a
-  repeatable list of names — typed in directly by the submitting officer,
-  President or Secretary; NOT a picker sourced from org membership, since
-  the system only ever tracks those two as "members"). There is no separate
-  Source of Funding field at step 2 — it duplicated step 1's Budget Source,
-  so step 2 now just displays that value read-only instead of asking again.
-  There is no "Narrative" field either — it was a leftover from the original
-  scaffold, never part of the client's real form; do not re-add it.
+  Proposed Time, Venue, Objectives (a single field, with both the original
+  paper form's "overall goal" and "specific objectives" hint phrases shown
+  as placeholder text — briefly split into two columns, then collapsed back),
+  Activity Description (the primary field for this section — restored as a
+  real, intentional field under this name; NOT a revival of the literal
+  `narrative` column dropped earlier, which stays gone), with
+  Criteria/Mechanics and Program Flow underneath it as subordinate detail
+  (visually secondary, not equal siblings), Proposed Budget, Expenses
+  (itemized: Material, Quantity, Unit Price, with an auto-calculated row
+  total and grand total — was a flat label/amount row), Resume of Resource
+  Person(s) if applicable, Responsible Person(s) (a repeatable list of names
+  — typed in directly by the submitting officer, President or Secretary; NOT
+  a picker sourced from org membership, since the system only ever tracks
+  those two as "members"). There is no separate Source of Funding field at
+  step 2 — it duplicated step 1's Budget Source, so step 2 now just displays
+  that value read-only instead of asking again.
 - **Activity Calendar:** RSO Name, Date, Activity Name, SDG, Venue,
   Participant/Program Assigned, Budget. Status and Date Received are NOT
   user-input fields — derive Status from the document's actual approval status

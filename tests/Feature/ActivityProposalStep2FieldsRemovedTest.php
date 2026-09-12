@@ -60,6 +60,7 @@ test('a submit request still carrying the old narrative/source_of_funding keys s
 
     $response = $this->actingAs($this->student)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '100.00']],

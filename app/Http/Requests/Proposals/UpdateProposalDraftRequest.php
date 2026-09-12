@@ -20,6 +20,8 @@ class UpdateProposalDraftRequest extends FormRequest
         return [
             // Group E backlog — collapsed back into a single field.
             'objectives' => ['nullable', 'string'],
+            // Group E backlog — Activity Description restored.
+            'activity_description' => ['nullable', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => ['nullable', 'string'],
             'program_flow' => ['nullable', 'string'],

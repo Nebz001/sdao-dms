@@ -73,10 +73,10 @@ class ResubmitActivityProposal
         //
         // The two field-key sets are disjoint (proposal: title,
         // activity_nature, activity_type, partner_organizations, target_sdg,
-        // objectives, criteria_mechanics, program_flow, expense_items,
-        // responsible_persons, proposed_budget, budget_source; activity:
-        // venue, activity_date, start_time, end_time), so merging them into
-        // one flat snapshot is safe.
+        // objectives, activity_description, criteria_mechanics, program_flow,
+        // expense_items, responsible_persons, proposed_budget, budget_source;
+        // activity: venue, activity_date, start_time, end_time), so merging
+        // them into one flat snapshot is safe.
         $flagged = SectionFlags::currentlyFlagged($document);
 
         if (! $isOffCalendar) {
@@ -140,6 +140,8 @@ class ResubmitActivityProposal
         ) {
             $proposal->update([
                 'objectives' => $data['objectives'],
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $data['activity_description'],
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $data['criteria_mechanics'],
                 'program_flow' => $data['program_flow'],

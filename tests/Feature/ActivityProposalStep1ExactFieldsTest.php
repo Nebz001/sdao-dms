@@ -174,6 +174,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
     // Submit step 2 to reach a real (non-Draft) document for show/review-show.
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -342,6 +343,7 @@ test('an "others" selection with its specify text round-trips through submission
 
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

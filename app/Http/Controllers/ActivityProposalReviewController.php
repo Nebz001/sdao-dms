@@ -119,6 +119,8 @@ class ActivityProposalReviewController extends Controller
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $proposal->activity_description,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,

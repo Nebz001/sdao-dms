@@ -237,6 +237,8 @@ class ActivityProposalController extends Controller
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $proposal->activity_description,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -309,6 +311,8 @@ class ActivityProposalController extends Controller
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $proposal->activity_description,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -381,6 +385,8 @@ class ActivityProposalController extends Controller
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
                 'objectives' => $proposal->objectives,
+                // Group E backlog — Activity Description restored.
+                'activity_description' => $proposal->activity_description,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -454,6 +460,7 @@ class ActivityProposalController extends Controller
             actor: Auth::user(),
             document: $document,
             objectives: $request->string('objectives')->toString(),
+            activityDescription: $request->string('activity_description')->toString(),
             criteriaMechanics: $request->string('criteria_mechanics')->toString(),
             programFlow: $request->string('program_flow')->toString(),
             expenseItems: $request->array('expense_items'),

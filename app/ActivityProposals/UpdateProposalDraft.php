@@ -37,6 +37,8 @@ class UpdateProposalDraft
         // step-2 narrative autosave.
         $proposal->update([
             'objectives' => $data['objectives'] ?? $proposal->objectives,
+            // Group E backlog — Activity Description restored.
+            'activity_description' => $data['activity_description'] ?? $proposal->activity_description,
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => $data['criteria_mechanics'] ?? $proposal->criteria_mechanics,
             'program_flow' => $data['program_flow'] ?? $proposal->program_flow,

@@ -56,6 +56,7 @@ function step2NarrativeFields(array $overrides = []): array
 {
     return array_merge([
         'objectives' => 'Overall Goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [
@@ -72,7 +73,7 @@ test('submit validation rejects a step-2 submission missing any required narrati
     $document = $this->document;
     $base = step2NarrativeFields();
 
-    foreach (['objectives', 'criteria_mechanics', 'program_flow', 'expense_items', 'responsible_persons'] as $field) {
+    foreach (['objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expense_items', 'responsible_persons'] as $field) {
         $payload = $base;
         unset($payload[$field]);
 
@@ -121,7 +122,7 @@ test('submit validation rejects an expense item with a negative or non-numeric q
 
 // --- Round-trip: submit step 2 -> stored -> shown (show, review show) ----
 
-test('objectives, criteria_mechanics, and program_flow round-trip through step-2 submission and every display surface', function () {
+test('objectives, activity_description, criteria_mechanics, and program_flow round-trip through step-2 submission and every display surface', function () {
     $document = $this->document;
 
     $response = $this->actingAs($this->studentAlpha)
@@ -133,6 +134,7 @@ test('objectives, criteria_mechanics, and program_flow round-trip through step-2
 
     $proposal = $document->activityProposal->fresh();
     expect($proposal->objectives)->toBe('Overall Goal');
+    expect($proposal->activity_description)->toBe('Activity Description');
     expect($proposal->criteria_mechanics)->toBe('Criteria/Mechanics');
     expect($proposal->program_flow)->toBe('Program Flow');
     expect($proposal->expense_items)->toBe([
@@ -151,6 +153,7 @@ test('objectives, criteria_mechanics, and program_flow round-trip through step-2
         ->assertInertia(fn ($page) => $page
             ->component('activity-proposals/show')
             ->where('proposal.objectives', 'Overall Goal')
+            ->where('proposal.activity_description', 'Activity Description')
             ->where('proposal.criteria_mechanics', 'Criteria/Mechanics')
             ->where('proposal.program_flow', 'Program Flow')
             ->where('proposal.expense_items', [
@@ -171,6 +174,7 @@ test('objectives, criteria_mechanics, and program_flow round-trip through step-2
         ->assertInertia(fn ($page) => $page
             ->component('review/activity-proposals/show')
             ->where('proposal.objectives', 'Overall Goal')
+            ->where('proposal.activity_description', 'Activity Description')
             ->where('proposal.criteria_mechanics', 'Criteria/Mechanics')
             ->where('proposal.program_flow', 'Program Flow')
             ->where('proposal.expense_items_total', '6,500.50')
@@ -198,12 +202,13 @@ test('a decimal quantity computes the correct row total and grand total', functi
 
 // --- Autosave: nullable, persists while staying Draft ---------------------
 
-test('autosave persists objectives, criteria_mechanics, program_flow, and expense_items and keeps the document Draft', function () {
+test('autosave persists objectives, activity_description, criteria_mechanics, program_flow, and expense_items and keeps the document Draft', function () {
     $document = $this->document;
 
     $response = $this->actingAs($this->studentAlpha)
         ->patch(route('activity-proposals.draft', $document), [
             'objectives' => 'Autosaved Overall Goal',
+            'activity_description' => 'Autosaved Activity Description',
             'criteria_mechanics' => 'Autosaved Criteria',
             'program_flow' => 'Autosaved Flow',
             'expense_items' => [['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']],
@@ -217,6 +222,7 @@ test('autosave persists objectives, criteria_mechanics, program_flow, and expens
 
     $proposal = $document->activityProposal->fresh();
     expect($proposal->objectives)->toBe('Autosaved Overall Goal');
+    expect($proposal->activity_description)->toBe('Autosaved Activity Description');
     expect($proposal->criteria_mechanics)->toBe('Autosaved Criteria');
     expect($proposal->program_flow)->toBe('Autosaved Flow');
     expect($proposal->expense_items)->toBe([['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']]);
@@ -230,6 +236,7 @@ test('autosave persists objectives, criteria_mechanics, program_flow, and expens
         ->assertInertia(fn ($page) => $page
             ->component('activity-proposals/step-two')
             ->where('proposal.objectives', 'Autosaved Overall Goal')
+            ->where('proposal.activity_description', 'Autosaved Activity Description')
             ->where('proposal.criteria_mechanics', 'Autosaved Criteria')
             ->where('proposal.program_flow', 'Autosaved Flow')
             ->where('proposal.expense_items', [['material' => 'Autosaved Item', 'quantity' => '1', 'unit_price' => '250.00']])
@@ -271,6 +278,7 @@ test('resubmitting a Returned proposal round-trips edited values of every step-2
             step2NarrativeFields(),
             [
                 'objectives' => 'Revised Overall Goal',
+                'activity_description' => 'Revised Activity Description',
                 'criteria_mechanics' => 'Revised Criteria',
                 'program_flow' => 'Revised Flow',
                 'expense_items' => [['material' => 'Revised Item', 'quantity' => '3', 'unit_price' => '333.33']],
@@ -284,6 +292,7 @@ test('resubmitting a Returned proposal round-trips edited values of every step-2
 
     $proposal = $document->activityProposal->fresh();
     expect($proposal->objectives)->toBe('Revised Overall Goal');
+    expect($proposal->activity_description)->toBe('Revised Activity Description');
     expect($proposal->criteria_mechanics)->toBe('Revised Criteria');
     expect($proposal->program_flow)->toBe('Revised Flow');
     expect($proposal->expense_items)->toBe([['material' => 'Revised Item', 'quantity' => '3', 'unit_price' => '333.33']]);

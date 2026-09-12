@@ -181,6 +181,7 @@
     <div>{{ $objectives }}</div>
 
     <div class="h2">V. Activity Description</div>
+    <div>{{ $activity_description }}</div>
     <div class="indent"><strong>a. Criteria/Mechanics</strong><br>{{ $criteria_mechanics }}</div>
     <div class="indent"><strong>b. Program Flow</strong><br>{{ $program_flow }}</div>
     <div class="indent">

@@ -29,6 +29,7 @@ type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -238,7 +239,7 @@ export default function ShowActivityProposal({
                 )}
 
                 {/* Narrative */}
-                {proposal && (proposal.objectives || proposal.criteria_mechanics || proposal.program_flow) && (
+                {proposal && (proposal.objectives || proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow) && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
@@ -256,24 +257,42 @@ export default function ShowActivityProposal({
                                     </p>
                                 </div>
                             )}
-                            {proposal.criteria_mechanics && (
+                            {(proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow) && (
                                 <div>
-                                    <p className="mb-1 font-medium">
-                                        Criteria/Mechanics
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.criteria_mechanics}
-                                    </p>
-                                </div>
-                            )}
-                            {proposal.program_flow && (
-                                <div>
-                                    <p className="mb-1 font-medium">
-                                        Program Flow
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.program_flow}
-                                    </p>
+                                    {proposal.activity_description && (
+                                        <>
+                                            <p className="mb-1 font-medium">
+                                                Activity Description
+                                            </p>
+                                            <p className="whitespace-pre-wrap text-muted-foreground">
+                                                {proposal.activity_description}
+                                            </p>
+                                        </>
+                                    )}
+                                    {(proposal.criteria_mechanics || proposal.program_flow) && (
+                                        <div className="mt-3 space-y-3 border-l-2 pl-4">
+                                            {proposal.criteria_mechanics && (
+                                                <div>
+                                                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                        Criteria/Mechanics
+                                                    </p>
+                                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                                        {proposal.criteria_mechanics}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {proposal.program_flow && (
+                                                <div>
+                                                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                        Program Flow
+                                                    </p>
+                                                    <p className="whitespace-pre-wrap text-muted-foreground">
+                                                        {proposal.program_flow}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             <ExpenseItemsTable

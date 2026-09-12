@@ -20,6 +20,7 @@ class ActivityProposalFactory extends Factory
             'calendar_activity_id' => null,
             'title' => $this->faker->sentence(4),
             'objectives' => null,
+            'activity_description' => null,
             'criteria_mechanics' => null,
             'program_flow' => null,
             'expenses' => null,

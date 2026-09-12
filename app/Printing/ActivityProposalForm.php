@@ -196,7 +196,9 @@ class ActivityProposalForm implements PrintableForm
                 ? $this->formatTime($activity->start_time).' – '.$this->formatTime($activity->end_time)
                 : null,
             'objectives' => $proposal->objectives,
-            // Group D item 2 — `narrative` removed; not passed to the view.
+            // Group E backlog — Activity Description restored (fresh column,
+            // not a revival of the old `narrative` column removed separately).
+            'activity_description' => $proposal->activity_description,
             'criteria_mechanics' => $proposal->criteria_mechanics,
             'program_flow' => $proposal->program_flow,
             // Group D item 4 — `source_of_funding` removed; the blade's

@@ -39,6 +39,12 @@ use Illuminate\Support\Collection;
  *                                   overall_goal/specific_objectives); both
  *                                   hint phrases now live as placeholder
  *                                   text on the one frontend field instead.
+ * @property string|null $activity_description The primary narrative field
+ *                                             for "V. Activity Description" — restored as a real, intentional
+ *                                             field (client request); Criteria/Mechanics and Program Flow below
+ *                                             are subordinate detail under it, not siblings. Not a revival of
+ *                                             the old `narrative` column (dropped separately); a fresh field
+ *                                             under a clearer name.
  * @property string|null $criteria_mechanics
  * @property string|null $program_flow
  * @property string|null $expenses Legacy free-text expenses, kept only as a
@@ -61,7 +67,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */

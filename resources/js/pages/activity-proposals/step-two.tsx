@@ -23,6 +23,7 @@ type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -58,6 +59,7 @@ function money(amount: number): string {
 
 export default function StepTwo({ document: doc, proposal, activity }: Props) {
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
+    const activityDescriptionRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,6 +121,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                 },
                 body: JSON.stringify({
                     objectives: objectivesRef.current?.value ?? null,
+                    activity_description: activityDescriptionRef.current?.value ?? null,
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
                     expense_items: expenseItemsRef.current,
@@ -200,31 +203,63 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                             <InputError message={errors.objectives} />
                         </div>
 
-                        <div className="space-y-1">
-                            <Label htmlFor="criteria_mechanics">Criteria/Mechanics</Label>
-                            <Textarea
-                                id="criteria_mechanics"
-                                name="criteria_mechanics"
-                                ref={criteriaMechanicsRef}
-                                defaultValue={proposal?.criteria_mechanics ?? ''}
-                                rows={4}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.criteria_mechanics} />
-                        </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Activity Description</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="activity_description" className="sr-only">
+                                        Activity Description
+                                    </Label>
+                                    <Textarea
+                                        id="activity_description"
+                                        name="activity_description"
+                                        ref={activityDescriptionRef}
+                                        defaultValue={proposal?.activity_description ?? ''}
+                                        rows={6}
+                                        onChange={scheduleSave}
+                                    />
+                                    <InputError message={errors.activity_description} />
+                                </div>
 
-                        <div className="space-y-1">
-                            <Label htmlFor="program_flow">Program Flow</Label>
-                            <Textarea
-                                id="program_flow"
-                                name="program_flow"
-                                ref={programFlowRef}
-                                defaultValue={proposal?.program_flow ?? ''}
-                                rows={4}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.program_flow} />
-                        </div>
+                                {/* Criteria/Mechanics and Program Flow are detail
+                                    under Activity Description, not equal siblings —
+                                    the left border + muted heading signal that. */}
+                                <div className="space-y-3 border-l-2 pl-4">
+                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Details</p>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="criteria_mechanics" className="text-sm font-normal text-muted-foreground">
+                                            Criteria/Mechanics
+                                        </Label>
+                                        <Textarea
+                                            id="criteria_mechanics"
+                                            name="criteria_mechanics"
+                                            ref={criteriaMechanicsRef}
+                                            defaultValue={proposal?.criteria_mechanics ?? ''}
+                                            rows={3}
+                                            onChange={scheduleSave}
+                                        />
+                                        <InputError message={errors.criteria_mechanics} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="program_flow" className="text-sm font-normal text-muted-foreground">
+                                            Program Flow
+                                        </Label>
+                                        <Textarea
+                                            id="program_flow"
+                                            name="program_flow"
+                                            ref={programFlowRef}
+                                            defaultValue={proposal?.program_flow ?? ''}
+                                            rows={3}
+                                            onChange={scheduleSave}
+                                        />
+                                        <InputError message={errors.program_flow} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         <div className="space-y-1">
                             <div className="flex items-center justify-between">

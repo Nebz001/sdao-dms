@@ -27,6 +27,8 @@ class UpdateActivityProposalRequest extends FormRequest
         return [
             // Group E backlog — collapsed back into a single field.
             'objectives' => ['required', 'string'],
+            // Group E backlog — Activity Description restored.
+            'activity_description' => ['required', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => ['required', 'string'],
             'program_flow' => ['required', 'string'],
@@ -97,6 +99,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
             'objectives' => 'Objectives',
+            'activity_description' => 'Activity Description',
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',
             'expense_items' => 'Expenses',

@@ -23,6 +23,7 @@ type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -232,30 +233,58 @@ export default function EditActivityProposal({
                                 comment={flaggedComment}
                                 sectionComment={flaggedSectionComments.activity_description}
                             >
-                        <div className="space-y-4">
-                        {/* Exact field corrections (Phase 2 item 7 slice 4b). */}
-                        <div className="space-y-1">
-                            <Label htmlFor="criteria_mechanics">Criteria/Mechanics</Label>
-                            <Textarea
-                                id="criteria_mechanics"
-                                name="criteria_mechanics"
-                                defaultValue={proposal?.criteria_mechanics ?? ''}
-                                rows={4}
-                            />
-                            <InputError message={errors.criteria_mechanics} />
-                        </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Activity Description</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="activity_description" className="sr-only">
+                                        Activity Description
+                                    </Label>
+                                    <Textarea
+                                        id="activity_description"
+                                        name="activity_description"
+                                        defaultValue={proposal?.activity_description ?? ''}
+                                        rows={6}
+                                    />
+                                    <InputError message={errors.activity_description} />
+                                </div>
 
-                        <div className="space-y-1">
-                            <Label htmlFor="program_flow">Program Flow</Label>
-                            <Textarea
-                                id="program_flow"
-                                name="program_flow"
-                                defaultValue={proposal?.program_flow ?? ''}
-                                rows={4}
-                            />
-                            <InputError message={errors.program_flow} />
-                        </div>
-                        </div>
+                                {/* Criteria/Mechanics and Program Flow are detail
+                                    under Activity Description, not equal siblings —
+                                    the left border + muted heading signal that. */}
+                                <div className="space-y-3 border-l-2 pl-4">
+                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Details</p>
+                                    {/* Exact field corrections (Phase 2 item 7 slice 4b). */}
+                                    <div className="space-y-1">
+                                        <Label htmlFor="criteria_mechanics" className="text-sm font-normal text-muted-foreground">
+                                            Criteria/Mechanics
+                                        </Label>
+                                        <Textarea
+                                            id="criteria_mechanics"
+                                            name="criteria_mechanics"
+                                            defaultValue={proposal?.criteria_mechanics ?? ''}
+                                            rows={3}
+                                        />
+                                        <InputError message={errors.criteria_mechanics} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="program_flow" className="text-sm font-normal text-muted-foreground">
+                                            Program Flow
+                                        </Label>
+                                        <Textarea
+                                            id="program_flow"
+                                            name="program_flow"
+                                            defaultValue={proposal?.program_flow ?? ''}
+                                            rows={3}
+                                        />
+                                        <InputError message={errors.program_flow} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                         </FlaggedSectionWrapper>
 
                         <FlaggedSectionWrapper

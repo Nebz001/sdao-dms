@@ -332,6 +332,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
     // pass validation. This is the exact symptom QA reported.
     $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $doc), [
         'objectives' => 'Updated overall goal',
+        'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

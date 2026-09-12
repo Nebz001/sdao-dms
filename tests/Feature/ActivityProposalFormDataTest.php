@@ -109,6 +109,7 @@ function activityProposalPrintDocument(
         'partner_organizations' => ['Partner A', 'Partner B'],
         'target_sdg' => [Sdg::LifeOnLand->value],
         'objectives' => 'Overall goal text',
+        'activity_description' => 'Activity description text',
         'criteria_mechanics' => 'Criteria text',
         'program_flow' => 'Program flow text',
         'expenses' => 'Venue rental',
@@ -152,6 +153,7 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($data['venue'])->toBe('Gym');
     expect($data['proposed_time'])->toBe('09:00 AM – 11:00 AM');
     expect($data['objectives'])->toBe('Overall goal text');
+    expect($data['activity_description'])->toBe('Activity description text');
     expect($data['criteria_mechanics'])->toBe('Criteria text');
     expect($data['program_flow'])->toBe('Program flow text');
     expect($data['expenses'])->toBe('Venue rental');

@@ -123,10 +123,13 @@ class SectionFields
                 'objectives' => [
                     new FieldDefinition('objectives', 'Objectives'),
                 ],
-                // Group D item 2 — `narrative` removed (leftover scaffold
-                // field, never reconciled into the exact field list).
-                // Criteria/Mechanics and Program Flow are real and stay.
+                // Group E backlog — Activity Description restored as the
+                // primary field in this section (a fresh `activity_description`
+                // column, not a revival of the old `narrative` column dropped
+                // separately). Criteria/Mechanics and Program Flow remain as
+                // subordinate detail underneath it.
                 'activity_description' => [
+                    new FieldDefinition('activity_description', 'Activity Description'),
                     new FieldDefinition('criteria_mechanics', 'Criteria / Mechanics'),
                     new FieldDefinition('program_flow', 'Program Flow'),
                 ],
