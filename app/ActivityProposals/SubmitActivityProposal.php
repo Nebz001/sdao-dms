@@ -38,8 +38,7 @@ class SubmitActivityProposal
     public function execute(
         User $actor,
         Document $document,
-        ?string $overallGoal = null,
-        ?string $specificObjectives = null,
+        ?string $objectives = null,
         ?string $criteriaMechanics = null,
         ?string $programFlow = null,
         ?array $expenseItems = null,
@@ -65,7 +64,7 @@ class SubmitActivityProposal
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
 
         $document = DB::transaction(function () use (
-            $actor, $document, $proposal, $variant, $overallGoal, $specificObjectives,
+            $actor, $document, $proposal, $variant, $objectives,
             $criteriaMechanics, $programFlow, $expenseItems, $responsiblePersons,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
@@ -74,9 +73,7 @@ class SubmitActivityProposal
             // source_of_funding no longer exists (Group D item 4) — step 2
             // echoes step 1's budget_source_label read-only instead.
             $proposal->update([
-                // Group D item 1 — split out of the single `objectives` field.
-                'overall_goal' => $overallGoal,
-                'specific_objectives' => $specificObjectives,
+                'objectives' => $objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $criteriaMechanics,
                 'program_flow' => $programFlow,

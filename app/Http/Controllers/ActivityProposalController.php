@@ -236,9 +236,7 @@ class ActivityProposalController extends Controller
                 'id' => $proposal->id,
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                // Group D item 1 — split out of the single `objectives` field.
-                'overall_goal' => $proposal->overall_goal,
-                'specific_objectives' => $proposal->specific_objectives,
+                'objectives' => $proposal->objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -310,9 +308,7 @@ class ActivityProposalController extends Controller
             'proposal' => $proposal ? [
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                // Group D item 1 — split out of the single `objectives` field.
-                'overall_goal' => $proposal->overall_goal,
-                'specific_objectives' => $proposal->specific_objectives,
+                'objectives' => $proposal->objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -384,9 +380,7 @@ class ActivityProposalController extends Controller
             'proposal' => $proposal ? [
                 'calendar_mode' => $proposal->calendar_mode->value,
                 'title' => $proposal->title,
-                // Group D item 1 — split out of the single `objectives` field.
-                'overall_goal' => $proposal->overall_goal,
-                'specific_objectives' => $proposal->specific_objectives,
+                'objectives' => $proposal->objectives,
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $proposal->criteria_mechanics,
                 'program_flow' => $proposal->program_flow,
@@ -459,8 +453,7 @@ class ActivityProposalController extends Controller
         $result = $action->execute(
             actor: Auth::user(),
             document: $document,
-            overallGoal: $request->string('overall_goal')->toString(),
-            specificObjectives: $request->string('specific_objectives')->toString(),
+            objectives: $request->string('objectives')->toString(),
             criteriaMechanics: $request->string('criteria_mechanics')->toString(),
             programFlow: $request->string('program_flow')->toString(),
             expenseItems: $request->array('expense_items'),

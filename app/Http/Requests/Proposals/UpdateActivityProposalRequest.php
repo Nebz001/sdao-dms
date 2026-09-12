@@ -25,9 +25,8 @@ class UpdateActivityProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Group D item 1 — split out of the single `objectives` field.
-            'overall_goal' => ['required', 'string'],
-            'specific_objectives' => ['required', 'string'],
+            // Group E backlog — collapsed back into a single field.
+            'objectives' => ['required', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => ['required', 'string'],
             'program_flow' => ['required', 'string'],
@@ -97,8 +96,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
-            'overall_goal' => 'Overall Goal',
-            'specific_objectives' => 'Specific Objectives',
+            'objectives' => 'Objectives',
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',
             'expense_items' => 'Expenses',

@@ -22,8 +22,7 @@ type ExpenseItem = { material: string; quantity: string; unit_price: string };
 type ProposalData = {
     calendar_mode: string;
     title: string;
-    overall_goal: string | null;
-    specific_objectives: string | null;
+    objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -214,27 +213,16 @@ export default function EditActivityProposal({
                                 comment={flaggedComment}
                                 sectionComment={flaggedSectionComments.objectives}
                             >
-                        <div className="space-y-4">
                         <div className="space-y-1">
-                            <Label htmlFor="overall_goal">Overall Goal</Label>
+                            <Label htmlFor="objectives">Objectives</Label>
                             <Textarea
-                                id="overall_goal"
-                                name="overall_goal"
-                                defaultValue={proposal?.overall_goal ?? ''}
-                                rows={3}
+                                id="objectives"
+                                name="objectives"
+                                defaultValue={proposal?.objectives ?? ''}
+                                placeholder={'Describe the overall goal of the activity.\nList specific measurable objectives.'}
+                                rows={6}
                             />
-                            <InputError message={errors.overall_goal} />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="specific_objectives">Specific Objectives</Label>
-                            <Textarea
-                                id="specific_objectives"
-                                name="specific_objectives"
-                                defaultValue={proposal?.specific_objectives ?? ''}
-                                rows={4}
-                            />
-                            <InputError message={errors.specific_objectives} />
-                        </div>
+                            <InputError message={errors.objectives} />
                         </div>
                         </FlaggedSectionWrapper>
 

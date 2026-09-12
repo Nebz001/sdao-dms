@@ -124,8 +124,7 @@ test('upload is forbidden once the document is no longer Draft or Returned', fun
     $submitAction->execute(
         actor: $this->studentAlpha,
         document: $this->document,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -148,8 +147,7 @@ test('step-2 submit never requires the resume — succeeds with it absent', func
     $result = $submitAction->execute(
         actor: $this->studentAlpha,
         document: $this->document,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -170,8 +168,7 @@ test('an uploaded resume appears on the student show page and the reviewer show 
     $submitAction->execute(
         actor: $this->studentAlpha,
         document: $this->document,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

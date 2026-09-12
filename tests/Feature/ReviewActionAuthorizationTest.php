@@ -150,8 +150,7 @@ test('HTTP: adviser reject terminates an off-calendar proposal at step 1 (same r
     $doc = $this->submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     )['document'];
 
     expect($doc->current_step_position)->toBe(1);

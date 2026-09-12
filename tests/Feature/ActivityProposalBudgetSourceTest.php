@@ -95,8 +95,7 @@ test('the selected budget source round-trips through submission and both show pa
     $this->submitProposal->execute(
         actor: $this->student,
         document: $document,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);

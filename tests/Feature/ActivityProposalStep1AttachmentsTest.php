@@ -189,7 +189,7 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
         data: array_merge(['calendar_activity_id' => $activity->id], step1ExactFields()),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $this->submitProposal->execute(actor: $this->student, document: $document, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
+    $this->submitProposal->execute(actor: $this->student, document: $document, objectives: 'Overall Goal');
     $document->refresh();
 
     $originalRequestLetter = $document->attachments()->where('slot_key', 'request_letter')->firstOrFail();
@@ -198,8 +198,7 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
     $document->refresh();
 
     $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -236,7 +235,7 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
         data: array_merge(['calendar_activity_id' => $activity->id], step1ExactFields()),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $this->submitProposal->execute(actor: $this->student, document: $document, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
+    $this->submitProposal->execute(actor: $this->student, document: $document, objectives: 'Overall Goal');
     $document->refresh();
 
     // Directly delete the persisted attachment to simulate a document that
@@ -251,8 +250,7 @@ test('resubmit still enforces required slots — a resubmit that somehow leaves 
     $action = app(ResubmitActivityProposal::class);
 
     expect(fn () => $action->execute($this->student, $document, [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

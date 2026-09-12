@@ -28,8 +28,7 @@ type ProposalData = {
     id: number;
     calendar_mode: string;
     title: string;
-    overall_goal: string | null;
-    specific_objectives: string | null;
+    objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -239,7 +238,7 @@ export default function ShowActivityProposal({
                 )}
 
                 {/* Narrative */}
-                {proposal && (proposal.overall_goal || proposal.specific_objectives || proposal.criteria_mechanics || proposal.program_flow) && (
+                {proposal && (proposal.objectives || proposal.criteria_mechanics || proposal.program_flow) && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
@@ -247,23 +246,13 @@ export default function ShowActivityProposal({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
-                            {proposal.overall_goal && (
+                            {proposal.objectives && (
                                 <div>
                                     <p className="mb-1 font-medium">
-                                        Overall Goal
+                                        Objectives
                                     </p>
                                     <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.overall_goal}
-                                    </p>
-                                </div>
-                            )}
-                            {proposal.specific_objectives && (
-                                <div>
-                                    <p className="mb-1 font-medium">
-                                        Specific Objectives
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.specific_objectives}
+                                        {proposal.objectives}
                                     </p>
                                 </div>
                             )}

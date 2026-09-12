@@ -73,10 +73,10 @@ class ResubmitActivityProposal
         //
         // The two field-key sets are disjoint (proposal: title,
         // activity_nature, activity_type, partner_organizations, target_sdg,
-        // overall_goal, specific_objectives, criteria_mechanics,
-        // program_flow, expense_items, responsible_persons, proposed_budget,
-        // budget_source; activity: venue, activity_date, start_time,
-        // end_time), so merging them into one flat snapshot is safe.
+        // objectives, criteria_mechanics, program_flow, expense_items,
+        // responsible_persons, proposed_budget, budget_source; activity:
+        // venue, activity_date, start_time, end_time), so merging them into
+        // one flat snapshot is safe.
         $flagged = SectionFlags::currentlyFlagged($document);
 
         if (! $isOffCalendar) {
@@ -139,9 +139,7 @@ class ResubmitActivityProposal
             $attachmentFiles, $hadAttachmentsBefore,
         ) {
             $proposal->update([
-                // Group D item 1 — split out of the single `objectives` field.
-                'overall_goal' => $data['overall_goal'],
-                'specific_objectives' => $data['specific_objectives'],
+                'objectives' => $data['objectives'],
                 // Exact field corrections (Phase 2 item 7 slice 4b).
                 'criteria_mechanics' => $data['criteria_mechanics'],
                 'program_flow' => $data['program_flow'],

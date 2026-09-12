@@ -77,8 +77,7 @@ function authSubmittedProposal(StartProposalDraft $start, SubmitActivityProposal
     return $submit->execute(
         actor: $student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     )['document'];
 }
 
@@ -173,8 +172,7 @@ test('secretary can start a draft and submit a proposal for their org', function
     $result = $this->submitProposal->execute(
         actor: $this->secretary,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     expect($result['document']->status)->toBe(DocumentStatus::InReview);

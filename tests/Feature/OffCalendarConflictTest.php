@@ -110,8 +110,7 @@ function offCalSubmitDraft(User $student, Organization $org, string $venue, stri
     return app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     )['document'];
 }
 
@@ -138,8 +137,7 @@ test('off-calendar submit overlapping an Approved activity is a hard block', fun
     expect(fn () => $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     ))->toThrow(ValidationException::class);
 
     // Draft must NOT have entered the chain
@@ -169,8 +167,7 @@ test('off-calendar submit overlapping an InReview activity submits with warning'
     $result = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // Submitted (non-blocking)
@@ -200,8 +197,7 @@ test('off-calendar submit at a different venue is allowed (no conflict)', functi
             ],
             attachmentFiles: proposalStepOneAttachmentFiles(),
         ),
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     expect($result['document']->status)->toBe(DocumentStatus::InReview);
@@ -227,8 +223,7 @@ test('off-calendar submit with touching (not overlapping) times is allowed', fun
             ],
             attachmentFiles: proposalStepOneAttachmentFiles(),
         ),
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     expect($result['document']->status)->toBe(DocumentStatus::InReview);
@@ -295,8 +290,7 @@ test('once proposal is Approved its off-cal activity hard-blocks a later submiss
     expect(fn () => app(SubmitActivityProposal::class)->execute(
         actor: $otherStudent,
         document: $conflictingDraft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     ))->toThrow(ValidationException::class);
 });
 
@@ -341,8 +335,7 @@ test('off-calendar proposal CalendarActivity is invisible to checker while Draft
     $result = app(SubmitActivityProposal::class)->execute(
         actor: $otherStudent,
         document: $rivalDraft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // No conflict because the first proposal is still Draft (invisible)

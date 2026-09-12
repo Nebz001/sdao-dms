@@ -103,8 +103,7 @@ function approvedProposalForVerificationGate(Organization $org, User $student): 
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $engine = app(ApprovalEngine::class);
@@ -225,8 +224,7 @@ test('the activity-proposal chain-entry submit is forbidden once the account is 
     $student->update(['account_status' => AccountStatus::Rejected]);
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -259,8 +257,7 @@ test('the activity-proposal chain-entry submit is forbidden when the account was
     $student->update(['account_status' => AccountStatus::Unverified]);
 
     $response = $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

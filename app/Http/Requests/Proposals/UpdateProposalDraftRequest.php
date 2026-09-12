@@ -18,9 +18,8 @@ class UpdateProposalDraftRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Group D item 1 — split out of the single `objectives` field.
-            'overall_goal' => ['nullable', 'string'],
-            'specific_objectives' => ['nullable', 'string'],
+            // Group E backlog — collapsed back into a single field.
+            'objectives' => ['nullable', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => ['nullable', 'string'],
             'program_flow' => ['nullable', 'string'],

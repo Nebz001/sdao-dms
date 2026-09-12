@@ -34,10 +34,11 @@ use Illuminate\Support\Collection;
  *                                                 1) — at least one goal in real student submissions (validation enforces
  *                                                 min:1), stored as a json array; same shape as
  *                                                 CalendarActivity::$sdg.
- * @property string|null $overall_goal Group D item 1 — split out of the
- *                                     original single `objectives` field.
- * @property string|null $specific_objectives Group D item 1 — split out of
- *                                            the original single `objectives` field.
+ * @property string|null $objectives Group E backlog — collapsed back into a
+ *                                   single field (was briefly split into
+ *                                   overall_goal/specific_objectives); both
+ *                                   hint phrases now live as placeholder
+ *                                   text on the one frontend field instead.
  * @property string|null $criteria_mechanics
  * @property string|null $program_flow
  * @property string|null $expenses Legacy free-text expenses, kept only as a
@@ -60,7 +61,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'overall_goal', 'specific_objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */

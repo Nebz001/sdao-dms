@@ -195,9 +195,7 @@ class ActivityProposalForm implements PrintableForm
             'proposed_time' => $activity !== null
                 ? $this->formatTime($activity->start_time).' – '.$this->formatTime($activity->end_time)
                 : null,
-            // Group D item 1 — split out of the single `objectives` field.
-            'overall_goal' => $proposal->overall_goal,
-            'specific_objectives' => $proposal->specific_objectives,
+            'objectives' => $proposal->objectives,
             // Group D item 2 — `narrative` removed; not passed to the view.
             'criteria_mechanics' => $proposal->criteria_mechanics,
             'program_flow' => $proposal->program_flow,

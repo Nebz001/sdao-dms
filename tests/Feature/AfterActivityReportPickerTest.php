@@ -76,8 +76,7 @@ function pickerApprovedProposal(Organization $org, User $actor, string $activity
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $actor,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $adviserEmail = $org->name === 'IT Guild' ? 'adviser-two@nu-lipa.edu.ph' : 'adviser-one@nu-lipa.edu.ph';

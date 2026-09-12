@@ -169,8 +169,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         ->firstOrFail();
 
     $this->actingAs($student)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -184,8 +183,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
     $document->refresh();
 
     assertResubmitRedirectSucceeds($student, route('activity-proposals.update', $document), [
-        'overall_goal' => 'Updated overall goal',
-        'specific_objectives' => 'Updated specific objectives',
+        'objectives' => 'Updated overall goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

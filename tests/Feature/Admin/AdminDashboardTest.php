@@ -209,8 +209,7 @@ test('the proposal funnel groups an in-review proposal by variant and labels the
     app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
         criteriaMechanics: 'Criteria',
         programFlow: 'Flow',
         expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

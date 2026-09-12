@@ -181,8 +181,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
     ['document' => $doc] = $submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // Adviser is step 1 regardless of calendar mode (invariant #8).
@@ -196,8 +195,7 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
@@ -247,8 +245,7 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     ['document' => $doc] = $submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // On-calendar starts at the adviser step; return from there.
@@ -257,8 +254,7 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
-        'overall_goal' => 'Sharper overall goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Sharper overall goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [],
@@ -272,9 +268,9 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     expect($changes)->not->toHaveKey('schedule_venue');
     expect($changes)->toHaveKey('objectives');
     $objectives = collect($changes['objectives']['fields'])->keyBy('key');
-    expect($objectives['overall_goal']['old'])->toBe('Overall Goal');
-    expect($objectives['overall_goal']['new'])->toBe('Sharper overall goal');
-    expect($objectives['specific_objectives']['changed'])->toBeFalse();
+    expect($objectives['objectives']['old'])->toBe("Overall Goal\n\nSpecific Objectives");
+    expect($objectives['objectives']['new'])->toBe('Sharper overall goal');
+    expect($objectives['objectives']['changed'])->toBeTrue();
 });
 
 // ── (d) calendar positional zip, including a count mismatch ────────────────

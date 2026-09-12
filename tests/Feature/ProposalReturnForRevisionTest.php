@@ -94,8 +94,7 @@ test('return at step 6 keeps lower-step approvals and holds position at 6', func
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // Advance steps 1–5
@@ -152,8 +151,7 @@ test('resubmit after step-6 return resumes at step 6, not step 1', function () {
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $this->engine->approve($doc, $this->adviser);
@@ -192,8 +190,7 @@ test('after step-6 return and resubmit, acad dir approves → advances to exec d
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $this->engine->approve($doc, $this->adviser);
@@ -241,8 +238,7 @@ test('return at dean (step 3) keeps steps 1–2 and resumes at step 3', function
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $this->engine->approve($doc, $this->adviser);
@@ -305,8 +301,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
     ['document' => $doc] = $this->submitProposal->execute(
         actor: $this->student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     // Adviser is step 1 regardless of calendar mode (invariant #8).
@@ -336,8 +331,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
     // browser would resend if the student left the field untouched — must
     // pass validation. This is the exact symptom QA reported.
     $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $doc), [
-        'overall_goal' => 'Updated overall goal',
-        'specific_objectives' => 'Updated specific objectives',
+        'objectives' => 'Updated overall goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

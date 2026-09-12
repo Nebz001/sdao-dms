@@ -178,8 +178,7 @@
     <div>{{ $venue }}</div>
 
     <div class="h2">IV. Objectives</div>
-    <div class="indent"><strong>a. Overall Goal</strong><br>{{ $overall_goal }}</div>
-    <div class="indent"><strong>b. Specific Objectives</strong><br>{{ $specific_objectives }}</div>
+    <div>{{ $objectives }}</div>
 
     <div class="h2">V. Activity Description</div>
     <div class="indent"><strong>a. Criteria/Mechanics</strong><br>{{ $criteria_mechanics }}</div>

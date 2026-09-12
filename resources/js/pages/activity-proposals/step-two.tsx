@@ -22,8 +22,7 @@ type ActivitySummary = {
 type ProposalData = {
     calendar_mode: string;
     title: string;
-    overall_goal: string | null;
-    specific_objectives: string | null;
+    objectives: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
     expenses: string | null;
@@ -58,8 +57,7 @@ function money(amount: number): string {
 }
 
 export default function StepTwo({ document: doc, proposal, activity }: Props) {
-    const overallGoalRef = useRef<HTMLTextAreaElement>(null);
-    const specificObjectivesRef = useRef<HTMLTextAreaElement>(null);
+    const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,8 +118,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                     'X-XSRF-TOKEN': xsrfToken(),
                 },
                 body: JSON.stringify({
-                    overall_goal: overallGoalRef.current?.value ?? null,
-                    specific_objectives: specificObjectivesRef.current?.value ?? null,
+                    objectives: objectivesRef.current?.value ?? null,
                     criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                     program_flow: programFlowRef.current?.value ?? null,
                     expense_items: expenseItemsRef.current,
@@ -190,29 +187,17 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                     {({ processing, errors }) => (
                     <div className="space-y-4">
                         <div className="space-y-1">
-                            <Label htmlFor="overall_goal">Overall Goal</Label>
+                            <Label htmlFor="objectives">Objectives</Label>
                             <Textarea
-                                id="overall_goal"
-                                name="overall_goal"
-                                ref={overallGoalRef}
-                                defaultValue={proposal?.overall_goal ?? ''}
-                                rows={3}
+                                id="objectives"
+                                name="objectives"
+                                ref={objectivesRef}
+                                defaultValue={proposal?.objectives ?? ''}
+                                placeholder={'Describe the overall goal of the activity.\nList specific measurable objectives.'}
+                                rows={6}
                                 onChange={scheduleSave}
                             />
-                            <InputError message={errors.overall_goal} />
-                        </div>
-
-                        <div className="space-y-1">
-                            <Label htmlFor="specific_objectives">Specific Objectives</Label>
-                            <Textarea
-                                id="specific_objectives"
-                                name="specific_objectives"
-                                ref={specificObjectivesRef}
-                                defaultValue={proposal?.specific_objectives ?? ''}
-                                rows={4}
-                                onChange={scheduleSave}
-                            />
-                            <InputError message={errors.specific_objectives} />
+                            <InputError message={errors.objectives} />
                         </div>
 
                         <div className="space-y-1">

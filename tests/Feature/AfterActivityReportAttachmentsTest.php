@@ -68,8 +68,7 @@ function attachmentsTestApprovedProposal(Organization $org, User $actor): Activi
     ['document' => $proposalDoc] = app(SubmitActivityProposal::class)->execute(
         actor: $actor,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     foreach ([

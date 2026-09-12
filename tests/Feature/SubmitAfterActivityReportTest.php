@@ -102,8 +102,7 @@ function approvedProposalForComputingSociety(Organization $org, User $student): 
     ['document' => $doc] = $submitProposal->execute(
         actor: $student,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $engine->approve($doc, $adviserOne);
@@ -140,8 +139,7 @@ test('a report cannot be filed against a proposal that is not approved', functio
     ['document' => $doc] = app(SubmitActivityProposal::class)->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
     $proposal = $doc->activityProposal()->firstOrFail();
 

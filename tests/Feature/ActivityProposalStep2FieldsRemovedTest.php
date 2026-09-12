@@ -23,13 +23,17 @@ beforeEach(function () {
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
-test('narrative and source_of_funding are not columns on activity_proposals', function () {
+test('narrative, source_of_funding, overall_goal, and specific_objectives are not columns on activity_proposals', function () {
     expect(Schema::hasColumn('activity_proposals', 'narrative'))->toBeFalse();
     expect(Schema::hasColumn('activity_proposals', 'source_of_funding'))->toBeFalse();
+    // Group E backlog — overall_goal/specific_objectives (themselves a
+    // replacement for the original narrative removal) were collapsed back
+    // into a single `objectives` field.
+    expect(Schema::hasColumn('activity_proposals', 'overall_goal'))->toBeFalse();
+    expect(Schema::hasColumn('activity_proposals', 'specific_objectives'))->toBeFalse();
 
-    // The replacement fields exist in their place.
-    expect(Schema::hasColumn('activity_proposals', 'overall_goal'))->toBeTrue();
-    expect(Schema::hasColumn('activity_proposals', 'specific_objectives'))->toBeTrue();
+    // The current field exists in their place.
+    expect(Schema::hasColumn('activity_proposals', 'objectives'))->toBeTrue();
 });
 
 test('a submit request still carrying the old narrative/source_of_funding keys succeeds and does not resurrect them anywhere reachable', function () {
@@ -55,8 +59,7 @@ test('a submit request still carrying the old narrative/source_of_funding keys s
     );
 
     $response = $this->actingAs($this->student)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Flow',
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '100.00']],

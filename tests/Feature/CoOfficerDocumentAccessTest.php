@@ -123,13 +123,12 @@ test('secretary can continue, autosave, and submit the president\'s Draft propos
     $this->actingAs($this->secretary)->withoutVite()->get(route('activity-proposals.continue', $document))->assertOk();
 
     $this->actingAs($this->secretary)->patch(route('activity-proposals.draft', $document), [
-        'overall_goal' => 'Overall goal written by secretary.',
+        'objectives' => 'Overall goal written by secretary.',
     ])->assertOk();
-    expect($document->activityProposal->fresh()->overall_goal)->toBe('Overall goal written by secretary.');
+    expect($document->activityProposal->fresh()->objectives)->toBe('Overall goal written by secretary.');
 
     $response = $this->actingAs($this->secretary)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Final overall goal.',
-        'specific_objectives' => 'Final specific objectives.',
+        'objectives' => 'Final overall goal.',
         'criteria_mechanics' => 'Criteria.',
         'program_flow' => 'Flow.',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

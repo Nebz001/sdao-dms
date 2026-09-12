@@ -173,8 +173,7 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
 
     // Submit step 2 to reach a real (non-Draft) document for show/review-show.
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
@@ -229,7 +228,7 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
         data: offCalendarStep1Payload(['venue' => 'Conflict Hall']),
         attachmentFiles: proposalStepOneAttachmentFiles(),
     );
-    $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, overallGoal: 'Overall Goal', specificObjectives: 'Specific Objectives');
+    $submitAction->execute(actor: $this->studentAlpha, document: $firstDoc, objectives: 'Overall Goal');
     $firstDoc->refresh();
 
     // Off-calendar chain order matches on-calendar exactly (invariant #8):
@@ -273,8 +272,7 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
     expect(fn () => $submitAction->execute(
         actor: $this->studentAlpha,
         document: $secondDoc,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     ))->toThrow(ValidationException::class);
 });
 
@@ -343,8 +341,7 @@ test('an "others" selection with its specify text round-trips through submission
     expect($proposal->activity_type_other)->toBe('Photo walk');
 
     $this->actingAs($this->studentAlpha)->post(route('activity-proposals.submit', $document), [
-        'overall_goal' => 'Overall Goal',
-        'specific_objectives' => 'Specific Objectives',
+        'objectives' => 'Overall Goal',
         'criteria_mechanics' => 'Criteria/Mechanics',
         'program_flow' => 'Program Flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],

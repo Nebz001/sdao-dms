@@ -245,8 +245,7 @@ test('return accepts every valid section key for Activity Proposal (combined 11-
     ['document' => $doc] = $submitProposal->execute(
         actor: $this->studentAlpha,
         document: $draft,
-        overallGoal: 'Overall Goal',
-        specificObjectives: 'Specific Objectives',
+        objectives: "Overall Goal\n\nSpecific Objectives",
     );
 
     $allKeys = collect(SectionFlags::for(FormType::ActivityProposal))->pluck('key')->all();

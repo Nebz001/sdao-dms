@@ -119,10 +119,9 @@ class SectionFields
                     new FieldDefinition('start_time', 'Start Time'),
                     new FieldDefinition('end_time', 'End Time'),
                 ],
-                // Group D item 1 — split out of the single `objectives` field.
+                // Group E backlog — collapsed back into a single field.
                 'objectives' => [
-                    new FieldDefinition('overall_goal', 'Overall Goal'),
-                    new FieldDefinition('specific_objectives', 'Specific Objectives'),
+                    new FieldDefinition('objectives', 'Objectives'),
                 ],
                 // Group D item 2 — `narrative` removed (leftover scaffold
                 // field, never reconciled into the exact field list).

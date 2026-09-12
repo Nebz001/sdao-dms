@@ -36,9 +36,7 @@ class UpdateProposalDraft
         // once at step 1 (Phase 2 item 7 slice 4a) and is not part of the
         // step-2 narrative autosave.
         $proposal->update([
-            // Group D item 1 — split out of the single `objectives` field.
-            'overall_goal' => $data['overall_goal'] ?? $proposal->overall_goal,
-            'specific_objectives' => $data['specific_objectives'] ?? $proposal->specific_objectives,
+            'objectives' => $data['objectives'] ?? $proposal->objectives,
             // Exact field corrections (Phase 2 item 7 slice 4b).
             'criteria_mechanics' => $data['criteria_mechanics'] ?? $proposal->criteria_mechanics,
             'program_flow' => $data['program_flow'] ?? $proposal->program_flow,
