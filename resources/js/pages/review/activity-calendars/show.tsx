@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import ActivityCalendarReviewController from '@/actions/App/Http/Controllers/ActivityCalendarReviewController';
 import ApprovalActionsCard from '@/components/approval-actions-card';
 import CalendarSectionFlagFields from '@/components/calendar-section-flag-fields';
+import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
@@ -149,7 +150,7 @@ export default function ReviewActivityCalendarShow({
         <>
             <Head title={`Review: ${document.title}`} />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -408,7 +409,7 @@ export default function ReviewActivityCalendarShow({
                         </ol>
                     </CardContent>
                 </Card>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

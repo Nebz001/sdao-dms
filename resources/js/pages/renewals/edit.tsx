@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -46,7 +47,7 @@ export default function EditRenewal({
         <>
             <Head title="Edit Renewal" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Edit & Resubmit Renewal"
                     description="Update the details below and resubmit for SDAO review."
@@ -195,7 +196,7 @@ export default function EditRenewal({
                         </>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

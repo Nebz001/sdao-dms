@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import CenteredContainer from '@/components/centered-container';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
@@ -85,7 +86,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
         <>
             <Head title={document.title} />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -192,7 +193,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                         </ol>
                     </CardContent>
                 </Card>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

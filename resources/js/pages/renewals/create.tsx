@@ -3,6 +3,7 @@ import { CalendarClock } from 'lucide-react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -81,7 +82,7 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -100,7 +101,7 @@ export default function CreateRenewal({
                             </Button>
                         )}
                     </Empty>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -109,7 +110,7 @@ export default function CreateRenewal({
         <>
             <Head title="Submit Renewal" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Organization Renewal"
                     description={`Renewing ${membership.organization.name} for ${coveredYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}
@@ -233,7 +234,7 @@ export default function CreateRenewal({
                         </>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

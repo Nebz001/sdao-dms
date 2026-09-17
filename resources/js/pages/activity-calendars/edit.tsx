@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
@@ -109,7 +110,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
         <>
             <Head title="Edit Activity Calendar" />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 <Heading
                     title="Edit & Resubmit Activity Calendar"
                     description="Update the activities below and resubmit for SDAO review."
@@ -289,7 +290,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                         {processing ? 'Saving…' : 'Save & Resubmit'}
                     </Button>
                 </form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

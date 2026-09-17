@@ -6,6 +6,7 @@ import type {
     ExistingAttachment,
 } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
@@ -152,7 +153,7 @@ export default function ReviewActivityProposalShow({
         <>
             <Head title={`Review — ${doc.title}`} />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -532,7 +533,7 @@ export default function ReviewActivityProposalShow({
                         </ol>
                     </CardContent>
                 </Card>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

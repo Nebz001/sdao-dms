@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
 import AttachmentSlotField from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
@@ -158,12 +159,12 @@ export default function CreateActivityProposal({
 
     if (!membership) {
         return (
-            <div className="mx-auto w-full max-w-xl">
+            <CenteredContainer maxWidth="xl">
                 <p className="text-muted-foreground">
                     You must be an active officer of an organization to submit a
                     proposal.
                 </p>
-            </div>
+            </CenteredContainer>
         );
     }
 
@@ -171,7 +172,7 @@ export default function CreateActivityProposal({
         <>
             <Head title="New Activity Proposal" />
 
-            <div className="max-w-xl space-y-6">
+            <CenteredContainer maxWidth="xl" className="space-y-6">
                 <h1 className="text-xl font-semibold">New Activity Proposal</h1>
                 <p className="text-sm text-muted-foreground">
                     <span className="font-medium">Name of RSO:</span>{' '}
@@ -677,7 +678,7 @@ export default function CreateActivityProposal({
                         </div>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

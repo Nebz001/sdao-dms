@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -106,7 +107,7 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <Heading
                         title="Join an Organization"
                         description="Your request is already on its way."
@@ -119,7 +120,7 @@ export default function JoinOrganization({
                         . Its adviser or an active officer will approve or
                         decline it — you&apos;ll be notified either way.
                     </p>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -128,14 +129,14 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <Heading title="Join an Organization" />
                     <p className="text-sm text-muted-foreground">
                         You&apos;re already an active officer of an
                         organization. A student can only belong to one
                         organization at a time.
                     </p>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -144,7 +145,7 @@ export default function JoinOrganization({
         <>
             <Head title="Join an Organization" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Join an Organization"
                     description="Search for your organization below. Once you send a request, its adviser or an active officer will need to approve it before you gain access."
@@ -267,7 +268,7 @@ export default function JoinOrganization({
                     }}
                     confirmDisabled={processing}
                 />
-            </div>
+            </CenteredContainer>
         </>
     );
 }

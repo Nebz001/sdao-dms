@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -172,12 +173,12 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         return (
             <>
                 <Head title="Submit Registration" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <p className="text-sm text-muted-foreground">
                         You already have an active organization or an in-progress registration.
                         You cannot propose another organization at this time.
                     </p>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -199,7 +200,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         <>
             <Head title="Submit Registration" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Propose a New Organization"
                     description="Found a brand-new student organization. SDAO reviews and approves your choice of adviser."
@@ -453,7 +454,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                         </DialogContent>
                     </Dialog>
                 </div>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

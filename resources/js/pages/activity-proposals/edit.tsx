@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import InputError from '@/components/input-error';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
@@ -107,7 +108,7 @@ export default function EditActivityProposal({
         <>
             <Head title={`Edit — ${doc.title}`} />
 
-            <div className="max-w-xl space-y-6">
+            <CenteredContainer maxWidth="xl" className="space-y-6">
                 <h1 className="text-xl font-semibold">Edit Proposal</h1>
                 <p className="text-sm text-muted-foreground">{doc.title}</p>
 
@@ -637,7 +638,7 @@ export default function EditActivityProposal({
                     </div>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

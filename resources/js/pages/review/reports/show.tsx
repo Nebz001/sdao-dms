@@ -6,6 +6,7 @@ import type {
     ExistingAttachment,
 } from '@/components/attachment-slot-field';
 import AttachmentsCard from '@/components/attachments-card';
+import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
@@ -124,7 +125,7 @@ export default function ReviewReportShow({
         <>
             <Head title={`Review: ${document.title}`} />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -400,7 +401,7 @@ export default function ReviewReportShow({
                         </ol>
                     </CardContent>
                 </Card>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

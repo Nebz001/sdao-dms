@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import RegistrationController from '@/actions/App/Http/Controllers/RegistrationController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -120,7 +121,7 @@ export default function EditRegistration({
         <>
             <Head title="Edit Registration" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Edit & Resubmit Registration"
                     description="Update the details below and resubmit for SDAO review."
@@ -339,7 +340,7 @@ export default function EditRegistration({
                         </>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import { Row } from '@/components/labeled-row';
 import { Button } from '@/components/ui/button';
@@ -139,7 +140,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
         <>
             <Head title={`Narrative — ${doc.title}`} />
 
-            <div className="max-w-xl space-y-6">
+            <CenteredContainer maxWidth="xl" className="space-y-6">
                 <div>
                     <h1 className="text-xl font-semibold">Activity Proposal — Narrative</h1>
                     <p className="mt-1 text-sm text-muted-foreground">{doc.title}</p>
@@ -431,7 +432,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                     </div>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

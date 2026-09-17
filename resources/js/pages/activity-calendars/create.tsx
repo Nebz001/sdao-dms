@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import CenteredContainer from '@/components/centered-container';
 import Heading from '@/components/heading';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
@@ -175,7 +176,7 @@ export default function CreateActivityCalendar({
         return (
             <>
                 <Head title="Submit Activity Calendar" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="3xl">
                     <Empty>
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -205,7 +206,7 @@ export default function CreateActivityCalendar({
                                 </Button>
                             )}
                     </Empty>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -214,7 +215,7 @@ export default function CreateActivityCalendar({
         <>
             <Head title="Submit Activity Calendar" />
 
-            <div className="max-w-3xl space-y-6">
+            <CenteredContainer maxWidth="3xl" className="space-y-6">
                 <Heading
                     title="Activity Calendar"
                     description={`Submitting for ${membership.organization.name} as ${membership.position_label}`}
@@ -544,7 +545,7 @@ export default function CreateActivityCalendar({
                         {processing ? 'Submitting…' : 'Submit for Review'}
                     </Button>
                 </form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

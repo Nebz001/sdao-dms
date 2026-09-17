@@ -3,6 +3,7 @@ import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
+import CenteredContainer from '@/components/centered-container';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -47,12 +48,12 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <p className="text-sm text-muted-foreground">
                         You are not bound as an officer of any organization. Contact your
                         adviser to be bound before submitting a report.
                     </p>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -61,13 +62,13 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <div className="mx-auto w-full max-w-2xl">
+                <CenteredContainer maxWidth="2xl">
                     <p className="text-sm text-muted-foreground">
                         {membership.organization.name} has no approved activities awaiting a
                         report. A report can only be filed against an approved activity
                         proposal that does not already have one on file.
                     </p>
-                </div>
+                </CenteredContainer>
             </>
         );
     }
@@ -76,7 +77,7 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         <>
             <Head title="Submit After-Activity Report" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="After-Activity Report"
                     description={`Reporting for ${membership.organization.name} as ${membership.position_label}`}
@@ -242,7 +243,7 @@ export default function CreateReport({ membership, eligibleProposals, attachment
                         </>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

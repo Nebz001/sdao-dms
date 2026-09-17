@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
 import ApproverController from '@/actions/App/Http/Controllers/Admin/ApproverController';
+import CenteredContainer from '@/components/centered-container';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
         <>
             <Head title="Provision Approver" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Provision Approver"
                     description="Creates the account with a working default password and emails the approver their login details."
@@ -161,7 +162,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                         </>
                     )}
                 </Form>
-            </div>
+            </CenteredContainer>
         </>
     );
 }

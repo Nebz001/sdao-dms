@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import CurrentPeriodController from '@/actions/App/Http/Controllers/Admin/CurrentPeriodController';
+import CenteredContainer from '@/components/centered-container';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -89,7 +90,7 @@ export default function CurrentPeriodSettings({
         <>
             <Head title="Current Period" />
 
-            <div className="max-w-2xl space-y-6">
+            <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight text-balance">
                         Current Period
@@ -217,7 +218,7 @@ export default function CurrentPeriodSettings({
                         </Dialog>
                     </CardContent>
                 </Card>
-            </div>
+            </CenteredContainer>
         </>
     );
 }
