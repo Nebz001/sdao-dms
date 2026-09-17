@@ -3,6 +3,7 @@
 use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Identity\Admin\ProvisionApprover;
+use App\Identity\RoleDirectory;
 use App\Models\Organization;
 use App\Models\Program;
 use App\Models\RoleAssignment;
@@ -162,6 +163,120 @@ test('provisioning a new SDAO member still ADDS a row — the multi-holder role 
     );
 
     expect(RoleAssignment::where('role', Role::SdaoMember->value)->count())->toBe($before + 1);
+});
+
+// Regression coverage for the persistent-403 bug: unlike the three global
+// director roles above, a SCOPE-bound single-holder role (Dean, Program
+// Chair, org-bound Adviser) previously fell into a plain create() and left
+// two live rows for the same role+scope — RoleDirectory's unordered
+// firstOrFail() then made "who holds this seat" undefined, so a document
+// reaching that step could be notified/authorized to whichever row won,
+// sometimes leaving the newly provisioned holder neither notified nor able
+// to open the review page at all. IdentitySeeder (seeded in beforeEach)
+// already assigned an incumbent for CCIT's Dean, BS Computer Science's
+// Program Chair, and Computing Society's Adviser — every test below
+// provisions a REPLACEMENT for one of those and asserts the incumbent's
+// seat is retired, not merely shadowed.
+test('provisioning a replacement dean RETIRES the previous holder\'s assignment for that school', function () {
+    $incumbent = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Replacement Dean',
+        email: 'replacement-dean@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $this->school->id],
+    );
+
+    expect(RoleAssignment::where('role', Role::Dean->value)->where('school_id', $this->school->id)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::Dean->value)->where('school_id', $this->school->id)->value('user_id'))
+        ->toBe($newHolder->id);
+    expect(RoleAssignment::where('user_id', $incumbent->id)->where('role', Role::Dean->value)->exists())->toBeFalse();
+
+    expect(app(RoleDirectory::class)->deanFor($this->org)->id)->toBe($newHolder->id);
+});
+
+test('provisioning a replacement program chair RETIRES the previous holder\'s assignment for that program', function () {
+    $incumbent = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
+
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Replacement Chair',
+        email: 'replacement-chair@nu-lipa.edu.ph',
+        role: Role::ProgramChair,
+        scope: ['program_id' => $this->program->id],
+    );
+
+    expect(RoleAssignment::where('role', Role::ProgramChair->value)->where('program_id', $this->program->id)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::ProgramChair->value)->where('program_id', $this->program->id)->value('user_id'))
+        ->toBe($newHolder->id);
+    expect(RoleAssignment::where('user_id', $incumbent->id)->where('role', Role::ProgramChair->value)->exists())->toBeFalse();
+
+    expect(app(RoleDirectory::class)->programChairFor($this->org)->id)->toBe($newHolder->id);
+});
+
+test('provisioning a replacement adviser UNBINDS the previous adviser back to the available pool, rather than deleting their role', function () {
+    $incumbent = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    $newHolder = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Replacement Adviser',
+        email: 'replacement-adviser@nu-lipa.edu.ph',
+        role: Role::Adviser,
+        scope: ['organization_id' => $this->org->id],
+    );
+
+    expect(RoleAssignment::where('role', Role::Adviser->value)->where('organization_id', $this->org->id)->count())->toBe(1);
+    expect(RoleAssignment::where('role', Role::Adviser->value)->where('organization_id', $this->org->id)->value('user_id'))
+        ->toBe($newHolder->id);
+
+    // The incumbent's row still exists — freed to the pool, not deleted —
+    // so StoreRegistrationRequest's exists:role_assignments,user_id
+    // validation and ApproveOrganizationRegistration's user_id-only lookup
+    // both keep working for them, exactly as they do for an adviser freed
+    // by an organization delete (AdviserFreedOnOrganizationDeleteTest).
+    $incumbentAssignment = RoleAssignment::where('user_id', $incumbent->id)->where('role', Role::Adviser->value)->firstOrFail();
+    expect($incumbentAssignment->organization_id)->toBeNull();
+
+    expect(app(RoleDirectory::class)->adviserFor($this->org)->id)->toBe($newHolder->id);
+
+    $response = $this->actingAs(User::factory()->create())
+        ->getJson(route('registrations.adviser-search', ['q' => 'Adviser One']));
+    $response->assertOk();
+    $advisers = $response->json('advisers');
+    expect($advisers)->toHaveCount(1);
+    expect($advisers[0]['id'])->toBe($incumbent->id);
+    expect($advisers[0]['is_available'])->toBeTrue();
+});
+
+test('provisioning a dean for one school leaves another school\'s dean untouched', function () {
+    $otherSchool = School::where('name', 'School of Business and Accountancy')->firstOrFail();
+    $otherDean = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'Other School Dean',
+        email: 'other-school-dean@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $otherSchool->id],
+    );
+
+    $incumbentCcitDean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+
+    expect(RoleAssignment::where('user_id', $incumbentCcitDean->id)->where('role', Role::Dean->value)->exists())->toBeTrue();
+    expect(RoleAssignment::where('role', Role::Dean->value)->where('school_id', $otherSchool->id)->value('user_id'))
+        ->toBe($otherDean->id);
+});
+
+test('provisioning an unscoped adviser never disturbs the available pool or any org-bound adviser', function () {
+    $this->action->execute(actor: $this->sdaoA, name: 'Pool One', email: 'pool-one@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+    $this->action->execute(actor: $this->sdaoA, name: 'Pool Two', email: 'pool-two@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+
+    $poolCountBefore = RoleAssignment::where('role', Role::Adviser->value)->whereNull('organization_id')->count();
+    $boundAdviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    $this->action->execute(actor: $this->sdaoA, name: 'Pool Three', email: 'pool-three@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+
+    expect(RoleAssignment::where('role', Role::Adviser->value)->whereNull('organization_id')->count())->toBe($poolCountBefore + 1);
+    expect(RoleAssignment::where('user_id', $boundAdviser->id)->where('organization_id', $this->org->id)->exists())->toBeTrue();
 });
 
 test('provisioning Student is rejected — students self-register and are adviser-bound, never admin-provisioned', function () {

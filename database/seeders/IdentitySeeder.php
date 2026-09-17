@@ -112,7 +112,17 @@ class IdentitySeeder extends Seeder
 
         $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high']);
         $principal = $this->user('Principal SHS', 'principal-shs@nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $principal->id, 'role' => Role::Principal, 'school_id' => $shs->id]);
+        // Keyed on role+scope, NOT user_id — this is the placeholder
+        // fixture, so where RealRosterSeeder has already seated the real
+        // named principal for this exact school (Senior High School is the
+        // live case: both seeders resolve the same School row via
+        // firstOrCreate on name), defer to it instead of creating a second,
+        // ambiguous row. Same reasoning as the three global directors above
+        // — see RoleDirectory::resolveScoped().
+        RoleAssignment::firstOrCreate(
+            ['role' => Role::Principal, 'school_id' => $shs->id, 'program_id' => null, 'organization_id' => null],
+            ['user_id' => $principal->id],
+        );
 
         $adviserShs = $this->user('Adviser SHS', 'adviser-shs@nu-lipa.edu.ph');
         $shsCouncil = Organization::create([

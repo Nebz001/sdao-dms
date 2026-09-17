@@ -4,11 +4,11 @@ namespace App\Identity\Admin;
 
 use App\Enums\AccountStatus;
 use App\Enums\Role;
-use App\Enums\ScopeType;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\ApproverProvisionedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -52,36 +52,42 @@ class ProvisionApprover
 
         $this->guardScopeMatchesRole($role, $scope);
 
-        $user = User::create([
-            'name' => $name,
-            'email' => $email,
-            'id_number' => $idNumber,
-            'password' => Hash::make(self::DEFAULT_PASSWORD),
-            // The admin vouches for the address — approvers are trusted
-            // accounts and must not hit the email/account verification walls
-            // before they can log in.
-            'email_verified_at' => now(),
-            'account_status' => AccountStatus::Verified,
-        ]);
-
-        if ($role->hasSingleGlobalHolder()) {
-            // Must never have more than one row — RoleDirectory::
-            // resolveGlobal() can only resolve a single holder. Provisioning
-            // a new one supersedes whichever account currently holds it,
-            // rather than creating an ambiguous second row.
-            RoleAssignment::updateOrCreate(
-                ['role' => $role, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
-                ['user_id' => $user->id],
-            );
-        } else {
-            RoleAssignment::create([
-                'user_id' => $user->id,
-                'role' => $role,
-                'school_id' => $scope['school_id'] ?? null,
-                'program_id' => $scope['program_id'] ?? null,
-                'organization_id' => $scope['organization_id'] ?? null,
+        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope) {
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'id_number' => $idNumber,
+                'password' => Hash::make(self::DEFAULT_PASSWORD),
+                // The admin vouches for the address — approvers are trusted
+                // accounts and must not hit the email/account verification walls
+                // before they can log in.
+                'email_verified_at' => now(),
+                'account_status' => AccountStatus::Verified,
             ]);
-        }
+
+            if ($role->hasSingleGlobalHolder()) {
+                // Must never have more than one row — RoleDirectory::
+                // resolveGlobal() can only resolve a single holder. Provisioning
+                // a new one supersedes whichever account currently holds it,
+                // rather than creating an ambiguous second row.
+                RoleAssignment::updateOrCreate(
+                    ['role' => $role, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
+                    ['user_id' => $user->id],
+                );
+            } else {
+                $this->retireIncumbent($role, $scope);
+
+                RoleAssignment::create([
+                    'user_id' => $user->id,
+                    'role' => $role,
+                    'school_id' => $scope['school_id'] ?? null,
+                    'program_id' => $scope['program_id'] ?? null,
+                    'organization_id' => $scope['organization_id'] ?? null,
+                ]);
+            }
+
+            return $user;
+        });
 
         try {
             $user->notify(new ApproverProvisionedNotification($role, self::DEFAULT_PASSWORD));
@@ -96,18 +102,71 @@ class ProvisionApprover
     }
 
     /**
+     * A scope-bound single-holder role (adviser/chair/dean/principal) has
+     * exactly one seat per (role, scope) pair. Provisioning a replacement
+     * must vacate that seat first — otherwise RoleDirectory is left choosing
+     * between two live rows, and the replacement (the higher id) never wins
+     * (see RoleDirectory::resolveScoped()'s first-assigned-wins rule), so
+     * the newly provisioned approver is silently neither notified nor
+     * authorized for anything. A no-op for roles that aren't single-holder
+     * per scope (SdaoMember), and for an Adviser provisioned with no
+     * organization_id — that's the unassigned pool, not a seat; nothing to
+     * retire (see guardScopeMatchesRole()'s docblock on this same asymmetry).
+     *
+     * Adviser vs. the other three roles retire differently, deliberately:
+     * an Adviser's previous holder is UNBOUND (organization_id => null),
+     * freed back to the available pool — never deleted — because
+     * StoreRegistrationRequest/UpdateRegistrationRequest validate a chosen
+     * adviser_id with Rule::exists('role_assignments', 'user_id')->where(
+     * 'role', 'adviser'), and App\Registrations\ApproveOrganizationRegistration
+     * looks up that same row by user_id alone to bind it at approval time —
+     * deleting it would fail an in-flight registration's revalidation and
+     * silently no-op that binding. This mirrors the existing
+     * organization_id nullOnDelete "freed to the pool" behavior (see
+     * tests/Feature/AdviserFreedOnOrganizationDeleteTest.php). Dean/
+     * ProgramChair/Principal have no such pool concept — their scope key is
+     * always required (guardScopeMatchesRole()), so a scope-less leftover
+     * row would be meaningless — their previous holder's row is deleted
+     * outright.
+     *
+     * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
+     */
+    private function retireIncumbent(Role $role, array $scope): void
+    {
+        if (! $role->hasSingleScopedHolder()) {
+            return;
+        }
+
+        $column = $role->scopeColumn();
+        $value = $scope[$column] ?? null;
+
+        if ($value === null) {
+            return;
+        }
+
+        $incumbents = RoleAssignment::query()
+            ->where('role', $role)
+            ->where($column, $value)
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($incumbents as $incumbent) {
+            if ($role === Role::Adviser) {
+                $incumbent->update(['organization_id' => null]);
+            } else {
+                $incumbent->delete();
+            }
+        }
+    }
+
+    /**
      * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
      *
      * @throws ValidationException
      */
     private function guardScopeMatchesRole(Role $role, array $scope): void
     {
-        $expectedKey = match ($role->scopeType()) {
-            ScopeType::Organization => 'organization_id',
-            ScopeType::Program => 'program_id',
-            ScopeType::School => 'school_id',
-            ScopeType::Global => null,
-        };
+        $expectedKey = $role->scopeColumn();
 
         $providedKeys = array_keys(array_filter($scope, fn ($value) => $value !== null));
 

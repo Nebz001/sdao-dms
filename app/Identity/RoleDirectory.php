@@ -62,11 +62,7 @@ class RoleDirectory
             throw new \LogicException("Organization {$organization->id} ({$organization->name}) has a school but no program — cannot resolve a program chair. This indicates a data-integrity violation.");
         }
 
-        return RoleAssignment::query()
-            ->where('role', Role::ProgramChair)
-            ->where('program_id', $organization->program_id)
-            ->firstOrFail()
-            ->user;
+        return $this->resolveScoped(Role::ProgramChair, 'program_id', $organization->program_id);
     }
 
     /**
@@ -143,19 +139,38 @@ class RoleDirectory
     /** @throws ModelNotFoundException */
     private function resolveOrgScoped(Role $role, Organization $organization): User
     {
-        return RoleAssignment::query()
-            ->where('role', $role)
-            ->where('organization_id', $organization->id)
-            ->firstOrFail()
-            ->user;
+        return $this->resolveScoped($role, 'organization_id', $organization->id);
     }
 
     /** @throws ModelNotFoundException */
     private function resolveSchoolScoped(Role $role, int $schoolId): User
     {
+        return $this->resolveScoped($role, 'school_id', $schoolId);
+    }
+
+    /**
+     * Scoped counterpart to resolveGlobal(): more than one row for a
+     * single-holder scoped role (one adviser per organization, one chair
+     * per program, one dean/principal per school) is a data-quality bug
+     * this method cannot repair — it only guarantees the choice is STABLE,
+     * favoring the FIRST-assigned holder, identically to resolveGlobal()'s
+     * rationale below. Stability is the point: ApprovalEngine::activateStep()
+     * (who gets notified) and DocumentPolicy::review()/isChainApprover()
+     * (who is authorized to open the document) both resolve the same seat
+     * independently, at different moments — any disagreement between the
+     * two is exactly what produces a notified approver getting a 403 on
+     * their own notification link. Duplicates are prevented going forward
+     * by Admin\ProvisionApprover::retireIncumbent() and cleaned up
+     * historically by the 2026_09_17_100000 migration.
+     *
+     * @throws ModelNotFoundException
+     */
+    private function resolveScoped(Role $role, string $scopeColumn, int $scopeId): User
+    {
         return RoleAssignment::query()
             ->where('role', $role)
-            ->where('school_id', $schoolId)
+            ->where($scopeColumn, $scopeId)
+            ->oldest('id')
             ->firstOrFail()
             ->user;
     }

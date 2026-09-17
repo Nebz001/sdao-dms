@@ -229,3 +229,95 @@ test('a duplicate global-role assignment resolves to the FIRST-assigned (lowest 
 
     expect($directory->assistantDirectorAcademicServices()->id)->toBe($real->id);
 });
+
+// ── Duplicate scoped-role assignments ───────────────────────────────────────
+//
+// The scoped counterpart to the global-role test above: a duplicate
+// scope-bound single-holder role (dean/school, program chair/program,
+// principal/school, adviser/organization) has genuinely occurred in the real
+// dev database too (Admin\ProvisionApprover previously only retired the
+// incumbent for GLOBAL single-holder roles — see ProvisionApprover::
+// retireIncumbent()'s docblock and the 2026_09_17_100000 migration).
+// RoleDirectory::resolveScoped() cannot repair a duplicate, but must resolve
+// it deterministically by lowest id (first-assigned), identically to
+// resolveGlobal() above — never latest, and never leak across scopes.
+
+test('a duplicate dean assignment for the same school resolves to the FIRST-assigned (lowest id) holder', function () {
+    $school = makeRegularSchool();
+    $program = Program::factory()->create(['school_id' => $school->id]);
+    $org = Organization::factory()->create(['school_id' => $school->id, 'program_id' => $program->id]);
+
+    $real = User::factory()->create();
+    $placeholder = User::factory()->create();
+    assignRole($real, Role::Dean, ['school_id' => $school->id]);
+    assignRole($placeholder, Role::Dean, ['school_id' => $school->id]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->deanFor($org)->id)->toBe($real->id);
+});
+
+test('a duplicate program chair assignment for the same program resolves to the FIRST-assigned (lowest id) holder', function () {
+    $school = makeRegularSchool();
+    $program = Program::factory()->create(['school_id' => $school->id]);
+    $org = Organization::factory()->create(['school_id' => $school->id, 'program_id' => $program->id]);
+
+    $real = User::factory()->create();
+    $placeholder = User::factory()->create();
+    assignRole($real, Role::ProgramChair, ['program_id' => $program->id]);
+    assignRole($placeholder, Role::ProgramChair, ['program_id' => $program->id]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->programChairFor($org)->id)->toBe($real->id);
+});
+
+test('a duplicate principal assignment for the same school resolves to the FIRST-assigned (lowest id) holder', function () {
+    $shs = makeSeniorHighSchool();
+    $org = Organization::factory()->create(['school_id' => $shs->id, 'program_id' => null]);
+
+    $real = User::factory()->create();
+    $placeholder = User::factory()->create();
+    assignRole($real, Role::Principal, ['school_id' => $shs->id]);
+    assignRole($placeholder, Role::Principal, ['school_id' => $shs->id]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->principalFor($org)->id)->toBe($real->id);
+});
+
+test('a duplicate adviser assignment for the same organization resolves to the FIRST-assigned (lowest id) holder', function () {
+    $org = Organization::factory()->create();
+
+    $real = User::factory()->create();
+    $placeholder = User::factory()->create();
+    assignRole($real, Role::Adviser, ['organization_id' => $org->id]);
+    assignRole($placeholder, Role::Adviser, ['organization_id' => $org->id]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->adviserFor($org)->id)->toBe($real->id);
+});
+
+test('a duplicate dean assignment in one school does not leak into another school\'s resolution', function () {
+    $schoolA = makeRegularSchool();
+    $programA = Program::factory()->create(['school_id' => $schoolA->id]);
+    $orgA = Organization::factory()->create(['school_id' => $schoolA->id, 'program_id' => $programA->id]);
+
+    $schoolB = makeRegularSchool();
+    $programB = Program::factory()->create(['school_id' => $schoolB->id]);
+    $orgB = Organization::factory()->create(['school_id' => $schoolB->id, 'program_id' => $programB->id]);
+
+    $deanA1 = User::factory()->create();
+    $deanA2 = User::factory()->create();
+    assignRole($deanA1, Role::Dean, ['school_id' => $schoolA->id]);
+    assignRole($deanA2, Role::Dean, ['school_id' => $schoolA->id]);
+
+    $deanB = User::factory()->create();
+    assignRole($deanB, Role::Dean, ['school_id' => $schoolB->id]);
+
+    $directory = app(RoleDirectory::class);
+
+    expect($directory->deanFor($orgA)->id)->toBe($deanA1->id);
+    expect($directory->deanFor($orgB)->id)->toBe($deanB->id);
+});
