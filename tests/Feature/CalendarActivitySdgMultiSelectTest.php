@@ -7,8 +7,9 @@ use App\Models\Document;
 
 /**
  * Group B item 1 — CalendarActivity::$sdg is now a multi-select, cast via
- * AsEnumCollection::of(Sdg::class) onto a json column (mirrors
- * ActivityProposal::$partner_organizations' array shape). Coverage for the
+ * AsEnumCollection::of(Sdg::class) onto a json column (same "array on a json
+ * column" shape ActivityProposal::$partner_organizations used before it
+ * became an array of {organization_id, name} objects). Coverage for the
  * cast round-trip itself; the FormRequest/HTTP-level coverage lives in
  * ActivityCalendarExactFieldsTest.
  */

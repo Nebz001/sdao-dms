@@ -60,7 +60,15 @@ class StoreProposalStepOneRequest extends FormRequest
             'activity_type' => ['required', Rule::enum(ActivityType::class)],
             'activity_type_other' => [Rule::requiredIf($this->input('activity_type') === ActivityType::Others->value), 'nullable', 'string', 'max:255'],
             'partner_organizations' => ['required', 'array', 'min:1'],
-            'partner_organizations.*' => ['required', 'string', 'max:255'],
+            // Each entry is {organization_id, name} — organization_id is
+            // non-null only when picked from the organizations search (a
+            // real FK reference); null means free text (a different school,
+            // or an org not registered here). name is always required: it's
+            // the display/print value either way, including for a linked
+            // entry (denormalized snapshot, not a live join — see
+            // ActivityProposal's model docblock).
+            'partner_organizations.*.name' => ['required', 'string', 'max:255'],
+            'partner_organizations.*.organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             // Multi-select (Group C item 1) — at least one goal, each a real
             // Sdg case; lives on activity_proposals directly (one row per
             // document), so no array-index wildcards are needed the way
@@ -91,10 +99,21 @@ class StoreProposalStepOneRequest extends FormRequest
             'activity_type' => 'Type of Activity',
             'activity_type_other' => 'Type of Activity — please specify',
             'partner_organizations' => 'Partner Organization(s)/School(s)/RSO',
+            'partner_organizations.*.name' => 'Partner Organization(s)/School(s)/RSO',
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
             ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'partner_organizations.*.organization_id.exists' => 'That organization no longer exists. Clear the entry and search again, or type the name as free text.',
         ];
     }
 }

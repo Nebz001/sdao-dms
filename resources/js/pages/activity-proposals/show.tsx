@@ -8,8 +8,10 @@ import CenteredContainer from '@/components/centered-container';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
+import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -41,7 +43,7 @@ type ProposalData = {
     form_step: number;
     activity_nature_label: string | null;
     activity_type_label: string | null;
-    partner_organizations: string[] | null;
+    partner_organizations: PartnerOrganization[] | null;
     target_sdg_labels: string[];
     budget_source_label: string | null;
 } | null;
@@ -209,7 +211,12 @@ export default function ShowActivityProposal({
                                         <ul className="list-disc pl-4">
                                             {proposal.partner_organizations.map(
                                                 (org, i) => (
-                                                    <li key={i}>{org}</li>
+                                                    <li key={i} className="flex items-center gap-2">
+                                                        {org.name}
+                                                        {org.organization_id !== null && (
+                                                            <Badge variant="secondary">Linked</Badge>
+                                                        )}
+                                                    </li>
                                                 ),
                                             )}
                                         </ul>

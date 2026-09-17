@@ -70,7 +70,8 @@ final class FieldValueFormatter
         // AsEnumCollection (e.g. CalendarActivity::$sdg) yields a Collection
         // of BackedEnum items, not a plain array — accepted here alongside
         // array so this stays the one formatter for every "list" field,
-        // enum-backed or plain strings (e.g. partner_organizations).
+        // enum-backed, plain strings (e.g. responsible_persons), or
+        // {name, ...} objects (partner_organizations).
         if ($value instanceof Collection) {
             $value = $value->all();
         }
@@ -86,6 +87,16 @@ final class FieldValueFormatter
                 $text = method_exists($item, 'label') ? $item->label() : (string) $item->value;
             } elseif (is_scalar($item)) {
                 $text = trim((string) $item);
+            } elseif (is_array($item) && isset($item['name'])) {
+                // Object-shaped list item (e.g. partner_organizations'
+                // {organization_id, name}) — detected generically by the
+                // presence of a 'name' key, not special-cased to one field,
+                // so any future object-shaped "list" field gets the same
+                // sane behavior for free. Before this branch existed, any
+                // non-scalar item silently fell through to the `continue`
+                // below and vanished from the diff entirely — a real,
+                // previously-invisible bug this also fixes.
+                $text = trim((string) $item['name']);
             } else {
                 continue;
             }

@@ -158,7 +158,15 @@ class ActivityProposalForm implements PrintableForm
             'title_of_activity' => $proposal->title,
             'nature_checklist' => $this->checklistRows(self::NATURE_CHECKLIST, $proposal->activity_nature),
             'type_checklist' => $this->checklistRows(self::TYPE_CHECKLIST, $proposal->activity_type),
-            'partner_organizations' => $proposal->partner_organizations ?? [],
+            // Flattened to plain names for the printed document — linked and
+            // free-text entries print identically (see ActivityProposal's
+            // model docblock). Defensive against a pre-migration row still
+            // holding a bare string, rather than array_column(), so a
+            // printed official document never silently drops an entry.
+            'partner_organizations' => array_map(
+                fn ($entry) => is_array($entry) ? (string) ($entry['name'] ?? '') : (string) $entry,
+                $proposal->partner_organizations ?? [],
+            ),
             // Multi-select (Group C item 1) — one "SDG N — Label" per
             // selected goal, same join as ActivityCalendarForm.
             'target_sdg' => $proposal->target_sdg === null || $proposal->target_sdg->isEmpty()

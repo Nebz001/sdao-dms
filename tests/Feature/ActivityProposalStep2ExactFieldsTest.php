@@ -43,7 +43,7 @@ beforeEach(function () {
             'term' => 'first_term',
             'activity_nature' => 'co_curricular',
             'activity_type' => 'seminar_workshop',
-            'partner_organizations' => ['Partner Org A'],
+            'partner_organizations' => [['organization_id' => null, 'name' => 'Partner Org A']],
             'target_sdg' => ['quality_education'],
             'proposed_budget' => '5000.00',
             'budget_source' => 'rso_fund',

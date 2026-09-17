@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/activity-proposals', [ActivityProposalController::class, 'store'])->name('activity-proposals.store');
     Route::post('/activity-proposals/conflict-check', [ActivityProposalController::class, 'conflictCheck'])->middleware('throttle:30,1')->name('activity-proposals.conflict-check');
     Route::get('/activity-proposals/on-calendar-activities', [ActivityProposalController::class, 'onCalendarActivities'])->name('activity-proposals.on-calendar-activities');
+    Route::get('/activity-proposals/partner-organization-search', [ActivityProposalController::class, 'partnerOrganizationSearch'])->middleware('throttle:30,1')->name('activity-proposals.partner-organization-search');
     Route::get('/activity-proposals/{document}', [ActivityProposalController::class, 'show'])->name('activity-proposals.show');
     Route::get('/activity-proposals/{document}/edit', [ActivityProposalController::class, 'edit'])->name('activity-proposals.edit');
     Route::get('/activity-proposals/{document}/continue', [ActivityProposalController::class, 'continue'])->name('activity-proposals.continue');

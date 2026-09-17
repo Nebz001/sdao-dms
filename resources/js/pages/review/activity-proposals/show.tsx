@@ -11,10 +11,12 @@ import type { ConfirmActions } from '@/components/confirm-dialog';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
+import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
@@ -43,7 +45,7 @@ type ProposalData = {
     proposed_budget: string | null;
     activity_nature_label: string | null;
     activity_type_label: string | null;
-    partner_organizations: string[] | null;
+    partner_organizations: PartnerOrganization[] | null;
     target_sdg_labels: string[];
     budget_source_label: string | null;
 } | null;
@@ -250,7 +252,12 @@ export default function ReviewActivityProposalShow({
                                         <ul className="list-disc pl-4">
                                             {proposal.partner_organizations.map(
                                                 (org, i) => (
-                                                    <li key={i}>{org}</li>
+                                                    <li key={i} className="flex items-center gap-2">
+                                                        {org.name}
+                                                        {org.organization_id !== null && (
+                                                            <Badge variant="secondary">Linked</Badge>
+                                                        )}
+                                                    </li>
                                                 ),
                                             )}
                                         </ul>

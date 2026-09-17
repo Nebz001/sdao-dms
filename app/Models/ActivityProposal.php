@@ -29,7 +29,15 @@ use Illuminate\Support\Collection;
  * @property ActivityType|null $activity_type
  * @property string|null $activity_type_other Free text when activity_type is
  *                                            ActivityType::Others (Group B item 5); meaningless otherwise.
- * @property array<int, string>|null $partner_organizations
+ * @property array<int, array{organization_id: int|null, name: string}>|null $partner_organizations
+ *                                                                                                  organization_id is non-null when the entry was picked from the
+ *                                                                                                  organizations search (a real FK reference); null means free text
+ *                                                                                                  (a different school, or an org not registered in this system). name
+ *                                                                                                  is always a denormalized snapshot of the display text AT SUBMISSION
+ *                                                                                                  TIME, even for a linked entry — deliberate, so a later org rename or
+ *                                                                                                  hard delete never retroactively changes what an old proposal reads or
+ *                                                                                                  prints. A dangling organization_id (its org later deleted) is
+ *                                                                                                  harmless to display: name still renders, the id is just informational.
  * @property Collection<int, Sdg>|null $target_sdg Multi-select (Group C item
  *                                                 1) — at least one goal in real student submissions (validation enforces
  *                                                 min:1), stored as a json array; same shape as

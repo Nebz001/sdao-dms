@@ -295,7 +295,7 @@ test('POST /activity-proposals succeeds with no term field for off-calendar and 
         // convention already proven for activity-calendars.store above.
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
-        'partner_organizations' => ['Partner Org'],
+        'partner_organizations' => [['organization_id' => null, 'name' => 'Partner Org']],
         'target_sdg' => ['quality_education'],
         'proposed_budget' => '10000.00',
         'budget_source' => 'rso_fund',

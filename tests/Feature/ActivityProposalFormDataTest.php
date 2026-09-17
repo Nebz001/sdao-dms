@@ -106,7 +106,10 @@ function activityProposalPrintDocument(
         'title' => 'Print Test Proposal',
         'activity_nature' => ActivityNature::CoCurricular->value,
         'activity_type' => ActivityType::Competition->value,
-        'partner_organizations' => ['Partner A', 'Partner B'],
+        'partner_organizations' => [
+            ['organization_id' => null, 'name' => 'Partner A'],
+            ['organization_id' => null, 'name' => 'Partner B'],
+        ],
         'target_sdg' => [Sdg::LifeOnLand->value],
         'objectives' => 'Overall goal text',
         'activity_description' => 'Activity description text',
@@ -167,6 +170,23 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($competitionRow['checked'])->toBeTrue();
     $seminarRow = collect($data['type_checklist'])->firstWhere('label', 'Seminar/Workshop');
     expect($seminarRow['checked'])->toBeFalse();
+});
+
+// ── Partner Organization(s)/School(s)/RSO — searchable combobox with a
+//    free-text fallback (see App\Models\ActivityProposal's docblock) ──────
+
+test('the printed form flattens a MIX of linked and free-text partner_organizations to plain names, dropping neither', function () {
+    $partner = Organization::where('name', 'IT Guild')->firstOrFail();
+
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'partner_organizations' => [
+            ['organization_id' => $partner->id, 'name' => $partner->name],
+            ['organization_id' => null, 'name' => 'An Unregistered RSO'],
+        ],
+    ]);
+    $data = dataForProposal($doc);
+
+    expect($data['partner_organizations'])->toBe(['IT Guild', 'An Unregistered RSO']);
 });
 
 // ── Itemized expenses (client request, post-Part-2) ─────────────────────

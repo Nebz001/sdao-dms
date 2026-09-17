@@ -4,6 +4,7 @@ import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
+import PartnerOrganizationsField from '@/components/partner-organizations-field';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -81,9 +82,6 @@ export default function CreateActivityProposal({
     const [activityDate, setActivityDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
-
-    // Partner Organization(s)/School(s)/RSO — Phase 2 item 7 slice 4a
-    const [partnerOrgs, setPartnerOrgs] = useState<string[]>(['']);
 
     // Nature/Type of Activity — controlled so the "Others" conditional
     // specify-field (Group B item 5) can key off the current selection.
@@ -513,86 +511,7 @@ export default function CreateActivityProposal({
                                         )}
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <div className="flex items-center justify-between">
-                                            <Label>
-                                                Partner
-                                                Organization(s)/School(s)/RSO
-                                            </Label>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPartnerOrgs((prev) => [
-                                                        ...prev,
-                                                        '',
-                                                    ])
-                                                }
-                                            >
-                                                + Add
-                                            </Button>
-                                        </div>
-                                        {partnerOrgs.map((org, i) => (
-                                            <div key={i} className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        name={`partner_organizations[${i}]`}
-                                                        value={org}
-                                                        onChange={(e) =>
-                                                            setPartnerOrgs(
-                                                                (prev) => {
-                                                                    const next =
-                                                                        [
-                                                                            ...prev,
-                                                                        ];
-                                                                    next[i] =
-                                                                        e.target.value;
-
-                                                                    return next;
-                                                                },
-                                                            )
-                                                        }
-                                                        placeholder="Organization, School, or RSO name"
-                                                    />
-                                                    {partnerOrgs.length > 1 && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setPartnerOrgs(
-                                                                    (prev) =>
-                                                                        prev.filter(
-                                                                            (
-                                                                                _,
-                                                                                idx,
-                                                                            ) =>
-                                                                                idx !==
-                                                                                i,
-                                                                        ),
-                                                                )
-                                                            }
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                <InputError
-                                                    message={
-                                                        errors[
-                                                            `partner_organizations.${i}`
-                                                        ]
-                                                    }
-                                                />
-                                            </div>
-                                        ))}
-                                        <InputError
-                                            message={
-                                                errors.partner_organizations
-                                            }
-                                        />
-                                    </div>
+                                    <PartnerOrganizationsField errors={errors} />
 
                                     <div className="space-y-1">
                                         <Label>

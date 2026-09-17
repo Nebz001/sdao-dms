@@ -367,7 +367,7 @@ test('an unverified officer is forbidden from creating an activity-proposal draf
         // reaching the authorization check this test is actually exercising.
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
-        'partner_organizations' => ['Partner Org'],
+        'partner_organizations' => [['organization_id' => null, 'name' => 'Partner Org']],
         'target_sdg' => ['quality_education'],
         'proposed_budget' => '5000.00',
         'budget_source' => 'rso_fund',

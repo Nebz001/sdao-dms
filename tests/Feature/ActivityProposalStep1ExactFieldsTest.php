@@ -67,7 +67,10 @@ function step1ExactFields(array $overrides = []): array
     return array_merge([
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
-        'partner_organizations' => ['Partner Org A', 'Partner Org B'],
+        'partner_organizations' => [
+            ['organization_id' => null, 'name' => 'Partner Org A'],
+            ['organization_id' => null, 'name' => 'Partner Org B'],
+        ],
         'target_sdg' => ['quality_education'],
         'proposed_budget' => '15000.00',
         'budget_source' => 'rso_fund',
@@ -155,7 +158,10 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
     $proposal = $document->activityProposal;
     expect($proposal->activity_nature->value)->toBe('co_curricular');
     expect($proposal->activity_type->value)->toBe('seminar_workshop');
-    expect($proposal->partner_organizations)->toBe(['Partner Org A', 'Partner Org B']);
+    expect($proposal->partner_organizations)->toBe([
+        ['organization_id' => null, 'name' => 'Partner Org A'],
+        ['organization_id' => null, 'name' => 'Partner Org B'],
+    ]);
     expect($proposal->target_sdg->first()->value)->toBe('quality_education');
     expect($proposal->budget_source->value)->toBe('rso_fund');
     expect((float) $proposal->proposed_budget)->toBe(15000.00);
@@ -192,7 +198,10 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
             ->component('activity-proposals/show')
             ->where('proposal.activity_nature_label', 'Co-Curricular')
             ->where('proposal.activity_type_label', 'Seminar/Workshop')
-            ->where('proposal.partner_organizations', ['Partner Org A', 'Partner Org B'])
+            ->where('proposal.partner_organizations', [
+                ['organization_id' => null, 'name' => 'Partner Org A'],
+                ['organization_id' => null, 'name' => 'Partner Org B'],
+            ])
             ->where('proposal.target_sdg_labels', ['Quality Education'])
             ->where('proposal.budget_source_label', 'RSO Fund')
             ->where('proposal.proposed_budget', '15000.00')
@@ -208,7 +217,10 @@ test('the 5 new fields and renamed Proposed Budget round-trip through step 1 sub
         ->assertInertia(fn ($page) => $page
             ->component('review/activity-proposals/show')
             ->where('proposal.activity_nature_label', 'Co-Curricular')
-            ->where('proposal.partner_organizations', ['Partner Org A', 'Partner Org B'])
+            ->where('proposal.partner_organizations', [
+                ['organization_id' => null, 'name' => 'Partner Org A'],
+                ['organization_id' => null, 'name' => 'Partner Org B'],
+            ])
             ->where('proposal.proposed_budget', '15000.00')
         );
 });
@@ -262,7 +274,7 @@ test('off-calendar venue-conflict detection (at step-2 submit) still keys only o
             'title' => 'A Different Activity',
             'activity_nature' => 'community_extension',
             'activity_type' => 'outreach',
-            'partner_organizations' => ['Totally Different Org'],
+            'partner_organizations' => [['organization_id' => null, 'name' => 'Totally Different Org']],
             'target_sdg' => ['climate_action'],
             'proposed_budget' => '1.00',
             'budget_source' => 'external',

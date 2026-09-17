@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import { Row } from '@/components/labeled-row';
+import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,7 @@ type ProposalData = {
     // Group D item 5 — step 1 → step 2 carryover.
     activity_nature_label: string | null;
     activity_type_label: string | null;
-    partner_organizations: string[] | null;
+    partner_organizations: PartnerOrganization[] | null;
     target_sdg_labels: string[];
 } | null;
 
@@ -171,7 +172,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                     <Row label="Type of Activity" value={proposal.activity_type_label} />
                                 )}
                                 {proposal?.partner_organizations && proposal.partner_organizations.length > 0 && (
-                                    <Row label="Partner Org(s)" value={proposal.partner_organizations.join(', ')} />
+                                    <Row label="Partner Org(s)" value={proposal.partner_organizations.map((o) => o.name).join(', ')} />
                                 )}
                                 {proposal && proposal.target_sdg_labels.length > 0 && (
                                     <Row label="Target SDG" value={proposal.target_sdg_labels.join(', ')} />

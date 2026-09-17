@@ -153,7 +153,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'end_time' => '15:00',
         'activity_nature' => 'co_curricular',
         'activity_type' => 'seminar_workshop',
-        'partner_organizations' => ['Partner Org A'],
+        'partner_organizations' => [['organization_id' => null, 'name' => 'Partner Org A']],
         'target_sdg' => ['quality_education'],
         'proposed_budget' => '15000.00',
         'budget_source' => 'rso_fund',

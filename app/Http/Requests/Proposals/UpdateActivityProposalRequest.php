@@ -69,7 +69,10 @@ class UpdateActivityProposalRequest extends FormRequest
             'activity_type' => ['nullable', Rule::enum(ActivityType::class)],
             'activity_type_other' => [Rule::requiredIf($this->input('activity_type') === ActivityType::Others->value), 'nullable', 'string', 'max:255'],
             'partner_organizations' => ['nullable', 'array', 'min:1'],
-            'partner_organizations.*' => ['required', 'string', 'max:255'],
+            // See StoreProposalStepOneRequest — {organization_id, name} per
+            // entry, organization_id non-null only when linked.
+            'partner_organizations.*.name' => ['required', 'string', 'max:255'],
+            'partner_organizations.*.organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             // Multi-select (Group C item 1) — see StoreProposalStepOneRequest.
             'target_sdg' => ['nullable', 'array', 'min:1'],
             'target_sdg.*' => [Rule::enum(Sdg::class)],
@@ -95,6 +98,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'activity_type' => 'Type of Activity',
             'activity_type_other' => 'Type of Activity — please specify',
             'partner_organizations' => 'Partner Organization(s)/School(s)/RSO',
+            'partner_organizations.*.name' => 'Partner Organization(s)/School(s)/RSO',
             'target_sdg' => 'Target SDG',
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
@@ -105,6 +109,16 @@ class UpdateActivityProposalRequest extends FormRequest
             'expense_items' => 'Expenses',
             'responsible_persons' => 'Responsible Person(s)',
             ...AttachmentSlots::validationAttributes(FormType::ActivityProposal, step: 1),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'partner_organizations.*.organization_id.exists' => 'That organization no longer exists. Clear the entry and search again, or type the name as free text.',
         ];
     }
 }

@@ -23,11 +23,13 @@ use App\Http\Requests\Proposals\UpdateActivityProposalRequest;
 use App\Http\Requests\Proposals\UpdateProposalDraftRequest;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -35,6 +37,11 @@ use Inertia\Response;
 
 class ActivityProposalController extends Controller
 {
+    /**
+     * Max search results returned to the partner-organization typeahead.
+     */
+    private const int PARTNER_ORGANIZATION_SEARCH_LIMIT = 10;
+
     /**
      * List: activity proposals belonging to any org the user is an active
      * officer of (both president and secretary see the same list — equal
@@ -211,6 +218,45 @@ class ActivityProposalController extends Controller
             ]);
 
         return response()->json(['activities' => $activities]);
+    }
+
+    /**
+     * Live partner-organization typeahead for the request form's Partner
+     * Organization(s)/School(s)/RSO field — mirrors
+     * JoinOrganizationController::search()'s pattern exactly (no Gate: org
+     * names are already public, same rationale as that endpoint).
+     *
+     * Excludes the caller's own organization from results: it's already
+     * shown separately on the same form as "Name of RSO", so it would never
+     * be a meaningful partner suggestion. Derived server-side from the
+     * caller's own active membership (not a client-supplied param) so it
+     * can't be bypassed and stays correct on both the create and edit pages
+     * without either needing to thread an id through as a prop.
+     */
+    public function partnerOrganizationSearch(Request $request): JsonResponse
+    {
+        $search = $request->string('q')->trim()->toString();
+
+        $ownOrganizationId = OrganizationMembership::query()
+            ->where('user_id', Auth::id())
+            ->where('is_active', true)
+            ->value('organization_id');
+
+        $organizations = Organization::query()
+            ->with(['school', 'program'])
+            ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+            ->when($ownOrganizationId !== null, fn ($query) => $query->whereKeyNot($ownOrganizationId))
+            ->orderBy('name')
+            ->limit(self::PARTNER_ORGANIZATION_SEARCH_LIMIT)
+            ->get()
+            ->map(fn (Organization $o) => [
+                'id' => $o->id,
+                'name' => $o->name,
+                'school' => $o->school?->name,
+                'program' => $o->program?->name,
+            ]);
+
+        return response()->json(['organizations' => $organizations]);
     }
 
     public function show(Document $document): Response

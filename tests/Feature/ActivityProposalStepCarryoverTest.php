@@ -39,7 +39,10 @@ test('the continue page exposes the step-1 nature, type, partner orgs, and SDGs 
             'activity_nature_other' => 'Cosplay meetup',
             'activity_type' => 'others',
             'activity_type_other' => 'Photo walk',
-            'partner_organizations' => ['Partner Org A', 'Partner Org B'],
+            'partner_organizations' => [
+                ['organization_id' => null, 'name' => 'Partner Org A'],
+                ['organization_id' => null, 'name' => 'Partner Org B'],
+            ],
             'target_sdg' => ['quality_education', 'life_on_land'],
             'proposed_budget' => '5000.00',
             'budget_source' => 'rso_fund',
@@ -55,7 +58,10 @@ test('the continue page exposes the step-1 nature, type, partner orgs, and SDGs 
             ->component('activity-proposals/step-two')
             ->where('proposal.activity_nature_label', 'Others — Cosplay meetup')
             ->where('proposal.activity_type_label', 'Others — Photo walk')
-            ->where('proposal.partner_organizations', ['Partner Org A', 'Partner Org B'])
+            ->where('proposal.partner_organizations', [
+                ['organization_id' => null, 'name' => 'Partner Org A'],
+                ['organization_id' => null, 'name' => 'Partner Org B'],
+            ])
             ->where('proposal.target_sdg_labels', fn ($labels) => $labels->count() === 2
                 && $labels->contains('Quality Education')
                 && $labels->contains('Life on Land'))
@@ -77,7 +83,7 @@ test('a normal (non-Others) nature and type carry over as their plain labels, wi
             'term' => 'first_term',
             'activity_nature' => 'co_curricular',
             'activity_type' => 'seminar_workshop',
-            'partner_organizations' => ['Solo Partner'],
+            'partner_organizations' => [['organization_id' => null, 'name' => 'Solo Partner']],
             'target_sdg' => ['quality_education'],
             'proposed_budget' => '3000.00',
             'budget_source' => 'external',
@@ -93,7 +99,7 @@ test('a normal (non-Others) nature and type carry over as their plain labels, wi
             ->component('activity-proposals/step-two')
             ->where('proposal.activity_nature_label', 'Co-Curricular')
             ->where('proposal.activity_type_label', 'Seminar/Workshop')
-            ->where('proposal.partner_organizations', ['Solo Partner'])
+            ->where('proposal.partner_organizations', [['organization_id' => null, 'name' => 'Solo Partner']])
             ->where('proposal.target_sdg_labels', fn ($labels) => count($labels) === 1 && str_contains($labels[0], 'Quality Education'))
             ->where('proposal.budget_source_label', 'External')
         );
