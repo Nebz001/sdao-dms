@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Models\Organization;
+use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
+use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
 use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
@@ -20,6 +22,10 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function __construct(
+        private readonly OrganizationMembershipService $membershipService,
+    ) {}
 
     /**
      * Determines the current asset version.
@@ -70,27 +76,7 @@ class HandleInertiaRequests extends Middleware
                 'warnings' => $flash['warnings'] ?? null,
                 'message' => $flash['message'] ?? null,
             ] : null,
-            'auth' => [
-                'user' => $request->user(),
-                'roles' => $request->user()?->roleAssignments->map(fn (RoleAssignment $ra) => [
-                    'role' => $ra->role->value,
-                    'school_id' => $ra->school_id,
-                    'program_id' => $ra->program_id,
-                    'organization_id' => $ra->organization_id,
-                ]),
-                // The real source of truth for "is a currently active student
-                // officer" — OrganizationMembership.is_active is deactivated
-                // on turnover, unlike the role_assignments table (no status
-                // column at all, never updated once created).
-                'isActiveOfficer' => $request->user()?->organizationMemberships()->active()->exists() ?? false,
-                // Drives the "Submit Registration" founding-flow CTA (sidebar
-                // + dashboard empty state) for a verified student with no
-                // organization yet — reuses DocumentPolicy::propose(), the
-                // same Gate RegistrationController::create()/store() already
-                // authorize against, so eligibility is computed once, in
-                // Laravel, and never re-derived on the client.
-                'canProposeOrganization' => Gate::allows('propose', Organization::class),
-            ],
+            'auth' => $this->authProp($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // Persistent navbar context (admin dashboard header). Both the
             // term and the academic year now come from one stored,
@@ -106,6 +92,66 @@ class HandleInertiaRequests extends Middleware
             // (`only: ['document','history','queue']`) even though that
             // poll never asks for it.
             'notifications' => fn () => $this->notificationsFor($request),
+        ];
+    }
+
+    /**
+     * @return array{user: mixed, roles: mixed, isActiveOfficer: bool, canProposeOrganization: bool, organization: array{id: int, name: string, logoUrl: string|null, school: array{id: int, name: string}|null}|null}
+     */
+    private function authProp(Request $request): array
+    {
+        $user = $request->user();
+
+        // Resolved once so isActiveOfficer and organization are guaranteed
+        // to agree — they used to be two separate queries.
+        $membership = $user ? $this->membershipService->activeMembershipWithOrganizationFor($user) : null;
+
+        return [
+            'user' => $user,
+            'roles' => $user?->roleAssignments->map(fn (RoleAssignment $ra) => [
+                'role' => $ra->role->value,
+                'school_id' => $ra->school_id,
+                'program_id' => $ra->program_id,
+                'organization_id' => $ra->organization_id,
+            ]),
+            // The real source of truth for "is a currently active student
+            // officer" — OrganizationMembership.is_active is deactivated
+            // on turnover, unlike the role_assignments table (no status
+            // column at all, never updated once created).
+            'isActiveOfficer' => $membership !== null,
+            // Drives the "Submit Registration" founding-flow CTA (sidebar
+            // + dashboard empty state) for a verified student with no
+            // organization yet — reuses DocumentPolicy::propose(), the
+            // same Gate RegistrationController::create()/store() already
+            // authorize against, so eligibility is computed once, in
+            // Laravel, and never re-derived on the client.
+            'canProposeOrganization' => Gate::allows('propose', Organization::class),
+            // Drives the sidebar's org-branding swap (top block + footer
+            // school line) for a president/secretary — null for every
+            // other role, which keeps today's NU Lipa branding untouched.
+            'organization' => $this->organizationProp($membership),
+        ];
+    }
+
+    /**
+     * @return array{id: int, name: string, logoUrl: string|null, school: array{id: int, name: string}|null}|null
+     */
+    private function organizationProp(?OrganizationMembership $membership): ?array
+    {
+        if ($membership === null) {
+            return null;
+        }
+
+        $organization = $membership->organization;
+
+        return [
+            'id' => $organization->id,
+            'name' => $organization->name,
+            'logoUrl' => $organization->hasLogo() ? route('organizations.logo', $organization) : null,
+            'school' => $organization->school ? [
+                'id' => $organization->school->id,
+                'name' => $organization->school->name,
+            ] : null,
         ];
     }
 

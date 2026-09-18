@@ -20,11 +20,20 @@ export type RoleAssignment = {
     organization_id: number | null;
 };
 
+export type AuthOrganization = {
+    id: number;
+    name: string;
+    logoUrl: string | null;
+    school: { id: number; name: string } | null;
+};
+
 export type Auth = {
     user: User;
     roles: RoleAssignment[] | null;
     isActiveOfficer: boolean;
     canProposeOrganization: boolean;
+    /** Non-null exactly for an active president/secretary — see app-sidebar.tsx's org-branding swap. */
+    organization: AuthOrganization | null;
 };
 
 /* @chisel-passkeys */

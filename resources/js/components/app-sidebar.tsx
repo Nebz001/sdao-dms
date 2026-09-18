@@ -18,6 +18,7 @@ import {
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import OrgBranding from '@/components/org-branding';
 import {
     Sidebar,
     SidebarContent,
@@ -310,7 +311,11 @@ export function AppSidebar() {
                             it — let the button grow to fit its content. */}
                         <SidebarMenuButton size="lg" className="h-auto" asChild>
                             <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                                {auth?.organization ? (
+                                    <OrgBranding organization={auth.organization} />
+                                ) : (
+                                    <AppLogo />
+                                )}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

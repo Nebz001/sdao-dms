@@ -24,6 +24,7 @@ use App\Http\Controllers\JoinOrganizationController;
 use App\Http\Controllers\JoinRequestReviewController;
 use App\Http\Controllers\MyOrganizationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationLogoController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
@@ -87,6 +88,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // checklist, officers, adviser, coverage. Literal path declared before
     // the {organization} wildcard below, same convention as organizations/join.
     Route::get('/organizations/mine', [MyOrganizationController::class, 'show'])->name('organizations.mine');
+
+    // Org logo — public roster info, streamed since the attachments disk has
+    // no public URL (see OrganizationLogoController). No upload UI exists
+    // yet, so this currently only ever 404s.
+    Route::get('/organizations/{organization}/logo', OrganizationLogoController::class)->name('organizations.logo');
 
     // Adviser — officer binding
     Route::get('/organizations/{organization}/officers', [OrganizationOfficerController::class, 'index'])->name('officers.index');

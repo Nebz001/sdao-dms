@@ -17,8 +17,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $name
  * @property int|null $school_id Null for an Extra-Curricular org with no college (see hasNoSchool()).
  * @property int|null $program_id Null for SHS orgs (belong directly to SHS) and for a college-less org.
+ * @property string|null $logo_path Null until a logo-upload feature exists — see hasLogo().
+ * @property string|null $logo_disk The disk $logo_path was stored on, disk-per-row like DocumentAttachment.
  */
-#[Fillable(['name', 'school_id', 'program_id'])]
+#[Fillable(['name', 'school_id', 'program_id', 'logo_path', 'logo_disk'])]
 class Organization extends Model
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -81,5 +83,15 @@ class Organization extends Model
     public function hasNoSchool(): bool
     {
         return $this->school_id === null;
+    }
+
+    /**
+     * No upload feature exists yet (schema + serving route only — see
+     * OrganizationLogoController) — this is always false today, but call
+     * sites should check it rather than `$logo_path !== null` directly.
+     */
+    public function hasLogo(): bool
+    {
+        return $this->logo_path !== null;
     }
 }

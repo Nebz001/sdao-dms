@@ -5,9 +5,17 @@ import type { User } from '@/types';
 export function UserInfo({
     user,
     showEmail = false,
+    subtitle,
 }: {
     user: User;
     showEmail?: boolean;
+    /**
+     * Separate from showEmail on purpose: nav-user.tsx (the sidebar footer)
+     * passes this with a president/secretary's org school; the dropdown's
+     * UserMenuContent only ever passes showEmail. Keeping them distinct
+     * props means neither call site's rendering can affect the other's.
+     */
+    subtitle?: string;
 }) {
     const getInitials = useInitials();
 
@@ -24,6 +32,14 @@ export function UserInfo({
                 {showEmail && (
                     <span className="truncate text-xs text-muted-foreground">
                         {user.email}
+                    </span>
+                )}
+                {subtitle && (
+                    <span
+                        className="truncate text-xs text-muted-foreground"
+                        title={subtitle}
+                    >
+                        {subtitle}
                     </span>
                 )}
             </div>

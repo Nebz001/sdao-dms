@@ -36,6 +36,23 @@ class OrganizationMembershipService
     }
 
     /**
+     * The caller's own active membership, with organization + school eager
+     * loaded — the "which org is mine" lookup used to populate the sidebar's
+     * auth.organization shared prop (HandleInertiaRequests) and duplicated
+     * inline before this at MyOrganizationController::show() and
+     * DashboardController::index(). Deliberately does NOT gate on
+     * isVerifiedAccount() like activeMembershipFor() does — this mirrors
+     * today's `organizationMemberships()->active()->exists()` used for
+     * auth.isActiveOfficer exactly, just with eager loading added, so
+     * adding that guard here would silently change nav behavior for a case
+     * it was never meant to touch.
+     */
+    public function activeMembershipWithOrganizationFor(User $user): ?OrganizationMembership
+    {
+        return $user->organizationMemberships()->active()->with('organization.school')->first();
+    }
+
+    /**
      * Both active officers (President and Secretary — equal partners, per
      * CLAUDE.md) of the given org. Used to fan out document-outcome
      * notifications and, via canActOnDocument(), to widen document
