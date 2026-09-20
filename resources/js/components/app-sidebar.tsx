@@ -13,6 +13,7 @@ import {
     UserCheck,
     UserPlus,
     Users,
+    UserRoundCog,
     UserRoundPlus,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -34,6 +35,7 @@ import * as activityProposals from '@/routes/activity-proposals';
 import * as activityLog from '@/routes/admin/activity';
 import * as approvers from '@/routes/admin/approvers';
 import * as archive from '@/routes/admin/archive';
+import * as adminOfficerChangeRequests from '@/routes/admin/officer-change-requests';
 import * as adminOrganizations from '@/routes/admin/organizations';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentPeriodSettings from '@/routes/admin/settings/period';
@@ -42,6 +44,7 @@ import * as documentHistory from '@/routes/document-history';
 import * as officers from '@/routes/officers';
 import * as myOrganization from '@/routes/organizations';
 import * as organizationsJoin from '@/routes/organizations/join';
+import * as officerChange from '@/routes/organizations/officer-change';
 import * as registrations from '@/routes/registrations';
 import * as renewals from '@/routes/renewals';
 import * as reports from '@/routes/reports';
@@ -170,6 +173,11 @@ export function AppSidebar() {
                     href: documentHistory.index(),
                     icon: History,
                 },
+                {
+                    title: 'Request Officer Change',
+                    href: officerChange.create(),
+                    icon: UserRoundCog,
+                },
             ],
         });
     } else if (canFoundOrganization) {
@@ -275,6 +283,11 @@ export function AppSidebar() {
                 title: 'Pending Accounts',
                 href: pendingAccounts.index(),
                 icon: UserCheck,
+            },
+            {
+                title: 'Officer Change Requests',
+                href: adminOfficerChangeRequests.index(),
+                icon: UserRoundCog,
             },
             {
                 title: 'Document Archive',

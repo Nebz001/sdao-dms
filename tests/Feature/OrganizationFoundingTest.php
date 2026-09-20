@@ -286,11 +286,14 @@ test('adviser and founding student remain unbound through every non-terminal sta
     expect($document->status)->toBe(DocumentStatus::Approved);
     expect(RoleAssignment::where('user_id', $adviser->id)->where('role', Role::Adviser->value)->first()->organization_id)
         ->toBe($document->organization_id);
-    expect(OrganizationMembership::where('user_id', $student->id)
+    $founderMembership = OrganizationMembership::where('user_id', $student->id)
         ->where('organization_id', $document->organization_id)
         ->where('is_active', true)
         ->where('position', OfficerPosition::President->value)
-        ->exists())->toBeTrue();
+        ->first();
+    expect($founderMembership)->not->toBeNull();
+    expect($founderMembership->started_at)->not->toBeNull();
+    expect($founderMembership->ended_at)->toBeNull();
 });
 
 test('Gate::authorize propose blocks a student who already has an active org', function () {

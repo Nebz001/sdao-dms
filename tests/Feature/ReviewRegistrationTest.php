@@ -113,7 +113,14 @@ test('HTTP: first SDAO approve redirects back to the review show page', function
 });
 
 test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
-    $doc = submittedRegistration($this->org, $this->engine, $this->studentAlpha);
+    // A fresh, not-yet-founded org and a fresh founding student — unlike the
+    // other tests here, this one actually reaches quorum and triggers
+    // ApproveOrganizationRegistration's founding bind, which would collide
+    // with Computing Society's already-seeded active President if
+    // $this->org/$this->studentAlpha were reused here.
+    $freshOrg = Organization::factory()->create();
+    $founder = User::factory()->create(['account_status' => 'verified']);
+    $doc = submittedRegistration($freshOrg, $this->engine, $founder);
 
     $this->actingAs($this->sdaoA)
         ->withoutVite()

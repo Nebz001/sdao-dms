@@ -2,10 +2,12 @@
 
 namespace App\Organizations;
 
+use App\Enums\OfficerPosition;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -121,5 +123,72 @@ class OrganizationMembershipService
             ->when($excluding !== null, fn ($query) => $query->where('organization_id', '!=', $excluding->id))
             ->active()
             ->exists();
+    }
+
+    /**
+     * The org's currently active president, or null if the seat is vacant.
+     * Used to snapshot "Prepared by: [PRESIDENT'S NAME]" once at Activity
+     * Proposal submission (App\ActivityProposals\SubmitActivityProposal) —
+     * never for a live read at print time, which is the bug this method
+     * replaces (see App\Printing\ActivityProposalForm's docblock history).
+     */
+    public function activePresidentFor(Organization $organization): ?User
+    {
+        return OrganizationMembership::query()
+            ->where('organization_id', $organization->id)
+            ->where('position', OfficerPosition::President->value)
+            ->where('is_active', true)
+            ->with('user')
+            ->first()
+            ?->user;
+    }
+
+    /**
+     * Closes every currently-active holder of a seat, stamping `ended_at` —
+     * the single chokepoint for turnover so `is_active` and `ended_at`
+     * always change together. Deliberately a no-op when there is no active
+     * holder (a vacant seat), so calling this defensively never overwrites
+     * an already-recorded end date on an inactive row.
+     */
+    public function closeActiveHolders(Organization $organization, OfficerPosition $position, ?CarbonInterface $at = null): int
+    {
+        return OrganizationMembership::query()
+            ->where('organization_id', $organization->id)
+            ->where('position', $position->value)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'ended_at' => $at ?? now()]);
+    }
+
+    /**
+     * Closes a single membership row, stamping `ended_at`. A no-op if the
+     * row is already inactive — re-deactivating an already-closed row must
+     * never overwrite its real recorded end date with today's.
+     */
+    public function close(OrganizationMembership $membership, ?CarbonInterface $at = null): void
+    {
+        if (! $membership->is_active) {
+            return;
+        }
+
+        $membership->update(['is_active' => false, 'ended_at' => $at ?? now()]);
+    }
+
+    /**
+     * Closes every OTHER active seat this student holds in this same org
+     * (never the seat named by $keeping) — so being bound/approved into a
+     * new seat never leaves someone holding two seats in the same org at
+     * once. Shared chokepoint for BindOrganizationOfficer (the adviser's
+     * direct path) and App\Organizations\Admin\ApproveOfficerChange (the
+     * SDAO-admin finalize path), so the two ways of turning over an officer
+     * can't drift apart on this rule.
+     */
+    public function closeOtherActiveSeats(Organization $organization, User $student, OfficerPosition $keeping, ?CarbonInterface $at = null): int
+    {
+        return OrganizationMembership::query()
+            ->where('organization_id', $organization->id)
+            ->where('user_id', $student->id)
+            ->where('position', '!=', $keeping->value)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'ended_at' => $at ?? now()]);
     }
 }

@@ -69,6 +69,7 @@ class MembershipSeeder extends Seeder
             'position' => $position->value,
             'academic_year' => $academicYear,
             'is_active' => true,
+            'started_at' => now(),
         ]);
     }
 }

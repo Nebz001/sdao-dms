@@ -64,6 +64,14 @@ use Illuminate\Support\Collection;
  *                                                        not sourced from org membership: the system only ever tracks those two
  *                                                        as "members", too small a pool to stand in for who is actually
  *                                                        responsible for running an activity.
+ * @property string|null $president_name Submission-time snapshot of the
+ *                                       org's active president, for the printed "Prepared by" line
+ *                                       (App\Printing\ActivityProposalForm). Written once by
+ *                                       App\ActivityProposals\SubmitActivityProposal and deliberately never
+ *                                       rewritten on resubmission, so a reprinted proposal always shows who was
+ *                                       president when it was actually submitted, not whoever holds the office
+ *                                       now. Null on proposals submitted before this column existed — those
+ *                                       print a blank line rather than a guessed name.
  * @property-read string|null $expenseItemsTotal Formatted ("1,234.56") grand
  *     total of expense_items, or null when there are no rows to sum.
  * @property-read string|null $activityNatureLabel activity_nature's label,
@@ -75,7 +83,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'president_name', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */

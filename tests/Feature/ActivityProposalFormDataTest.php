@@ -5,7 +5,6 @@ use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
-use App\Enums\OfficerPosition;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\ProposalVariant;
 use App\Enums\Sdg;
@@ -14,7 +13,6 @@ use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
-use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Printing\ActivityProposalForm;
 use Database\Seeders\IdentitySeeder;
@@ -119,6 +117,11 @@ function activityProposalPrintDocument(
         'proposed_budget' => 5000,
         'budget_source' => 'rso_fund',
         'form_step' => 2,
+        // Never snapshotted by this fixture builder by default (it creates
+        // the ActivityProposal directly, bypassing SubmitActivityProposal,
+        // the only place that actually populates this column) — tests that
+        // need a name pass it via $proposalOverrides.
+        'president_name' => null,
     ], $proposalOverrides));
 
     return $doc;
@@ -135,15 +138,9 @@ function dataForProposal(Document $document): array
 // ── Field mapping ────────────────────────────────────────────────────────
 
 test('page 1 and page 2 fields map from the stored proposal and its calendar activity', function () {
-    OrganizationMembership::create([
-        'user_id' => $this->studentAlpha->id,
-        'organization_id' => $this->org->id,
-        'position' => OfficerPosition::President->value,
-        'academic_year' => '2025-2026',
-        'is_active' => true,
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'president_name' => 'Student Alpha',
     ]);
-
-    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
     $data = dataForProposal($doc);
 
     expect($data['rso_name'])->toBe('Computing Society');
@@ -288,16 +285,25 @@ test('nature checklist maps 1:1 to all 4 ActivityNature cases with no duplicates
     expect($checked->first()['label'])->toContain('Community Extension');
 });
 
-test('"VI. Responsible Person/s" is an empty list and prepared_by_president is blank without an active president', function () {
-    // A freshly factory-made org has no seeded officer memberships at all
-    // (unlike Computing Society, which MembershipSeeder already binds
-    // Student Alpha to as President).
-    $orphanOrg = Organization::factory()->create();
-    $doc = activityProposalPrintDocument($orphanOrg, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
+test('"VI. Responsible Person/s" is an empty list and prepared_by_president is blank when the proposal has no snapshotted president name', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
     $data = dataForProposal($doc);
 
     expect($data['prepared_by_president'])->toBeNull();
     expect($data['responsible_persons'])->toBe([]);
+});
+
+test('prepared_by_president prints blank even when the org currently HAS an active president, if the proposal was never snapshotted — no live-lookup fallback', function () {
+    // Computing Society's active president (Student Alpha, via
+    // MembershipSeeder) is deliberately NOT who this proposal names —
+    // proves App\Printing\ActivityProposalForm reads the stored column and
+    // never falls back to querying OrganizationMembership live.
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'president_name' => null,
+    ]);
+    $data = dataForProposal($doc);
+
+    expect($data['prepared_by_president'])->toBeNull();
 });
 
 test('"VI. Responsible Person/s" includes the actual names when the proposal has responsible persons set', function () {

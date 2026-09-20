@@ -114,6 +114,33 @@ test('an unverified self-registered student cannot be bound as an officer', func
     expect(OrganizationMembership::where('user_id', $unverified->id)->exists())->toBeFalse();
 });
 
+test('binding a sitting officer into the OTHER seat auto-closes their old seat — same rule as the admin approval path', function () {
+    $studentDelta = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail(); // Secretary, Computing Society
+
+    $newPresidentMembership = $this->action->execute(
+        actor: $this->adviser,
+        organization: $this->org,
+        student: $studentDelta,
+        position: OfficerPosition::President,
+    );
+
+    expect($newPresidentMembership->position)->toBe(OfficerPosition::President);
+    expect($newPresidentMembership->is_active)->toBeTrue();
+
+    $oldSecretaryMembership = OrganizationMembership::where('user_id', $studentDelta->id)
+        ->where('organization_id', $this->org->id)
+        ->where('position', OfficerPosition::Secretary->value)
+        ->firstOrFail();
+    expect($oldSecretaryMembership->is_active)->toBeFalse();
+    expect($oldSecretaryMembership->ended_at)->not->toBeNull();
+
+    // Delta now holds exactly one active seat in this org.
+    expect(OrganizationMembership::where('user_id', $studentDelta->id)
+        ->where('organization_id', $this->org->id)
+        ->where('is_active', true)
+        ->count())->toBe(1);
+});
+
 test('a rejected student cannot be bound as an officer', function () {
     $rejected = User::factory()->rejectedAccount()->create();
 

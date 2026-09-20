@@ -103,7 +103,14 @@ test('a return-for-revision shares a normalized toast on the redirected page', f
 });
 
 test('the quorum-completing approval shares a success toast on the queue page', function () {
-    $doc = flashTestRegistration($this->org, $this->engine, $this->studentAlpha);
+    // A fresh, not-yet-founded org and a fresh founding student — unlike the
+    // other tests in this file, this one actually reaches
+    // ApproveOrganizationRegistration's founding bind (quorum met), which
+    // would collide with Computing Society's already-seeded active
+    // President if $this->org/$this->studentAlpha were reused here.
+    $freshOrg = Organization::factory()->create();
+    $founder = User::factory()->create(['account_status' => 'verified']);
+    $doc = flashTestRegistration($freshOrg, $this->engine, $founder);
 
     // First SDAO member approves — document stays In Review, one seat left.
     $this->actingAs($this->sdaoA)

@@ -4,12 +4,9 @@ namespace App\Printing;
 
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
-use App\Enums\OfficerPosition;
 use App\Enums\Role;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
-use App\Models\Organization;
-use App\Models\OrganizationMembership;
 use App\Support\AcademicYear;
 use App\Support\DisplayTimezone;
 use Carbon\Carbon;
@@ -236,7 +233,13 @@ class ActivityProposalForm implements PrintableForm
             // directly by the submitting officer, not auto-filled from
             // OrganizationMembershipService::activeOfficersFor().
             'responsible_persons' => $proposal->responsible_persons ?? [],
-            'prepared_by_president' => $this->presidentName($organization),
+            // Submission-time snapshot (App\ActivityProposals\SubmitActivityProposal),
+            // not a live lookup — a reprinted old proposal must show whoever
+            // was president when it was ACTUALLY submitted, not whoever
+            // holds the office today. Null (prints blank) on a proposal
+            // submitted before this column existed; deliberately no
+            // live-lookup fallback for that case either.
+            'prepared_by_president' => $proposal->president_name,
             'narrative_signatures' => [
                 'adviser' => $this->resolveSignature(
                     $document, Role::Adviser,
@@ -296,29 +299,6 @@ class ActivityProposalForm implements PrintableForm
     private function formatTime(?string $hhmm): ?string
     {
         return $hhmm !== null ? Carbon::createFromFormat('H:i', $hhmm)->format('h:i A') : null;
-    }
-
-    /**
-     * "Prepared by: [PRESIDENT'S FULL NAME]" is authorship, not an
-     * approval-chain role (no Role::President case exists) — known at
-     * submission time, never gated on approval. No existing shared service
-     * exposes "the org's active president" directly
-     * (OrganizationMembershipService::activeOfficersFor() returns both
-     * officers, undistinguished), so this queries OrganizationMembership
-     * directly — same precedent as OrganizationApplicationForm's
-     * facultyAdviserColumn() reading stored data rather than calling a
-     * shared service.
-     */
-    private function presidentName(Organization $organization): ?string
-    {
-        $membership = OrganizationMembership::query()
-            ->where('organization_id', $organization->id)
-            ->where('is_active', true)
-            ->where('position', OfficerPosition::President)
-            ->with('user')
-            ->first();
-
-        return $membership?->user->name;
     }
 
     /**

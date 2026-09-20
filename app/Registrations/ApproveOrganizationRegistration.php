@@ -84,6 +84,7 @@ class ApproveOrganizationRegistration
                 'position' => OfficerPosition::President->value,
                 'academic_year' => $period->academicYear,
                 'is_active' => true,
+                'started_at' => now(),
             ]);
 
             // Stamped at APPROVE time (not submit time), unlike a renewal —

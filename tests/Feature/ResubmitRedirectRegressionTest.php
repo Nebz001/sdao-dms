@@ -116,7 +116,7 @@ test('resubmitting a returned activity calendar: the redirect target loads for t
     $activityPayload = [
         'name' => 'Draft Event',
         'venue' => 'Gymnasium',
-        'activity_date' => '2026-09-15',
+        'activity_date' => '2027-01-15',
         'start_time' => '09:00',
         'end_time' => '12:00',
         'sdg' => ['quality_education'],

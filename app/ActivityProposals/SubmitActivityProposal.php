@@ -86,6 +86,13 @@ class SubmitActivityProposal
                 // — rows are {material, quantity, unit_price}.
                 'expense_items' => $expenseItems,
                 'responsible_persons' => $responsiblePersons,
+                // Snapshotted once, here, at submission — never rewritten on
+                // resubmit (ResubmitActivityProposal's field allowlist
+                // omits it by design). See ActivityProposal's docblock and
+                // App\Printing\ActivityProposalForm, which reads this
+                // instead of live-querying the org's currently-active
+                // president.
+                'president_name' => $this->membershipService->activePresidentFor($document->organization)?->name,
             ]);
 
             $document->variant = $variant;

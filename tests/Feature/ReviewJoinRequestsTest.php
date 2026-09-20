@@ -108,6 +108,8 @@ test('the adviser can approve a request, binding the student and notifying them'
     expect($membership->is_active)->toBeTrue();
     expect($membership->position)->toBe(OfficerPosition::Secretary);
     expect($membership->user_id)->toBe($joinRequest->user_id);
+    expect($membership->started_at)->not->toBeNull();
+    expect($membership->ended_at)->toBeNull();
 
     $joinRequest->refresh();
     expect($joinRequest->status)->toBe(JoinRequestStatus::Approved);

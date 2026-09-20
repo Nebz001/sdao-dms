@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ApproverController;
 use App\Http\Controllers\Admin\CurrentPeriodController;
 use App\Http\Controllers\Admin\DocumentArchiveController;
+use App\Http\Controllers\Admin\OfficerChangeReviewController as AdminOfficerChangeReviewController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\AfterActivityReportController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\JoinOrganizationController;
 use App\Http\Controllers\JoinRequestReviewController;
 use App\Http\Controllers\MyOrganizationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OfficerChangeController;
 use App\Http\Controllers\OrganizationLogoController;
 use App\Http\Controllers\OrganizationOfficerController;
 use App\Http\Controllers\RegistrationController;
@@ -109,6 +111,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/review/join-requests', [JoinRequestReviewController::class, 'index'])->name('review.join-requests.index');
     Route::post('/review/join-requests/{joinRequest}/approve', [JoinRequestReviewController::class, 'approve'])->name('review.join-requests.approve');
     Route::post('/review/join-requests/{joinRequest}/decline', [JoinRequestReviewController::class, 'decline'])->name('review.join-requests.decline');
+
+    // Officer — request a change to their own org's roster. Additive
+    // alongside Manage Officers above (the adviser's direct path, unchanged)
+    // — only an SDAO admin can finalize this one (see the admin group below).
+    Route::get('/organizations/officer-change', [OfficerChangeController::class, 'create'])->name('organizations.officer-change.create');
+    Route::get('/organizations/officer-change/search', [OfficerChangeController::class, 'search'])->middleware('throttle:30,1')->name('organizations.officer-change.search');
+    Route::post('/organizations/officer-change', [OfficerChangeController::class, 'store'])->name('organizations.officer-change.store');
 
     // Student — registration lifecycle (literal paths declared before {document} wildcard)
     Route::get('/registrations', [RegistrationController::class, 'index'])->name('registrations.index');
@@ -212,6 +221,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pending-accounts', [PendingAccountController::class, 'index'])->name('pending-accounts.index');
         Route::post('/pending-accounts/{account}/verify', [PendingAccountController::class, 'verify'])->name('pending-accounts.verify');
         Route::post('/pending-accounts/{account}/reject', [PendingAccountController::class, 'reject'])->name('pending-accounts.reject');
+
+        // SDAO admin — finalizes officer change requests filed by a current
+        // president/secretary (App\Organizations\RequestOfficerChange). The
+        // adviser's direct Manage Officers path is unaffected by this queue.
+        Route::get('/officer-change-requests', [AdminOfficerChangeReviewController::class, 'index'])->name('officer-change-requests.index');
+        Route::post('/officer-change-requests/{officerChangeRequest}/approve', [AdminOfficerChangeReviewController::class, 'approve'])->name('officer-change-requests.approve');
+        Route::post('/officer-change-requests/{officerChangeRequest}/decline', [AdminOfficerChangeReviewController::class, 'decline'])->name('officer-change-requests.decline');
 
         // SDAO admin — document archive (terminal documents, all five form
         // types). The review queues are deliberately InReview-only; this is

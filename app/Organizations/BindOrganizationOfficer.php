@@ -23,9 +23,11 @@ use Illuminate\Validation\ValidationException;
  * bind anyway, since the actor there is SDAO, not an adviser the org doesn't
  * have bound yet.
  *
- * Invariant: at most one active president and one active secretary per org.
- * On turnover the old holder is deactivated (never deleted) and a new
- * active membership is created.
+ * Invariant: at most one active president and one active secretary per org,
+ * and no single student holds both seats at once. On turnover the old
+ * holder is deactivated (never deleted) and a new active membership is
+ * created; if the incoming student already actively holds the org's OTHER
+ * seat, that seat is closed too (see execute()).
  */
 class BindOrganizationOfficer
 {
@@ -64,13 +66,22 @@ class BindOrganizationOfficer
             ]);
         }
 
-        return DB::transaction(function () use ($organization, $student, $position, $academicYear) {
+        // Hoisted once — sharing one instant between the outgoing term's
+        // ended_at and the incoming term's started_at keeps the two exactly
+        // equal, with no gap and no overlap (two now() calls would land
+        // microseconds apart).
+        $now = now();
+
+        return DB::transaction(function () use ($organization, $student, $position, $academicYear, $now) {
             // Turnover: deactivate any existing active holder of this position.
-            OrganizationMembership::query()
-                ->where('organization_id', $organization->id)
-                ->where('position', $position->value)
-                ->where('is_active', true)
-                ->update(['is_active' => false]);
+            $this->membershipService->closeActiveHolders($organization, $position, $now);
+
+            // If this student already actively holds the org's OTHER seat,
+            // close it too — binding them into a new seat must leave them
+            // holding exactly one, not both (same rule ApproveOfficerChange
+            // enforces on the admin-finalize path; see
+            // OrganizationMembershipService::closeOtherActiveSeats).
+            $this->membershipService->closeOtherActiveSeats($organization, $student, $position, $now);
 
             return OrganizationMembership::create([
                 'user_id' => $student->id,
@@ -78,6 +89,7 @@ class BindOrganizationOfficer
                 'position' => $position->value,
                 'academic_year' => $academicYear ?? AcademicYear::current(),
                 'is_active' => true,
+                'started_at' => $now,
             ]);
         });
     }

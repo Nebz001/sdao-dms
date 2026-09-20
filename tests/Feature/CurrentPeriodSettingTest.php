@@ -32,7 +32,7 @@ function currentTermPayload(): array
         'activities' => [[
             'name' => 'JS Night',
             'venue' => 'Gymnasium',
-            'activity_date' => '2026-09-15',
+            'activity_date' => '2027-01-15',
             'start_time' => '09:00',
             'end_time' => '12:00',
             // Required by StoreActivityCalendarRequest (Phase 2 item 7 slice 1) —

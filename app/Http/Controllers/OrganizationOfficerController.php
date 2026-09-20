@@ -2,17 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AccountStatus;
-use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Enums\OfficerPosition;
-use App\Enums\Role;
 use App\Http\Requests\Organizations\BindOfficerRequest;
-use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
+use App\Organizations\EligibleOfficerCandidates;
+use App\Organizations\OrganizationMembershipService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +24,7 @@ class OrganizationOfficerController extends Controller
      */
     private const int SEARCH_LIMIT = 20;
 
-    public function index(Request $request, Organization $organization): Response
+    public function index(Request $request, Organization $organization, EligibleOfficerCandidates $candidates): Response
     {
         Gate::authorize('manageOfficers', $organization);
 
@@ -46,48 +43,7 @@ class OrganizationOfficerController extends Controller
 
         $search = $request->string('search')->trim()->toString();
 
-        // Candidates the adviser can bind: never an account holding an
-        // approver role (RoleAssignment is the only thing that knows an
-        // account is an adviser/chair/dean/etc. — OrganizationMembership has
-        // no concept of it), must be SDAO-Verified (BindOrganizationOfficer
-        // rejects an unverified/rejected student anyway — filtered here too
-        // so the adviser never sees an un-bindable candidate), AND either a
-        // bare account (no OrganizationMembership row at all — the shape a
-        // self-registered student has) OR an account currently ACTIVE in THIS
-        // org. Using is_active (not mere row existence) means a former
-        // officer whose membership was deactivated on turnover is correctly
-        // excluded, not perpetually "known."
-        // One organization per student (Phase 2 item 4): also hide anyone with
-        // an in-flight (Draft/InReview/Returned) registration for a DIFFERENT
-        // org — they'd immediately trip BindOrganizationOfficer's/
-        // SubmitOrganizationRegistration's guards anyway, so the adviser
-        // never sees an un-bindable candidate in the picker.
-        $inFlightElsewhereUserIds = Document::query()
-            ->where('form_type', FormType::OrganizationRegistration->value)
-            ->where('organization_id', '!=', $organization->id)
-            ->whereIn('status', [
-                DocumentStatus::Draft->value,
-                DocumentStatus::InReview->value,
-                DocumentStatus::Returned->value,
-            ])
-            ->pluck('submitted_by');
-
-        $students = User::query()
-            ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
-            ->where('account_status', AccountStatus::Verified->value)
-            ->where(function ($query) use ($organization) {
-                $query->whereDoesntHave('organizationMemberships')
-                    ->orWhereHas('organizationMemberships', fn ($q) => $q
-                        ->where('organization_id', $organization->id)
-                        ->active()
-                    );
-            })
-            ->whereNotIn('id', $inFlightElsewhereUserIds)
-            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-            ))
-            ->orderBy('name')
+        $students = $candidates->query($organization, $search)
             ->limit(self::SEARCH_LIMIT)
             ->get(['id', 'name', 'email'])
             ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email]);
@@ -122,12 +78,14 @@ class OrganizationOfficerController extends Controller
             ->with('flash', ['message' => "{$student->name} bound as {$position->label()}."]);
     }
 
-    public function destroy(Organization $organization, OrganizationMembership $membership): RedirectResponse
+    public function destroy(Organization $organization, OrganizationMembership $membership, OrganizationMembershipService $membershipService): RedirectResponse
     {
         Gate::authorize('manageOfficers', $organization);
         abort_unless($membership->organization_id === $organization->id, 404);
 
-        $membership->update(['is_active' => false]);
+        // close() is a no-op on an already-inactive row — re-deactivating
+        // one must never overwrite its real recorded ended_at with today's.
+        $membershipService->close($membership);
 
         return redirect()->route('officers.index', $organization)
             ->with('flash', ['message' => 'Officer deactivated.']);

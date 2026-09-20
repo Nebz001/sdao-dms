@@ -34,10 +34,18 @@ beforeEach(function () {
  * BindOrganizationOfficer (which would itself reject an unverified student —
  * that path is covered separately in BindOfficerTest). This simulates the
  * defense-in-depth scenario: an active membership exists, but the account is
- * not (or is no longer) SDAO-Verified.
+ * not (or is no longer) SDAO-Verified. Closes any existing active holder of
+ * $position first — MembershipSeeder already seeds Computing Society's
+ * President/Secretary, and organization_memberships now enforces at most one
+ * active holder per (organization, position) at the DB level.
  */
 function bindUnverifiedOfficerTo(Organization $org, string $position = 'secretary'): User
 {
+    OrganizationMembership::where('organization_id', $org->id)
+        ->where('position', $position)
+        ->where('is_active', true)
+        ->update(['is_active' => false, 'ended_at' => now()]);
+
     $officer = User::factory()->unverifiedAccount()->create();
 
     OrganizationMembership::create([
@@ -127,20 +135,20 @@ function approvedProposalForVerificationGate(Organization $org, User $student): 
 }
 
 test('OrganizationMembershipService treats an unverified account as having no active membership', function () {
-    $unverified = User::factory()->unverifiedAccount()->create();
-    OrganizationMembership::create([
-        'user_id' => $unverified->id,
-        'organization_id' => $this->org->id,
-        'position' => 'president',
-        'academic_year' => '2026-2027',
-        'is_active' => true,
-    ]);
+    $unverified = bindUnverifiedOfficerTo($this->org, 'president');
 
     expect(app(OrganizationMembershipService::class)->activeMembershipFor($unverified, $this->org))->toBeNull();
 });
 
 test('OrganizationMembershipService treats a rejected account as having no active membership', function () {
     $rejected = User::factory()->rejectedAccount()->create();
+
+    // MembershipSeeder already seeds an active Secretary for this org.
+    OrganizationMembership::where('organization_id', $this->org->id)
+        ->where('position', 'secretary')
+        ->where('is_active', true)
+        ->update(['is_active' => false, 'ended_at' => now()]);
+
     OrganizationMembership::create([
         'user_id' => $rejected->id,
         'organization_id' => $this->org->id,
@@ -332,7 +340,7 @@ test('an unverified officer is forbidden from submitting an activity calendar', 
         'activities' => [[
             'name' => 'JS Night',
             'venue' => 'Gymnasium',
-            'activity_date' => '2026-09-15',
+            'activity_date' => '2027-01-15',
             'start_time' => '09:00',
             'end_time' => '12:00',
             'description' => 'JavaScript showcase.',

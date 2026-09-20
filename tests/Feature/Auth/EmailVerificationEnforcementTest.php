@@ -32,6 +32,15 @@ test('a verified user reaches the dashboard normally', function () {
 test('an unverified officer cannot submit a document — blocked before the action ever runs', function () {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
     $officer = User::factory()->unverified()->create();
+
+    // MembershipSeeder already seeds an active President for this org, and
+    // organization_memberships now enforces at most one active holder per
+    // (organization, position) at the DB level — close it first.
+    OrganizationMembership::where('organization_id', $org->id)
+        ->where('position', 'president')
+        ->where('is_active', true)
+        ->update(['is_active' => false, 'ended_at' => now()]);
+
     OrganizationMembership::create([
         'user_id' => $officer->id,
         'organization_id' => $org->id,

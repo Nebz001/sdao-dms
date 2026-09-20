@@ -68,23 +68,26 @@ class ApproveJoinRequest
 
         if ($positionFilled) {
             throw ValidationException::withMessages([
-                'join_request' => "{$position->label()} is already filled for this organization. Deactivate the current holder via Manage Officers first, or approve as a different position.",
+                'join_request' => "{$position->label()} is already filled for this organization. Deactivate the current holder via Manage Officers, have the org file an officer change request, or approve this join request as a different position.",
             ]);
         }
 
-        $membership = DB::transaction(function () use ($actor, $joinRequest, $student, $organization, $position) {
+        $now = now();
+
+        $membership = DB::transaction(function () use ($actor, $joinRequest, $student, $organization, $position, $now) {
             $membership = OrganizationMembership::create([
                 'user_id' => $student->id,
                 'organization_id' => $organization->id,
                 'position' => $position->value,
                 'academic_year' => AcademicYear::current(),
                 'is_active' => true,
+                'started_at' => $now,
             ]);
 
             $joinRequest->update([
                 'status' => JoinRequestStatus::Approved,
                 'decided_by' => $actor->id,
-                'decided_at' => now(),
+                'decided_at' => $now,
             ]);
 
             return $membership;
