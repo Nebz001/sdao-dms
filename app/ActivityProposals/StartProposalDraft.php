@@ -24,6 +24,7 @@ class StartProposalDraft
     public function __construct(
         private readonly OrganizationMembershipService $membershipService,
         private readonly AttachmentStorage $attachmentStorage,
+        private readonly OnCalendarActivityLockChecker $activityLockChecker,
     ) {}
 
     /**
@@ -81,6 +82,12 @@ class StartProposalDraft
                 ->where('status', DocumentStatus::Approved->value))
             ->where('id', (int) $data['calendar_activity_id'])
             ->firstOrFail();
+
+        if ($this->activityLockChecker->isLocked($calendarActivity)) {
+            throw ValidationException::withMessages([
+                'calendar_activity_id' => 'This activity already has a pending or approved proposal. Choose a different activity.',
+            ]);
+        }
 
         $document = Document::create([
             'form_type' => FormType::ActivityProposal,

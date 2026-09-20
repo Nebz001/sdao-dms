@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ActivityProposals\OnCalendarActivityLockChecker;
 use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
@@ -187,9 +188,13 @@ class ActivityProposalController extends Controller
     }
 
     /**
-     * JSON list of the actor's org's Approved CalendarActivities for the on-calendar picker.
+     * JSON list of the actor's org's Approved CalendarActivities for the
+     * on-calendar picker. Excludes any activity already locked by another
+     * active proposal (App\ActivityProposals\OnCalendarActivityLockChecker)
+     * — convenience only; the authoritative guards live in
+     * StartProposalDraft and SubmitActivityProposal.
      */
-    public function onCalendarActivities(): JsonResponse
+    public function onCalendarActivities(OnCalendarActivityLockChecker $lockChecker): JsonResponse
     {
         $user = Auth::user();
 
@@ -206,6 +211,7 @@ class ActivityProposalController extends Controller
             ->whereHas('calendar.document', fn ($q) => $q
                 ->where('organization_id', $membership->organization_id)
                 ->where('status', DocumentStatus::Approved->value))
+            ->whereNotIn('id', $lockChecker->lockedActivityIds())
             ->orderBy('activity_date')
             ->get()
             ->map(fn ($a) => [

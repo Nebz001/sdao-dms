@@ -1,10 +1,15 @@
 <?php
 
 use App\ActivityProposals\StartProposalDraft;
+use App\ActivityProposals\SubmitActivityProposal;
+use App\Enums\ActivityNature;
+use App\Enums\ActivityType;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\Sdg;
 use App\Models\ActivityCalendar;
+use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
@@ -14,6 +19,7 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
     $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
@@ -22,6 +28,7 @@ beforeEach(function () {
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $this->secretary = User::where('email', 'student-delta@students.nu-lipa.edu.ph')->firstOrFail(); // Secretary, Computing Society
 });
 
 function onCalApprovedActivity(Organization $org, string $name = 'Test Event'): CalendarActivity
@@ -150,4 +157,80 @@ test('on-calendar title is derived from the CalendarActivity name', function () 
 
     expect($document->title)->toContain('Annual CS Summit');
     expect($document->title)->toContain('Computing Society');
+});
+
+function proposalDocumentFor(Organization $org, User $submitter, CalendarActivity $activity, DocumentStatus $status): Document
+{
+    $document = Document::create([
+        'form_type' => FormType::ActivityProposal,
+        'variant' => null,
+        'title' => 'Existing Proposal',
+        'status' => $status,
+        'current_step_position' => in_array($status, [DocumentStatus::InReview, DocumentStatus::Returned], true) ? 1 : null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $submitter->id,
+    ]);
+
+    ActivityProposal::create([
+        'document_id' => $document->id,
+        'calendar_mode' => ProposalCalendarMode::OnCalendar->value,
+        'calendar_activity_id' => $activity->id,
+        'title' => $activity->name,
+        'activity_nature' => ActivityNature::CoCurricular->value,
+        'activity_type' => ActivityType::Competition->value,
+        'target_sdg' => [Sdg::QualityEducation->value],
+        'form_step' => 2,
+    ]);
+
+    return $document;
+}
+
+test('starting a new draft against an already-locked activity is blocked', function () {
+    $activity = onCalApprovedActivity($this->computingSociety);
+    proposalDocumentFor($this->computingSociety, $this->student, $activity, DocumentStatus::InReview);
+
+    expect(fn () => $this->startDraft->execute(
+        actor: $this->secretary,
+        organization: $this->computingSociety,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
+    ))->toThrow(ValidationException::class);
+});
+
+test('race: two drafts against the same activity — only the first submit reaches InReview, the second is blocked', function () {
+    $activity = onCalApprovedActivity($this->computingSociety);
+
+    $draftA = $this->startDraft->execute(
+        actor: $this->student,
+        organization: $this->computingSociety,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
+    );
+
+    $draftB = $this->startDraft->execute(
+        actor: $this->secretary,
+        organization: $this->computingSociety,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
+    );
+
+    // Both drafts coexist — Draft never locks the activity.
+    expect($draftA->status)->toBe(DocumentStatus::Draft);
+    expect($draftB->status)->toBe(DocumentStatus::Draft);
+
+    $submitAction = app(SubmitActivityProposal::class);
+
+    $submitAction->execute(actor: $this->student, document: $draftA, objectives: 'Goal A');
+    $draftA->refresh();
+    expect($draftA->status)->toBe(DocumentStatus::InReview);
+
+    expect(fn () => $submitAction->execute(actor: $this->secretary, document: $draftB, objectives: 'Goal B'))
+        ->toThrow(ValidationException::class);
+
+    $draftB->refresh();
+    expect($draftB->status)->toBe(DocumentStatus::Draft);
 });

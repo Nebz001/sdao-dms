@@ -21,6 +21,7 @@ class SubmitActivityProposal
         private readonly VenueConflictChecker $conflictChecker,
         private readonly ProposalVariantResolver $variantResolver,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly OnCalendarActivityLockChecker $activityLockChecker,
     ) {}
 
     /**
@@ -57,9 +58,14 @@ class SubmitActivityProposal
         $proposal = $document->activityProposal;
 
         // Hard-block: off-calendar activity must not overlap an already-Approved slot.
-        // (On-calendar references an Approved activity that already hard-blocks — no check needed.)
+        // On-calendar instead re-checks that nobody else's proposal claimed
+        // this same activity while this Draft was being written — the
+        // dropdown already filters locked activities out, but this is the
+        // authoritative re-check that actually closes the race.
         if ($proposal->calendar_mode === ProposalCalendarMode::OffCalendar) {
             $this->guardConfirmedConflicts($proposal->calendarActivity, null);
+        } else {
+            $this->guardActivityNotLocked($proposal->calendarActivity, $document->id);
         }
 
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
@@ -111,6 +117,16 @@ class SubmitActivityProposal
         }
 
         return ['document' => $document, 'warnings' => $warnings];
+    }
+
+    /** @throws ValidationException */
+    private function guardActivityNotLocked(CalendarActivity $activity, int $excludeDocumentId): void
+    {
+        if ($this->activityLockChecker->isLocked($activity, $excludeDocumentId)) {
+            throw ValidationException::withMessages([
+                'calendar_activity_id' => 'This activity now has another active proposal — someone else claimed it while you were completing this one.',
+            ]);
+        }
     }
 
     /**
