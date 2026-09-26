@@ -7,6 +7,7 @@ use App\Approval\Contracts\SubmitterNotifier;
 use App\Approval\Notifications\MailingSubmitterNotifier;
 use App\Approval\Notifications\RecordingApproverNotifier;
 use App\Enums\Role;
+use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
@@ -36,6 +37,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ApproverNotifier::class, RecordingApproverNotifier::class);
         $this->app->bind(SubmitterNotifier::class, MailingSubmitterNotifier::class);
+
+        // Scoped (not a plain singleton): one shared instance per request/
+        // job, so RoleDirectory::remembering()'s cache is actually shared by
+        // every consumer (DocumentPolicy, StepApproverResolver, a queue
+        // controller) within that request — never leaked across requests.
+        $this->app->scoped(RoleDirectory::class);
     }
 
     /**

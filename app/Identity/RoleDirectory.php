@@ -16,6 +16,54 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  */
 class RoleDirectory
 {
+    private bool $memoizing = false;
+
+    /** @var array<string, User|Collection<int, User>> */
+    private array $memo = [];
+
+    /**
+     * Turn on request-scoped memoization for the duration of the callback —
+     * every seat resolveScoped()/resolveGlobal()/sdaoMembers() looks up
+     * underneath is cached by its own scope key, so resolving the same seat
+     * (e.g. the same organization's adviser) across many documents in one
+     * queue build costs one query instead of one per document.
+     *
+     * Off by default: a lookup made outside this wrapper always hits the
+     * database, exactly as before this existed. Bound `scoped` in
+     * AppServiceProvider so the same instance — and so the same cache — is
+     * shared by every consumer (DocumentPolicy, StepApproverResolver, the
+     * queue controller) within one request; a fresh request always gets a
+     * fresh instance and an empty cache.
+     *
+     * A failed lookup (ModelNotFoundException) is never cached — only a
+     * successful resolution is — so a misconfigured seat is re-checked on
+     * every call, never permanently denied for the rest of the request.
+     */
+    public function remembering(callable $callback): mixed
+    {
+        $wasMemoizing = $this->memoizing;
+        $this->memoizing = true;
+
+        try {
+            return $callback();
+        } finally {
+            $this->memoizing = $wasMemoizing;
+
+            if (! $this->memoizing) {
+                $this->memo = [];
+            }
+        }
+    }
+
+    private function remember(string $key, callable $resolve): mixed
+    {
+        if (! $this->memoizing) {
+            return $resolve();
+        }
+
+        return $this->memo[$key] ??= $resolve();
+    }
+
     /**
      * @throws ModelNotFoundException
      */
@@ -109,9 +157,12 @@ class RoleDirectory
      */
     public function sdaoMembers(): Collection
     {
-        return User::query()
-            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::SdaoMember))
-            ->get();
+        return $this->remember(
+            'sdao_members',
+            fn () => User::query()
+                ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::SdaoMember))
+                ->get(),
+        );
     }
 
     /** @throws ModelNotFoundException */
@@ -167,12 +218,15 @@ class RoleDirectory
      */
     private function resolveScoped(Role $role, string $scopeColumn, int $scopeId): User
     {
-        return RoleAssignment::query()
-            ->where('role', $role)
-            ->where($scopeColumn, $scopeId)
-            ->oldest('id')
-            ->firstOrFail()
-            ->user;
+        return $this->remember(
+            "scoped:{$role->value}:{$scopeColumn}:{$scopeId}",
+            fn () => RoleAssignment::query()
+                ->where('role', $role)
+                ->where($scopeColumn, $scopeId)
+                ->oldest('id')
+                ->firstOrFail()
+                ->user,
+        );
     }
 
     /**
@@ -192,10 +246,13 @@ class RoleDirectory
      */
     private function resolveGlobal(Role $role): User
     {
-        return RoleAssignment::query()
-            ->where('role', $role)
-            ->oldest('id')
-            ->firstOrFail()
-            ->user;
+        return $this->remember(
+            "global:{$role->value}",
+            fn () => RoleAssignment::query()
+                ->where('role', $role)
+                ->oldest('id')
+                ->firstOrFail()
+                ->user,
+        );
     }
 }
