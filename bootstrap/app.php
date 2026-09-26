@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureMobileAccess;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -45,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             ForceJsonResponse::class,
+        ]);
+
+        $middleware->alias([
+            'mobile.access' => EnsureMobileAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
