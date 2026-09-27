@@ -52,6 +52,12 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return $this->hasMany(OrganizationMembership::class);
     }
 
+    /** @return HasMany<PushToken, $this> */
+    public function pushTokens(): HasMany
+    {
+        return $this->hasMany(PushToken::class);
+    }
+
     /**
      * SDAO's manual account-verification gate (distinct from email
      * verification): only a Verified account can submit documents or be

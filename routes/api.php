@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\Mobile\AuthController;
 use App\Http\Controllers\Api\Mobile\DocumentActionController;
 use App\Http\Controllers\Api\Mobile\DocumentController;
+use App\Http\Controllers\Api\Mobile\NotificationController;
+use App\Http\Controllers\Api\Mobile\PushTokenController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile approver API — the SDAO DMS React Native app. Approver-only,
@@ -18,6 +20,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['mobile.access', 'throttle:mobile-api'])->group(function () {
         Route::get('/mobile/user', [AuthController::class, 'user'])
             ->name('api.mobile.user');
+
+        Route::post('/mobile/push-tokens', [PushTokenController::class, 'store'])
+            ->name('api.mobile.push-tokens.store');
+
+        Route::delete('/mobile/push-tokens', [PushTokenController::class, 'destroy'])
+            ->name('api.mobile.push-tokens.destroy');
+
+        Route::get('/mobile/notifications', [NotificationController::class, 'index'])
+            ->name('api.mobile.notifications.index');
+
+        Route::get('/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+            ->name('api.mobile.notifications.unread-count');
+
+        Route::patch('/mobile/notifications/read-all', [NotificationController::class, 'markAllRead'])
+            ->name('api.mobile.notifications.read-all');
+
+        Route::patch('/mobile/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+            ->whereUuid('notification')
+            ->name('api.mobile.notifications.read');
 
         // Literal path before the {proposalReference} wildcard below.
         Route::get('/documents/queue', [DocumentController::class, 'queue'])
