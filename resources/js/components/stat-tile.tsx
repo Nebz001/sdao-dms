@@ -20,6 +20,48 @@ export type WeeklyDelta = {
     noun: string;
 };
 
+export type StatTileTone =
+    | 'primary'
+    | 'neutral'
+    | 'success'
+    | 'warning'
+    | 'destructive';
+
+/**
+ * Left-border + icon accent per tone, sharing the exact success/warning/
+ * destructive tokens StatusBadge/ActionBadge already use (never a second
+ * palette for the same meanings). `neutral` renders no accent at all — for
+ * a tile that reports a plain fact rather than something actionable.
+ */
+const TONE_BORDER: Record<StatTileTone, string> = {
+    primary: 'border-l-primary',
+    neutral: '',
+    success: 'border-l-success',
+    warning: 'border-l-warning',
+    destructive: 'border-l-destructive',
+};
+
+const TONE_ICON: Record<StatTileTone, string> = {
+    primary: 'text-primary',
+    neutral: 'text-muted-foreground',
+    success: 'text-success',
+    warning: 'text-warning',
+    destructive: 'text-destructive',
+};
+
+/**
+ * Only warning/destructive tint the headline number itself — success and
+ * primary stay the default foreground color, so a routine positive count
+ * doesn't compete for attention with a genuinely urgent one.
+ */
+const TONE_VALUE: Record<StatTileTone, string> = {
+    primary: '',
+    neutral: '',
+    success: '',
+    warning: 'text-warning',
+    destructive: 'text-destructive',
+};
+
 type StatTileProps = {
     label: string;
     count: number;
@@ -36,6 +78,16 @@ type StatTileProps = {
      * urgent signal per card, not two competing ones.
      */
     urgent?: boolean;
+    /**
+     * The accent family for this tile's left border, icon, and (for
+     * warning/destructive) the number itself. Defaults to 'primary' — every
+     * existing caller renders identically to before this prop existed.
+     */
+    tone?: StatTileTone;
+    /** Shown instead of the raw `count` (e.g. "18 hrs", "2.4 days") — `count` still drives the actionable/urgent styling. */
+    displayValue?: string;
+    /** A small muted caption under the value, e.g. "Waiting more than 3 days". */
+    hint?: string;
 };
 
 /**
@@ -107,6 +159,9 @@ export default function StatTile({
     icon: Icon,
     weekly,
     urgent,
+    tone = 'primary',
+    displayValue,
+    hint,
 }: StatTileProps) {
     const trend = weekly ? deltaLabel(weekly.delta) : null;
     const TrendIcon = trend?.icon;
@@ -116,7 +171,10 @@ export default function StatTile({
         <Card
             className={cn(
                 'relative gap-0 border-border/60 py-4 shadow-none transition-colors hover:border-primary/40',
-                isActionable && !urgent && 'border-l-2 border-l-primary',
+                isActionable &&
+                    !urgent &&
+                    TONE_BORDER[tone] &&
+                    `border-l-2 ${TONE_BORDER[tone]}`,
             )}
         >
             {urgent && (
@@ -150,9 +208,19 @@ export default function StatTile({
                         <p className="text-xs font-medium text-muted-foreground">
                             {label}
                         </p>
-                        <p className="mt-1 text-xl font-semibold tabular-nums">
-                            {count}
+                        <p
+                            className={cn(
+                                'mt-1 text-xl font-semibold tabular-nums',
+                                isActionable && TONE_VALUE[tone],
+                            )}
+                        >
+                            {displayValue ?? count}
                         </p>
+                        {hint && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {hint}
+                            </p>
+                        )}
                         {weekly && trend && TrendIcon && (
                             <div
                                 className={cn(
@@ -169,7 +237,7 @@ export default function StatTile({
                         className={cn(
                             'size-5 shrink-0',
                             isActionable
-                                ? 'text-primary'
+                                ? TONE_ICON[tone]
                                 : 'text-muted-foreground',
                         )}
                     />

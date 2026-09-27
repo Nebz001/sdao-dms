@@ -32,7 +32,7 @@ test('a bare verified user with no role or org sees no dashboard sections, but i
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('myOrganization', null)
-            ->where('proposalsAtMyStep', null)
+            ->where('approverDashboard', null)
             ->where('auth.canProposeOrganization', true)
         );
 });
@@ -158,7 +158,10 @@ test('a proposal-chain approver sees proposals currently at their step', functio
     $this->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('proposalsAtMyStep.count', 1)
+            ->where('approverDashboard.overdueAfterDays', 3)
+            ->loadDeferredProps('approver', fn ($reload) => $reload
+                ->where('approverKpis.waitingOnYou.count', 1)
+            )
         );
 });
 

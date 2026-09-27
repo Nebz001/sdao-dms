@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Approval\StepApproverResolver;
+use App\Approval\ApproverDashboardData;
+use App\Approval\ApproverQueue;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\OrganizationJoinRequest;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(StepApproverResolver $resolver): Response|RedirectResponse
+    public function index(): Response|RedirectResponse
     {
         $user = Auth::user();
         $roles = $user->roleAssignments;
@@ -44,7 +45,7 @@ class DashboardController extends Controller
         // frontend Props type and Inertia's fluent test assertions.
         $data = [
             'myOrganization' => null,
-            'proposalsAtMyStep' => null,
+            'approverDashboard' => null,
             'pendingJoinRequest' => null,
         ];
 
@@ -97,35 +98,31 @@ class DashboardController extends Controller
         }
 
         if ($reviewsProposals) {
-            $proposalsInReview = Document::query()
-                ->with(['organization', 'workflowTemplate.steps'])
-                ->where('form_type', FormType::ActivityProposal->value)
-                ->where('status', DocumentStatus::InReview->value)
-                ->orderBy('created_at')
-                ->get()
-                ->filter(function (Document $d) use ($user, $resolver) {
-                    try {
-                        $step = $d->workflowTemplate?->steps
-                            ->firstWhere('position', $d->current_step_position);
+            $period = CurrentPeriod::get();
+            $dashboard = ApproverDashboardData::for($user, $period);
 
-                        return $step && $resolver->approversFor($step, $d)->contains('id', $user->id);
-                    } catch (\Throwable $e) {
-                        Log::error('Approver resolution failed while filtering queue', ['exception' => $e->getMessage()]);
-
-                        return false;
-                    }
-                })
-                ->values();
-
-            $data['proposalsAtMyStep'] = [
-                'count' => $proposalsInReview->count(),
-                'items' => $proposalsInReview->take(5)->map(fn (Document $d) => [
-                    'id' => $d->id,
-                    'title' => $d->title,
-                    'href' => route('review.activity-proposals.show', $d),
-                ]),
-                'href' => route('review.activity-proposals.index'),
+            $data['approverDashboard'] = [
+                'overdueAfterDays' => ApproverQueue::OVERDUE_AFTER_DAYS,
+                'reviewHref' => route('review.activity-proposals.index'),
+                // The KPIs below are scoped to the academic year (see
+                // ApproverDashboardData::inAcademicYear()), not a narrower
+                // term window, so the UI labels that too rather than saying
+                // "this term".
+                'academicYear' => $period->academicYear,
             ];
+
+            // One deferred group: all seven sections resolve together in a
+            // single follow-up request (and share $dashboard's own memoized
+            // pending-document/outcome-count queries), so the page shell
+            // paints immediately and the skeleton is replaced all at once
+            // rather than section-by-section.
+            $data['approverKpis'] = Inertia::defer(fn () => $dashboard->kpis(), 'approver');
+            $data['approverQueue'] = Inertia::defer(fn () => $dashboard->priorityQueue(), 'approver');
+            $data['approverWaitingTime'] = Inertia::defer(fn () => $dashboard->waitingTimeDistribution(), 'approver');
+            $data['approverReviewActivity'] = Inertia::defer(fn () => $dashboard->reviewActivity(), 'approver');
+            $data['approverOutcomeSplit'] = Inertia::defer(fn () => $dashboard->outcomeSplit(), 'approver');
+            $data['approverUpcomingEvents'] = Inertia::defer(fn () => $dashboard->upcomingEvents(), 'approver');
+            $data['approverRecentDecisions'] = Inertia::defer(fn () => $dashboard->recentDecisions(), 'approver');
         }
 
         return Inertia::render('dashboard', $data);

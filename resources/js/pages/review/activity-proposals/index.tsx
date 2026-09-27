@@ -1,7 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import QueueStatStrip from '@/components/queue-stat-strip';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import {
+    ActionBadge,
+    StatusBadge,
+    statusBorderClass,
+} from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -22,10 +26,18 @@ type QueueItem = {
     calendar_mode: string | null;
     organization: { id: number; name: string };
     created_at: string;
+    waiting_since: string | null;
+    wait_tier: 'normal' | 'warning' | 'overdue' | null;
+    decision: { action: string; decided_at: string } | null;
 };
+
+type Filter = 'overdue' | 'approved' | 'returned' | 'decided' | null;
 
 type Props = {
     queue: QueueItem[];
+    filter: Filter;
+    filterLabel: string | null;
+    academicYear: string;
 };
 
 function modeLabel(mode: string | null): string {
@@ -40,11 +52,61 @@ function modeLabel(mode: string | null): string {
     return '';
 }
 
-export default function ReviewActivityProposalsIndex({ queue }: Props) {
+const FILTER_TABS: Array<{ value: Filter; label: string }> = [
+    { value: null, label: 'Pending' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'returned', label: 'Returned' },
+    { value: 'decided', label: 'All decisions' },
+];
+
+function tabHref(value: Filter): string {
+    return value === null
+        ? reviewActivityProposals.index().url
+        : reviewActivityProposals.index({ query: { filter: value } }).url;
+}
+
+function headingCopy(
+    filter: Filter,
+    academicYear: string,
+    count: number,
+): string {
+    if (filter === 'overdue') {
+        return count === 0
+            ? 'No overdue proposals'
+            : `${count} overdue proposal${count === 1 ? '' : 's'}`;
+    }
+
+    if (
+        filter === 'approved' ||
+        filter === 'returned' ||
+        filter === 'decided'
+    ) {
+        const verb =
+            filter === 'decided'
+                ? 'Decisions'
+                : FILTER_TABS.find((t) => t.value === filter)?.label;
+
+        return `${verb} · ${academicYear}${count > 0 ? ` (${count})` : ''}`;
+    }
+
+    return count === 0
+        ? 'No proposals awaiting your review.'
+        : `${count} proposal${count !== 1 ? 's' : ''} awaiting your review.`;
+}
+
+export default function ReviewActivityProposalsIndex({
+    queue,
+    filter,
+    filterLabel,
+    academicYear,
+}: Props) {
     useDocumentUpdates(['queue']);
 
+    const isHistory = filter !== null && filter !== 'overdue';
+
     const oldest =
-        queue.length > 0
+        !isHistory && queue.length > 0
             ? new Date(
                   Math.min(
                       ...queue.map((d) => new Date(d.created_at).getTime()),
@@ -62,33 +124,69 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
                         Activity Proposals — Review Queue
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        {queue.length === 0
-                            ? 'No proposals awaiting your review.'
-                            : `${queue.length} proposal${queue.length !== 1 ? 's' : ''} awaiting your review.`}
+                        {headingCopy(filter, academicYear, queue.length)}
                     </p>
                 </div>
 
+                <div
+                    className="flex flex-wrap gap-1.5"
+                    role="tablist"
+                    aria-label="Filter proposals"
+                >
+                    {FILTER_TABS.map((tab) => {
+                        const active = tab.value === filter;
+
+                        return (
+                            <Button
+                                key={tab.label}
+                                asChild
+                                size="sm"
+                                variant={active ? 'secondary' : 'ghost'}
+                            >
+                                <Link
+                                    href={tabHref(tab.value)}
+                                    aria-current={active ? 'page' : undefined}
+                                >
+                                    {tab.label}
+                                </Link>
+                            </Button>
+                        );
+                    })}
+                </div>
+
                 <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'Pending',
-                            value: String(queue.length),
-                            count: queue.length,
-                        },
-                        { label: 'Oldest waiting', value: oldest },
-                    ]}
+                    stats={
+                        isHistory
+                            ? [
+                                  {
+                                      label: 'Decisions',
+                                      value: String(queue.length),
+                                      count: queue.length,
+                                  },
+                              ]
+                            : [
+                                  {
+                                      label: 'Pending',
+                                      value: String(queue.length),
+                                      count: queue.length,
+                                  },
+                                  { label: 'Oldest waiting', value: oldest },
+                              ]
+                    }
                 />
 
                 <Card
                     className={
-                        queue.length > 0
+                        queue.length > 0 && !isHistory
                             ? `border-l-4 ${statusBorderClass('in_review')}`
                             : undefined
                     }
                 >
                     <CardHeader>
                         <CardTitle className="text-base">
-                            Pending Your Action
+                            {isHistory
+                                ? (filterLabel ?? 'Decisions')
+                                : 'Pending Your Action'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent
@@ -101,11 +199,14 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
                                         <Inbox />
                                     </EmptyMedia>
                                     <EmptyTitle>
-                                        Nothing waiting on you
+                                        {isHistory
+                                            ? 'No decisions to show'
+                                            : 'Nothing waiting on you'}
                                     </EmptyTitle>
                                     <EmptyDescription>
-                                        Proposals will show up here once they
-                                        reach a step routed to your role.
+                                        {isHistory
+                                            ? `You haven't made any matching decisions this academic year.`
+                                            : 'Proposals will show up here once they reach a step routed to your role.'}
                                     </EmptyDescription>
                                 </EmptyHeader>
                             </Empty>
@@ -129,8 +230,29 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
-                                        <StatusBadge status="in_review" />
-                                        <Button asChild size="sm">
+                                        {item.decision ? (
+                                            <>
+                                                <ActionBadge
+                                                    action={
+                                                        item.decision.action
+                                                    }
+                                                />
+                                                <StatusBadge
+                                                    status={item.status}
+                                                />
+                                            </>
+                                        ) : (
+                                            <StatusBadge status="in_review" />
+                                        )}
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant={
+                                                item.decision
+                                                    ? 'outline'
+                                                    : 'default'
+                                            }
+                                        >
                                             <Link
                                                 href={
                                                     reviewActivityProposals.show(
@@ -138,7 +260,9 @@ export default function ReviewActivityProposalsIndex({ queue }: Props) {
                                                     ).url
                                                 }
                                             >
-                                                Review
+                                                {item.decision
+                                                    ? 'View'
+                                                    : 'Review'}
                                             </Link>
                                         </Button>
                                     </div>

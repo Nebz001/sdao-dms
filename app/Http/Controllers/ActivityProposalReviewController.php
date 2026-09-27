@@ -4,21 +4,26 @@ namespace App\Http\Controllers;
 
 use App\ActivityProposals\Exceptions\ProposalVenueConflictException;
 use App\ActivityProposals\ReviewActivityProposal;
+use App\Approval\ApproverQueue;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverResolver;
 use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
-use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\ReviewQueueFilter;
 use App\Enums\Sdg;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
+use App\Models\DocumentTransition;
+use App\Models\User;
+use App\Support\CurrentPeriod;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,32 +32,29 @@ class ActivityProposalReviewController extends Controller
     use HandlesReviewActions;
 
     /**
-     * Queue: InReview proposals where the actor is the current-step approver.
+     * No filter (or ?filter=overdue): the live queue — InReview proposals
+     * where the actor is the current-step approver, exactly as before,
+     * optionally narrowed to the ones waiting past ApproverQueue's
+     * threshold. Any other recognized filter value switches to this
+     * approver's own decision history for the current academic year — see
+     * historyRows(). An unrecognized value quietly falls back to the live
+     * queue rather than erroring, so every KPI card link is safe to click.
      */
-    public function index(StepApproverResolver $resolver): Response
+    public function index(Request $request, ApproverQueue $queue): Response
     {
+        $filter = ReviewQueueFilter::tryFrom((string) $request->query('filter', ''));
         $user = Auth::user();
 
-        $documents = Document::query()
-            ->with(['organization', 'activityProposal', 'workflowTemplate.steps'])
-            ->where('form_type', FormType::ActivityProposal->value)
-            ->where('status', DocumentStatus::InReview->value)
-            ->orderBy('created_at')
-            ->get()
-            ->filter(function (Document $d) use ($user, $resolver) {
-                try {
-                    $step = $d->workflowTemplate?->steps
-                        ->firstWhere('position', $d->current_step_position);
+        if ($filter?->isHistory()) {
+            $rows = $this->historyRows($user, $filter);
+        } else {
+            $documents = $queue->pendingFor($user, FormType::ActivityProposal, ['activityProposal']);
 
-                    return $step && $resolver->approversFor($step, $d)->contains('id', $user->id);
-                } catch (\Throwable $e) {
-                    Log::error('Approver resolution failed while filtering queue', ['exception' => $e->getMessage()]);
+            if ($filter === ReviewQueueFilter::Overdue) {
+                $documents = $documents->filter(ApproverQueue::isOverdue(...))->values();
+            }
 
-                    return false;
-                }
-            })
-            ->values()
-            ->map(fn (Document $d) => [
+            $rows = $documents->map(fn (Document $d) => [
                 'id' => $d->id,
                 'title' => $d->title,
                 'status' => $d->status->value,
@@ -60,9 +62,73 @@ class ActivityProposalReviewController extends Controller
                 'calendar_mode' => $d->activityProposal?->calendar_mode->value,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
-            ]);
+                'waiting_since' => ApproverQueue::waitingSince($d),
+                'wait_tier' => ApproverQueue::waitTier($d),
+                'decision' => null,
+            ])->values()->all();
+        }
 
-        return Inertia::render('review/activity-proposals/index', ['queue' => $documents]);
+        return Inertia::render('review/activity-proposals/index', [
+            'queue' => $rows,
+            'filter' => $filter?->value,
+            'filterLabel' => $filter?->label(),
+            'academicYear' => CurrentPeriod::get()->academicYear,
+        ]);
+    }
+
+    /**
+     * This approver's own decision transitions (Approved/Returned/Rejected,
+     * per $filter->actions()) on Activity Proposal documents, this academic
+     * year — the "history" side of the ?filter= modes. Each row keeps the
+     * live queue's shape (so the page can render either kind uniformly) plus
+     * a `decision` block and the document's REAL current status, since a
+     * historical document is very likely no longer InReview.
+     *
+     * Returns a plain array (not a Collection) so its return type can carry
+     * an accurate PHPDoc shape without fighting Collection's non-covariant
+     * TValue generic — a plain array<int, array{...}> return type accepts a
+     * more specific literal shape than declared, a Collection<int, ...> one
+     * doesn't.
+     *
+     * @return array<int, array{
+     *     id: int, title: string, status: string, current_step_position: int|null,
+     *     calendar_mode: string|null, organization: array{id: int, name: string},
+     *     created_at: CarbonInterface|null, waiting_since: null, wait_tier: null,
+     *     decision: array{action: string, decided_at: CarbonInterface},
+     * }>
+     */
+    private function historyRows(User $user, ReviewQueueFilter $filter): array
+    {
+        [$yearStart, $yearEnd] = CurrentPeriod::get()->academicYearRange();
+
+        return DocumentTransition::query()
+            ->where('actor_id', $user->id)
+            ->whereIn('action', array_map(fn ($a) => $a->value, $filter->actions()))
+            ->where('created_at', '>=', $yearStart)
+            ->where('created_at', '<', $yearEnd)
+            ->whereHas('document', fn ($q) => $q->where('form_type', FormType::ActivityProposal->value))
+            ->with(['document.organization', 'document.activityProposal'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (DocumentTransition $t) {
+                $d = $t->document;
+
+                return [
+                    'id' => $d->id,
+                    'title' => $d->title,
+                    'status' => $d->status->value,
+                    'current_step_position' => $d->current_step_position,
+                    'calendar_mode' => $d->activityProposal?->calendar_mode->value,
+                    'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
+                    'created_at' => $d->created_at,
+                    'waiting_since' => null,
+                    'wait_tier' => null,
+                    'decision' => ['action' => $t->action->value, 'decided_at' => $t->created_at],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function show(Document $document, VenueConflictChecker $checker, StepApproverResolver $resolver): Response
