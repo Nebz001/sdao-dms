@@ -1,18 +1,23 @@
 <?php
 
+use App\Http\Middleware\EnsureMobileAccess;
+use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Support\UploadLimits;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -38,6 +43,14 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->api(prepend: [
+            ForceJsonResponse::class,
+        ]);
+
+        $middleware->alias([
+            'mobile.access' => EnsureMobileAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -56,5 +69,41 @@ return Application::configure(basePath: dirname(__DIR__))
         // proxy rejects the upload before it ever reaches PHP.
         $exceptions->render(function (PostTooLargeException $e, Request $request) {
             return response()->json(['message' => UploadLimits::tooLargeMessage()], 413);
+        });
+
+        // The mobile API contract's 403 wording ("You are not allowed to
+        // perform this action.") differs from Laravel's own default
+        // ("This action is unauthorized.") for a denied Gate call — api/*
+        // only. The web app is untouched: its own error pages render
+        // outside these callbacks.
+        $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'You are not allowed to perform this action.'], 403);
+            }
+        });
+
+        // Symfony's abort(403)/abort(404, '...') both surface as the same
+        // base HttpException family — AccessDeniedHttpException isn't
+        // actually involved: abort(403) throws a plain, message-less
+        // HttpException(403). A route that matches one of our own
+        // controllers (e.g. an unknown {proposalReference}) calls
+        // abort(404, '…specific message…') itself — left untouched, since
+        // only Laravel's OWN auto-generated "the route … could not be
+        // found." text means "no api/* route matched at all" (Symfony's
+        // routing 404, before any controller ever runs).
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            if ($e->getStatusCode() === 403) {
+                return response()->json(['message' => 'You are not allowed to perform this action.'], 403);
+            }
+
+            if ($e->getStatusCode() === 404 && preg_match('/^The route .+ could not be found\.$/', $e->getMessage())) {
+                return response()->json(['message' => 'Not found.'], 404);
+            }
+
+            return null;
         });
     })->create();

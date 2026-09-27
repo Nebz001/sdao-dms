@@ -62,9 +62,13 @@ class SecurityController extends Controller
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
-        $request->user()->update([
+        $user = $request->user();
+
+        $user->update([
             'password' => $request->password,
         ]);
+
+        $user->revokeAllApiTokens();
 
         return back()->with('flash', ['message' => __('Password changed.')]);
     }

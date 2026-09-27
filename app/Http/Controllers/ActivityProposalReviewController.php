@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Approval\ApprovalEngine;
+use App\ActivityProposals\Exceptions\ProposalVenueConflictException;
+use App\ActivityProposals\ReviewActivityProposal;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverResolver;
 use App\Attachments\AttachmentSlots;
@@ -191,40 +192,21 @@ class ActivityProposalReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ApprovalEngine $engine, VenueConflictChecker $checker): RedirectResponse
+    public function approve(Document $document, ReviewActivityProposal $action): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
             return $stale;
         }
 
-        // Race re-check for off-calendar: a rival proposal may have been Approved since this one
-        // entered review, claiming the same venue/date/time slot.
-        $document->load('activityProposal.calendarActivity');
-        $proposal = $document->activityProposal;
-
-        if ($proposal?->calendar_mode === ProposalCalendarMode::OffCalendar) {
-            $activity = $proposal->calendarActivity;
-
-            if ($activity !== null) {
-                $conflicts = $checker->confirmedConflicts(
-                    $activity->venue,
-                    $activity->activity_date->toDateString(),
-                    $activity->start_time,
-                    $activity->end_time,
-                    $document->id,
-                );
-
-                if ($conflicts->isNotEmpty()) {
-                    $name = $conflicts->first()->name;
-
-                    return redirect()->route('review.activity-proposals.show', $document)
-                        ->withErrors(['approve' => "Cannot approve: \"{$name}\" at {$activity->venue} now conflicts with an already-approved booking. Return the document to the submitter to resolve."]);
-                }
+        try {
+            // Off-calendar venue-conflict race re-check lives inside the
+            // shared action now — see ReviewActivityProposal::approve().
+            if ($stale = $this->runReviewAction(fn () => $action->approve($document, Auth::user()), 'review.activity-proposals.index')) {
+                return $stale;
             }
-        }
-
-        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.activity-proposals.index')) {
-            return $stale;
+        } catch (ProposalVenueConflictException $e) {
+            return redirect()->route('review.activity-proposals.show', $document)
+                ->withErrors(['approve' => $e->getMessage()]);
         }
 
         if ($document->current_step_position === null) {
@@ -239,14 +221,14 @@ class ActivityProposalReviewController extends Controller
             ->with('flash', ['message' => 'Approval recorded.']);
     }
 
-    public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
+    public function reject(ReviewActionRequest $request, Document $document, ReviewActivityProposal $action): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
             return $stale;
         }
 
         if ($stale = $this->runReviewAction(
-            fn () => $engine->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
+            fn () => $action->reject($document, Auth::user(), $request->string('comment')->toString() ?: null),
             'review.activity-proposals.index',
         )) {
             return $stale;
@@ -256,13 +238,13 @@ class ActivityProposalReviewController extends Controller
             ->with('flash', ['message' => 'Proposal rejected.']);
     }
 
-    public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
+    public function return(ReviewActionRequest $request, Document $document, ReviewActivityProposal $action): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
             return $stale;
         }
 
-        if ($stale = $this->runReviewAction(fn () => $engine->returnForRevision(
+        if ($stale = $this->runReviewAction(fn () => $action->returnForRevision(
             $document,
             Auth::user(),
             $request->string('comment')->toString() ?: null,

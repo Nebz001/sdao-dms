@@ -12,9 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property int $id
@@ -36,7 +38,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /** @return HasMany<RoleAssignment, $this> */
     public function roleAssignments(): HasMany
@@ -66,6 +68,29 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function isRejectedAccount(): bool
     {
         return $this->account_status === AccountStatus::Rejected;
+    }
+
+    /**
+     * Called ONLY from a deliberate, user-initiated password change
+     * (Fortify's ResetUserPassword action and the settings password
+     * update) — never from a generic `updated`/`wasChanged('password')`
+     * model observer. That distinction matters: the auth guard's own
+     * silent password rehash (EloquentUserProvider::rehashPasswordIfRequired(),
+     * which writes a new hash of the SAME password when bcrypt's cost
+     * factor changes) also changes this column, via `forceFill()->save()`
+     * directly on the provider layer — it never calls through either of
+     * the two sites that call this method, so a mobile approver's token
+     * survives an ordinary login even when that silent rehash fires.
+     *
+     * Guarded for a deploy that hasn't run `php artisan migrate` yet:
+     * `personal_access_tokens` may not exist in production before that,
+     * and a password reset/change must still succeed.
+     */
+    public function revokeAllApiTokens(): void
+    {
+        if (Schema::hasTable('personal_access_tokens')) {
+            $this->tokens()->delete();
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Program;
@@ -10,6 +11,7 @@ use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -144,14 +146,49 @@ class RealRosterSeeder extends Seeder
         ]);
     }
 
+    /**
+     * These are real, admin-provisioned staff accounts (this class's own
+     * docblock) — the same footing as Admin\ProvisionApprover, which marks
+     * every approver it creates Verified with a verified email on the spot
+     * (see its own $data array). IdentitySeeder's placeholder fixture gets
+     * this for free via UserFactory's default state; a plain updateOrCreate()
+     * here would bypass factory defaults entirely, so a brand-new account
+     * gets both explicitly, or it starts Unverified and fails the mobile
+     * login gate (App\Identity\MobileAccess) despite never having gone
+     * through self-registration.
+     *
+     * On a RERUN against an EXISTING row, this only fills a gap — it never
+     * overwrites a status an admin (or this seeder, previously) already set.
+     * A null email_verified_at is filled in, but an already-verified
+     * timestamp is left alone; account_status is only promoted away from its
+     * Unverified default, never away from a deliberate Rejected. Without
+     * this guard, re-seeding would silently un-reject an account SDAO
+     * rejected on purpose.
+     */
     private function user(string $name, string $email): User
     {
-        return User::updateOrCreate(
-            ['email' => $email],
-            [
+        $user = User::where('email', $email)->first();
+
+        if ($user === null) {
+            return User::create([
                 'name' => $name,
+                'email' => $email,
                 'password' => Hash::make('ict@1234'),
-            ],
-        );
+                'email_verified_at' => now(),
+                'account_status' => AccountStatus::Verified,
+            ]);
+        }
+
+        $user->name = $name;
+        $user->password = Hash::make('ict@1234');
+        $user->email_verified_at ??= Carbon::now();
+
+        if ($user->account_status === AccountStatus::Unverified) {
+            $user->account_status = AccountStatus::Verified;
+        }
+
+        $user->save();
+
+        return $user;
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Organizations\OrganizationMembershipService;
+use Illuminate\Database\Eloquent\Collection;
 
 class DocumentPolicy
 {
@@ -173,10 +174,7 @@ class DocumentPolicy
             return false;
         }
 
-        $step = WorkflowStep::query()
-            ->where('workflow_template_id', $document->workflow_template_id)
-            ->where('position', $document->current_step_position)
-            ->first();
+        $step = $this->stepAtPosition($document, $document->current_step_position);
 
         if ($step === null) {
             return false;
@@ -231,18 +229,13 @@ class DocumentPolicy
             return false;
         }
 
-        $reachedPosition = DocumentTransition::query()
-            ->where('document_id', $document->id)
-            ->max('step_position');
+        $reachedPosition = $this->reachedPositionFor($document);
 
         if ($reachedPosition === null) {
             return false;
         }
 
-        $steps = WorkflowStep::query()
-            ->where('workflow_template_id', $document->workflow_template_id)
-            ->where('position', '<=', $reachedPosition)
-            ->get();
+        $steps = $this->stepsUpToPosition($document, $reachedPosition);
 
         foreach ($steps as $step) {
             try {
@@ -265,6 +258,11 @@ class DocumentPolicy
      */
     private function hasActedOn(User $user, Document $document): bool
     {
+        if ($document->relationLoaded('transitions') && $document->relationLoaded('stepApprovals')) {
+            return $document->transitions->contains('actor_id', $user->id)
+                || $document->stepApprovals->contains('user_id', $user->id);
+        }
+
         return DocumentTransition::query()
             ->where('document_id', $document->id)
             ->where('actor_id', $user->id)
@@ -273,5 +271,61 @@ class DocumentPolicy
                 ->where('document_id', $document->id)
                 ->where('user_id', $user->id)
                 ->exists();
+    }
+
+    /**
+     * The step at a given position, read from an already-loaded
+     * workflowTemplate.steps relation when available (the mobile queue's
+     * bulk eager load), falling back to a direct query otherwise. Both
+     * paths must answer identically for every role and document state —
+     * see DocumentPolicyRelationEquivalenceTest.
+     */
+    private function stepAtPosition(Document $document, int $position): ?WorkflowStep
+    {
+        if ($document->relationLoaded('workflowTemplate') && $document->workflowTemplate?->relationLoaded('steps')) {
+            return $document->workflowTemplate->steps->firstWhere('position', $position);
+        }
+
+        return WorkflowStep::query()
+            ->where('workflow_template_id', $document->workflow_template_id)
+            ->where('position', $position)
+            ->first();
+    }
+
+    /**
+     * The highest step_position any transition has reached, read from an
+     * already-loaded transitions relation when available, falling back to
+     * a direct MAX() query otherwise.
+     */
+    private function reachedPositionFor(Document $document): ?int
+    {
+        if ($document->relationLoaded('transitions')) {
+            return $document->transitions->max('step_position');
+        }
+
+        return DocumentTransition::query()
+            ->where('document_id', $document->id)
+            ->max('step_position');
+    }
+
+    /**
+     * Every step at or below the given position, read from an
+     * already-loaded workflowTemplate.steps relation when available,
+     * falling back to a direct query otherwise.
+     *
+     * @return Collection<int, WorkflowStep>
+     */
+    private function stepsUpToPosition(Document $document, int $reachedPosition): Collection
+    {
+        if ($document->relationLoaded('workflowTemplate') && $document->workflowTemplate?->relationLoaded('steps')) {
+            return $document->workflowTemplate->steps
+                ->where('position', '<=', $reachedPosition)
+                ->values();
+        }
+
+        return WorkflowStep::query()
+            ->where('workflow_template_id', $document->workflow_template_id)
+            ->where('position', '<=', $reachedPosition)
+            ->get();
     }
 }

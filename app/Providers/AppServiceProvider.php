@@ -7,6 +7,7 @@ use App\Approval\Contracts\SubmitterNotifier;
 use App\Approval\Notifications\MailingSubmitterNotifier;
 use App\Approval\Notifications\RecordingApproverNotifier;
 use App\Enums\Role;
+use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
@@ -14,12 +15,15 @@ use App\Models\User;
 use App\Policies\DocumentPolicy;
 use App\Support\ErrorPageStatuses;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
@@ -36,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ApproverNotifier::class, RecordingApproverNotifier::class);
         $this->app->bind(SubmitterNotifier::class, MailingSubmitterNotifier::class);
+
+        // Scoped (not a plain singleton): one shared instance per request/
+        // job, so RoleDirectory::remembering()'s cache is actually shared by
+        // every consumer (DocumentPolicy, StepApproverResolver, a queue
+        // controller) within that request — never leaked across requests.
+        $this->app->scoped(RoleDirectory::class);
     }
 
     /**
@@ -47,6 +57,25 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePolicies();
         $this->configureGates();
         $this->configureErrorPages();
+        $this->configureRateLimiters();
+
+        // Nothing in this app used API Resources before the mobile API —
+        // the contract has no "data" envelope, and there is no other
+        // consumer relying on Laravel's default wrapping to break.
+        JsonResource::withoutWrapping();
+    }
+
+    /**
+     * The mobile API's own limiters — login reuses Fortify's existing
+     * `login` limiter (config/fortify.php), so it shares the same 5/min
+     * bucket as the web login. These two are keyed per authenticated user
+     * (a token is always present by the time either applies), not per IP.
+     */
+    protected function configureRateLimiters(): void
+    {
+        RateLimiter::for('mobile-api', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id));
+
+        RateLimiter::for('mobile-review', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id));
     }
 
     /**
