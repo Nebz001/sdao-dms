@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalVariant;
 use App\Enums\TransitionAction;
+use App\Http\Controllers\Api\Mobile\NotificationController;
 use App\Models\ApprovalNotification;
 use App\Models\Document;
 use App\Models\Organization;
@@ -43,6 +44,18 @@ test('mobile notification endpoints require Sanctum authentication', function ()
     $this->getJson('/api/mobile/notifications')->assertUnauthorized();
     $this->getJson('/api/mobile/notifications/unread-count')->assertUnauthorized();
     $this->patchJson('/api/mobile/notifications/read-all')->assertUnauthorized();
+});
+
+test('PostgreSQL casts the text notification payload before filtering its form type', function () {
+    $user = new User;
+    $user->id = $this->adviser->id;
+    $user->setConnection('pgsql');
+
+    $method = new ReflectionMethod(NotificationController::class, 'notificationsFor');
+    $query = $method->invoke(app(NotificationController::class), $user);
+
+    expect($query->toSql())
+        ->toContain('cast("data" as jsonb) ->> \'form_type\' = ?');
 });
 
 test('an actionable Activity Proposal appears in the approver persistent inbox', function () {

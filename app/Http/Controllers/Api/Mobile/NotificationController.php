@@ -87,9 +87,17 @@ class NotificationController extends Controller
     /** @return MorphMany<DatabaseNotification, User> */
     private function notificationsFor(User $user): MorphMany
     {
-        return $user->notifications()
-            ->where('type', ApproverHandOffNotification::class)
-            ->where('data->form_type', FormType::ActivityProposal->value);
+        $notifications = $user->notifications()
+            ->where('type', ApproverHandOffNotification::class);
+
+        if ($user->getConnection()->getDriverName() === 'pgsql') {
+            return $notifications->whereRaw(
+                'cast("data" as jsonb) ->> \'form_type\' = ?',
+                [FormType::ActivityProposal->value],
+            );
+        }
+
+        return $notifications->where('data->form_type', FormType::ActivityProposal->value);
     }
 
     private function countUnread(User $user): int
