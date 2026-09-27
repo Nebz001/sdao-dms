@@ -25,6 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/documents/{proposalReference}', [DocumentController::class, 'show'])
             ->name('api.mobile.documents.show');
+
+        Route::get('/documents/{proposalReference}/attachments/{attachmentId}/download', [DocumentController::class, 'downloadAttachment'])
+            ->name('api.mobile.documents.attachments.download');
     });
 
     Route::middleware(['mobile.access', 'throttle:mobile-review'])->group(function () {

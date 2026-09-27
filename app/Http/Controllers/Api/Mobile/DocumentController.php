@@ -11,9 +11,12 @@ use App\Http\Resources\Mobile\ProposalSummaryResource;
 use App\Http\Resources\Mobile\ProposalTimestamps;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
@@ -74,5 +77,46 @@ class DocumentController extends Controller
         Gate::forUser($request->user())->authorize('reviewView', $document);
 
         return new ProposalResource($document, $request->user());
+    }
+
+    /**
+     * Streams one attachment's raw file bytes — the only mobile endpoint
+     * that doesn't return JSON on success. Same reference resolution and
+     * `reviewView` authorization as show() above; the attachment must
+     * belong to THIS document (query-scoped by document_id, not just
+     * looked up by its own id) or this 404s exactly like an unknown
+     * attachment would, rather than leaking whether the id exists on some
+     * other document. Reuses the same disk/path/download mechanism as the
+     * web app's own AttachmentController::download() — no separate storage
+     * scheme for mobile.
+     */
+    public function downloadAttachment(Request $request, string $proposalReference, int $attachmentId): StreamedResponse
+    {
+        $document = ProposalReference::resolve($proposalReference);
+
+        if ($document === null) {
+            abort(404, 'Activity Proposal not found.');
+        }
+
+        Gate::forUser($request->user())->authorize('reviewView', $document);
+
+        $attachment = DocumentAttachment::query()
+            ->where('id', $attachmentId)
+            ->where('document_id', $document->id)
+            ->first();
+
+        if ($attachment === null) {
+            abort(404, 'Attachment not found.');
+        }
+
+        if (! Storage::disk($attachment->disk)->exists($attachment->path)) {
+            abort(404, 'The file for this attachment could not be found in storage.');
+        }
+
+        return Storage::disk($attachment->disk)->download(
+            $attachment->path,
+            $attachment->original_filename,
+            ['Content-Type' => $attachment->mime_type],
+        );
     }
 }
