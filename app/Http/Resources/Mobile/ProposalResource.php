@@ -85,13 +85,11 @@ class ProposalResource extends JsonResource
             'nature_of_activity' => $proposal->activityNatureLabel,
             'type_of_activity' => $proposal->activityTypeLabel,
             'partner_organizations' => array_map(
-                fn ($p) => is_array($p) ? ($p['name'] ?? '') : (string) $p,
+                fn (array $p) => $p['name'],
                 $partnerOrgs,
             ),
             'partner_organization_details' => array_map(
-                fn ($p) => is_array($p)
-                    ? ['organization_id' => $p['organization_id'] ?? null, 'name' => $p['name'] ?? '']
-                    : ['organization_id' => null, 'name' => (string) $p],
+                fn (array $p) => ['organization_id' => $p['organization_id'], 'name' => $p['name']],
                 $partnerOrgs,
             ),
             'target_sdgs' => $proposal->target_sdg?->map(fn ($s) => $s->label())->values()->all() ?? [],
@@ -146,7 +144,7 @@ class ProposalResource extends JsonResource
      */
     private static function activityInstants(?CalendarActivity $activity): array
     {
-        if ($activity === null || $activity->start_time === null || $activity->end_time === null) {
+        if ($activity === null) {
             return [null, null];
         }
 
@@ -167,9 +165,11 @@ class ProposalResource extends JsonResource
             return [];
         }
 
-        return collect(preg_split('/\r\n|\r|\n/', $text))
-            ->map(fn ($line) => trim($line))
-            ->filter(fn ($line) => $line !== '')
+        $lines = preg_split('/\r\n|\r|\n/', $text) ?: [];
+
+        return collect($lines)
+            ->map(fn (string $line) => trim($line))
+            ->filter(fn (string $line) => $line !== '')
             ->values()
             ->all();
     }

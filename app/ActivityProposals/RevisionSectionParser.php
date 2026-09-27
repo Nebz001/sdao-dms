@@ -81,7 +81,7 @@ class RevisionSectionParser
     }
 
     /**
-     * @return Collection<int, string>
+     * @return Collection<int, non-empty-string>
      */
     private static function tokenize(string $value): Collection
     {
@@ -96,9 +96,9 @@ class RevisionSectionParser
      * $haystack, returns $haystack with that first occurrence removed.
      * Returns null (haystack unchanged) when there is no match.
      *
-     * @param  Collection<int, string>  $haystack
-     * @param  Collection<int, string>  $needle
-     * @return Collection<int, string>|null
+     * @param  Collection<int, non-empty-string>  $haystack
+     * @param  Collection<int, non-empty-string>  $needle
+     * @return Collection<int, non-empty-string>|null
      */
     private static function consumeFirstOccurrence(Collection $haystack, Collection $needle): ?Collection
     {

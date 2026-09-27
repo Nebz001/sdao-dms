@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -180,7 +181,7 @@ class RealRosterSeeder extends Seeder
 
         $user->name = $name;
         $user->password = Hash::make('ict@1234');
-        $user->email_verified_at ??= now();
+        $user->email_verified_at ??= Carbon::now();
 
         if ($user->account_status === AccountStatus::Unverified) {
             $user->account_status = AccountStatus::Verified;

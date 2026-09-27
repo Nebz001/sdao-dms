@@ -41,7 +41,7 @@ class ProposalHistoryResource extends JsonResource
 
         return [
             'id' => "transition-{$this->resource->id}",
-            'action' => self::ACTION_LABELS[$this->resource->action->value] ?? $this->resource->action->value,
+            'action' => self::ACTION_LABELS[$this->resource->action->value],
             'stage' => $stage,
             'stage_label' => $stageLabel,
             'actor_name' => $this->resource->actor?->name ?? 'System',

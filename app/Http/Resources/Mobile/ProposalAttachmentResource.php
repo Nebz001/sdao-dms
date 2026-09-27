@@ -41,14 +41,14 @@ class ProposalAttachmentResource extends JsonResource
     {
         $name = $this->resource->original_filename;
 
-        return $name !== null && $name !== '' ? $name : basename((string) $this->resource->path);
+        return $name !== '' ? $name : basename((string) $this->resource->path);
     }
 
     private function fileType(): string
     {
         $mime = $this->resource->mime_type;
 
-        if ($mime !== null && isset(self::MIME_LABELS[$mime])) {
+        if (isset(self::MIME_LABELS[$mime])) {
             return self::MIME_LABELS[$mime];
         }
 
