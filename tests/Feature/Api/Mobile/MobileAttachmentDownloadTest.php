@@ -6,6 +6,7 @@ use App\ActivityProposals\SubmitActivityProposal;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
+use App\Http\Resources\Mobile\ProposalAttachmentResource;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -90,9 +91,10 @@ test('an approver at the current step downloads the attachment\'s real bytes wit
     $attachment = $doc->attachments()->firstOrFail();
     $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $reference = ProposalReference::format($doc);
+    $mobileAttachmentId = (new ProposalAttachmentResource($attachment))->resolve()['id'];
 
     $response = $this->withHeaders(['Authorization' => 'Bearer '.downloadTestToken($adviser)])
-        ->get("/api/documents/{$reference}/attachments/{$attachment->id}/download");
+        ->get("/api/documents/{$reference}/attachments/{$mobileAttachmentId}/download");
 
     $response->assertOk();
     $response->assertHeader('Content-Type', $attachment->mime_type);

@@ -90,7 +90,7 @@ class DocumentController extends Controller
      * web app's own AttachmentController::download() — no separate storage
      * scheme for mobile.
      */
-    public function downloadAttachment(Request $request, string $proposalReference, int $attachmentId): StreamedResponse
+    public function downloadAttachment(Request $request, string $proposalReference, string $attachmentId): StreamedResponse
     {
         $document = ProposalReference::resolve($proposalReference);
 
@@ -100,8 +100,12 @@ class DocumentController extends Controller
 
         Gate::forUser($request->user())->authorize('reviewView', $document);
 
+        if (preg_match('/\A(?:attachment-)?([0-9]+)\z/', $attachmentId, $matches) !== 1) {
+            abort(404, 'Attachment not found.');
+        }
+
         $attachment = DocumentAttachment::query()
-            ->where('id', $attachmentId)
+            ->where('id', $matches[1])
             ->where('document_id', $document->id)
             ->first();
 
