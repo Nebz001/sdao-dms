@@ -7,8 +7,8 @@ import type { AuthLayoutProps } from '@/types';
 
 /**
  * Shared layout for every `auth/*` page (see the `layout:` resolver in
- * app.tsx — login, register, forgot/reset password, 2FA challenge, email
- * verification all render through this one template). The photo background
+ * app.tsx — login, register, forgot/reset password, email verification all
+ * render through this one template). The photo background
  * and scrim are the exact same asset + gradient markup as the landing
  * page's hero (resources/js/pages/welcome.tsx) — reused, not recreated.
  *

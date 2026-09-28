@@ -20,10 +20,6 @@ class MobileLoginRequest extends FormRequest
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
             'device_name' => ['required', 'string', 'max:255'],
-            // Only relevant when the account has confirmed 2FA — see
-            // AuthController::verifyTwoFactorIfEnabled().
-            'code' => ['nullable', 'string'],
-            'recovery_code' => ['nullable', 'string'],
         ];
     }
 }

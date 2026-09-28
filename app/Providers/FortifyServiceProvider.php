@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\AttemptToAuthenticate;
-use App\Actions\Fortify\RedirectIfTwoFactorAuthenticatable;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -45,21 +44,15 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
-        // Swaps in our AttemptToAuthenticate and RedirectIfTwoFactorAuthenticatable
-        // so a failed login can tell the user which field was wrong (see
-        // PLAN.md — login error specificity decision), instead of Fortify's
-        // single vague message. BOTH must be replaced, not just the first:
-        // when the twoFactorAuthentication feature is enabled, Fortify's own
-        // RedirectIfTwoFactorAuthenticatable runs first and fully validates
-        // credentials itself (to know whether the matched user has 2FA) — it,
-        // not AttemptToAuthenticate, is what actually throws on bad
-        // credentials in that case. Everything else in the pipeline is
-        // Fortify's own default, unchanged — this must stay in sync with
-        // vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php::loginPipeline().
+        // Swaps in our AttemptToAuthenticate so a failed login can tell the
+        // user which field was wrong (see PLAN.md — login error specificity
+        // decision), instead of Fortify's single vague message. Everything
+        // else in the pipeline is Fortify's own default, unchanged — this
+        // must stay in sync with vendor/laravel/fortify/src/Http/Controllers/
+        // AuthenticatedSessionController.php::loginPipeline().
         Fortify::authenticateThrough(fn (Request $request) => array_filter([
             config('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
             config('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
-            Features::enabled(Features::twoFactorAuthentication()) ? RedirectIfTwoFactorAuthenticatable::class : null,
             AttemptToAuthenticate::class,
             PrepareAuthenticatedSession::class,
         ]));
@@ -89,8 +82,6 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
-
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
     }
 
@@ -99,10 +90,6 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('two-factor', function (Request $request) {
-            return Limit::perMinute(5)->by($request->session()->get('login.id'));
-        });
-
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 

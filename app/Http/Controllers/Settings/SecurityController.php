@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
-use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,10 +16,9 @@ class SecurityController extends Controller
     /**
      * Show the user's security settings page.
      */
-    public function edit(TwoFactorAuthenticationRequest $request): Response
+    public function edit(Request $request): Response
     {
         $props = [
-            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),
             'passkeys' => Features::canManagePasskeys()
                 ? $request->user()
@@ -39,20 +38,6 @@ class SecurityController extends Controller
                 : [],
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ];
-
-        if (Features::canManageTwoFactorAuthentication()) {
-            $request->ensureStateIsValid();
-
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
-            $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
-            // Lets the frontend detect that an in-progress setup was cleaned
-            // up server-side (abandoned past the grace period — see
-            // TwoFactorAuthenticationRequest::CONFIRMATION_GRACE_SECONDS) so
-            // it can clear the stale QR/setup modal instead of silently
-            // continuing to show data that no longer matches the server.
-            $props['twoFactorPendingConfirmation'] = ! is_null($request->user()->two_factor_secret)
-                && is_null($request->user()->two_factor_confirmed_at);
-        }
 
         return Inertia::render('settings/security', $props);
     }
