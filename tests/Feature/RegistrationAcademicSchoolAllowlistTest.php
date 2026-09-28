@@ -84,6 +84,15 @@ test('store accepts a school inside the academic allow-list', function () {
     expect(Organization::where('name', 'Attachments Test Org')->where('school_id', $school->id)->exists())->toBeTrue();
 });
 
+test('the registration page still loads with an empty college list if no school is ranked', function () {
+    School::query()->update(['academic_rank' => null]);
+    $student = User::factory()->create();
+
+    $response = $this->actingAs($student)->get(route('registrations.create'));
+
+    $response->assertOk()->assertInertia(fn ($page) => $page->where('schools', []));
+});
+
 test('an Extra-Curricular registration still needs no school at all', function () {
     $student = User::factory()->create();
 

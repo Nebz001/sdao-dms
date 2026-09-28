@@ -34,6 +34,28 @@ return new class extends Migration
         foreach (self::ACADEMIC_RANKS as $name => $rank) {
             DB::table('schools')->where('name', $name)->update(['academic_rank' => $rank]);
         }
+
+        // Matched-by-name, so a rename or typo in either place silently
+        // leaves that row unranked rather than raising here — this count
+        // check is what turns that into a loud failure instead. 0 is the
+        // legitimate "schools table not seeded yet" case (a fresh install
+        // migrates before RealRosterSeeder/IdentitySeeder ever run, and
+        // those seeders set academic_rank themselves on the rows they
+        // create) — only a PARTIAL match (1-3) means the table already has
+        // some, but not all, of the 4 expected names, which is the
+        // corrupt/renamed state this guards against.
+        $rankedCount = DB::table('schools')->whereNotNull('academic_rank')->count();
+        $expected = count(self::ACADEMIC_RANKS);
+
+        if ($rankedCount !== 0 && $rankedCount !== $expected) {
+            throw new RuntimeException(sprintf(
+                'Expected to rank exactly %d schools by exact name (or 0, on a database not yet seeded), but ranked %d. '.
+                'The schools table has a renamed, duplicated, or missing row among: %s.',
+                $expected,
+                $rankedCount,
+                implode(', ', array_keys(self::ACADEMIC_RANKS)),
+            ));
+        }
     }
 
     /**
