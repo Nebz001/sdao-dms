@@ -67,7 +67,7 @@ class IdentitySeeder extends Seeder
 
         // ── Regular school: School of Computing and IT (CCIT) ────────────────
 
-        $ccit = School::firstOrCreate(['name' => 'School of Computing and IT'], ['type' => 'regular']);
+        $ccit = School::firstOrCreate(['name' => 'School of Computing and IT'], ['type' => 'regular', 'academic_rank' => 1]);
         $dean = $this->user('Dean CCIT', 'dean-ccit@nu-lipa.edu.ph');
         RoleAssignment::create(['user_id' => $dean->id, 'role' => Role::Dean, 'school_id' => $ccit->id]);
 
@@ -105,12 +105,12 @@ class IdentitySeeder extends Seeder
 
         // ── Empty-shell regular schools (structure present, no people yet) ───
 
-        School::firstOrCreate(['name' => 'School of Business and Accountancy'], ['type' => 'regular']);
-        School::firstOrCreate(['name' => 'School of Health Sciences'], ['type' => 'regular']);
+        School::firstOrCreate(['name' => 'School of Business and Accountancy'], ['type' => 'regular', 'academic_rank' => 2]);
+        School::firstOrCreate(['name' => 'School of Health Sciences'], ['type' => 'regular', 'academic_rank' => 3]);
 
         // ── Senior High School ───────────────────────────────────────────────
 
-        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high']);
+        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high', 'academic_rank' => 4]);
         $principal = $this->user('Principal SHS', 'principal-shs@nu-lipa.edu.ph');
         // Keyed on role+scope, NOT user_id — this is the placeholder
         // fixture, so where RealRosterSeeder has already seated the real

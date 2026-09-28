@@ -25,4 +25,9 @@ class SchoolFactory extends Factory
     {
         return $this->state(['type' => 'senior_high']);
     }
+
+    public function academicRank(int $rank): static
+    {
+        return $this->state(['academic_rank' => $rank]);
+    }
 }

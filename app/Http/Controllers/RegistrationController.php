@@ -145,9 +145,8 @@ class RegistrationController extends Controller
 
         return Inertia::render('registrations/create', [
             'canPropose' => $canPropose,
-            'schools' => School::query()
+            'schools' => School::academicRegistrationChoices()
                 ->with('programs')
-                ->orderBy('name')
                 ->get()
                 ->map(fn (School $s) => [
                     'id' => $s->id,
