@@ -1,0 +1,220 @@
+SDAO DMS MOBILE PUSH + NOTIFICATION INBOX HANDOFF
+================================================
+
+Overview
+--------
+Activity Proposal handoffs now create a durable Laravel database notification
+and queue an Expo push after the workflow transaction commits. Recipients come
+from ApprovalEngine's existing StepApproverResolver path. The delivery job
+re-checks the same DocumentPolicy `review` ability used for mobile
+`permissions.can_act` before contacting Expo.
+
+No web route, web UI, ApprovalEngine routing/decision, or DocumentPolicy rule
+was changed.
+
+
+Migrations
+----------
+1. database/migrations/2026_09_28_000000_create_push_tokens_table.php
+   - Stores one or more Expo registrations per user.
+   - Unique token and unique (user_id, device_id) constraints.
+
+2. database/migrations/2026_09_28_000001_add_transition_id_to_approval_notifications_table.php
+   - Links a handoff record to its actual document transition.
+   - Unique (transition_id, user_id) prevents duplicate inbox/push delivery for
+     a retried notification call while still allowing a later resubmission to
+     notify the same approver again.
+
+Run:
+
+    php artisan migrate --force
+
+
+Routes and middleware
+---------------------
+All routes below are under `auth:sanctum`, `mobile.access`, and
+`throttle:mobile-api`:
+
+    POST   /api/mobile/push-tokens
+    DELETE /api/mobile/push-tokens
+    GET    /api/mobile/notifications
+    GET    /api/mobile/notifications/unread-count
+    PATCH  /api/mobile/notifications/read-all
+    PATCH  /api/mobile/notifications/{notification}/read
+
+The existing proposal review actions remain under `auth:sanctum`,
+`mobile.access`, and `throttle:mobile-review`.
+
+
+Push-token API
+--------------
+POST /api/mobile/push-tokens
+
+Request:
+
+    {
+      "token": "ExponentPushToken[example]",
+      "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01",
+      "platform": "android",
+      "device_name": "SDAO DMS Mobile"
+    }
+
+`device_name` is optional. `platform` is `android` or `ios`. Both
+`ExpoPushToken[...]` and `ExponentPushToken[...]` are accepted. The user is
+always taken from the Sanctum request; `user_id` is never accepted.
+
+Response: HTTP 201 for a new installation, HTTP 200 for a refresh/rotation.
+The Expo token is deliberately not echoed:
+
+    {
+      "data": {
+        "registered": true,
+        "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01",
+        "platform": "android",
+        "device_name": "SDAO DMS Mobile",
+        "last_seen_at": "2026-09-28T10:00:00.000000Z"
+      }
+    }
+
+A token already owned by another account/device returns HTTP 409 instead of
+silently taking over that registration.
+
+DELETE /api/mobile/push-tokens
+
+Request:
+
+    {
+      "token": "ExponentPushToken[example]",
+      "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01"
+    }
+
+`device_id` is optional for compatibility with existing clients. When present,
+both token and device must match. Deletion is always scoped to the authenticated
+user. Response: HTTP 204.
+
+
+Persistent mobile inbox API
+---------------------------
+Only Activity Proposal approver-handoff notifications are exposed by these
+endpoints. Other existing web notification types remain in the shared Laravel
+notifications table but do not appear in the mobile inbox.
+
+GET /api/mobile/notifications?page=1
+
+    {
+      "data": [
+        {
+          "id": "notification-uuid",
+          "type": "activity_proposal_ready_for_review",
+          "title": "Proposal ready for review",
+          "body": "An Activity Proposal is waiting in your review queue.",
+          "proposal_reference": "PROP-2026-057",
+          "read_at": null,
+          "created_at": "2026-09-28T10:00:00.000000Z"
+        }
+      ],
+      "meta": {
+        "unread_count": 1,
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 15,
+        "total": 1
+      },
+      "links": {
+        "prev": null,
+        "next": null
+      }
+    }
+
+GET /api/mobile/notifications/unread-count
+
+    { "data": { "unread_count": 1 } }
+
+PATCH /api/mobile/notifications/{notification}/read
+
+Only the authenticated notification recipient can update it. Another user's
+UUID returns 404.
+
+    {
+      "data": {
+        "id": "notification-uuid",
+        "read_at": "2026-09-28T10:05:00.000000Z"
+      }
+    }
+
+PATCH /api/mobile/notifications/read-all
+
+Only the authenticated user's unread Activity Proposal handoffs are updated.
+
+    { "data": { "unread_count": 0 } }
+
+
+Workflow and Expo delivery
+--------------------------
+The existing chain remains:
+
+    ApprovalEngine::activateStep
+      -> StepApproverResolver::approversFor
+      -> RecordingApproverNotifier::notify
+
+The notifier records a transition-scoped idempotency row and uses the existing
+Laravel database notification channel inside the successful workflow
+transaction. For Activity Proposals only, it registers an after-commit callback
+that queues SendExpoPushNotification on the database queue.
+
+When the job runs it reloads the user/document and sends nothing unless:
+
+    - the document is still an Activity Proposal;
+    - status is still In Review;
+    - the queued step is still current; and
+    - Gate::forUser($user)->allows('review', $document) is true.
+
+The Expo lock-screen payload remains generic and includes:
+
+    "data": { "proposalReference": "PROP-2026-057" }
+
+Each registered device is supported. Successful Expo ticket IDs are persisted
+as delayed CheckExpoPushReceipt queue jobs. DeviceNotRegistered ticket/receipt
+errors remove only the still-matching registration. Network, rate-limit, and
+server failures retry with backoff. Queue/provider exceptions occur after
+commit and cannot roll back or delay the approval transition.
+
+
+Environment and workers
+-----------------------
+Available settings (defaults shown):
+
+    EXPO_PUSH_URL=https://exp.host/--/api/v2/push/send
+    EXPO_PUSH_RECEIPTS_URL=https://exp.host/--/api/v2/push/getReceipts
+    EXPO_ACCESS_TOKEN=
+
+Leave EXPO_ACCESS_TOKEN blank unless Expo push security is enabled. Never store
+a real access token in source control.
+
+Start the database queue worker in production:
+
+    php artisan queue:work database --tries=5 --timeout=30
+
+No scheduler entry is required for receipts: each successful ticket dispatches
+its own delayed receipt-check job. A continuously running queue worker is
+required for both push sends and receipt checks.
+
+
+Verification commands
+---------------------
+Focused backend tests:
+
+    php artisan test tests/Feature/Api/Mobile/MobilePushTokensTest.php \
+      tests/Feature/Api/Mobile/MobileNotificationsTest.php \
+      tests/Feature/Approval/ExpoPushDeliveryTest.php
+
+Formatting:
+
+    vendor/bin/pint --test <changed PHP files>
+
+Complete non-browser suite:
+
+    php artisan test --testsuite=Unit,Feature
+
+The live-Postgres concurrency test reads a physical `.env`; without a
+configured DB_DATABASE it is expected to skip.

@@ -14,10 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $document_id
+ * @property int|null $transition_id
  * @property int $user_id
  * @property int $step_position
  */
-#[Fillable(['document_id', 'user_id', 'step_position', 'created_at'])]
+#[Fillable(['document_id', 'transition_id', 'user_id', 'step_position', 'created_at'])]
 class ApprovalNotification extends Model
 {
     public $timestamps = false;
