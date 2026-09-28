@@ -9,9 +9,11 @@ use App\Enums\FormType;
 use App\Models\ActivityProposal;
 use App\Models\AfterActivityReport;
 use App\Models\Document;
+use App\Models\Organization;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -126,5 +128,31 @@ class SubmitAfterActivityReport
         return $proposal->afterActivityReports()
             ->whereHas('document', fn ($q) => $q->where('status', '!=', DocumentStatus::Rejected->value))
             ->exists();
+    }
+
+    /**
+     * Approved proposals for this org that do NOT already have a live
+     * (non-rejected) report — the exact predicate behind the report picker
+     * (AfterActivityReportController::create()), extracted so
+     * StudentDashboardData's checklist, "Report due" hints, and Quick
+     * Submit tile can share it and never disagree with what the picker
+     * itself shows. Deliberately NOT date-filtered: a proposal is
+     * "reportable" the moment it's approved, even before the activity
+     * happens — see that controller's own docblock. Returns a query
+     * builder, not a Collection, so callers can add their own `with()`.
+     *
+     * @return Builder<Document>
+     */
+    public static function reportableProposalsFor(Organization $organization): Builder
+    {
+        return Document::query()
+            ->where('form_type', FormType::ActivityProposal->value)
+            ->where('organization_id', $organization->id)
+            ->where('status', DocumentStatus::Approved->value)
+            ->whereDoesntHave('activityProposal.afterActivityReports', function ($report) {
+                $report->whereHas('document', function ($reportDoc) {
+                    $reportDoc->where('status', '!=', DocumentStatus::Rejected->value);
+                });
+            });
     }
 }

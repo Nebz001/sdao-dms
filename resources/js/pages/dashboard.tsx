@@ -11,7 +11,18 @@ import type {
     WaitingTimeBucket,
 } from '@/components/approver-dashboard';
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
-import DashboardStatCard from '@/components/dashboard-stat-card';
+import type { RequirementsData } from '@/components/requirements-checklist';
+import StudentDashboard from '@/components/student-dashboard';
+import type {
+    NeedsActionData,
+    QuickSubmitTile,
+    StudentDashboardMeta,
+    StudentKpis,
+    TrackerData,
+    UpcomingData,
+} from '@/components/student-dashboard';
+import StudentDashboardSkeleton from '@/components/student-dashboard-skeleton';
+import type { SubmissionMonth } from '@/components/submissions-chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
@@ -19,7 +30,6 @@ import * as calendar from '@/routes/calendar';
 import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
 
-type OrgDocItem = { id: number; title: string; status: string; href: string };
 type PendingJoinRequest = { organizationName: string };
 type ApproverDashboardMeta = {
     overdueAfterDays: number;
@@ -28,14 +38,16 @@ type ApproverDashboardMeta = {
 };
 
 type Props = {
-    myOrganization: {
-        id: number;
-        name: string;
-        count: number;
-        items: OrgDocItem[];
-    } | null;
+    studentDashboard: StudentDashboardMeta | null;
     pendingJoinRequest: PendingJoinRequest | null;
     approverDashboard: ApproverDashboardMeta | null;
+    studentKpis?: StudentKpis;
+    studentNeedsAction?: NeedsActionData;
+    studentTracker?: TrackerData;
+    studentRequirements?: RequirementsData;
+    studentQuickSubmit?: QuickSubmitTile[];
+    studentUpcoming?: UpcomingData;
+    studentSubmissions?: SubmissionMonth[];
     approverKpis?: ApproverKpis;
     approverQueue?: PriorityQueueRow[];
     approverWaitingTime?: WaitingTimeBucket[];
@@ -44,6 +56,16 @@ type Props = {
     approverUpcomingEvents?: UpcomingEvent[];
     approverRecentDecisions?: RecentDecision[];
 };
+
+const STUDENT_DEFERRED_KEYS = [
+    'studentKpis',
+    'studentNeedsAction',
+    'studentTracker',
+    'studentRequirements',
+    'studentQuickSubmit',
+    'studentUpcoming',
+    'studentSubmissions',
+];
 
 const APPROVER_DEFERRED_KEYS = [
     'approverKpis',
@@ -56,9 +78,16 @@ const APPROVER_DEFERRED_KEYS = [
 ];
 
 export default function Dashboard({
-    myOrganization,
+    studentDashboard,
     pendingJoinRequest,
     approverDashboard,
+    studentKpis,
+    studentNeedsAction,
+    studentTracker,
+    studentRequirements,
+    studentQuickSubmit,
+    studentUpcoming,
+    studentSubmissions,
     approverKpis,
     approverQueue,
     approverWaitingTime,
@@ -131,7 +160,7 @@ export default function Dashboard({
         );
     }
 
-    const hasAnyCard = Boolean(myOrganization || approverDashboard);
+    const hasAnyCard = Boolean(studentDashboard || approverDashboard);
 
     return (
         <>
@@ -233,20 +262,32 @@ export default function Dashboard({
                     </div>
                 ) : (
                     <>
-                        {myOrganization && (
-                            <div className="grid auto-rows-min gap-4 md:grid-cols-2">
-                                <DashboardStatCard
-                                    title={`Your Organization — ${myOrganization.name}`}
-                                    headlineCount={myOrganization.count}
-                                    emptyLabel="Nothing needs your attention right now."
-                                    rows={myOrganization.items.map((d) => ({
-                                        key: d.id,
-                                        label: d.title,
-                                        href: d.href,
-                                        status: d.status,
-                                    }))}
-                                />
-                            </div>
+                        {studentDashboard && (
+                            <Deferred
+                                data={STUDENT_DEFERRED_KEYS}
+                                fallback={<StudentDashboardSkeleton />}
+                            >
+                                {studentKpis &&
+                                studentNeedsAction &&
+                                studentTracker &&
+                                studentRequirements &&
+                                studentQuickSubmit &&
+                                studentUpcoming &&
+                                studentSubmissions ? (
+                                    <StudentDashboard
+                                        meta={studentDashboard}
+                                        needsAction={studentNeedsAction}
+                                        tracker={studentTracker}
+                                        requirements={studentRequirements}
+                                        kpis={studentKpis}
+                                        quickSubmit={studentQuickSubmit}
+                                        upcoming={studentUpcoming}
+                                        submissions={studentSubmissions}
+                                    />
+                                ) : (
+                                    <StudentDashboardSkeleton />
+                                )}
+                            </Deferred>
                         )}
 
                         {approverDashboard && (

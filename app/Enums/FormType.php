@@ -43,4 +43,22 @@ enum FormType: string
             self::AfterActivityReport => 'reports.show',
         };
     }
+
+    /**
+     * Route name of this form type's student-facing "edit" (resubmit) page —
+     * only ever reachable while the document is Returned (DocumentPolicy::
+     * edit()). Lives here for the same reason studentShowRouteName() does:
+     * one shared mapping for every "Fix and Resubmit" link (currently just
+     * StudentDashboardData::needsAction()) rather than a duplicated match.
+     */
+    public function studentEditRouteName(): string
+    {
+        return match ($this) {
+            self::OrganizationRegistration => 'registrations.edit',
+            self::OrganizationRenewal => 'renewals.edit',
+            self::ActivityCalendar => 'activity-calendars.edit',
+            self::ActivityProposal => 'activity-proposals.edit',
+            self::AfterActivityReport => 'reports.edit',
+        };
+    }
 }

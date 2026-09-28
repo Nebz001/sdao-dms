@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
-use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Reports\StoreReportRequest;
 use App\Http\Requests\Reports\UpdateReportRequest;
@@ -74,20 +73,7 @@ class AfterActivityReportController extends Controller
             ]);
         }
 
-        $eligibleProposals = Document::query()
-            ->where('form_type', FormType::ActivityProposal->value)
-            ->where('organization_id', $membership->organization_id) // (i) current org only
-            ->where('status', DocumentStatus::Approved->value)        //     approved proposals only
-            ->whereDoesntHave('activityProposal.afterActivityReports', function ($report) {
-                // (ii) independent condition: exclude the proposal ONLY if a
-                // NON-REJECTED report exists. A report's status lives on its
-                // own Document, so filter via that document, not on mere
-                // existence — a proposal whose only report was Rejected stays
-                // eligible (mirrors the renewal uniqueness rule).
-                $report->whereHas('document', function ($reportDoc) {
-                    $reportDoc->where('status', '!=', DocumentStatus::Rejected->value);
-                });
-            })
+        $eligibleProposals = SubmitAfterActivityReport::reportableProposalsFor($membership->organization)
             ->with('activityProposal.calendarActivity')
             ->get()
             ->map(fn (Document $d) => [

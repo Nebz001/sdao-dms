@@ -4,11 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Approval\ApproverDashboardData;
 use App\Approval\ApproverQueue;
-use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Enums\Role;
-use App\Models\Document;
 use App\Models\OrganizationJoinRequest;
+use App\Organizations\StudentDashboardData;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,10 +42,16 @@ class DashboardController extends Controller
         // rather than sometimes omitted — a predictable shape for both the
         // frontend Props type and Inertia's fluent test assertions.
         $data = [
-            'myOrganization' => null,
+            'studentDashboard' => null,
             'approverDashboard' => null,
             'pendingJoinRequest' => null,
         ];
+
+        // Read once and reused by both branches below — approvers never
+        // hold an OrganizationMembership row, so in practice only one of
+        // the two branches ever actually runs per request, but both read
+        // the identical current period either way.
+        $period = CurrentPeriod::get();
 
         // Filing a join request doesn't require AccountStatus::Verified (see
         // RequestToJoinOrganization's docblock), so this can be true even in
@@ -66,39 +70,24 @@ class DashboardController extends Controller
         }
 
         if ($membership !== null) {
-            $needsAttentionQuery = Document::query()
-                ->where('organization_id', $membership->organization_id)
-                ->where(function ($q) {
-                    $q->where('status', DocumentStatus::Returned->value)
-                        ->orWhere(function ($q2) {
-                            // Registration/renewal/calendar/report never rest in
-                            // Draft (created + submitted in one transaction — see
-                            // SubmitOrganizationRegistration::execute()); only the
-                            // two-step proposal flow leaves a real Draft row.
-                            $q2->where('status', DocumentStatus::Draft->value)
-                                ->where('form_type', FormType::ActivityProposal->value);
-                        });
-                });
+            $student = StudentDashboardData::for($membership, $period);
 
-            $data['myOrganization'] = [
-                'id' => $membership->organization_id,
-                'name' => $membership->organization->name,
-                'count' => $needsAttentionQuery->count(),
-                'items' => $needsAttentionQuery
-                    ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->get()
-                    ->map(fn (Document $d) => [
-                        'id' => $d->id,
-                        'title' => $d->title,
-                        'status' => $d->status->value,
-                        'href' => route($d->form_type->studentShowRouteName(), $d),
-                    ]),
-            ];
+            $data['studentDashboard'] = $student->meta();
+
+            // One deferred group: all seven sections resolve together in a
+            // single follow-up request, sharing $student's own memoized
+            // open()/history() queries — same pattern as the approver
+            // dashboard's 'approver' group below.
+            $data['studentKpis'] = Inertia::defer(fn () => $student->kpis(), 'student');
+            $data['studentNeedsAction'] = Inertia::defer(fn () => $student->needsAction(), 'student');
+            $data['studentTracker'] = Inertia::defer(fn () => $student->tracker(), 'student');
+            $data['studentRequirements'] = Inertia::defer(fn () => $student->requirements(), 'student');
+            $data['studentQuickSubmit'] = Inertia::defer(fn () => $student->quickSubmit(), 'student');
+            $data['studentUpcoming'] = Inertia::defer(fn () => $student->upcomingActivities(), 'student');
+            $data['studentSubmissions'] = Inertia::defer(fn () => $student->submissionsOverTime(), 'student');
         }
 
         if ($reviewsProposals) {
-            $period = CurrentPeriod::get();
             $dashboard = ApproverDashboardData::for($user, $period);
 
             $data['approverDashboard'] = [

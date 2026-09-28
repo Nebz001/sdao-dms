@@ -31,7 +31,7 @@ test('a bare verified user with no role or org sees no dashboard sections, but i
     $this->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('myOrganization', null)
+            ->where('studentDashboard', null)
             ->where('approverDashboard', null)
             ->where('auth.canProposeOrganization', true)
         );
@@ -88,6 +88,11 @@ test('a student officer sees their organization\'s documents needing attention',
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
     $studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
+    // Hand-seeded with NO transitions at all — a null-safety check.
+    // StudentDashboardData::needsAction() must fall back to the document's
+    // own updated_at rather than dereferencing a (non-existent) Returned
+    // transition; see lastReturnedTransition()'s docblock for why the
+    // nullsafe chain there is load-bearing, not dead code.
     Document::create([
         'form_type' => FormType::OrganizationRenewal,
         'variant' => null,
@@ -104,9 +109,11 @@ test('a student officer sees their organization\'s documents needing attention',
     $this->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('myOrganization.name', 'Computing Society')
-            ->where('myOrganization.count', 1)
-            ->where('myOrganization.items.0.title', 'Returned Renewal')
+            ->where('studentDashboard.organizationName', 'Computing Society')
+            ->loadDeferredProps('student', fn ($reload) => $reload
+                ->where('studentNeedsAction.total', 1)
+                ->where('studentNeedsAction.items.0.title', 'Returned Renewal')
+            )
         );
 });
 
