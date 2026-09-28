@@ -9,7 +9,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from '@/components/ui/input-otp';
-import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { OTP_MAX_LENGTH } from '@/lib/otp';
 import { edit } from '@/routes/profile';
 import { resend, store } from '@/routes/profile/verify-email';
 

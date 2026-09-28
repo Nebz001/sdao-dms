@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
-use Laravel\Fortify\Features;
 
 test('login screen can be rendered', function () {
     $response = $this->get(route('login'));
@@ -22,24 +21,41 @@ test('users can authenticate using the login screen', function () {
     $response->assertRedirect(route('dashboard', absolute: false));
 });
 
-test('users with two factor enabled are redirected to two factor challenge', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
+test('a user with leftover two-factor data from before its removal still logs in with just email and password', function () {
+    // Regression guard for the 2FA removal: the `two_factor_*` columns are
+    // deliberately left in the users table (see the removal plan), so an
+    // account that had 2FA configured before removal must still be a
+    // completely ordinary login afterward — no challenge redirect, no code
+    // required.
+    $user = User::factory()->create([
+        'two_factor_secret' => encrypt('secret'),
+        'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
+        'two_factor_confirmed_at' => now(),
     ]);
 
-    $user = User::factory()->withTwoFactor()->create();
-
-    $response = $this->post(route('login'), [
+    $response = $this->post(route('login.store'), [
         'email' => $user->email,
         'password' => 'password',
     ]);
 
-    $response->assertRedirect(route('two-factor.login'));
-    $response->assertSessionHas('login.id', $user->id);
-    $this->assertGuest();
+    $this->assertAuthenticated();
+    $response->assertRedirect(route('dashboard', absolute: false));
+});
+
+test('every two-factor route is gone', function () {
+    foreach ([
+        ['GET', '/two-factor-challenge'],
+        ['POST', '/two-factor-challenge'],
+        ['POST', '/user/two-factor-authentication'],
+        ['POST', '/user/confirmed-two-factor-authentication'],
+        ['DELETE', '/user/two-factor-authentication'],
+        ['GET', '/user/two-factor-qr-code'],
+        ['GET', '/user/two-factor-secret-key'],
+        ['GET', '/user/two-factor-recovery-codes'],
+        ['POST', '/user/two-factor-recovery-codes'],
+    ] as [$method, $uri]) {
+        $this->call($method, $uri)->assertNotFound();
+    }
 });
 
 test('users can not authenticate with invalid password', function () {

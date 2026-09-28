@@ -34,7 +34,7 @@ pattern used by every approve/reject/return-for-revision action. Never call
 Inertia's native `Inertia::flash(...)`/`->flash(...)` helper for this: it
 writes to a different, unread response key (`page.flash`, a sibling of
 `page.props`) and produces a silently-successful action with no confirmation.
-Fortify-driven flows (2FA, passkeys) may instead use their own inline/modal
+Fortify-driven flows (passkeys) may instead use their own inline/modal
 `onSuccess` feedback, which is equally acceptable. This is a permanent
 standard, not a one-time cleanup — apply it to every new save/update/change
 action going forward.

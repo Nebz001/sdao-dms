@@ -13,8 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
-use Laravel\Fortify\Fortify;
 
 class AuthController extends Controller
 {
@@ -41,8 +39,6 @@ class AuthController extends Controller
             ]);
         }
 
-        $this->verifyTwoFactorIfEnabled($request, $user);
-
         if (! $this->mobileAccess->canAccess($user) || ! $this->hasStaffEmail($user)) {
             abort(403, 'You are not allowed to perform this action.');
         }
@@ -62,56 +58,6 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(null, 204);
-    }
-
-    /**
-     * `hasEnabledTwoFactorAuthentication()` (Laravel\Fortify\TwoFactorAuthenticatable)
-     * is confirm-aware: with Fortify's confirm option on (config/fortify.php),
-     * it is only true once two_factor_confirmed_at is also set — an
-     * abandoned, unconfirmed setup never blocks login. Verification itself
-     * goes through Fortify's own TwoFactorAuthenticationProvider — the same
-     * class the web's TwoFactorLoginRequest::hasValidCode() uses — so the
-     * clock-drift tolerance (Google2FA's window) is identical on both.
-     */
-    private function verifyTwoFactorIfEnabled(Request $request, User $user): void
-    {
-        if (! $user->hasEnabledTwoFactorAuthentication()) {
-            return;
-        }
-
-        if ($request->filled('recovery_code')) {
-            $matched = collect($user->recoveryCodes())
-                ->first(fn ($code) => hash_equals($code, (string) $request->input('recovery_code')));
-
-            if ($matched === null) {
-                throw ValidationException::withMessages([
-                    'recovery_code' => ['The provided recovery code was invalid.'],
-                ]);
-            }
-
-            $user->replaceRecoveryCode($matched);
-
-            return;
-        }
-
-        if ($request->filled('code')) {
-            $valid = app(TwoFactorAuthenticationProvider::class)->verify(
-                Fortify::currentEncrypter()->decrypt($user->two_factor_secret),
-                (string) $request->input('code'),
-            );
-
-            if (! $valid) {
-                throw ValidationException::withMessages([
-                    'code' => ['The provided two factor authentication code was invalid.'],
-                ]);
-            }
-
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'code' => ['Two-factor authentication code required.'],
-        ]);
     }
 
     /**

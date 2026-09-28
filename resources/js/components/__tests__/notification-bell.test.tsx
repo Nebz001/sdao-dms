@@ -8,10 +8,9 @@ import type { NotificationItem, NotificationsProp } from '@/types/notifications'
 
 /**
  * First test in the repo to mock usePage() (see the explore notes this
- * feature's plan left behind) — follows the same partial-mock-via-
- * importOriginal shape as manage-two-factor.test.tsx, adding usePage
- * alongside the router overrides so the component's real `notifications`
- * prop read is exercised, not stubbed away.
+ * feature's plan left behind) — a partial mock via importOriginal, adding
+ * usePage alongside the router overrides so the component's real
+ * `notifications` prop read is exercised, not stubbed away.
  *
  * markRead is deliberately NOT asserted via a mocked router.patch — the
  * component fires it as a plain `fetch()` (see notification-bell.tsx's

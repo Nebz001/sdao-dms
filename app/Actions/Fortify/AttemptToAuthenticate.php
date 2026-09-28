@@ -21,11 +21,9 @@ use Laravel\Fortify\Http\Requests\LoginRequest;
  * defaults, so login staying vague bought little. See PLAN.md / login error
  * specificity design notes for the full tradeoff discussion.
  *
- * Only reached when the twoFactorAuthentication feature is disabled, or for
- * requests using a custom Fortify::authenticateUsing() callback — when 2FA is
- * enabled (as it is in this app), RedirectIfTwoFactorAuthenticatable.php runs
- * first and is what actually validates credentials and throws on failure; see
- * that class for the matching field-specific logic on that path.
+ * This is the sole credential-validation step in the pipeline (see
+ * FortifyServiceProvider::configureActions()) — it always runs, and always
+ * throws the field-specific error itself on failure.
  */
 class AttemptToAuthenticate
 {
