@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SchoolType;
 use Database\Factories\SchoolFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,8 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $name
  * @property SchoolType $type
+ * @property int|null $academic_rank
  */
-#[Fillable(['name', 'type'])]
+#[Fillable(['name', 'type', 'academic_rank'])]
 class School extends Model
 {
     /** @use HasFactory<SchoolFactory> */
@@ -95,5 +97,19 @@ class School extends Model
     public function isSeniorHigh(): bool
     {
         return $this->type === SchoolType::SeniorHigh;
+    }
+
+    /**
+     * The single source of truth for which schools an Academic
+     * (Co-Curricular) organization registration may choose from, and in
+     * what order — driven by the `academic_rank` column so both the
+     * registration form's options and its backend validation agree.
+     *
+     * @param  Builder<School>  $query
+     * @return Builder<School>
+     */
+    public function scopeAcademicRegistrationChoices(Builder $query): Builder
+    {
+        return $query->whereNotNull('academic_rank')->orderBy('academic_rank');
     }
 }

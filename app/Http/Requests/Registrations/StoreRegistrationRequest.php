@@ -33,7 +33,12 @@ class StoreRegistrationRequest extends FormRequest
             // school_id), so there is nothing left to require it_if against.
             // The frontend's own "Type of Organization" select still decides
             // whether the College field is shown at all, purely client-side.
-            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
+            // Only a school offered by the Academic-registration allow-list
+            // (School::scopeAcademicRegistrationChoices — the single source
+            // shared with RegistrationController's 'schools' prop) may be
+            // submitted, so the option set can't be widened by editing the
+            // request past what the form actually offers.
+            'school_id' => ['nullable', 'integer', Rule::exists('schools', 'id')->whereNotNull('academic_rank')],
             'program_id' => ['nullable', 'integer', 'exists:programs,id'],
             // Must be a real, admin-provisioned adviser account — role-scoped
             // so a valid-but-non-adviser user id is rejected here, not just

@@ -52,12 +52,12 @@ class RealRosterSeeder extends Seeder
         $this->assignRole($palupit, Role::ExecutiveDirector);
 
         // ── Senior High School (no programs, no dean — a single principal) ───
-        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high']);
+        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high', 'academic_rank' => 4]);
         $rosario = $this->user('Erna Rosario', 'rosarioe@nu-lipa.edu.ph');
         $this->assignRole($rosario, Role::Principal, school: $shs);
 
         // ── SACE — School of Architecture, Computing, and Engineering ────────
-        $sace = School::firstOrCreate(['name' => 'School of Architecture, Computing, and Engineering'], ['type' => 'regular']);
+        $sace = School::firstOrCreate(['name' => 'School of Architecture, Computing, and Engineering'], ['type' => 'regular', 'academic_rank' => 1]);
         $this->dean('Carolyn D. Matira', 'matiracd@nu-lipa.edu.ph', $sace);
         $this->chair('Dr. Alice Lacorte', 'lacortea@nu-lipa.edu.ph', $this->program($sace, 'BS Computer Science'));
         $this->chair('Sir Joseph Michael E. Aramil', 'aramilje@nu-lipa.edu.ph', $this->program($sace, 'BS Information Technology'));
@@ -65,7 +65,7 @@ class RealRosterSeeder extends Seeder
         $this->chair('Ar. Ryan Panapanaan', 'panapanaanr@nu-lipa.edu.ph', $this->program($sace, 'BS Architecture'));
 
         // ── SAHS — School of Allied Health and Sciences ─────────────────────
-        $sahs = School::firstOrCreate(['name' => 'School of Allied Health and Sciences'], ['type' => 'regular']);
+        $sahs = School::firstOrCreate(['name' => 'School of Allied Health and Sciences'], ['type' => 'regular', 'academic_rank' => 3]);
         $this->dean('Maria Lourdes C. Bañaga', 'banagamc@nu-lipa.edu.ph', $sahs);
         $this->chair('Dr. Maria Andrea M. Magaling', 'magalingmm@nu-lipa.edu.ph', $this->program($sahs, 'BS Nursing'));
         $this->chair('Ms. Diane Angelika Nicole D. Novicio', 'noviciodd@nu-lipa.edu.ph', $this->program($sahs, 'BS Psychology'));
@@ -78,7 +78,7 @@ class RealRosterSeeder extends Seeder
         $this->user('Maria Dolores C. Evangelista (Associate Dean, Medical Technology)', 'evangelistamc@nu-lipa.edu.ph');
 
         // ── SABM — School of Accountancy, Business, and Management ───────────
-        $sabm = School::firstOrCreate(['name' => 'School of Accountancy, Business, and Management'], ['type' => 'regular']);
+        $sabm = School::firstOrCreate(['name' => 'School of Accountancy, Business, and Management'], ['type' => 'regular', 'academic_rank' => 2]);
         $this->dean('Jay-Ar C. Dimaculangan', 'dimaculanganjc@nu-lipa.edu.ph', $sabm);
 
         // Ronald Catapang chairs BOTH BSBA programs — one user, two program-scoped assignments.
