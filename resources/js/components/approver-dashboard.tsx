@@ -238,7 +238,7 @@ export default function ApproverDashboard({
                         </div>
                         <Link
                             href={meta.reviewHref}
-                            className="inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline"
+                            className="inline-flex shrink-0 items-center gap-1 text-sm text-primary-text hover:underline"
                         >
                             View all
                             <ChevronRight className="size-3.5" />

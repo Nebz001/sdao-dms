@@ -152,7 +152,7 @@ export default function PublicActivitiesSection({ activities, today }: Props) {
         <section className="mx-auto w-full max-w-7xl px-6 py-14">
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+                    <p className="text-xs font-semibold tracking-[0.2em] text-primary-text uppercase">
                         Stay in the loop
                     </p>
                     <h2 className="mt-1 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
@@ -210,7 +210,7 @@ export default function PublicActivitiesSection({ activities, today }: Props) {
                                     <button
                                         type="button"
                                         onClick={clearFilter}
-                                        className="font-medium text-primary underline-offset-2 hover:underline"
+                                        className="font-medium text-primary-text underline-offset-2 hover:underline"
                                     >
                                         Clear filter
                                     </button>

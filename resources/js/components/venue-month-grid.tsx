@@ -199,14 +199,14 @@ export default function VenueMonthGrid({
                                 'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset',
                                 !day.inMonth &&
                                     'bg-muted/40 text-muted-foreground',
-                                isSelected && 'ring-2 ring-primary ring-inset',
+                                isSelected && 'ring-2 ring-primary-text ring-inset',
                             )}
                         >
                             <span
                                 className={cn(
                                     'self-start text-xs',
                                     day.isToday
-                                        ? 'flex size-5 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground'
+                                        ? 'flex size-5 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground ring-1 ring-brand-edge'
                                         : 'px-0.5 text-muted-foreground',
                                     day.inMonth &&
                                         !day.isToday &&

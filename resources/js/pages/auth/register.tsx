@@ -72,7 +72,7 @@ export default function Register({ passwordRules }: Props) {
                                     <ToggleGroupItem
                                         value="register_new"
                                         aria-label="Register a new organization"
-                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary data-[state=on]:ring-1 data-[state=on]:ring-primary"
+                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary-text data-[state=on]:ring-1 data-[state=on]:ring-primary-text"
                                     >
                                         <FolderPlus className="size-5 text-muted-foreground" />
                                         <span className="text-sm font-semibold">
@@ -86,7 +86,7 @@ export default function Register({ passwordRules }: Props) {
                                     <ToggleGroupItem
                                         value="join_existing"
                                         aria-label="Join an existing organization"
-                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary data-[state=on]:ring-1 data-[state=on]:ring-primary"
+                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary-text data-[state=on]:ring-1 data-[state=on]:ring-primary-text"
                                     >
                                         <Users className="size-5 text-muted-foreground" />
                                         <span className="text-sm font-semibold">

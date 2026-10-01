@@ -19,24 +19,6 @@ const statusStyles: Record<string, string> = {
     rejected: 'border-transparent bg-destructive text-white',
 };
 
-/**
- * Left-border accent classes keyed by status, sharing `statusStyles`'
- * color mapping so a card's accent border always agrees with its badge.
- * Only meaningful for single-status contexts (a review queue's wrapper
- * card, a document show page) — never a mixed-status list.
- */
-const statusBorderStyles: Record<string, string> = {
-    draft: 'border-l-muted-foreground',
-    in_review: 'border-l-info',
-    returned: 'border-l-warning',
-    approved: 'border-l-success',
-    rejected: 'border-l-destructive',
-};
-
-export function statusBorderClass(status: string): string {
-    return statusBorderStyles[status] ?? statusBorderStyles.draft;
-}
-
 type StatusBadgeProps = {
     status: string;
     className?: string;
@@ -44,17 +26,16 @@ type StatusBadgeProps = {
 
 /**
  * Shared solid-chip status badge used across every document list/show and
- * review page instead of a per-page `statusVariant` map. Pill-shaped
- * (`rounded-full`) here only — every other badge in the app keeps the base
- * `ui/badge.tsx` `rounded-md`, so shape and color both carry the status
- * distinction from the app's neutral count/role badges.
+ * review page instead of a per-page `statusVariant` map. Squared like every
+ * other badge (`rounded-md`); the solid fill carries the status distinction
+ * from the app's neutral count/role badges.
  */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
     return (
         <Badge
             variant="outline"
             className={cn(
-                'rounded-full font-semibold',
+                'font-semibold',
                 statusStyles[status] ?? statusStyles.draft,
                 className,
             )}
@@ -96,7 +77,7 @@ type ActionBadgeProps = {
 /**
  * Solid-chip badge for a document-transition action (e.g. "Approved",
  * "Returned") — the action-verb sibling of `StatusBadge`, sharing its exact
- * recipe (pill shape, solid fill, `text-background`/`text-white`) so both
+ * recipe (solid fill, `text-background`/`text-white`) so both
  * badge types read as the same visual language.
  */
 export function ActionBadge({ action, className }: ActionBadgeProps) {
@@ -104,7 +85,7 @@ export function ActionBadge({ action, className }: ActionBadgeProps) {
         <Badge
             variant="outline"
             className={cn(
-                'rounded-full font-semibold',
+                'font-semibold',
                 actionStyles[action] ?? DEFAULT_ACTION_STYLE,
                 className,
             )}
@@ -148,7 +129,7 @@ export function OrganizationStatusBadge({
         <Badge
             variant="outline"
             className={cn(
-                'rounded-full font-semibold',
+                'font-semibold',
                 organizationStatusStyles[status] ?? DEFAULT_ACTION_STYLE,
                 className,
             )}

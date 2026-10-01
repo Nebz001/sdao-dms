@@ -35,7 +35,7 @@ export default function AttachmentsCard({ slots, files }: Props) {
                                             <li key={file.id}>
                                                 <a
                                                     href={file.download_url}
-                                                    className="text-primary underline underline-offset-4"
+                                                    className="text-primary-text underline underline-offset-4"
                                                 >
                                                     {file.original_filename}
                                                 </a>

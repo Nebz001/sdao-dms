@@ -10,7 +10,7 @@ import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,9 +155,7 @@ export default function ShowActivityProposal({
 
                 {/* Activity summary */}
                 {activity && proposal && (
-                    <Card
-                        className={`border-l-4 ${statusBorderClass(doc.status)}`}
-                    >
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Activity{' '}

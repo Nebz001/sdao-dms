@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import CenteredContainer from '@/components/centered-container';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -120,7 +120,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
 
                 {/* Activities table */}
                 {calendar && (
-                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 {calendar.term_label} {calendar.academic_year} — Activities

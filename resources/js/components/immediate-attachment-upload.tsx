@@ -100,7 +100,7 @@ export default function ImmediateAttachmentUpload({ documentId, slot, existing =
 
             {current && (
                 <div className="flex items-center gap-3 text-sm">
-                    <a href={current.download_url} className="text-primary underline underline-offset-4">
+                    <a href={current.download_url} className="text-primary-text underline underline-offset-4">
                         {current.original_filename}
                     </a>
                     <Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={uploading}>

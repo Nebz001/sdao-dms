@@ -137,7 +137,7 @@ export function NotificationBell() {
                     {unreadCount > 0 && (
                         <Badge
                             variant="destructive"
-                            className="absolute -top-1 -right-1 h-4 min-w-4 justify-center rounded-full px-1 text-[10px] leading-none"
+                            className="absolute -top-1 -right-1 h-4 min-w-4 justify-center px-1 text-[10px] leading-none"
                         >
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </Badge>
@@ -192,7 +192,7 @@ export function NotificationBell() {
                 <Link
                     href={notificationsIndex()}
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-center gap-1 border-t px-3 py-2 text-sm text-primary hover:bg-accent/40 hover:underline"
+                    className="flex items-center justify-center gap-1 border-t px-3 py-2 text-sm text-primary-text hover:bg-accent/40 hover:underline"
                 >
                     View all notifications
                     <ChevronRight className="size-3.5" />

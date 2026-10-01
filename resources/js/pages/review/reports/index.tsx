@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import QueueStatStrip from '@/components/queue-stat-strip';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -66,13 +66,7 @@ export default function ReviewReportsIndex({ queue }: Props) {
                     ]}
                 />
 
-                <Card
-                    className={
-                        queue.length > 0
-                            ? `border-l-4 ${statusBorderClass('in_review')}`
-                            : undefined
-                    }
-                >
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Pending</CardTitle>
                     </CardHeader>

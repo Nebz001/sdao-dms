@@ -213,7 +213,7 @@ export default function JoinOrganization({
                         Can&apos;t find your organization?{' '}
                         <Link
                             href={registrations.create()}
-                            className="underline underline-offset-2 hover:text-primary"
+                            className="underline underline-offset-2 hover:text-primary-text"
                         >
                             Register it as new instead
                         </Link>

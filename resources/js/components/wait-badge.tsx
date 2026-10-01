@@ -35,7 +35,7 @@ export default function WaitBadge({ days, tier, className }: WaitBadgeProps) {
             variant="outline"
             aria-label={`Waiting ${days} day${days === 1 ? '' : 's'} (${TIER_LABEL[tier]})`}
             className={cn(
-                'rounded-full font-semibold tabular-nums',
+                'font-semibold tabular-nums',
                 TIER_STYLES[tier],
                 className,
             )}

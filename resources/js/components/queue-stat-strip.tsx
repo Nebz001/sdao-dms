@@ -37,7 +37,7 @@ type QueueStatStripProps = {
  */
 export default function QueueStatStrip({ stats }: QueueStatStripProps) {
     return (
-        <Card className="border-border/60 py-4 shadow-none">
+        <Card className="py-4 shadow-none">
             <CardContent className="flex items-stretch gap-6 px-4">
                 {stats.map((stat, index) => {
                     const isActionable = (stat.count ?? 0) > 0;
@@ -57,7 +57,7 @@ export default function QueueStatStrip({ stats }: QueueStatStripProps) {
                                 <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                                     {isActionable && (
                                         <span
-                                            className="size-1.5 shrink-0 rounded-full bg-primary"
+                                            className="size-1.5 shrink-0 rounded-full bg-primary-text"
                                             aria-hidden
                                         />
                                     )}
@@ -66,7 +66,7 @@ export default function QueueStatStrip({ stats }: QueueStatStripProps) {
                                 <p
                                     className={cn(
                                         'mt-1 text-xl font-semibold tabular-nums',
-                                        isActionable && 'text-primary',
+                                        isActionable && 'text-primary-text',
                                     )}
                                 >
                                     {stat.value}

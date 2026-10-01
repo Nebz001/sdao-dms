@@ -12,7 +12,7 @@ import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRegistrations from '@/routes/review/registrations';
@@ -171,9 +171,7 @@ export default function ReviewRegistrationShow({
 
                 {/* Detail card */}
                 {detail && (
-                    <Card
-                        className={`border-l-4 ${statusBorderClass(document.status)}`}
-                    >
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Registration Details

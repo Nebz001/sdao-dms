@@ -215,7 +215,7 @@ export default function StudentDashboard({
                     </div>
                     <Link
                         href={meta.historyHref}
-                        className="inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline"
+                        className="inline-flex shrink-0 items-center gap-1 text-sm text-primary-text hover:underline"
                     >
                         View document history
                         <ChevronRight className="size-3.5" />
@@ -239,7 +239,7 @@ export default function StudentDashboard({
                     {needsAction.total > needsAction.items.length && (
                         <Link
                             href={meta.historyHref}
-                            className="inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline"
+                            className="inline-flex shrink-0 items-center gap-1 text-sm text-primary-text hover:underline"
                         >
                             See all
                             <ChevronRight className="size-3.5" />
@@ -380,7 +380,7 @@ export default function StudentDashboard({
                         {tracker.total > tracker.items.length && (
                             <Link
                                 href={meta.historyHref}
-                                className="inline-flex shrink-0 items-center gap-1 text-sm text-primary hover:underline"
+                                className="inline-flex shrink-0 items-center gap-1 text-sm text-primary-text hover:underline"
                             >
                                 See all
                                 <ChevronRight className="size-3.5" />
@@ -524,7 +524,7 @@ export default function StudentDashboard({
                                         <span
                                             className={
                                                 tile.enabled
-                                                    ? 'flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'
+                                                    ? 'flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-text/10 text-primary-text'
                                                     : 'flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground'
                                             }
                                         >

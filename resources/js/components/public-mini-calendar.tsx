@@ -126,7 +126,7 @@ export default function PublicMiniCalendar({
                     const cellClassName = cn(
                         'flex min-h-11 flex-col items-center justify-start gap-0.5 bg-card py-1 transition-colors sm:min-h-12 lg:min-h-20 lg:justify-center lg:gap-1',
                         !day.inMonth && 'bg-muted/40',
-                        isSelected && 'ring-2 ring-primary ring-inset',
+                        isSelected && 'ring-2 ring-primary-text ring-inset',
                     );
 
                     if (!hasActivity) {

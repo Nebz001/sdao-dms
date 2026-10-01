@@ -254,7 +254,7 @@ export default function AdminDashboard({
                             </CardTitle>
                             <Link
                                 href={activityLog.index()}
-                                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                className="inline-flex items-center gap-1 text-sm text-primary-text hover:underline"
                             >
                                 View all activity
                                 <ChevronRight className="size-3.5" />

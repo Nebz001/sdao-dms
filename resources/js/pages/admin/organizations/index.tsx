@@ -305,7 +305,7 @@ export default function OrganizationsIndex({
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             {org.renewalDue && (
-                                                <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
+                                                <span className="rounded-md bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
                                                     Renewal due
                                                 </span>
                                             )}
