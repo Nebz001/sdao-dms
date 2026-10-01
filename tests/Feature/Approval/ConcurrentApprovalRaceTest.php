@@ -24,13 +24,21 @@ use Symfony\Component\Process\Process;
  * locking. The default suite runs on in-memory SQLite (phpunit.xml) for
  * speed, where lockForUpdate() is a no-op and a second PHP process couldn't
  * even see the first's data (a fresh :memory: database per process). So
- * this test talks directly to the real development Postgres database
- * (read straight from .env, bypassing phpunit.xml's sqlite override) and
- * drives two REAL overlapping approve() calls in separate OS processes —
- * the only way to genuinely reproduce cross-connection contention. It
- * skips itself if that database isn't reachable or isn't seeded with an
- * Organization Registration workflow + 2 SDAO members (the standard
- * db:seed + WorkflowTemplateSeeder/RealRosterSeeder outcome).
+ * this test talks to a REAL Postgres database and drives two REAL
+ * overlapping approve() calls in separate OS processes — the only way to
+ * genuinely reproduce cross-connection contention.
+ *
+ * It NEVER uses the development database. It is opt in and skipped by
+ * default:
+ *   - RUN_DB_RACE_TESTS=1 must be set, and
+ *   - RACE_TEST_DB_DATABASE must name a database ending in _test (and not
+ *     the database .env points at), with RACE_TEST_DB_HOST / _PORT /
+ *     _USERNAME / _PASSWORD for the rest (host, port and username default
+ *     to 127.0.0.1, 5432 and postgres). Nothing is read from .env.
+ * The test database must be migrated and hold an Organization Registration
+ * workflow with a 2 approval SDAO step, 2 SDAO members and 1 organization
+ * (WorkflowTemplateSeeder + IdentitySeeder). It skips, with a message, if
+ * any of that is missing.
  *
  * Deliberately does not use RefreshDatabase: this test's assertions run
  * against the 'pgsql' connection explicitly, never the suite's default
@@ -38,24 +46,51 @@ use Symfony\Component\Process\Process;
  * the default connection neither helps nor interferes here. Fixtures this
  * test creates on 'pgsql' are cleaned up manually in afterEach() instead.
  */
-function realDevDatabaseEnv(): array
+/**
+ * Connection settings for the dedicated race test database, read from the
+ * process environment only. `env` is null, with a `reason`, whenever the test
+ * must not run.
+ *
+ * @return array{env: array<string, string>|null, reason: string|null}
+ */
+function raceTestDatabaseEnv(): array
 {
-    $values = Dotenv\Dotenv::createArrayBacked(base_path())->load();
+    if (getenv('RUN_DB_RACE_TESTS') !== '1') {
+        return ['env' => null, 'reason' => 'Skipped: this test needs a dedicated Postgres test database. Set RUN_DB_RACE_TESTS=1 and RACE_TEST_DB_DATABASE to a name ending in _test to run it. It never touches the development database.'];
+    }
 
-    return [
+    $database = (string) getenv('RACE_TEST_DB_DATABASE');
+
+    if (! str_ends_with($database, '_test')) {
+        return ['env' => null, 'reason' => 'Skipped: RACE_TEST_DB_DATABASE must be set to a database whose name ends in _test.'];
+    }
+
+    // Belt and braces: even a name ending in _test must not be the database
+    // the application itself is configured for.
+    $appDatabase = (string) (Dotenv\Dotenv::createArrayBacked(base_path())->safeLoad()['DB_DATABASE'] ?? '');
+
+    if ($appDatabase !== '' && $appDatabase === $database) {
+        return ['env' => null, 'reason' => 'Skipped: RACE_TEST_DB_DATABASE is the same database .env points at.'];
+    }
+
+    return ['env' => [
         'DB_CONNECTION' => 'pgsql',
-        'DB_HOST' => $values['DB_HOST'] ?? '127.0.0.1',
-        'DB_PORT' => $values['DB_PORT'] ?? '5432',
-        'DB_DATABASE' => $values['DB_DATABASE'] ?? null,
-        'DB_USERNAME' => $values['DB_USERNAME'] ?? 'postgres',
-        'DB_PASSWORD' => $values['DB_PASSWORD'] ?? '',
-    ];
+        'DB_URL' => '',
+        'DB_HOST' => getenv('RACE_TEST_DB_HOST') ?: '127.0.0.1',
+        'DB_PORT' => getenv('RACE_TEST_DB_PORT') ?: '5432',
+        'DB_DATABASE' => $database,
+        'DB_USERNAME' => getenv('RACE_TEST_DB_USERNAME') ?: 'postgres',
+        'DB_PASSWORD' => (string) getenv('RACE_TEST_DB_PASSWORD'),
+    ], 'reason' => null];
 }
 
 /** Builds the child process's inline script: approve as $userId, optionally holding the transaction open afterward. */
 function approveScript(int $documentId, int $userId, int $holdSeconds): string
 {
     return <<<PHP
+        if (! str_ends_with(\Illuminate\Support\Facades\DB::connection()->getDatabaseName(), '_test')) {
+            throw new \RuntimeException('Refusing to run: the database name does not end in _test.');
+        }
         \$doc = \App\Models\Document::findOrFail({$documentId});
         \$user = \App\Models\User::findOrFail({$userId});
         \Illuminate\Support\Facades\DB::transaction(function () use (\$doc, \$user) {
@@ -69,11 +104,14 @@ function approveScript(int $documentId, int $userId, int $holdSeconds): string
 }
 
 beforeEach(function () {
-    $this->realEnv = realDevDatabaseEnv();
+    // The very first thing, before any connection is configured or opened.
+    $settings = raceTestDatabaseEnv();
 
-    if (! $this->realEnv['DB_DATABASE']) {
-        $this->markTestSkipped('No DB_DATABASE configured in .env; skipping live-Postgres concurrency test.');
+    if ($settings['env'] === null) {
+        $this->markTestSkipped($settings['reason']);
     }
+
+    $this->realEnv = $settings['env'];
 
     config([
         'database.connections.pgsql.host' => $this->realEnv['DB_HOST'],
@@ -81,13 +119,14 @@ beforeEach(function () {
         'database.connections.pgsql.database' => $this->realEnv['DB_DATABASE'],
         'database.connections.pgsql.username' => $this->realEnv['DB_USERNAME'],
         'database.connections.pgsql.password' => $this->realEnv['DB_PASSWORD'],
+        'database.connections.pgsql.url' => null,
     ]);
     DB::purge('pgsql');
 
     try {
         DB::connection('pgsql')->getPdo();
-    } catch (\Throwable $e) {
-        $this->markTestSkipped('Real dev Postgres database is not reachable: '.$e->getMessage());
+    } catch (Throwable $e) {
+        $this->markTestSkipped('The race test database is not reachable: '.$e->getMessage());
     }
 
     $template = WorkflowTemplate::on('pgsql')
@@ -109,7 +148,7 @@ beforeEach(function () {
     $organization = Organization::on('pgsql')->first();
 
     if (! $template || ! $step || $step->required_approvals < 2 || $sdaoUserIds->count() < 2 || ! $organization) {
-        $this->markTestSkipped('Dev Postgres database is not seeded with an Organization Registration workflow + 2 SDAO members (run db:seed first).');
+        $this->markTestSkipped('The race test database is not seeded with an Organization Registration workflow with a 2 approval SDAO step, 2 SDAO members and an organization (WorkflowTemplateSeeder + IdentitySeeder).');
     }
 
     $this->step = $step;
