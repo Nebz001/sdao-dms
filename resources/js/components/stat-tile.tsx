@@ -169,7 +169,7 @@ export default function StatTile({
                         <button
                             type="button"
                             aria-label={urgentCopy(count)}
-                            className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full focus-visible:focus-ring-edge"
                         >
                             {/* Keyed on count so a value change (e.g. via a
                                 future poll) remounts this node, restarting
@@ -188,7 +188,7 @@ export default function StatTile({
             <CardContent className="px-4">
                 <Link
                     href={href}
-                    className="flex items-start justify-between gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="flex items-start justify-between gap-2 rounded-sm focus-visible:focus-ring-edge"
                 >
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">
@@ -210,7 +210,7 @@ export default function StatTile({
                         {weekly && trend && TrendIcon && (
                             <div
                                 className={cn(
-                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium',
+                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-sm bg-muted/60 px-2 py-0.5 text-xs font-medium',
                                     trend.className,
                                 )}
                             >

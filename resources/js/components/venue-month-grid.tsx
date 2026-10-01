@@ -196,7 +196,7 @@ export default function VenueMonthGrid({
                             onClick={() => onSelectDay(day.iso)}
                             className={cn(
                                 'flex min-h-20 flex-col items-stretch gap-0.5 bg-card p-1 text-left align-top transition-colors sm:min-h-24 sm:p-1.5',
-                                'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset',
+                                'hover:bg-accent focus-visible:focus-ring-inset',
                                 !day.inMonth &&
                                     'bg-muted/40 text-muted-foreground',
                                 isSelected && 'ring-2 ring-primary-text ring-inset',

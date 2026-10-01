@@ -408,7 +408,7 @@ export default function StudentDashboard({
                                     <Link
                                         key={item.id}
                                         href={item.href}
-                                        className="block py-3 first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="block py-3 first:pt-0 last:pb-0 focus-visible:focus-ring-edge"
                                     >
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
@@ -593,7 +593,7 @@ export default function StudentDashboard({
                                     <Link
                                         key={activity.id}
                                         href={activity.href}
-                                        className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                        className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0 focus-visible:focus-ring-edge"
                                     >
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-semibold">

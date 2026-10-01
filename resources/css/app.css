@@ -127,6 +127,8 @@
     --border: oklch(0.92 0.004 286.32); /* zinc-200 */
     --input: oklch(0.92 0.004 286.32); /* zinc-200 */
     --ring: #35408e;
+    /* Soft halo around a focused control: the ring color at 35% opacity. */
+    --ring-halo: color-mix(in oklab, var(--ring) 35%, transparent);
     /* Card outline only (ui/card.tsx): the same neutral zinc hue as --border,
        a few steps darker. 1.92:1 against the page, 2.0:1 against the card. */
     --card-border: oklch(0.78 0.005 286);
@@ -222,6 +224,40 @@
     --brand-edge: color-mix(in oklab, var(--brand-tint) 45%, transparent);
 }
 
+/*
+ * Shared keyboard focus treatment, one recipe for every control.
+ * - focus-ring: controls that already have a 1px border (inputs, selects,
+ *   textareas, checkboxes, toggles). The border switches to the full-strength
+ *   ring color and a 2px soft halo is added around it.
+ * - focus-ring-edge: borderless controls (ghost buttons, links, sidebar items).
+ *   A 1px full-strength line plus the same 2px halo, drawn outside the edge.
+ * - focus-ring-inset: same, drawn inside the edge, for grid cells that sit
+ *   flush against their neighbours.
+ */
+@utility focus-ring {
+    border-color: var(--ring);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring-halo);
+
+    /* An invalid field keeps its destructive color while focused. */
+    &[aria-invalid='true'] {
+        border-color: var(--destructive);
+        box-shadow: 0 0 0 2px color-mix(in oklab, var(--destructive) 35%, transparent);
+    }
+}
+
+@utility focus-ring-edge {
+    outline: 1px solid var(--ring);
+    outline-offset: 0;
+    box-shadow: 0 0 0 3px var(--ring-halo);
+}
+
+@utility focus-ring-inset {
+    outline: 1px solid var(--ring);
+    outline-offset: -1px;
+    box-shadow: inset 0 0 0 3px var(--ring-halo);
+}
+
 @layer base {
     * {
         @apply border-border;
@@ -229,6 +265,14 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    /* Global fallback for anything without its own focus style (plain links,
+       summary, tabindex elements): the same 1px line and 2px halo. */
+    :where(a, button, summary, [role='button'], [tabindex]):focus-visible {
+        outline: 1px solid var(--ring);
+        outline-offset: 0;
+        box-shadow: 0 0 0 3px var(--ring-halo);
     }
 }
 

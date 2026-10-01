@@ -152,7 +152,7 @@ export default function PublicMiniCalendar({
                             onClick={() => onSelectDay(day.iso)}
                             className={cn(
                                 cellClassName,
-                                'cursor-pointer hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset',
+                                'cursor-pointer hover:bg-accent focus-visible:focus-ring-inset',
                             )}
                         >
                             {cellContent}

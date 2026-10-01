@@ -27,7 +27,7 @@ type StatusBadgeProps = {
 /**
  * Shared solid-chip status badge used across every document list/show and
  * review page instead of a per-page `statusVariant` map. Squared like every
- * other badge (`rounded-md`); the solid fill carries the status distinction
+ * other badge (`rounded-sm`); the solid fill carries the status distinction
  * from the app's neutral count/role badges.
  */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
