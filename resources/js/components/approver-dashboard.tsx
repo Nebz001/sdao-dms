@@ -316,7 +316,7 @@ export default function ApproverDashboard({
                                                     {row.wasResubmitted && (
                                                         <Badge
                                                             variant="outline"
-                                                            className="w-fit border-transparent bg-info/10 text-[10px] text-info"
+                                                            className="w-fit border-transparent bg-info/10 text-[0.625rem] text-info"
                                                         >
                                                             Resubmitted
                                                         </Badge>
@@ -335,7 +335,7 @@ export default function ApproverDashboard({
                                                     {row.eventSoon && (
                                                         <Badge
                                                             variant="outline"
-                                                            className="border-transparent bg-destructive/10 text-[10px] text-destructive"
+                                                            className="border-transparent bg-destructive/10 text-[0.625rem] text-destructive"
                                                         >
                                                             Urgent
                                                         </Badge>

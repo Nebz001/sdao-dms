@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationRead } from '@/hooks/use-notification-read';
 
@@ -137,7 +138,7 @@ export function NotificationBell() {
                     {unreadCount > 0 && (
                         <Badge
                             variant="destructive"
-                            className="absolute -top-1 -right-1 h-4 min-w-4 justify-center px-1 text-[10px] leading-none"
+                            className="absolute -top-1 -right-1 h-4 min-w-4 justify-center px-1 text-[0.625rem] leading-none"
                         >
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </Badge>
@@ -177,16 +178,18 @@ export function NotificationBell() {
                         </EmptyHeader>
                     </Empty>
                 ) : (
-                    <ul className="max-h-[420px] overflow-y-auto py-1">
-                        {items.map((item) => (
-                            <NotificationRow
-                                key={item.id}
-                                item={item}
-                                onRowClick={() => handleRowClick(item)}
-                                onMarkRead={() => markRowRead(item)}
-                            />
-                        ))}
-                    </ul>
+                    <ScrollArea viewportClassName="max-h-[420px]">
+                        <ul className="py-1">
+                            {items.map((item) => (
+                                <NotificationRow
+                                    key={item.id}
+                                    item={item}
+                                    onRowClick={() => handleRowClick(item)}
+                                    onMarkRead={() => markRowRead(item)}
+                                />
+                            ))}
+                        </ul>
+                    </ScrollArea>
                 )}
 
                 <Link

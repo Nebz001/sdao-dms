@@ -109,7 +109,7 @@ export default function DocumentStepTracker({
                                 {step.label}
                             </span>
                             {showApprovalCount && (
-                                <span className="text-[11px] text-muted-foreground tabular-nums">
+                                <span className="text-[0.6875rem] text-muted-foreground tabular-nums">
                                     {step.approvalsSoFar} of{' '}
                                     {step.requiredApprovals}
                                 </span>

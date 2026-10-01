@@ -71,7 +71,7 @@ function VariantTick({
     const secondLine = rest.join(', ');
     const tickStyle: React.CSSProperties = {
         fill: 'var(--foreground)',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 500,
     };
 

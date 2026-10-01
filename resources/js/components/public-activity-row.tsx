@@ -43,7 +43,7 @@ export default function PublicActivityRow({ activity }: Props) {
     return (
         <div className="flex items-start gap-3 rounded-md border px-3 py-2">
             <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-md bg-brand-fixed text-brand-fixed-foreground">
-                <span className="text-[10px] font-semibold tracking-wide uppercase">
+                <span className="text-[0.625rem] font-semibold tracking-wide uppercase">
                     {month}
                 </span>
                 <span className="text-xl leading-none font-bold">{day}</span>

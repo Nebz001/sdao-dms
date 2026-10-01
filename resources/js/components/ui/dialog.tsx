@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 import * as React from "react"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 function Dialog({
@@ -60,7 +61,9 @@ function DialogContent({
         )}
         {...props}
       >
-        {children}
+        <ScrollArea viewportClassName="max-h-[calc(100dvh-5rem)]">
+          <div className="grid gap-4">{children}</div>
+        </ScrollArea>
         <DialogPrimitive.Close className="data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:focus-ring-edge">
           <XIcon />
           <span className="sr-only">Close</span>

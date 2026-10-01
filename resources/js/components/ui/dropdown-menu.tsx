@@ -2,6 +2,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import * as React from "react"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 function DropdownMenu({
@@ -32,6 +33,7 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
@@ -44,7 +46,11 @@ function DropdownMenuContent({
           className
         )}
         {...props}
-      />
+      >
+        <ScrollArea viewportClassName="max-h-(--radix-dropdown-menu-content-available-height)">
+          {children}
+        </ScrollArea>
+      </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   )
 }

@@ -282,7 +282,7 @@ export default function StudentDashboard({
                                                     {item.flaggedCount > 0 && (
                                                         <Badge
                                                             variant="outline"
-                                                            className="border-transparent bg-warning/10 text-[10px] text-warning"
+                                                            className="border-transparent bg-warning/10 text-[0.625rem] text-warning"
                                                         >
                                                             {item.flaggedCount}{' '}
                                                             section

@@ -59,7 +59,7 @@ export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
                 <span className={cn('mt-0.5 block truncate text-xs', isRead ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
                     {item.body}
                 </span>
-                <span className="mt-0.5 block text-[11px] text-muted-foreground/70">{relativeTime}</span>
+                <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground/70">{relativeTime}</span>
             </button>
             {!isRead && (
                 <Button variant="ghost" size="icon" className="size-6 shrink-0" aria-label="Mark as read" onClick={onMarkRead}>

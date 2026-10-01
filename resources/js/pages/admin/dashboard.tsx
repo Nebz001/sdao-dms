@@ -296,7 +296,7 @@ export default function AdminDashboard({
                                                 {/* Actor byline — same avatar treatment (shape, fallback colors) as the account menu at the bottom of the sidebar (see UserInfo), just sized down for this denser list. */}
                                                 <div className="mt-1 flex items-center gap-1.5">
                                                     <Avatar className="size-5 overflow-hidden rounded-full">
-                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-[10px] text-black dark:bg-neutral-700 dark:text-white">
+                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-[0.625rem] text-black dark:bg-neutral-700 dark:text-white">
                                                             {getInitials(entry.actorName)}
                                                         </AvatarFallback>
                                                     </Avatar>
