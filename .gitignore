@@ -31,3 +31,5 @@ yarn-error.log
 /.zed
 *.dump
 restore_errors.log
+# Full database dumps contain user data and password hashes; never commit them.
+/database_backup.sql
