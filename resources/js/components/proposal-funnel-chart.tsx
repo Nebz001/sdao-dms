@@ -19,9 +19,10 @@ type ProposalFunnelChartProps = {
 type ChartRow = { variant: string; total: number } & Record<string, number | string>;
 
 /**
- * One shade of `--info` per step position, not a rainbow palette — every
- * step is still, by meaning, an "in review" proposal (the same blue used by
- * the status pie and StatusBadge elsewhere on this dashboard). The shade
+ * One shade of the brand chart color (`--chart-1`: navy in light theme, the
+ * lighter brand tint in dark theme) per step position, not a rainbow palette.
+ * Funnel steps are stages, not statuses, so they use the brand series rather
+ * than the semantic "In Review" blue. The shade
  * lightens with position so a multi-step row still reads left-to-right as
  * a progression even though every segment is fundamentally the same color
  * family. `color-mix` is already an established pattern in this codebase
@@ -30,11 +31,11 @@ type ChartRow = { variant: string; total: number } & Record<string, number | str
 function stepColor(index: number): string {
     const mixPercent = Math.max(35, 100 - index * 18);
 
-    return `color-mix(in oklab, var(--info) ${mixPercent}%, var(--background))`;
+    return `color-mix(in oklab, var(--chart-1) ${mixPercent}%, var(--background))`;
 }
 
 const chartConfig = {
-    count: { label: 'Proposals', color: 'var(--info)' },
+    count: { label: 'Proposals', color: 'var(--chart-1)' },
 } satisfies ChartConfig;
 
 /**

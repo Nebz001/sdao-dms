@@ -100,7 +100,7 @@ export default function ErrorPage({ status }: Props) {
                     <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-6 sm:h-20">
                         <Link
                             href={home()}
-                            className="inline-flex items-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            className="inline-flex items-center rounded-md focus-visible:focus-ring-edge"
                         >
                             <AppLogoLockup className="h-10" />
                         </Link>
@@ -111,7 +111,7 @@ export default function ErrorPage({ status }: Props) {
                     <div className="flex max-w-md flex-col items-center gap-6 text-center">
                         <p
                             aria-hidden="true"
-                            className="text-7xl font-bold tracking-tight text-brand sm:text-8xl"
+                            className="text-7xl font-bold tracking-tight text-primary-text sm:text-8xl"
                         >
                             {status}
                         </p>

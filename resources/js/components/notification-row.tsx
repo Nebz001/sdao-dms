@@ -32,8 +32,8 @@ export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
     return (
         <li
             className={cn(
-                'flex items-start gap-3 border-b border-l-4 border-border/70 px-3 py-3 transition-colors last:border-b-0 hover:bg-accent/40',
-                isRead ? 'border-l-transparent' : 'border-l-primary bg-primary/[0.07]',
+                'flex items-start gap-3 border-b border-border/70 px-3 py-3 transition-colors last:border-b-0 hover:bg-accent/40',
+                !isRead && 'bg-brand-tint/10',
             )}
         >
             <span
@@ -54,7 +54,7 @@ export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
                     >
                         {item.title}
                     </span>
-                    {!isRead && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden />}
+                    {!isRead && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary-text" aria-hidden />}
                 </div>
                 <span className={cn('mt-0.5 block truncate text-xs', isRead ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
                     {item.body}

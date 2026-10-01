@@ -6,7 +6,7 @@ import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import { formatCalendarDate, formatTimeRange } from '@/lib/utils';
@@ -211,9 +211,7 @@ export default function ReviewActivityCalendarShow({
 
                 {/* Activities with per-row conflict state */}
                 {calendar && (
-                    <Card
-                        className={`border-l-4 ${statusBorderClass(document.status)}`}
-                    >
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 {calendar.term_label} {calendar.academic_year} —

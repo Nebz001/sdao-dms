@@ -28,21 +28,14 @@ export type StatTileTone =
     | 'destructive';
 
 /**
- * Left-border + icon accent per tone, sharing the exact success/warning/
- * destructive tokens StatusBadge/ActionBadge already use (never a second
- * palette for the same meanings). `neutral` renders no accent at all — for
- * a tile that reports a plain fact rather than something actionable.
+ * Icon color per tone, sharing the exact success/warning/destructive tokens
+ * StatusBadge/ActionBadge already use (never a second palette for the same
+ * meanings). The tone is carried by this icon and by the value color below,
+ * never by a card edge. `neutral` stays muted, for a tile that reports a
+ * plain fact rather than something actionable.
  */
-const TONE_BORDER: Record<StatTileTone, string> = {
-    primary: 'border-l-primary',
-    neutral: '',
-    success: 'border-l-success',
-    warning: 'border-l-warning',
-    destructive: 'border-l-destructive',
-};
-
 const TONE_ICON: Record<StatTileTone, string> = {
-    primary: 'text-primary',
+    primary: 'text-primary-text',
     neutral: 'text-muted-foreground',
     success: 'text-success',
     warning: 'text-warning',
@@ -50,14 +43,13 @@ const TONE_ICON: Record<StatTileTone, string> = {
 };
 
 /**
- * Only warning/destructive tint the headline number itself — success and
- * primary stay the default foreground color, so a routine positive count
- * doesn't compete for attention with a genuinely urgent one.
+ * The headline number carries the tone as text color too, so the tone
+ * survives without a card edge. Neutral tiles keep the default foreground.
  */
 const TONE_VALUE: Record<StatTileTone, string> = {
-    primary: '',
+    primary: 'text-primary-text',
     neutral: '',
-    success: '',
+    success: 'text-success-foreground',
     warning: 'text-warning',
     destructive: 'text-destructive',
 };
@@ -169,13 +161,7 @@ export default function StatTile({
 
     return (
         <Card
-            className={cn(
-                'relative gap-0 border-border/60 py-4 shadow-none transition-colors hover:border-primary/40',
-                isActionable &&
-                    !urgent &&
-                    TONE_BORDER[tone] &&
-                    `border-l-2 ${TONE_BORDER[tone]}`,
-            )}
+            className="relative gap-0 py-4 shadow-none transition-colors hover:border-primary-text/40"
         >
             {urgent && (
                 <Tooltip>
@@ -183,7 +169,7 @@ export default function StatTile({
                         <button
                             type="button"
                             aria-label={urgentCopy(count)}
-                            className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            className="absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full focus-visible:focus-ring-edge"
                         >
                             {/* Keyed on count so a value change (e.g. via a
                                 future poll) remounts this node, restarting
@@ -202,7 +188,7 @@ export default function StatTile({
             <CardContent className="px-4">
                 <Link
                     href={href}
-                    className="flex items-start justify-between gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="flex items-start justify-between gap-2 rounded-sm focus-visible:focus-ring-edge"
                 >
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">
@@ -224,7 +210,7 @@ export default function StatTile({
                         {weekly && trend && TrendIcon && (
                             <div
                                 className={cn(
-                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-xs font-medium',
+                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-sm bg-muted/60 px-2 py-0.5 text-xs font-medium',
                                     trend.className,
                                 )}
                             >

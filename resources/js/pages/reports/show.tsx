@@ -4,7 +4,7 @@ import AttachmentsCard from '@/components/attachments-card';
 import CenteredContainer from '@/components/centered-container';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -93,7 +93,7 @@ export default function ShowReport({ document, report, attachmentSlots, attachme
 
                 {/* Report card */}
                 {report && (
-                    <Card className={`border-l-4 ${statusBorderClass(document.status)}`}>
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Report Details</CardTitle>
                         </CardHeader>

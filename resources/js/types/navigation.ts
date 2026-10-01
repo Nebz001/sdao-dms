@@ -11,4 +11,6 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Extra paths that should also select this item (e.g. a role's own dashboard URL). */
+    alsoActiveOn?: string[];
 };

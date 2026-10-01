@@ -15,7 +15,7 @@ type DocumentStepTrackerProps = {
 
 const STATE_DOT_CLASS: Record<string, string> = {
     done: 'bg-success text-background',
-    current: 'bg-primary text-primary-foreground',
+    current: 'bg-primary text-primary-foreground ring-1 ring-brand-edge',
     returned: 'bg-warning text-background',
     upcoming: 'bg-muted text-muted-foreground',
 };

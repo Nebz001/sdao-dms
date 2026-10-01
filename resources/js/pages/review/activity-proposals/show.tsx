@@ -15,7 +15,7 @@ import type { PartnerOrganization } from '@/components/partner-organizations-fie
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
-import { StatusBadge, statusBorderClass } from '@/components/status-badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -196,9 +196,7 @@ export default function ReviewActivityProposalShow({
 
                 {/* Activity */}
                 {activity && proposal && (
-                    <Card
-                        className={`border-l-4 ${statusBorderClass(doc.status)}`}
-                    >
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Activity{' '}

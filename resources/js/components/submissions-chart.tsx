@@ -18,7 +18,7 @@ type SubmissionsChartProps = {
 };
 
 const chartConfig = {
-    count: { label: 'Submitted', color: 'var(--primary)' },
+    count: { label: 'Submitted', color: 'var(--chart-1)' },
 } satisfies ChartConfig;
 
 /**

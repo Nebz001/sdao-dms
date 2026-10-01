@@ -7,7 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 /**
  * StatTile is the admin dashboard's KPI tile: a trend indicator (up/down/
  * flat) and, for the one tile marked `urgent` (Unassigned Advisers), an
- * alert badge replacing the ordinary nonzero left-border. This pins both
+ * alert badge. Tone is carried by icon and value color, never a card edge. This pins both
  * behaviors so a future edit can't silently swap the wrong icon/color or
  * leave the urgent badge rendering (or not rendering) for the wrong count.
  *
@@ -101,19 +101,22 @@ describe('StatTile — urgent badge', () => {
         expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('drops the nonzero left-border accent on the urgent tile, so there is exactly one urgent signal', () => {
-        const { container } = renderTile({ count: 1, urgent: true });
-
+    it('never draws a side border accent on a tile, urgent or not', () => {
+        const urgent = renderTile({ count: 1, urgent: true });
         expect(
-            container.querySelector('[data-slot="card"]')?.className,
-        ).not.toContain('border-l-primary');
+            urgent.container.querySelector('[data-slot="card"]')?.className,
+        ).not.toContain('border-l');
+        urgent.unmount();
+
+        const plain = renderTile({ count: 4, urgent: false });
+        expect(
+            plain.container.querySelector('[data-slot="card"]')?.className,
+        ).not.toContain('border-l');
     });
 
-    it('keeps the ordinary nonzero left-border accent on a non-urgent, nonzero tile', () => {
-        const { container } = renderTile({ count: 4, urgent: false });
+    it('carries the tone through the value text color on a nonzero tile', () => {
+        renderTile({ count: 4, urgent: false });
 
-        expect(
-            container.querySelector('[data-slot="card"]')?.className,
-        ).toContain('border-l-primary');
+        expect(screen.getByText('4').className).toContain('text-primary-text');
     });
 });

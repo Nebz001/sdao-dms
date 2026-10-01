@@ -155,7 +155,7 @@ export default function RequirementsChecklist({
                             </div>
                             <span
                                 className={cn(
-                                    'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                    'shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-semibold',
                                     STATE_BADGE_CLASS[item.state],
                                 )}
                             >
@@ -169,7 +169,7 @@ export default function RequirementsChecklist({
                             {item.href ? (
                                 <Link
                                     href={item.href}
-                                    className="-mx-1 block rounded-sm px-1 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    className="-mx-1 block rounded-sm px-1 hover:bg-accent/40 focus-visible:focus-ring-edge"
                                 >
                                     {row}
                                 </Link>

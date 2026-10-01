@@ -216,11 +216,13 @@ describe('NotificationBell', () => {
 
         expect(unreadTitle).toHaveClass('font-semibold');
         expect(readTitle).toHaveClass('font-normal', 'text-muted-foreground');
-        expect(unreadRow).toHaveClass('border-l-primary');
-        expect(readRow).toHaveClass('border-l-transparent');
+        // Unread rows are tinted; read rows are not. Neither has a side border.
+        expect(unreadRow).toHaveClass('bg-brand-tint/10');
+        expect(readRow).not.toHaveClass('bg-brand-tint/10');
+        expect(unreadRow?.className).not.toContain('border-l');
         // The unread dot marker only renders next to the unread row's title.
-        expect(unreadRow?.querySelector('.bg-primary.rounded-full')).not.toBeNull();
-        expect(readRow?.querySelector('.bg-primary.rounded-full')).toBeNull();
+        expect(unreadRow?.querySelector('.bg-primary-text.rounded-full')).not.toBeNull();
+        expect(readRow?.querySelector('.bg-primary-text.rounded-full')).toBeNull();
         // Only an unread row gets the manual "Mark as read" control.
         expect(screen.getAllByRole('button', { name: 'Mark as read' })).toHaveLength(1);
     });
