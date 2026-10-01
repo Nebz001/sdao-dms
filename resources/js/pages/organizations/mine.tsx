@@ -153,10 +153,10 @@ export default function MyOrganization({
                                 <div className="divide-y">
                                     {officers.map((o) => (
                                         <div key={o.id} className="py-2.5">
-                                            <p className="truncate font-medium">
+                                            <p className="sm:truncate max-sm:break-words font-medium">
                                                 {o.user.name}
                                             </p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {o.position_label} ·{' '}
                                                 {o.user.email}
                                             </p>
@@ -189,10 +189,10 @@ export default function MyOrganization({
                                 </Empty>
                             ) : (
                                 <div>
-                                    <p className="truncate font-medium">
+                                    <p className="sm:truncate max-sm:break-words font-medium">
                                         {adviser.name}
                                     </p>
-                                    <p className="truncate text-sm text-muted-foreground">
+                                    <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                         {adviser.email}
                                     </p>
                                 </div>

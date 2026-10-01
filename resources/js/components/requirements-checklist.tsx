@@ -146,10 +146,10 @@ export default function RequirementsChecklist({
                                 <Icon className="size-3.5" aria-hidden />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
+                                <p className="sm:truncate max-sm:break-words text-sm font-medium">
                                     {item.label}
                                 </p>
-                                <p className="truncate text-xs text-muted-foreground">
+                                <p className="sm:truncate max-sm:break-words text-xs text-muted-foreground">
                                     {item.detail}
                                 </p>
                             </div>
