@@ -4,8 +4,8 @@ import { useState } from 'react';
 import ApproverController from '@/actions/App/Http/Controllers/Admin/ApproverController';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -100,10 +100,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
             <Head title="Provision Approver" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Provision Approver"
-                    description="Creates the account with a one time password and emails it to the approver. They must change it the first time they log in."
-                />
+                <PageHeader title="Provision Approver" subtitle="Creates the account with a one time password and emails it to the approver. They must change it the first time they log in." />
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid gap-2">
