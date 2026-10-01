@@ -78,6 +78,8 @@ test('a dean provisioned as a replacement receives the hand-off notification and
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
     );
+    // Past the forced first login change, so the review page is reachable.
+    $replacement->forceFill(['must_change_password' => false])->save();
 
     $doc = driveActivityProposalToDeanStep($this->engine, $this->org, $this->adviser, $this->chair);
     expect($doc->status)->toBe(DocumentStatus::InReview);

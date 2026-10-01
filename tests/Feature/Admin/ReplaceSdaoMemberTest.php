@@ -100,6 +100,8 @@ test('a document pending at the SDAO step now resolves to the new holder, not th
     expect($doc->current_step_position)->toBe(4);
 
     $new = replaceOldSdaoWith($this->otherSdao, $this->oldSdao);
+    // Past the forced first login change, so the review page is reachable.
+    $new->forceFill(['must_change_password' => false])->save();
 
     $step = WorkflowStep::query()
         ->where('workflow_template_id', $doc->workflow_template_id)
