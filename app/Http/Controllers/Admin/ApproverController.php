@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProvisionApproverRequest;
 use App\Identity\Admin\ProvisionApprover;
+use App\Identity\RoleDirectory;
 use App\Models\Organization;
 use App\Models\Program;
 use App\Models\RoleAssignment;
@@ -43,9 +44,14 @@ class ApproverController extends Controller
         return Inertia::render('admin/approvers/index', ['approvers' => $approvers]);
     }
 
-    public function create(): Response
+    public function create(RoleDirectory $directory): Response
     {
         return Inertia::render('admin/approvers/create', [
+            'sdaoMembers' => $directory->sdaoMembers()
+                ->reject(fn (User $u) => $u->id === Auth::id())
+                ->sortBy('name')
+                ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+                ->values(),
             'roles' => collect(Role::cases())
                 ->reject(fn (Role $r) => $r === Role::Student)
                 ->map(fn (Role $r) => [
@@ -65,6 +71,9 @@ class ApproverController extends Controller
 
     public function store(ProvisionApproverRequest $request, ProvisionApprover $action): RedirectResponse
     {
+        $replacesUserId = $request->integer('replaces_user_id') ?: null;
+        $replaced = $replacesUserId !== null ? User::find($replacesUserId) : null;
+
         $action->execute(
             actor: Auth::user(),
             name: $request->string('name')->toString(),
@@ -76,10 +85,17 @@ class ApproverController extends Controller
                 'program_id' => $request->integer('program_id') ?: null,
                 'organization_id' => $request->integer('organization_id') ?: null,
             ],
+            replacesUserId: $replacesUserId,
         );
 
+        $message = 'Approver created. Their login details have been emailed to them.';
+
+        if ($replaced !== null) {
+            $message .= " {$replaced->name} no longer has the SDAO role.";
+        }
+
         return redirect()->route('admin.approvers.index')
-            ->with('flash', ['message' => 'Approver created — their login details have been emailed to them.']);
+            ->with('flash', ['message' => $message]);
     }
 
     private function scopeLabel(RoleAssignment $ra): string

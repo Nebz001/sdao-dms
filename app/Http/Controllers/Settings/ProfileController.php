@@ -41,7 +41,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        $emailUnchanged = $data['email'] === $user->email;
+        $emailUnchanged = $request->emailIsUnchanged();
 
         $user->name = $data['name'];
         $user->save();

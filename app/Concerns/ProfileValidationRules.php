@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use App\Models\User;
+use App\Rules\NotStudentEmailDomain;
 use App\Rules\SchoolEmailDomain;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
@@ -15,11 +16,11 @@ trait ProfileValidationRules
      * @param  'student'|'staff'|null  $audience  Restrict the school-email domain check to one audience.
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
-    protected function profileRules(?int $userId = null, ?string $audience = null): array
+    protected function profileRules(?int $userId = null, ?string $audience = null, bool $requireSchoolDomain = true): array
     {
         return [
             'name' => $this->nameRules(),
-            'email' => $this->emailRules($userId, $audience),
+            'email' => $this->emailRules($userId, $audience, requireSchoolDomain: $requireSchoolDomain),
         ];
     }
 
@@ -40,17 +41,28 @@ trait ProfileValidationRules
      * check runs before the uniqueness lookup so a personal address is
      * rejected without touching the database.
      *
+     * Admin provisioning passes `allowPersonal: true` to accept any valid
+     * address except one on a student domain (see NotStudentEmailDomain).
+     * `requireSchoolDomain: false` skips the domain check entirely, for a
+     * profile save that leaves the email unchanged.
+     *
      * @param  'student'|'staff'|null  $audience  Restrict to one domain list, or null to accept any configured domain.
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function emailRules(?int $userId = null, ?string $audience = null): array
+    protected function emailRules(?int $userId = null, ?string $audience = null, bool $allowPersonal = false, bool $requireSchoolDomain = true): array
     {
+        $domainRules = match (true) {
+            $allowPersonal => [new NotStudentEmailDomain],
+            $requireSchoolDomain => [new SchoolEmailDomain($audience)],
+            default => [],
+        };
+
         return [
             'required',
             'string',
             'email',
             'max:255',
-            new SchoolEmailDomain($audience),
+            ...$domainRules,
             $userId === null
                 ? Rule::unique(User::class)
                 : Rule::unique(User::class)->ignore($userId),

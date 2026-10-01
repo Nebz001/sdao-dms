@@ -26,6 +26,10 @@ use Illuminate\Validation\ValidationException;
  * ApproverProvisionedNotification emails that password to the approver right
  * away and points them at the existing Settings > Security page to change it
  * once they've logged in.
+ *
+ * SDAO membership is multi-holder, so provisioning one only ever ADDS a seat.
+ * To swap a person out, pass `replacesUserId`: that member's SDAO role row is
+ * removed in the same transaction, and nothing else about them is touched.
  */
 class ProvisionApprover
 {
@@ -38,7 +42,7 @@ class ProvisionApprover
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null): User
+    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null): User
     {
         if (! $actor->roleAssignments->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember)) {
             throw new AuthorizationException('Only an SDAO member may provision approver accounts.');
@@ -51,8 +55,13 @@ class ProvisionApprover
         }
 
         $this->guardScopeMatchesRole($role, $scope);
+        $this->guardReplacement($actor, $role, $replacesUserId);
 
-        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope) {
+        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope, $replacesUserId) {
+            if ($replacesUserId !== null) {
+                $this->retireSdaoMember($replacesUserId);
+            }
+
             $user = User::create([
                 'name' => $name,
                 'email' => $email,
@@ -99,6 +108,56 @@ class ProvisionApprover
         }
 
         return $user;
+    }
+
+    /**
+     * Replacing is only defined for SDAO members (the one multi-holder role,
+     * so nothing else retires its holders), and an SDAO member cannot remove
+     * their own role mid-request and lock themselves out of the admin area.
+     *
+     * @throws ValidationException
+     */
+    private function guardReplacement(User $actor, Role $role, ?int $replacesUserId): void
+    {
+        if ($replacesUserId === null) {
+            return;
+        }
+
+        if ($role !== Role::SdaoMember) {
+            throw ValidationException::withMessages([
+                'replaces_user_id' => 'Only an SDAO member can be replaced when provisioning an SDAO member.',
+            ]);
+        }
+
+        if ($replacesUserId === $actor->id) {
+            throw ValidationException::withMessages([
+                'replaces_user_id' => 'You cannot replace yourself. Ask another SDAO member to do it.',
+            ]);
+        }
+    }
+
+    /**
+     * Removes ONLY the outgoing SDAO member's role row. Their user account,
+     * document_transitions, document_step_approvals and notifications are
+     * left exactly as they are: the append-only history keeps naming them,
+     * and they simply stop resolving as an SDAO approver
+     * (RoleDirectory::sdaoMembers() reads role_assignments live).
+     *
+     * @throws ValidationException
+     */
+    private function retireSdaoMember(int $userId): void
+    {
+        $retired = RoleAssignment::query()
+            ->where('role', Role::SdaoMember)
+            ->where('user_id', $userId)
+            ->lockForUpdate()
+            ->delete();
+
+        if ($retired === 0) {
+            throw ValidationException::withMessages([
+                'replaces_user_id' => 'That user is not a current SDAO member.',
+            ]);
+        }
     }
 
     /**
