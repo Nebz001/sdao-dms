@@ -3,6 +3,7 @@ import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachm
 import AttachmentsCard from '@/components/attachments-card';
 import CenteredContainer from '@/components/centered-container';
 import { FieldChangeDiff } from '@/components/field-change-diff';
+import PageHeader from '@/components/page-header';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -57,14 +58,11 @@ export default function ShowRegistration({ document, detail, attachmentSlots, at
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {document.organization.name}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    title={document.title}
+                    subtitle="Details, attachments and approval progress"
+                    actions={
+                        <>
                         <StatusBadge status={document.status} />
                         <PrintFormButton documentId={document.id} />
                         {isReturned && (
@@ -74,8 +72,9 @@ export default function ShowRegistration({ document, detail, attachmentSlots, at
                                 </Link>
                             </Button>
                         )}
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* Detail card */}
                 {detail && (

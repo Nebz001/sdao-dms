@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import CenteredContainer from '@/components/centered-container';
 import { FieldChangeDiff } from '@/components/field-change-diff';
+import PageHeader from '@/components/page-header';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -88,12 +89,11 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{document.title}</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">{document.organization.name}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    title={document.title}
+                    subtitle="Details, attachments and approval progress"
+                    actions={
+                        <>
                         <StatusBadge status={document.status} />
                         <PrintFormButton documentId={document.id} />
                         {isReturned && (
@@ -103,8 +103,9 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                                 </Link>
                             </Button>
                         )}
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,
                     document-level values, shown once rather than per activity row. */}

@@ -8,6 +8,7 @@ import CenteredContainer from '@/components/centered-container';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
+import PageHeader from '@/components/page-header';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge } from '@/components/status-badge';
@@ -99,17 +100,11 @@ export default function ShowActivityProposal({
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                            {doc.title}
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Name of RSO:</span>{' '}
-                            {doc.organization.name}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    title={doc.title}
+                    subtitle="Details, attachments and approval progress"
+                    actions={
+                        <>
                         <StatusBadge status={doc.status} />
                         <PrintFormButton documentId={doc.id} />
                         {isDraft && (
@@ -138,8 +133,9 @@ export default function ShowActivityProposal({
                                 </Link>
                             </Button>
                         )}
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* Flash warnings */}
                 {flash?.warnings && flash.warnings.length > 0 && (
@@ -187,6 +183,7 @@ export default function ShowActivityProposal({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
+                            <Row label="Name of RSO" value={doc.organization.name} />
                             {proposal.activity_nature_label && (
                                 <Row
                                     label="Nature of Activity"
