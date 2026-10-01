@@ -222,7 +222,7 @@ export default function VenueMonthGrid({
                                         key={booking.id}
                                         variant="outline"
                                         className={cn(
-                                            'block w-full truncate rounded-sm px-1 py-0 text-left text-[10px] leading-4 font-normal',
+                                            'block w-full truncate rounded-sm px-1 py-0 text-left text-[0.625rem] leading-4 font-normal',
                                             booking.status === 'approved'
                                                 ? 'border-success/40 bg-success/15 text-success-foreground'
                                                 : 'border-dashed border-warning/50 bg-transparent text-warning-foreground',
@@ -232,7 +232,7 @@ export default function VenueMonthGrid({
                                     </Badge>
                                 ))}
                                 {overflowCount > 0 && (
-                                    <span className="px-0.5 text-[10px] text-muted-foreground">
+                                    <span className="px-0.5 text-[0.625rem] text-muted-foreground">
                                         +{overflowCount} more
                                     </span>
                                 )}

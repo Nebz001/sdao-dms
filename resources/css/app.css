@@ -53,6 +53,8 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+    --color-scrollbar: var(--scrollbar);
+    --color-scrollbar-hover: var(--scrollbar-hover);
     --color-card-border: var(--card-border);
 
     --color-primary-text: var(--primary-text);
@@ -132,6 +134,11 @@
     /* Card outline only (ui/card.tsx): the same neutral zinc hue as --border,
        a few steps darker. 1.92:1 against the page, 2.0:1 against the card. */
     --card-border: oklch(0.78 0.005 286);
+    /* Scrollbar thumb: the same neutral zinc hue, a step darker than the
+       card edge so it stays visible on the page and on cards (2.5:1 on the
+       page). Used by ScrollArea and the native page scrollbar. */
+    --scrollbar: oklch(0.7 0.008 286);
+    --scrollbar-hover: oklch(0.58 0.01 286);
     /* Chart series: chart-1 is the brand series (navy light / tint dark);
        the rest reuse the semantic status hues so no stray blue exists. */
     --chart-1: #35408e;
@@ -206,6 +213,8 @@
     /* Same neutral hue as --border (zinc-800), lifted to 2.35:1 against the
        page and 2.1:1 against the card. */
     --card-border: oklch(0.42 0.008 286);
+    --scrollbar: oklch(0.5 0.01 286);
+    --scrollbar-hover: oklch(0.62 0.012 286);
     --chart-1: #9ea8ee; /* brand tint: stays visible on dark surfaces */
     --chart-2: oklch(0.696 0.17 162.48); /* emerald-500 */
     --chart-3: oklch(0.769 0.188 70.08); /* amber-500 */
@@ -263,13 +272,25 @@
         @apply border-border;
     }
 
+    /* 17px root: every rem-based size (text, spacing, icons) scales together. */
+    html {
+        font-size: 106.25%;
+    }
+
+    /* Native scrollbars (the page itself, textareas): thin, same neutral thumb
+       as ScrollArea. */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar) transparent;
+    }
+
     body {
         @apply bg-background text-foreground;
     }
 
     /* Global fallback for anything without its own focus style (plain links,
        summary, tabindex elements): the same 1px line and 2px halo. */
-    :where(a, button, summary, [role='button'], [tabindex]):focus-visible {
+    :where(a, button, summary, [role='button'], [tabindex]):focus-visible:not([role='option'], [role^='menuitem']) {
         outline: 1px solid var(--ring);
         outline-offset: 0;
         box-shadow: 0 0 0 3px var(--ring-halo);

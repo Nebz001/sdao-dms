@@ -2,6 +2,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 import * as React from "react"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -69,7 +70,12 @@ function SheetContent({
         )}
         {...props}
       >
-        {children}
+        <ScrollArea
+          className="min-h-0 flex-1"
+          viewportClassName={side === "top" || side === "bottom" ? "max-h-[80dvh]" : undefined}
+        >
+          {children}
+        </ScrollArea>
         <SheetPrimitive.Close className="data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none focus-visible:focus-ring-edge">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>

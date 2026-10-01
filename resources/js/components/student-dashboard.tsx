@@ -282,7 +282,7 @@ export default function StudentDashboard({
                                                     {item.flaggedCount > 0 && (
                                                         <Badge
                                                             variant="outline"
-                                                            className="border-transparent bg-warning/10 text-[10px] text-warning"
+                                                            className="border-transparent bg-warning/10 text-[0.625rem] text-warning"
                                                         >
                                                             {item.flaggedCount}{' '}
                                                             section
@@ -293,11 +293,11 @@ export default function StudentDashboard({
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                <p className="mt-1 truncate text-sm font-semibold">
+                                                <p className="mt-1 sm:truncate max-sm:break-words text-sm font-semibold">
                                                     {item.title}
                                                 </p>
                                                 {item.comment && (
-                                                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                                                    <p className="mt-0.5 sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                         &ldquo;{item.comment}
                                                         &rdquo;
                                                     </p>
@@ -339,7 +339,7 @@ export default function StudentDashboard({
                                                 key={item.id}
                                                 className="flex items-center justify-between gap-3 px-3 py-2"
                                             >
-                                                <p className="truncate text-sm text-muted-foreground">
+                                                <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                     {item.title}
                                                 </p>
                                                 <Button
@@ -430,7 +430,7 @@ export default function StudentDashboard({
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="mt-1.5 truncate text-sm font-semibold">
+                                        <p className="mt-1.5 sm:truncate max-sm:break-words text-sm font-semibold">
                                             {item.title}
                                         </p>
                                         <div className="mt-2.5">
@@ -596,10 +596,10 @@ export default function StudentDashboard({
                                         className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0 focus-visible:focus-ring-edge"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-semibold">
+                                            <p className="sm:truncate max-sm:break-words text-sm font-semibold">
                                                 {activity.title}
                                             </p>
-                                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                                            <p className="mt-1 sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {activity.venue}
                                             </p>
                                         </div>
@@ -630,7 +630,7 @@ export default function StudentDashboard({
                                             className="flex items-center justify-between gap-3 py-1.5 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">
+                                                <p className="sm:truncate max-sm:break-words text-sm font-medium">
                                                     {report.title}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">

@@ -134,11 +134,11 @@ function JoinRequestRow({
     return (
         <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-                <p className="truncate font-medium">{request.student.name}</p>
-                <p className="truncate text-sm text-muted-foreground">
+                <p className="sm:truncate max-sm:break-words font-medium">{request.student.name}</p>
+                <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                     {request.student.email}
                 </p>
-                <p className="truncate text-sm text-muted-foreground">
+                <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                     Wants to join{' '}
                     <span className="font-medium text-foreground">
                         {request.organization.name}

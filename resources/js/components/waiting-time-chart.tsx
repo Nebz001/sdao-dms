@@ -50,14 +50,14 @@ export default function WaitingTimeChart({ buckets }: WaitingTimeChartProps) {
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    fontSize={12}
+                    fontSize={13}
                 />
                 <YAxis
                     allowDecimals={false}
                     tickLine={false}
                     axisLine={false}
                     width={28}
-                    fontSize={12}
+                    fontSize={13}
                 />
                 <ChartTooltip
                     cursor={false}

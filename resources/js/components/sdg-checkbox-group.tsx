@@ -1,5 +1,6 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export type SdgOption = { value: string; label: string };
 
@@ -46,7 +47,8 @@ export default function SdgCheckboxGroup({
     }
 
     return (
-        <div className="grid max-h-56 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
+        <ScrollArea className="rounded-md border" viewportClassName="max-h-56">
+            <div className="grid gap-2 p-3 sm:grid-cols-2">
             {options.map((option) => {
                 const id = `${idPrefix}-${option.value}`;
 
@@ -67,6 +69,7 @@ export default function SdgCheckboxGroup({
                     </div>
                 );
             })}
-        </div>
+            </div>
+        </ScrollArea>
     );
 }

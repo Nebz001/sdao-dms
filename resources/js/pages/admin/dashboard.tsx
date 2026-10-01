@@ -208,7 +208,7 @@ export default function AdminDashboard({
                     own content — the pie card's CardContent centers its
                     (shorter) content vertically to fill that extra height
                     gracefully rather than leaving it top-anchored. */}
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
@@ -246,7 +246,7 @@ export default function AdminDashboard({
                     </Card>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between gap-2">
                             <CardTitle className="text-base">
@@ -289,18 +289,18 @@ export default function AdminDashboard({
                                             <div className="min-w-0 flex-1">
                                                 <Link
                                                     href={entry.href}
-                                                    className="block truncate text-sm font-semibold hover:underline"
+                                                    className="block sm:truncate max-sm:break-words text-sm font-semibold hover:underline"
                                                 >
                                                     {entry.documentTitle}
                                                 </Link>
                                                 {/* Actor byline — same avatar treatment (shape, fallback colors) as the account menu at the bottom of the sidebar (see UserInfo), just sized down for this denser list. */}
                                                 <div className="mt-1 flex items-center gap-1.5">
                                                     <Avatar className="size-5 overflow-hidden rounded-full">
-                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-[10px] text-black dark:bg-neutral-700 dark:text-white">
+                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-[0.625rem] text-black dark:bg-neutral-700 dark:text-white">
                                                             {getInitials(entry.actorName)}
                                                         </AvatarFallback>
                                                     </Avatar>
-                                                    <span className="truncate text-sm text-muted-foreground">
+                                                    <span className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                         {entry.actorName}
                                                     </span>
                                                 </div>
@@ -308,7 +308,7 @@ export default function AdminDashboard({
                                                     <ActionBadge
                                                         action={entry.action}
                                                     />
-                                                    <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                    <span className="sm:truncate max-sm:break-words rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                                                         {entry.organizationName}
                                                     </span>
                                                 </div>
@@ -358,11 +358,11 @@ export default function AdminDashboard({
                                             <div className="min-w-0 flex-1">
                                                 <Link
                                                     href={doc.href}
-                                                    className="block truncate text-sm font-semibold hover:underline"
+                                                    className="block sm:truncate max-sm:break-words text-sm font-semibold hover:underline"
                                                 >
                                                     {doc.title}
                                                 </Link>
-                                                <p className="mt-1 truncate text-sm text-muted-foreground">
+                                                <p className="mt-1 sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                     {doc.formTypeLabel}
                                                     {doc.stepLabel &&
                                                         ` · ${doc.stepLabel}`}
@@ -370,7 +370,7 @@ export default function AdminDashboard({
                                                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                                     {/* Every row here is, by this widget's own definition, in review — not fetched data, just the constant this section is scoped to. */}
                                                     <StatusBadge status="in_review" />
-                                                    <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                    <span className="sm:truncate max-sm:break-words rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                                                         {doc.organizationName}
                                                     </span>
                                                 </div>
@@ -386,7 +386,7 @@ export default function AdminDashboard({
                     </Card>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">

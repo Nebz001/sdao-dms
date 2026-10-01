@@ -155,7 +155,7 @@ export default function RequirementsChecklist({
                             </div>
                             <span
                                 className={cn(
-                                    'shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-semibold',
+                                    'shrink-0 rounded-sm px-2 py-0.5 text-[0.6875rem] font-semibold',
                                     STATE_BADGE_CLASS[item.state],
                                 )}
                             >

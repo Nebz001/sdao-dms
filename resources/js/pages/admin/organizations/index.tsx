@@ -289,10 +289,10 @@ export default function OrganizationsIndex({
                                         className="flex items-center justify-between gap-4 py-3"
                                     >
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">
+                                            <p className="sm:truncate max-sm:break-words font-medium">
                                                 {org.name}
                                             </p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {[org.school, org.program]
                                                     .filter(Boolean)
                                                     .join(' · ') ||

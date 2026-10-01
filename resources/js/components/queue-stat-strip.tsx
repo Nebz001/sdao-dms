@@ -38,19 +38,19 @@ type QueueStatStripProps = {
 export default function QueueStatStrip({ stats }: QueueStatStripProps) {
     return (
         <Card className="py-4 shadow-none">
-            <CardContent className="flex items-stretch gap-6 px-4">
+            <CardContent className="flex flex-wrap items-stretch gap-x-6 gap-y-3 px-4">
                 {stats.map((stat, index) => {
                     const isActionable = (stat.count ?? 0) > 0;
 
                     return (
                         <div
                             key={stat.label}
-                            className="flex items-center gap-6"
+                            className="flex items-center gap-x-6"
                         >
                             {index > 0 && (
                                 <Separator
                                     orientation="vertical"
-                                    className="h-10"
+                                    className="hidden h-10 sm:block"
                                 />
                             )}
                             <div>

@@ -223,7 +223,7 @@ export default function DocumentArchiveIndex({
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger
                                     id="archive-status"
-                                    className="w-full sm:w-40"
+                                    className="w-full sm:w-48"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
