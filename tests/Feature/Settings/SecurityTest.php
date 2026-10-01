@@ -51,6 +51,10 @@ test('security page loads for a freshly-provisioned approver, and their password
         scope: [],
     );
 
+    // A provisioned approver is forced to change the one time password first
+    // (see ChangeTemporaryPasswordTest); this covers the later Settings path.
+    $approver->forceFill(['password' => 'old-password', 'must_change_password' => false])->save();
+
     $this->actingAs($approver)
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(route('security.edit'))
@@ -63,7 +67,7 @@ test('security page loads for a freshly-provisioned approver, and their password
     $response = $this->actingAs($approver)
         ->from(route('security.edit'))
         ->put(route('user-password.update'), [
-            'current_password' => ProvisionApprover::DEFAULT_PASSWORD,
+            'current_password' => 'old-password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
         ]);

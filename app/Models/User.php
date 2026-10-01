@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
@@ -25,11 +26,12 @@ use Laravel\Sanctum\HasApiTokens;
  * @property AccountStatus $account_status
  * @property string|null $id_number
  * @property string $password
+ * @property bool $must_change_password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'account_status', 'email_verified_at', 'id_number'])]
+#[Fillable(['name', 'email', 'password', 'must_change_password', 'account_status', 'email_verified_at', 'id_number'])]
 #[Hidden(['password', 'remember_token', 'id_number'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
@@ -96,6 +98,30 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * Ends every database session this user holds except the one named, so a
+     * password change signs out other browsers while keeping the current one.
+     * Pass null to end all of them. A no-op for non-database session drivers
+     * and for a deploy where the sessions table does not exist yet.
+     */
+    public function endOtherSessions(?string $exceptSessionId = null): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        $table = config('session.table', 'sessions');
+
+        if (! Schema::hasTable($table)) {
+            return;
+        }
+
+        DB::table($table)
+            ->where('user_id', $this->id)
+            ->when($exceptSessionId !== null, fn ($query) => $query->where('id', '!=', $exceptSessionId))
+            ->delete();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -106,6 +132,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'email_verified_at' => 'datetime',
             'account_status' => AccountStatus::class,
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
     }
 }

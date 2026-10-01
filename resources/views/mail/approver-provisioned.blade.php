@@ -3,18 +3,16 @@
 
 Hi {{ $accountName }},
 
-SDAO has created your account as **{{ $roleLabel }}**. You can log in right away with:
+SDAO has created your account as **{{ $roleLabel }}**. Log in with:
 
 - **Email:** {{ $email }}
-- **Temporary password:** `{{ $temporaryPassword }}`
+- **One time password:** `{{ $temporaryPassword }}`
 
 <x-mail::button :url="$loginUrl">
 Log In
 </x-mail::button>
 
-For your security, please log in and change this password as soon as possible. You can do that anytime from **Settings → Security**:
-
-{{ $securityUrl }}
+This password works once. You must set a new password the first time you log in, and you will not be able to use the system until you do.
 
 Thanks,<br>
 {{ config('app.name') }}

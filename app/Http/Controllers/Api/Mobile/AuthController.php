@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Requests\Api\Mobile\MobileLoginRequest;
 use App\Http\Resources\Mobile\MobileUserResource;
 use App\Identity\MobileAccess;
@@ -41,6 +42,15 @@ class AuthController extends Controller
 
         if (! $this->mobileAccess->canAccess($user) || ! $this->hasStaffEmail($user)) {
             abort(403, 'You are not allowed to perform this action.');
+        }
+
+        // Checked only after the password and access checks above, so the flag
+        // is never revealed to someone who does not hold the right credentials.
+        if ($user->must_change_password) {
+            return response()->json([
+                'message' => 'You must change your temporary password on the SDAO DMS website before using the app.',
+                'code' => EnsurePasswordIsChanged::CODE,
+            ], 403);
         }
 
         $token = $user->createToken($request->string('device_name')->toString());

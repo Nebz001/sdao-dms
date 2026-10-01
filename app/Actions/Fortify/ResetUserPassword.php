@@ -22,9 +22,15 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
-        $user->forceFill([
-            'password' => $input['password'],
-        ])->save();
+        // A reset link proves control of the mailbox, so a temporary password
+        // no longer needs a separate forced change.
+        $attributes = ['password' => $input['password']];
+
+        if ($user->must_change_password) {
+            $attributes['must_change_password'] = false;
+        }
+
+        $user->forceFill($attributes)->save();
 
         $user->revokeAllApiTokens();
     }

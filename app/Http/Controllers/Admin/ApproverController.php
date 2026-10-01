@@ -88,14 +88,22 @@ class ApproverController extends Controller
             replacesUserId: $replacesUserId,
         );
 
-        $message = 'Approver created. Their login details have been emailed to them.';
+        $message = 'Approver created. Their one time password has been emailed to them.';
 
         if ($replaced !== null) {
             $message .= " {$replaced->name} no longer has the SDAO role.";
         }
 
-        return redirect()->route('admin.approvers.index')
-            ->with('flash', ['message' => $message]);
+        $flash = ['message' => $message];
+
+        if ($action->welcomeEmailFailed) {
+            $flash = [
+                'type' => 'error',
+                'message' => 'Approver created, but the email could not be sent. Ask them to use Forgot password on the login page.',
+            ];
+        }
+
+        return redirect()->route('admin.approvers.index')->with('flash', $flash);
     }
 
     private function scopeLabel(RoleAssignment $ra): string

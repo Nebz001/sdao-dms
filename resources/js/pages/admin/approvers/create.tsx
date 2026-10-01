@@ -98,7 +98,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
             <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <Heading
                     title="Provision Approver"
-                    description="Creates the account with a working default password and emails the approver their login details."
+                    description="Creates the account with a one time password and emails it to the approver. They must change it the first time they log in."
                 />
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -127,7 +127,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             onChange={(e) => form.setData('email', e.target.value)}
                         />
                         <p className="text-sm text-muted-foreground">
-                            Any address they can receive mail at. Their login details are emailed here. Student
+                            Any address they can receive mail at. Their one time password is emailed here. Student
                             addresses are not allowed.
                         </p>
                         <InputError message={form.errors.email} />
@@ -296,8 +296,8 @@ export default function CreateApprover({ roles, schools, programs, organizations
                     description={
                         <>
                             <span className="block">
-                                {form.data.name} will be added as {selectedRole?.label}. Their login details will be
-                                emailed to:
+                                {form.data.name} will be added as {selectedRole?.label}. Their one time password will
+                                be emailed to:
                             </span>
                             <span className="block py-2 font-medium break-all text-foreground">
                                 {form.data.email}

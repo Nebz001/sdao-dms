@@ -12,9 +12,8 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Queued to a newly admin-provisioned approver the moment SDAO creates their
- * account (ProvisionApprover::execute). The account already has a real,
- * working password by the time this mail is dispatched — this is how the
- * approver learns it, not how the account becomes usable. Dispatched via the
+ * account (ProvisionApprover::execute). Carries the account's one time
+ * password, which must be changed at first login. Dispatched via the
  * owning notification's mail channel (queued) so a mail-provider failure
  * never blocks provisioning itself; $tries/backoff() retry a transient
  * failure before giving up to failed_jobs.
@@ -60,7 +59,6 @@ class ApproverProvisionedMail extends Mailable
                 'email' => $this->account->email,
                 'temporaryPassword' => $this->temporaryPassword,
                 'loginUrl' => route('login'),
-                'securityUrl' => route('security.edit'),
             ],
         );
     }

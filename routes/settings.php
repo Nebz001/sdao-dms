@@ -1,11 +1,20 @@
 <?php
 
+use App\Http\Controllers\Settings\ChangeTemporaryPasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
+    // The one page a user flagged must_change_password may use — see
+    // EnsurePasswordIsChanged. No `verified` here: it must always be reachable.
+    Route::get('password/change', [ChangeTemporaryPasswordController::class, 'edit'])
+        ->name('password.change.edit');
+    Route::put('password/change', [ChangeTemporaryPasswordController::class, 'update'])
+        ->middleware('throttle:6,1')
+        ->name('password.change.update');
+
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');

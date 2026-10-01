@@ -27,6 +27,15 @@ class EnsureMobileAccess
             abort(403, 'You are not allowed to perform this action.');
         }
 
+        // A token issued before the account was flagged stops working until
+        // the password is changed on the web (which also revokes the token).
+        if ($user->must_change_password) {
+            return response()->json([
+                'message' => 'You must change your temporary password on the SDAO DMS website before using the app.',
+                'code' => EnsurePasswordIsChanged::CODE,
+            ], 403);
+        }
+
         return $next($request);
     }
 }

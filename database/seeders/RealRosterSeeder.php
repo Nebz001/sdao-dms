@@ -28,7 +28,9 @@ use Illuminate\Support\Facades\Hash;
  *
  * Email convention: honorifics stripped, lastname + first-name initial +
  * explicit middle initial (if the name gives one) + @nu-lipa.edu.ph, lowercase,
- * ASCII (ñ → n). Every account uses the password "ict@1234".
+ * ASCII (ñ → n). Every account uses the password "ict@1234" and is flagged
+ * must_change_password, so the shared password only ever reaches the forced
+ * change page (see EnsurePasswordIsChanged).
  */
 class RealRosterSeeder extends Seeder
 {
@@ -174,6 +176,7 @@ class RealRosterSeeder extends Seeder
                 'name' => $name,
                 'email' => $email,
                 'password' => Hash::make('ict@1234'),
+                'must_change_password' => true,
                 'email_verified_at' => now(),
                 'account_status' => AccountStatus::Verified,
             ]);
@@ -181,6 +184,7 @@ class RealRosterSeeder extends Seeder
 
         $user->name = $name;
         $user->password = Hash::make('ict@1234');
+        $user->must_change_password = true;
         $user->email_verified_at ??= Carbon::now();
 
         if ($user->account_status === AccountStatus::Unverified) {

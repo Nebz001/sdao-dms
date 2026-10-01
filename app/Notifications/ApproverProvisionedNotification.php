@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\Role;
 use App\Mail\ApproverProvisionedMail;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
@@ -20,8 +21,11 @@ use Illuminate\Notifications\Notification;
  * toArray() — that payload is persisted to the notifications table and shown
  * in the in-app bell, which is far less access-controlled than a single
  * email; only the mailed copy carries the password.
+ *
+ * ShouldBeEncrypted keeps the one time password out of the jobs and
+ * failed_jobs tables in plain text.
  */
-class ApproverProvisionedNotification extends Notification implements ShouldQueue
+class ApproverProvisionedNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

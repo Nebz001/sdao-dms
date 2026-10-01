@@ -11,6 +11,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -19,13 +20,11 @@ use Illuminate\Validation\ValidationException;
  * self-registered (CLAUDE.md "Identity & accounts") — this is the only
  * production code path (besides seeders) that creates an approver account.
  *
- * The new account gets DEFAULT_PASSWORD — the same convention every
- * seeded/demo account already uses (see FixSeededAccountPasswords) — so it's
- * usable the instant it's created, instead of a random unusable password
- * stuck behind a reset link the approver never asked for.
+ * The new account gets a random one time password, unique per account, and
+ * is flagged must_change_password so the approver is sent to a dedicated
+ * change page at first login (see EnsurePasswordIsChanged).
  * ApproverProvisionedNotification emails that password to the approver right
- * away and points them at the existing Settings > Security page to change it
- * once they've logged in.
+ * away. No password is shared between accounts and none is hardcoded.
  *
  * SDAO membership is multi-holder, so provisioning one only ever ADDS a seat.
  * To swap a person out, pass `replacesUserId`: that member's SDAO role row is
@@ -33,8 +32,15 @@ use Illuminate\Validation\ValidationException;
  */
 class ProvisionApprover
 {
-    /** Matches the convention seeded/demo accounts already use (see FixSeededAccountPasswords). */
-    public const string DEFAULT_PASSWORD = 'ict@1234';
+    /**
+     * True when the last execute() created the account but could not queue the
+     * welcome email. The one time password is not stored anywhere, so the
+     * caller must tell the admin the person has to use Forgot password.
+     */
+    public bool $welcomeEmailFailed = false;
+
+    /** Letters and digits only, so it survives being typed in from an email. */
+    private const int TEMPORARY_PASSWORD_LENGTH = 16;
 
     /**
      * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
@@ -57,7 +63,11 @@ class ProvisionApprover
         $this->guardScopeMatchesRole($role, $scope);
         $this->guardReplacement($actor, $role, $replacesUserId);
 
-        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope, $replacesUserId) {
+        $this->welcomeEmailFailed = false;
+
+        $temporaryPassword = Str::password(self::TEMPORARY_PASSWORD_LENGTH, symbols: false);
+
+        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope, $replacesUserId, $temporaryPassword) {
             if ($replacesUserId !== null) {
                 $this->retireSdaoMember($replacesUserId);
             }
@@ -66,7 +76,8 @@ class ProvisionApprover
                 'name' => $name,
                 'email' => $email,
                 'id_number' => $idNumber,
-                'password' => Hash::make(self::DEFAULT_PASSWORD),
+                'password' => Hash::make($temporaryPassword),
+                'must_change_password' => true,
                 // The admin vouches for the address — approvers are trusted
                 // accounts and must not hit the email/account verification walls
                 // before they can log in.
@@ -99,8 +110,10 @@ class ProvisionApprover
         });
 
         try {
-            $user->notify(new ApproverProvisionedNotification($role, self::DEFAULT_PASSWORD));
+            $user->notify(new ApproverProvisionedNotification($role, $temporaryPassword));
         } catch (\Throwable $e) {
+            $this->welcomeEmailFailed = true;
+
             Log::error('Approver-provisioned notification failed to dispatch', [
                 'user_id' => $user->id,
                 'exception' => $e->getMessage(),

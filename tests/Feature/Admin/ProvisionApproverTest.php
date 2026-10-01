@@ -14,6 +14,7 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -335,7 +336,20 @@ test('a provisioned approver lands account-Verified and email-verified — no ve
     expect($user->email_verified_at)->not->toBeNull();
 });
 
-test('provisioning sets the default ict@1234 password immediately — no reset-link limbo', function () {
+function sentTemporaryPassword(User $user): string
+{
+    $password = null;
+
+    Notification::assertSentTo($user, ApproverProvisionedNotification::class, function (ApproverProvisionedNotification $notification) use (&$password) {
+        $password = $notification->temporaryPassword;
+
+        return true;
+    });
+
+    return $password;
+}
+
+test('provisioning sets a random one time password and flags the account to change it', function () {
     Notification::fake();
 
     $user = $this->action->execute(
@@ -346,10 +360,26 @@ test('provisioning sets the default ict@1234 password immediately — no reset-l
         scope: [],
     );
 
-    expect(Hash::check(ProvisionApprover::DEFAULT_PASSWORD, $user->password))->toBeTrue();
+    $temporary = sentTemporaryPassword($user);
+
+    expect(strlen($temporary))->toBeGreaterThanOrEqual(12)
+        ->and($temporary)->not->toBe('ict@1234')
+        ->and(Hash::check($temporary, $user->password))->toBeTrue()
+        ->and(Hash::check('ict@1234', $user->password))->toBeFalse()
+        ->and($user->refresh()->must_change_password)->toBeTrue();
 });
 
-test('provisioning sends a real ApproverProvisionedNotification carrying the default password to the new approver', function () {
+test('two provisioned accounts never share a password', function () {
+    Notification::fake();
+
+    $first = $this->action->execute(actor: $this->sdaoA, name: 'First', email: 'first-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
+    $second = $this->action->execute(actor: $this->sdaoA, name: 'Second', email: 'second-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
+
+    expect(sentTemporaryPassword($first))->not->toBe(sentTemporaryPassword($second))
+        ->and($first->password)->not->toBe($second->password);
+});
+
+test('provisioning sends an encrypted ApproverProvisionedNotification carrying the one time password', function () {
     Notification::fake();
 
     $user = $this->action->execute(
@@ -365,21 +395,22 @@ test('provisioning sends a real ApproverProvisionedNotification carrying the def
         ApproverProvisionedNotification::class,
         function (ApproverProvisionedNotification $notification, array $channels) use ($user) {
             expect($channels)->toContain('mail')
+                ->and($notification)->toBeInstanceOf(ShouldBeEncrypted::class)
                 ->and($notification->role)->toBe(Role::SdaoMember)
-                ->and($notification->temporaryPassword)->toBe(ProvisionApprover::DEFAULT_PASSWORD);
+                ->and(strlen($notification->temporaryPassword))->toBeGreaterThanOrEqual(12);
 
             $mail = $notification->toMail($user);
             $mail->assertHasSubject('Your SDAO approver account has been created');
-            $mail->assertSeeInHtml(ProvisionApprover::DEFAULT_PASSWORD, false);
+            $mail->assertSeeInHtml($notification->temporaryPassword, false);
             $mail->assertSeeInHtml(route('login'), false);
-            $mail->assertSeeInHtml(route('security.edit'), false);
+            $mail->assertSeeInHtml('You must set a new password the first time you log in', false);
 
             return true;
         },
     );
 });
 
-test('the default password never leaks into the persisted in-app notification payload', function () {
+test('the one time password never leaks into the persisted in-app notification payload', function () {
     Notification::fake();
 
     $user = $this->action->execute(
@@ -394,14 +425,14 @@ test('the default password never leaks into the persisted in-app notification pa
         $user,
         ApproverProvisionedNotification::class,
         function (ApproverProvisionedNotification $notification) use ($user) {
-            expect($notification->toArray($user))->not->toContain(ProvisionApprover::DEFAULT_PASSWORD);
+            expect(json_encode($notification->toArray($user)))->not->toContain($notification->temporaryPassword);
 
             return true;
         },
     );
 });
 
-test('a notification dispatch failure is logged but does not prevent provisioning from succeeding', function () {
+test('a notification dispatch failure is logged and reported but does not prevent provisioning from succeeding', function () {
     Log::spy();
     Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom: 550 5.7.0 Too many emails per second'));
 
@@ -413,14 +444,27 @@ test('a notification dispatch failure is logged but does not prevent provisionin
         scope: [],
     );
 
-    expect(Hash::check(ProvisionApprover::DEFAULT_PASSWORD, $user->password))->toBeTrue();
+    expect($user->refresh()->must_change_password)->toBeTrue()
+        ->and($this->action->welcomeEmailFailed)->toBeTrue();
 
     Log::shouldHaveReceived('error')
         ->withArgs(fn (string $message) => $message === 'Approver-provisioned notification failed to dispatch')
         ->atLeast()->once();
 });
 
-test('a newly provisioned approver can really log in with the default password', function () {
+test('the store endpoint warns the admin when the welcome email could not be sent', function () {
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom'));
+
+    $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
+        'name' => 'Mail Down Http',
+        'email' => 'mail-down-http@nu-lipa.edu.ph',
+        'role' => Role::SdaoMember->value,
+    ])->assertSessionHas('flash.type', 'error');
+});
+
+test('a newly provisioned approver logs in with the one time password and is sent to the change page', function () {
+    Notification::fake();
+
     $user = $this->action->execute(
         actor: $this->sdaoA,
         name: 'Can Login',
@@ -429,13 +473,30 @@ test('a newly provisioned approver can really log in with the default password',
         scope: ['school_id' => $this->school->id],
     );
 
-    $response = $this->post(route('login.store'), [
+    $this->post(route('login.store'), [
         'email' => $user->email,
-        'password' => ProvisionApprover::DEFAULT_PASSWORD,
+        'password' => sentTemporaryPassword($user),
     ]);
 
     $this->assertAuthenticatedAs($user);
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->get(route('dashboard'))->assertRedirect(route('password.change.edit'));
+});
+
+test('the retired shared default password no longer logs a newly provisioned approver in', function () {
+    Notification::fake();
+
+    $user = $this->action->execute(
+        actor: $this->sdaoA,
+        name: 'No Default',
+        email: 'no-default@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $this->school->id],
+    );
+
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'ict@1234'])
+        ->assertSessionHasErrors('password');
+
+    $this->assertGuest();
 });
 
 test('the store endpoint provisions an adviser with no organization_id — the unbound available-pool path', function () {
