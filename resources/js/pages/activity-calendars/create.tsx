@@ -2,7 +2,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
-import Heading from '@/components/heading';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import {
@@ -216,10 +217,12 @@ export default function CreateActivityCalendar({
             <Head title="Submit Activity Calendar" />
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
-                <Heading
-                    title="Activity Calendar"
-                    description={`Submitting for ${membership.organization.name} as ${membership.position_label}`}
-                />
+                <PageHeader title="Activity Calendar" subtitle="Plan your organization's activities for the term" />
+
+                <PageNotice tone="info">
+                    Submitting for {membership.organization.name} as{' '}
+                    {membership.position_label}.
+                </PageNotice>
 
                 <form onSubmit={submit} className="space-y-8">
                     {errors.period && (

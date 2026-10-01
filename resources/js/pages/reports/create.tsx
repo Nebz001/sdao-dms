@@ -4,8 +4,9 @@ import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterA
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,10 +79,12 @@ export default function CreateReport({ membership, eligibleProposals, attachment
             <Head title="Submit After-Activity Report" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="After-Activity Report"
-                    description={`Reporting for ${membership.organization.name} as ${membership.position_label}`}
-                />
+                <PageHeader title="After-Activity Report" subtitle="Report on an approved activity" />
+
+                <PageNotice tone="info">
+                    Reporting for {membership.organization.name} as{' '}
+                    {membership.position_label}.
+                </PageNotice>
 
                 <Form {...AfterActivityReportController.store.form()} className="space-y-6">
                     {({ processing, errors }) => (
