@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -47,6 +48,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
         program_id: '',
         organization_id: '',
         replaces_user_id: NO_REPLACEMENT,
+        deactivate_replaced: true,
     });
 
     const selectedRole = roles.find((r) => r.value === form.data.role);
@@ -64,6 +66,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
             program_id: '',
             organization_id: '',
             replaces_user_id: NO_REPLACEMENT,
+            deactivate_replaced: true,
         }));
     };
 
@@ -81,6 +84,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                 data.role === SDAO_ROLE && data.replaces_user_id !== NO_REPLACEMENT
                     ? data.replaces_user_id
                     : null,
+            deactivate_replaced: data.deactivate_replaced,
         }));
 
         form.post(ApproverController.store.url(), {
@@ -275,10 +279,27 @@ export default function CreateApprover({ roles, schools, programs, organizations
                                 </SelectContent>
                             </Select>
                             <p className="text-sm text-muted-foreground">
-                                The replaced member keeps their account and document history. They only lose the
-                                SDAO role, and pending documents move to the new member.
+                                The replaced member loses the SDAO role and pending documents move to the new member.
+                                Their account and document history are never deleted.
                             </p>
                             <InputError message={form.errors.replaces_user_id} />
+
+                            {replacedMember !== undefined && (
+                                <div className="mt-2 flex items-start gap-3">
+                                    <Checkbox
+                                        id="deactivate_replaced"
+                                        checked={form.data.deactivate_replaced}
+                                        onCheckedChange={(checked) => form.setData('deactivate_replaced', checked === true)}
+                                    />
+                                    <div className="grid gap-1">
+                                        <Label htmlFor="deactivate_replaced">Also deactivate this account</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Signs them out everywhere and stops them logging in. You can reactivate them later.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            <InputError message={form.errors.deactivate_replaced} />
                         </div>
                     )}
 
@@ -311,7 +332,9 @@ export default function CreateApprover({ roles, schools, programs, organizations
                                         Remove SDAO role from {replacedMember.name}?
                                     </span>
                                     <span className="block">
-                                        They keep their account and history but can no longer review documents.
+                                        {form.data.deactivate_replaced
+                                            ? 'They will also be deactivated and can no longer log in. Their history stays and keeps showing their name.'
+                                            : 'They keep their account and history but can no longer review documents.'}
                                     </span>
                                 </span>
                             )}
