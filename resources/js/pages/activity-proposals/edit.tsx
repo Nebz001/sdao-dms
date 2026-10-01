@@ -5,6 +5,8 @@ import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachm
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PartnerOrganizationsField from '@/components/partner-organizations-field';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
@@ -108,8 +110,11 @@ export default function EditActivityProposal({
             <Head title={`Edit — ${doc.title}`} />
 
             <CenteredContainer maxWidth="xl" className="space-y-6">
-                <h1 className="text-xl font-semibold">Edit Proposal</h1>
-                <p className="text-sm text-muted-foreground">{doc.title}</p>
+                <PageHeader title="Edit Proposal" subtitle="Update the proposal and resubmit for review" />
+
+                <PageNotice tone="info">
+                    Editing {doc.title}.
+                </PageNotice>
 
                 {flaggedSections.includes('general') && (
                     <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
