@@ -207,6 +207,7 @@ class RegistrationController extends Controller
         $search = $request->string('q')->trim()->toString();
 
         $advisers = User::query()
+            ->active()
             ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value))
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")

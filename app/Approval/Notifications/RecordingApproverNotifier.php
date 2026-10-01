@@ -28,6 +28,12 @@ class RecordingApproverNotifier implements ApproverNotifier
 {
     public function notify(User $approver, Document $document, int $stepPosition, TransitionAction $triggerAction): void
     {
+        // A deactivated account gets no hand off at all: no approval_notifications
+        // row, no push, no email, no bell entry.
+        if ($approver->isDeactivated()) {
+            return;
+        }
+
         $transitionId = DocumentTransition::query()
             ->where('document_id', $document->id)
             ->where('step_position', $stepPosition)

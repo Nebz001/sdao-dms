@@ -52,6 +52,14 @@ class ApproveOrganizationRegistration
         $document->loadMissing('registrationDetail');
         $adviserId = $document->registrationDetail->adviser_id;
 
+        // Race guard, same pattern as the adviser exclusivity re-check below:
+        // the chosen adviser may have been deactivated since this was submitted.
+        if (User::query()->whereKey($adviserId)->whereNotNull('deactivated_at')->exists()) {
+            throw ValidationException::withMessages([
+                'approve' => 'Cannot approve: the chosen adviser account has been deactivated. Return the document so the student can pick a different adviser.',
+            ]);
+        }
+
         $adviserAssignment = RoleAssignment::query()
             ->where('user_id', $adviserId)
             ->where('role', Role::Adviser->value)

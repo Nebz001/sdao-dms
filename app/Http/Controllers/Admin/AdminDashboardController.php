@@ -170,6 +170,7 @@ class AdminDashboardController extends Controller
         $unassignedAdvisers = RoleAssignment::query()
             ->where('role', Role::Adviser->value)
             ->whereNull('organization_id')
+            ->whereHas('user', fn ($q) => $q->active())
             ->count();
 
         // An unassigned adviser is a misconfiguration needing correction —

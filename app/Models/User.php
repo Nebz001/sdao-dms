@@ -3,11 +3,15 @@
 namespace App\Models;
 
 use App\Enums\AccountStatus;
+use App\Enums\Role;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -28,6 +32,9 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $password
  * @property bool $must_change_password
  * @property string|null $remember_token
+ * @property Carbon|null $deactivated_at
+ * @property string|null $deactivated_reason
+ * @property int|null $deactivated_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -54,6 +61,69 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function pushTokens(): HasMany
     {
         return $this->hasMany(PushToken::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function deactivatedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'deactivated_by');
+    }
+
+    /**
+     * A deactivated account keeps its row, its name and every history row
+     * that references it, but can no longer sign in or act. A column rather
+     * than SoftDeletes on purpose: a soft delete scope would blank the
+     * actor shown on the append-only audit log.
+     */
+    public function isDeactivated(): bool
+    {
+        return $this->deactivated_at !== null;
+    }
+
+    /**
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('deactivated_at'));
+    }
+
+    /**
+     * Accounts that are not students: no student-domain email, no
+     * organization membership and no Student role row. Admin deactivation is
+     * limited to these for now.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeNonStudent(Builder $query): Builder
+    {
+        foreach (config('school.email_domains.student', []) as $domain) {
+            $query->whereRaw('LOWER(email) NOT LIKE ?', ['%@'.strtolower($domain)]);
+        }
+
+        return $query
+            ->whereDoesntHave('organizationMemberships')
+            ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', Role::Student->value));
+    }
+
+    public function isStudentAccount(): bool
+    {
+        return ! self::query()->nonStudent()->whereKey($this->id)->exists();
+    }
+
+    /**
+     * A deactivated account gets no reset link: it must not be able to get
+     * back in through the password reset flow.
+     */
+    public function sendPasswordResetNotification(#[SensitiveParameter] $token): void
+    {
+        if ($this->isDeactivated()) {
+            return;
+        }
+
+        $this->notify(new ResetPassword($token));
     }
 
     /**
@@ -133,6 +203,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'account_status' => AccountStatus::class,
             'password' => 'hashed',
             'must_change_password' => 'boolean',
+            'deactivated_at' => 'datetime',
         ];
     }
 }

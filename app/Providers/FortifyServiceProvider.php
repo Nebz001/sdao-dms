@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\AttemptToAuthenticate;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -16,6 +17,7 @@ use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
 use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Passkeys;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -33,6 +35,7 @@ class FortifyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureActions();
+        $this->configurePasskeys();
         $this->configureViews();
         $this->configureRateLimiting();
     }
@@ -56,6 +59,15 @@ class FortifyServiceProvider extends ServiceProvider
             AttemptToAuthenticate::class,
             PrepareAuthenticatedSession::class,
         ]));
+    }
+
+    /**
+     * A deactivated account cannot sign in with a passkey either. Fortify's
+     * own message for a denied passkey login is fixed and generic.
+     */
+    private function configurePasskeys(): void
+    {
+        Passkeys::authorizeLoginUsing(fn (Request $request, ?User $user) => $user !== null && ! $user->isDeactivated());
     }
 
     /**

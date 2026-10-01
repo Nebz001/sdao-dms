@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityCalendarController;
 use App\Http\Controllers\ActivityCalendarReviewController;
 use App\Http\Controllers\ActivityProposalController;
 use App\Http\Controllers\ActivityProposalReviewController;
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ApproverController;
@@ -217,6 +218,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/approvers', [ApproverController::class, 'index'])->name('approvers.index');
         Route::get('/approvers/create', [ApproverController::class, 'create'])->name('approvers.create');
         Route::post('/approvers', [ApproverController::class, 'store'])->name('approvers.store');
+
+        // Deactivate or reactivate a non student account; the search finds
+        // any such account, including one that no longer holds a role. Same
+        // throttle as the adviser search typeahead.
+        Route::get('/accounts/search', [AccountController::class, 'search'])->middleware('throttle:30,1')->name('accounts.search');
+        Route::post('/accounts/{account}/deactivate', [AccountController::class, 'deactivate'])->name('accounts.deactivate');
+        Route::post('/accounts/{account}/reactivate', [AccountController::class, 'reactivate'])->name('accounts.reactivate');
 
         Route::get('/pending-accounts', [PendingAccountController::class, 'index'])->name('pending-accounts.index');
         Route::post('/pending-accounts/{account}/verify', [PendingAccountController::class, 'verify'])->name('pending-accounts.verify');

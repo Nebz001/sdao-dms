@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Requests\Api\Mobile\MobileLoginRequest;
 use App\Http\Resources\Mobile\MobileUserResource;
@@ -38,6 +39,15 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'password' => [trans('auth.password')],
             ]);
+        }
+
+        // First of the post password checks, ahead of the password change flag:
+        // a deactivated account never gets a token, whatever else is true.
+        if ($user->isDeactivated()) {
+            return response()->json([
+                'message' => EnsureAccountIsActive::MESSAGE,
+                'code' => EnsureAccountIsActive::CODE,
+            ], 403);
         }
 
         if (! $this->mobileAccess->canAccess($user) || ! $this->hasStaffEmail($user)) {

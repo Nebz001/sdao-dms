@@ -22,6 +22,10 @@ class MailingSubmitterNotifier implements SubmitterNotifier
 {
     public function notify(User $submitter, Document $document, DocumentStatus $outcome, ?string $comment = null): void
     {
+        if ($submitter->isDeactivated()) {
+            return;
+        }
+
         try {
             Notification::send($submitter, new DocumentOutcomeNotification($document, $outcome, $comment));
         } catch (\Throwable $e) {

@@ -37,7 +37,13 @@ class UpdateRegistrationRequest extends FormRequest
             // UpdateOrganizationRegistration). Role-scoped so a valid-but-
             // non-adviser user id is rejected here, not just deeper in
             // UpdateOrganizationRegistration.
-            'adviser_id' => ['nullable', 'integer', Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value)],
+            'adviser_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value),
+                // A deactivated adviser can no longer act, so is not a valid choice.
+                Rule::exists('users', 'id')->whereNull('deactivated_at'),
+            ],
             // Phase 2 item 8 — every slot nullable at Update; already-uploaded
             // required attachments aren't forced to be re-uploaded on every
             // resubmit (AttachmentStorage::assertRequiredSlotsFilled is the

@@ -28,10 +28,14 @@ use Illuminate\Validation\ValidationException;
  *
  * SDAO membership is multi-holder, so provisioning one only ever ADDS a seat.
  * To swap a person out, pass `replacesUserId`: that member's SDAO role row is
- * removed in the same transaction, and nothing else about them is touched.
+ * removed in the same transaction. By default the account is also deactivated
+ * (AccountDeactivator) in that transaction, so it can no longer log in;
+ * `deactivateReplaced: false` keeps it active. Its history is never touched.
  */
 class ProvisionApprover
 {
+    public function __construct(private readonly AccountDeactivator $deactivator) {}
+
     /**
      * True when the last execute() created the account but could not queue the
      * welcome email. The one time password is not stored anywhere, so the
@@ -48,7 +52,7 @@ class ProvisionApprover
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null): User
+    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null, bool $deactivateReplaced = true): User
     {
         if (! $actor->roleAssignments->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember)) {
             throw new AuthorizationException('Only an SDAO member may provision approver accounts.');
@@ -67,9 +71,19 @@ class ProvisionApprover
 
         $temporaryPassword = Str::password(self::TEMPORARY_PASSWORD_LENGTH, symbols: false);
 
-        $user = DB::transaction(function () use ($name, $email, $idNumber, $role, $scope, $replacesUserId, $temporaryPassword) {
+        $user = DB::transaction(function () use ($actor, $name, $email, $idNumber, $role, $scope, $replacesUserId, $deactivateReplaced, $temporaryPassword) {
             if ($replacesUserId !== null) {
                 $this->retireSdaoMember($replacesUserId);
+
+                // Same transaction as the role removal and the new account, so a
+                // failure further down rolls all three back together.
+                if ($deactivateReplaced) {
+                    $this->deactivator->deactivate(
+                        User::query()->findOrFail($replacesUserId),
+                        $actor,
+                        "Replaced as SDAO member by {$name}",
+                    );
+                }
             }
 
             $user = User::create([

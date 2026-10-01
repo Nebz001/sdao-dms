@@ -12,10 +12,12 @@ use App\Models\DocumentStepApproval;
 use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
+use App\Models\School;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
@@ -55,7 +57,7 @@ function driveProposalToSdaoStep(ApprovalEngine $engine, Organization $org): Doc
     return $doc->refresh();
 }
 
-function replaceOldSdaoWith(User $actor, User $old, string $email = 'magpantaycarljustin@gmail.com'): User
+function replaceOldSdaoWith(User $actor, User $old, string $email = 'magpantaycarljustin@gmail.com', bool $deactivate = false): User
 {
     return app(ProvisionApprover::class)->execute(
         actor: $actor,
@@ -64,6 +66,7 @@ function replaceOldSdaoWith(User $actor, User $old, string $email = 'magpantayca
         role: Role::SdaoMember,
         scope: [],
         replacesUserId: $old->id,
+        deactivateReplaced: $deactivate,
     );
 }
 
@@ -182,4 +185,84 @@ test('an SDAO member cannot replace themselves', function () {
 
     expect(RoleAssignment::where('user_id', $this->oldSdao->id)->where('role', Role::SdaoMember->value)->exists())->toBeTrue()
         ->and(User::where('email', 'magpantaycarljustin@gmail.com')->exists())->toBeFalse();
+});
+
+test('replacing with deactivation on locks the old account out and records who and why', function () {
+    $new = replaceOldSdaoWith($this->otherSdao, $this->oldSdao, deactivate: true);
+
+    $this->oldSdao->refresh();
+
+    expect($this->oldSdao->isDeactivated())->toBeTrue()
+        ->and($this->oldSdao->deactivated_by)->toBe($this->otherSdao->id)
+        ->and($this->oldSdao->deactivated_reason)->toBe('Replaced as SDAO member by '.$new->name)
+        ->and(RoleAssignment::where('user_id', $this->oldSdao->id)->where('role', Role::SdaoMember->value)->exists())->toBeFalse();
+
+    $this->post(route('login.store'), ['email' => $this->oldSdao->email, 'password' => 'ict@1234'])
+        ->assertSessionHasErrors('email');
+    $this->assertGuest();
+});
+
+test('the form endpoint deactivates the replaced account by default and when the box is checked', function () {
+    $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
+        'name' => 'Carl Justin Magpantay',
+        'email' => 'magpantaycarljustin@gmail.com',
+        'role' => Role::SdaoMember->value,
+        'replaces_user_id' => $this->oldSdao->id,
+        'deactivate_replaced' => true,
+    ])->assertSessionHasNoErrors();
+
+    expect($this->oldSdao->refresh()->isDeactivated())->toBeTrue();
+});
+
+test('unchecking the box replaces the role but leaves the old account active', function () {
+    $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
+        'name' => 'Carl Justin Magpantay',
+        'email' => 'magpantaycarljustin@gmail.com',
+        'role' => Role::SdaoMember->value,
+        'replaces_user_id' => $this->oldSdao->id,
+        'deactivate_replaced' => false,
+    ])->assertSessionHasNoErrors();
+
+    expect($this->oldSdao->refresh()->isDeactivated())->toBeFalse()
+        ->and(RoleAssignment::where('user_id', $this->oldSdao->id)->where('role', Role::SdaoMember->value)->exists())->toBeFalse();
+});
+
+test('a failure after the role removal and deactivation rolls both back', function () {
+    // The new account is created last, so a duplicate email fails after the
+    // old holder was already retired and deactivated inside the transaction.
+    User::factory()->create(['email' => 'taken@gmail.com']);
+
+    expect(fn () => replaceOldSdaoWith($this->otherSdao, $this->oldSdao, 'taken@gmail.com', deactivate: true))
+        ->toThrow(QueryException::class);
+
+    $this->oldSdao->refresh();
+
+    expect($this->oldSdao->isDeactivated())->toBeFalse()
+        ->and($this->oldSdao->deactivated_by)->toBeNull()
+        ->and(RoleAssignment::where('user_id', $this->oldSdao->id)->where('role', Role::SdaoMember->value)->exists())->toBeTrue();
+});
+
+test('other provisioning flows never deactivate anyone', function () {
+    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
+
+    app(ProvisionApprover::class)->execute(
+        actor: $this->otherSdao,
+        name: 'Replacement Dean',
+        email: 'replacement-dean@nu-lipa.edu.ph',
+        role: Role::Dean,
+        scope: ['school_id' => $school->id],
+    );
+
+    app(ProvisionApprover::class)->execute(
+        actor: $this->otherSdao,
+        name: 'Extra SDAO',
+        email: 'extra-sdao@nu-lipa.edu.ph',
+        role: Role::SdaoMember,
+        scope: [],
+    );
+
+    expect($dean->refresh()->isDeactivated())->toBeFalse()
+        ->and($this->oldSdao->refresh()->isDeactivated())->toBeFalse()
+        ->and(User::whereNotNull('deactivated_at')->count())->toBe(0);
 });

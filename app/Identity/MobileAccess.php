@@ -60,6 +60,7 @@ class MobileAccess
     public function canAccess(User $user): bool
     {
         return $user->email_verified_at !== null
+            && ! $user->isDeactivated()
             && $user->isVerifiedAccount()
             && $this->approverRolesFor($user)->isNotEmpty();
     }

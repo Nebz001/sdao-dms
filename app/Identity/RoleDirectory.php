@@ -160,6 +160,7 @@ class RoleDirectory
         return $this->remember(
             'sdao_members',
             fn () => User::query()
+                ->active()
                 ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::SdaoMember))
                 ->get(),
         );
@@ -223,6 +224,7 @@ class RoleDirectory
             fn () => RoleAssignment::query()
                 ->where('role', $role)
                 ->where($scopeColumn, $scopeId)
+                ->whereHas('user', fn ($q) => $q->active())
                 ->oldest('id')
                 ->firstOrFail()
                 ->user,
@@ -250,6 +252,7 @@ class RoleDirectory
             "global:{$role->value}",
             fn () => RoleAssignment::query()
                 ->where('role', $role)
+                ->whereHas('user', fn ($q) => $q->active())
                 ->oldest('id')
                 ->firstOrFail()
                 ->user,

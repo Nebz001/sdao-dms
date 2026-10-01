@@ -23,6 +23,15 @@ class EnsureMobileAccess
     {
         $user = $request->user();
 
+        // Ahead of every other check, so a deactivated account always gets the
+        // same code (its tokens are also revoked at deactivation).
+        if ($user !== null && $user->isDeactivated()) {
+            return response()->json([
+                'message' => EnsureAccountIsActive::MESSAGE,
+                'code' => EnsureAccountIsActive::CODE,
+            ], 403);
+        }
+
         if ($user === null || ! $this->mobileAccess->canAccess($user)) {
             abort(403, 'You are not allowed to perform this action.');
         }

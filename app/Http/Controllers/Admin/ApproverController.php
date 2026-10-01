@@ -12,7 +12,9 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,27 +23,52 @@ class ApproverController extends Controller
 {
     public function index(): Response
     {
+        // Role holders, plus every deactivated account: a deactivated account
+        // often has no role left (the SDAO replacement removes it), but must
+        // stay visible so it can be reviewed and reactivated.
         $approvers = User::query()
-            ->whereHas('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
-            ->with(['roleAssignments' => fn ($q) => $q
+            ->where(fn ($q) => $q
+                ->whereHas('roleAssignments', fn ($r) => $r->where('role', '!=', Role::Student->value))
+                ->orWhereNotNull('deactivated_at'))
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('admin/approvers/index', [
+            'approvers' => $this->rows($approvers),
+        ]);
+    }
+
+    /**
+     * The row shape shared with AccountController::search(), so a found
+     * account renders exactly like a listed one.
+     *
+     * @param  Collection<int, User>  $users
+     * @return SupportCollection<int, array<string, mixed>>
+     */
+    public function rows(Collection $users): SupportCollection
+    {
+        $users->load([
+            'deactivatedBy:id,name',
+            'roleAssignments' => fn ($q) => $q
                 ->where('role', '!=', Role::Student->value)
                 ->with(['school', 'program', 'organization']),
-            ])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'id_number' => $u->id_number,
-                'roles' => $u->roleAssignments->map(fn (RoleAssignment $ra) => [
-                    'role' => $ra->role->value,
-                    'label' => $ra->role->label(),
-                    'scope' => $this->scopeLabel($ra),
-                ]),
-            ]);
+        ]);
 
-        return Inertia::render('admin/approvers/index', ['approvers' => $approvers]);
+        return $users->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'id_number' => $u->id_number,
+            'is_self' => $u->id === Auth::id(),
+            'deactivated_at' => $u->deactivated_at?->toIso8601String(),
+            'deactivated_reason' => $u->deactivated_reason,
+            'deactivated_by' => $u->deactivated_at !== null ? ($u->deactivatedBy?->name ?? 'Unknown') : null,
+            'roles' => $u->roleAssignments->map(fn (RoleAssignment $ra) => [
+                'role' => $ra->role->value,
+                'label' => $ra->role->label(),
+                'scope' => $this->scopeLabel($ra),
+            ])->values(),
+        ])->values();
     }
 
     public function create(RoleDirectory $directory): Response
@@ -86,12 +113,15 @@ class ApproverController extends Controller
                 'organization_id' => $request->integer('organization_id') ?: null,
             ],
             replacesUserId: $replacesUserId,
+            deactivateReplaced: $request->boolean('deactivate_replaced', true),
         );
 
         $message = 'Approver created. Their one time password has been emailed to them.';
 
         if ($replaced !== null) {
-            $message .= " {$replaced->name} no longer has the SDAO role.";
+            $message .= $request->boolean('deactivate_replaced', true)
+                ? " {$replaced->name} no longer has the SDAO role and has been deactivated."
+                : " {$replaced->name} no longer has the SDAO role.";
         }
 
         $flash = ['message' => $message];

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureMobileAccess;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\ForceJsonResponse;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
+            EnsureAccountIsActive::class,
             EnsurePasswordIsChanged::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

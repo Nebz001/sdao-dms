@@ -43,7 +43,13 @@ class StoreRegistrationRequest extends FormRequest
             // Must be a real, admin-provisioned adviser account — role-scoped
             // so a valid-but-non-adviser user id is rejected here, not just
             // deeper in SubmitOrganizationRegistration.
-            'adviser_id' => ['required', 'integer', Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value)],
+            'adviser_id' => [
+                'required',
+                'integer',
+                Rule::exists('role_assignments', 'user_id')->where('role', Role::Adviser->value),
+                // A deactivated adviser can no longer act, so is not a valid choice.
+                Rule::exists('users', 'id')->whereNull('deactivated_at'),
+            ],
             'purpose_of_organization' => ['required', 'string', 'max:5000'],
             'contact_person' => ['required', 'string', 'max:255'],
             'contact_no' => ['required', 'string', 'max:50'],

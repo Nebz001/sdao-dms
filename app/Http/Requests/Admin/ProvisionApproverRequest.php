@@ -41,6 +41,8 @@ class ProvisionApproverRequest extends FormRequest
             // be reached on a personal mailbox. Students and profile email
             // changes keep the school-domain rule (see ProfileValidationRules).
             'email' => $this->emailRules(allowPersonal: true),
+            // Checked by default in the form. Only meaningful with replaces_user_id.
+            'deactivate_replaced' => ['sometimes', 'boolean'],
             'replaces_user_id' => [
                 'nullable',
                 'integer',
