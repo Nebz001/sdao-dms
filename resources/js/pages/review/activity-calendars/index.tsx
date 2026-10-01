@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -44,16 +46,14 @@ export default function ReviewActivityCalendarsIndex({ queue }: Props) {
             <Head title="Review: Activity Calendars" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Activity Calendar Review Queue
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {queue.length === 0
-                            ? 'No activity calendars pending review.'
-                            : `${queue.length} calendar${queue.length !== 1 ? 's' : ''} awaiting review.`}
-                    </p>
-                </div>
+                <PageHeader title="Activity Calendar Review Queue" subtitle="Activity calendars waiting for SDAO review" />
+
+                {queue.length > 0 && (
+                    <PageNotice tone="info" icon={Inbox}>
+                        {queue.length} calendar
+                        {queue.length !== 1 ? 's' : ''} awaiting review.
+                    </PageNotice>
+                )}
 
                 <QueueStatStrip
                     stats={[

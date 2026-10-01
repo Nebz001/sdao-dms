@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -44,16 +46,14 @@ export default function ReviewReportsIndex({ queue }: Props) {
             <Head title="Review: After-Activity Reports" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Report Review Queue
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {queue.length === 0
-                            ? 'No reports pending review.'
-                            : `${queue.length} report${queue.length !== 1 ? 's' : ''} awaiting review.`}
-                    </p>
-                </div>
+                <PageHeader title="Report Review Queue" subtitle="After-activity reports waiting for SDAO review" />
+
+                {queue.length > 0 && (
+                    <PageNotice tone="info" icon={Inbox}>
+                        {queue.length} report
+                        {queue.length !== 1 ? 's' : ''} awaiting review.
+                    </PageNotice>
+                )}
 
                 <QueueStatStrip
                     stats={[

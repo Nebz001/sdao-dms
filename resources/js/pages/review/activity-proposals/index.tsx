@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { ActionBadge, StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import {
     EmptyTitle,
 } from '@/components/ui/empty';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
+import { proposalQueueNotice } from '@/lib/proposal-queue-notice';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
 
 type QueueItem = {
@@ -62,35 +65,6 @@ function tabHref(value: Filter): string {
         : reviewActivityProposals.index({ query: { filter: value } }).url;
 }
 
-function headingCopy(
-    filter: Filter,
-    academicYear: string,
-    count: number,
-): string {
-    if (filter === 'overdue') {
-        return count === 0
-            ? 'No overdue proposals'
-            : `${count} overdue proposal${count === 1 ? '' : 's'}`;
-    }
-
-    if (
-        filter === 'approved' ||
-        filter === 'returned' ||
-        filter === 'decided'
-    ) {
-        const verb =
-            filter === 'decided'
-                ? 'Decisions'
-                : FILTER_TABS.find((t) => t.value === filter)?.label;
-
-        return `${verb} · ${academicYear}${count > 0 ? ` (${count})` : ''}`;
-    }
-
-    return count === 0
-        ? 'No proposals awaiting your review.'
-        : `${count} proposal${count !== 1 ? 's' : ''} awaiting your review.`;
-}
-
 export default function ReviewActivityProposalsIndex({
     queue,
     filter,
@@ -99,6 +73,7 @@ export default function ReviewActivityProposalsIndex({
 }: Props) {
     useDocumentUpdates(['queue']);
 
+    const notice = proposalQueueNotice(filter, academicYear, queue.length);
     const isHistory = filter !== null && filter !== 'overdue';
 
     const oldest =
@@ -115,14 +90,16 @@ export default function ReviewActivityProposalsIndex({
             <Head title="Review Activity Proposals" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Activity Proposals — Review Queue
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {headingCopy(filter, academicYear, queue.length)}
-                    </p>
-                </div>
+                <PageHeader title="Activity Proposals — Review Queue" subtitle="Activity proposals routed to your step" />
+
+                {notice && (
+                    <PageNotice
+                        tone={notice.tone}
+                        icon={notice.tone === 'info' ? Inbox : undefined}
+                    >
+                        {notice.text}
+                    </PageNotice>
+                )}
 
                 <div
                     className="flex flex-wrap gap-1.5"
