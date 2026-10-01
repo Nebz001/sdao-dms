@@ -122,8 +122,8 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                     className="flex items-center justify-between gap-4 py-3"
                                 >
                                     <div className="min-w-0">
-                                        <p className="truncate font-medium">{m.user.name}</p>
-                                        <p className="truncate text-sm text-muted-foreground">
+                                        <p className="sm:truncate max-sm:break-words font-medium">{m.user.name}</p>
+                                        <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                             {m.user.email} · {m.position_label} · {m.academic_year}
                                         </p>
                                     </div>

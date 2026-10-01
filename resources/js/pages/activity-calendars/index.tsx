@@ -53,8 +53,8 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
                                 {calendars.map((c) => (
                                     <div key={c.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{c.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{c.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {c.organization.name}
                                             </p>
                                             <p className="text-xs text-muted-foreground">

@@ -294,11 +294,11 @@ export default function RegistrationsIndex({
                                                 href={r.href}
                                                 className="font-medium after:absolute after:inset-0"
                                             >
-                                                <p className="truncate">
+                                                <p className="sm:truncate max-sm:break-words">
                                                     {r.title}
                                                 </p>
                                             </Link>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {r.organization.name} ·{' '}
                                                 {new Date(
                                                     r.created_at,

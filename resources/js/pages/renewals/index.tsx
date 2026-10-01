@@ -53,8 +53,8 @@ export default function RenewalsIndex({ renewals: items }: Props) {
                                 {items.map((r) => (
                                     <div key={r.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{r.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{r.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {r.organization.name}
                                             </p>
                                         </div>

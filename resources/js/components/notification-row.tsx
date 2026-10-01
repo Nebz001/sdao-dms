@@ -56,7 +56,7 @@ export function NotificationRow({ item, onRowClick, onMarkRead }: Props) {
                     </span>
                     {!isRead && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary-text" aria-hidden />}
                 </div>
-                <span className={cn('mt-0.5 block truncate text-xs', isRead ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
+                <span className={cn('mt-0.5 block sm:truncate max-sm:break-words text-xs', isRead ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
                     {item.body}
                 </span>
                 <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground/70">{relativeTime}</span>

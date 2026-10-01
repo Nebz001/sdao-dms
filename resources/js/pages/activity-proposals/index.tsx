@@ -67,8 +67,8 @@ export default function ActivityProposalsIndex({ proposals }: Props) {
                                 {proposals.map((p) => (
                                     <div key={p.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{p.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{p.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {p.organization.name}
                                                 {p.calendar_mode && ` · ${modeLabel(p.calendar_mode)}`}
                                             </p>
