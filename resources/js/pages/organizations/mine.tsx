@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import { Check, UserCircle, Users, X } from 'lucide-react';
+import { Building2, Check, UserCircle, Users, X } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { OrganizationStatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -54,21 +56,17 @@ export default function MyOrganization({
             <Head title={organization.name} />
 
             <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                                {organization.name}
-                            </h1>
-                            <OrganizationStatusBadge status={status} />
-                        </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {[organization.school, organization.program]
-                                .filter(Boolean)
-                                .join(' · ') || 'No college'}
-                        </p>
-                    </div>
-                </div>
+                <PageHeader
+                    title={organization.name}
+                    subtitle="Your organization's details and officers"
+                    badge={<OrganizationStatusBadge status={status} />}
+                />
+
+                <PageNotice tone="info" icon={Building2}>
+                    {[organization.school, organization.program]
+                        .filter(Boolean)
+                        .join(' · ') || 'No college'}
+                </PageNotice>
 
                 {renewalDue && (
                     <Alert>
