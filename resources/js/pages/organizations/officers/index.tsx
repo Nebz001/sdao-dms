@@ -6,6 +6,7 @@ import OrganizationOfficerController from '@/actions/App/Http/Controllers/Organi
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -94,14 +95,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
             <Head title={`Officers — ${organization.name}`} />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Officers — {organization.name}
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Manage active officers for the current academic year.
-                    </p>
-                </div>
+                <PageHeader title={<>Officers — {organization.name}</>} subtitle="Manage active officers for the current academic year." />
 
                 {/* Current active officers */}
                 <Card>

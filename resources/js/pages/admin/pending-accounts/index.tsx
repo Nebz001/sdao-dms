@@ -3,6 +3,7 @@ import { UserRoundCheck } from 'lucide-react';
 import { useState } from 'react';
 import PendingAccountController from '@/actions/App/Http/Controllers/Admin/PendingAccountController';
 import ConfirmDialog from '@/components/confirm-dialog';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,17 +51,7 @@ export default function PendingAccountsIndex({ accounts }: Props) {
             <Head title="Pending Accounts" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Pending Accounts
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Self-registered students awaiting SDAO review. Verified
-                        accounts can submit documents and be adviser-bound as
-                        officers; Rejected accounts permanently lose that
-                        ability but are never deleted.
-                    </p>
-                </div>
+                <PageHeader title="Pending Accounts" subtitle="Self-registered students awaiting SDAO review. Verified accounts can submit documents and be adviser-bound as officers; Rejected accounts permanently lose that ability but are never deleted." />
 
                 <QueueStatStrip
                     stats={[

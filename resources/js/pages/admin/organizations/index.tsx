@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { Building2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { OrganizationStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -154,15 +155,7 @@ export default function OrganizationsIndex({
             <Head title="Organizations" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Organizations
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Every organization, its derived standing, and what it
-                        still needs.
-                    </p>
-                </div>
+                <PageHeader title="Organizations" subtitle="Every organization, its derived standing, and what it still needs." />
 
                 <QueueStatStrip
                     stats={[

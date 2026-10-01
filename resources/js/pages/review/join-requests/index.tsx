@@ -4,6 +4,7 @@ import { useState } from 'react';
 import JoinRequestReviewController from '@/actions/App/Http/Controllers/JoinRequestReviewController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,16 +59,7 @@ export default function JoinRequestsIndex({ queue, positions }: Props) {
             <Head title="Join Requests" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Join Requests
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Students asking to join your organization. Approving
-                        binds them as an officer immediately; declining is
-                        permanent — they&apos;d need to file a new request.
-                    </p>
-                </div>
+                <PageHeader title="Join Requests" subtitle="Students asking to join your organization. Approving binds them as an officer immediately; declining is permanent — they&apos;d need to file a new request." />
 
                 <QueueStatStrip
                     stats={[

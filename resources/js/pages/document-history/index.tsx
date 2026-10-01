@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { StatusBadge } from '@/components/status-badge';
@@ -147,13 +148,7 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
             <Head title="Document History" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Document History</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Every document your organization has ever filed, across every form type and status —
-                        president and secretary see the same full list.
-                    </p>
-                </div>
+                <PageHeader title="Document History" subtitle="Every document your organization has ever filed, across every form type and status — president and secretary see the same full list." />
 
                 <QueueStatStrip
                     stats={[

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Files } from 'lucide-react';
+import PageHeader from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,14 +25,11 @@ export default function RenewalsIndex({ renewals: items }: Props) {
             <Head title="Renewals" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Organization Renewals
-                    </h1>
-                    <Button asChild>
+                <PageHeader title="Organization Renewals" subtitle="Your organization's yearly renewals and their status" actions={
+<Button asChild>
                         <Link href={renewals.create().url}>New Renewal</Link>
                     </Button>
-                </div>
+} />
 
                 <Card>
                     <CardHeader>

@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { Button } from '@/components/ui/button';
@@ -163,15 +164,7 @@ export default function ActivityLogIndex({
             <Head title="Activity Log" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Activity Log
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Every submission, approval, return, and rejection across
-                        every organization and form type.
-                    </p>
-                </div>
+                <PageHeader title="Activity Log" subtitle="Every submission, approval, return, and rejection across every organization and form type." />
 
                 <QueueStatStrip
                     stats={[
