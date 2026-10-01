@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Archive as ArchiveIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -158,15 +159,7 @@ export default function DocumentArchiveIndex({
             <Head title="Document Archive" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Document Archive
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Approved and rejected documents across every form type,
-                        once they&apos;ve left the review queues.
-                    </p>
-                </div>
+                <PageHeader title="Document Archive" subtitle="Approved and rejected documents across every form type, once they&apos;ve left the review queues." />
 
                 <QueueStatStrip
                     stats={[
@@ -312,10 +305,10 @@ export default function DocumentArchiveIndex({
                                         className="flex items-center justify-between gap-4 py-3"
                                     >
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">
+                                            <p className="sm:truncate max-sm:break-words font-medium">
                                                 {doc.title}
                                             </p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {doc.organization.name} ·{' '}
                                                 {doc.form_type_label} ·{' '}
                                                 {new Date(

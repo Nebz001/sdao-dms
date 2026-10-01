@@ -9,6 +9,7 @@ import AttachmentsCard from '@/components/attachments-card';
 import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
+import PageHeader from '@/components/page-header';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
@@ -129,20 +130,16 @@ export default function ReviewRegistrationShow({
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                            {document.title}
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {document.organization.name}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    title={document.title}
+                    subtitle="Review the details and record your decision"
+                    actions={
+                        <>
                         <StatusBadge status={document.status} />
                         <PrintFormButton documentId={document.id} />
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* Dual-SDAO quorum state */}
                 {isInReview && (

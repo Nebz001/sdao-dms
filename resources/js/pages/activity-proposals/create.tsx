@@ -4,6 +4,8 @@ import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import PartnerOrganizationsField from '@/components/partner-organizations-field';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
@@ -171,11 +173,11 @@ export default function CreateActivityProposal({
             <Head title="New Activity Proposal" />
 
             <CenteredContainer maxWidth="xl" className="space-y-6">
-                <h1 className="text-xl font-semibold">New Activity Proposal</h1>
-                <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Name of RSO:</span>{' '}
-                    {membership.organization.name}
-                </p>
+                <PageHeader title="New Activity Proposal" subtitle="Fill in the request form. Routing starts after the narrative." />
+
+                <PageNotice tone="info">
+                    Name of RSO: {membership.organization.name}.
+                </PageNotice>
 
                 <Form action={activityProposals.store().url} method="post">
                     {({ processing, errors }) => (

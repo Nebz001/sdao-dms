@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Admin/AccountController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -287,12 +288,11 @@ export default function AdminApproversIndex({ approvers: items }: Props) {
             <Head title="Approvers" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Approver Accounts</h1>
-                    <Button asChild>
+                <PageHeader title="Approver Accounts" subtitle="Accounts for everyone who approves documents" actions={
+<Button asChild>
                         <Link href={approvers.create().url}>Provision Approver</Link>
                     </Button>
-                </div>
+} />
 
                 <FindAccount />
 

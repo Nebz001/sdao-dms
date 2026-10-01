@@ -4,6 +4,7 @@ import { useState } from 'react';
 import OfficerChangeReviewController from '@/actions/App/Http/Controllers/Admin/OfficerChangeReviewController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,17 +61,7 @@ export default function OfficerChangeRequestsIndex({ requests }: Props) {
             <Head title="Officer Change Requests" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Officer Change Requests
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        A current president or secretary has requested a
-                        change to their organization&apos;s roster. Approving
-                        performs the change immediately; declining is
-                        permanent — they&apos;d need to file a new request.
-                    </p>
-                </div>
+                <PageHeader title="Officer Change Requests" subtitle="A current president or secretary has requested a change to their organization&apos;s roster. Approving performs the change immediately; declining is permanent — they&apos;d need to file a new request." />
 
                 <QueueStatStrip
                     stats={[

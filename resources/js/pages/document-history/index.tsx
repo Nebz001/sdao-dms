@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { StatusBadge } from '@/components/status-badge';
@@ -147,13 +148,7 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
             <Head title="Document History" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">Document History</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Every document your organization has ever filed, across every form type and status —
-                        president and secretary see the same full list.
-                    </p>
-                </div>
+                <PageHeader title="Document History" subtitle="Every document your organization has ever filed, across every form type and status — president and secretary see the same full list." />
 
                 <QueueStatStrip
                     stats={[
@@ -255,8 +250,8 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
                                 {documents.data.map((doc) => (
                                     <div key={doc.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{doc.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{doc.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {doc.formTypeLabel} · <RelativeTime dateString={doc.lastActivityAt} />
                                             </p>
                                         </div>

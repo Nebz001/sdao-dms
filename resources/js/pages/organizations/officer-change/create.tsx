@@ -3,7 +3,8 @@ import { UserRoundCog } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
-import Heading from '@/components/heading';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -124,12 +125,13 @@ export default function RequestOfficerChange({
         return (
             <>
                 <Head title="Request Officer Change" />
-                <CenteredContainer maxWidth="2xl">
-                    <Heading title="Request Officer Change" />
-                    <p className="text-sm text-muted-foreground">
-                        Only an active president or secretary of an
-                        organization can request an officer change.
-                    </p>
+                <CenteredContainer maxWidth="2xl" className="space-y-6">
+                    <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
+
+                    <PageNotice tone="info">
+                        Only an active president or secretary of an organization
+                        can request an officer change.
+                    </PageNotice>
                 </CenteredContainer>
             </>
         );
@@ -139,11 +141,12 @@ export default function RequestOfficerChange({
         return (
             <>
                 <Head title="Request Officer Change" />
-                <CenteredContainer maxWidth="2xl">
-                    <Heading
-                        title="Request Officer Change"
-                        description="Your request is already on its way."
-                    />
+                <CenteredContainer maxWidth="2xl" className="space-y-6">
+                    <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
+
+                    <PageNotice tone="info">
+                        Your request is already on its way.
+                    </PageNotice>
                     <p className="text-sm text-muted-foreground">
                         You have a pending request to change{' '}
                         <strong className="text-foreground">
@@ -166,10 +169,12 @@ export default function RequestOfficerChange({
             <Head title="Request Officer Change" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Request Officer Change"
-                    description={`Request a change to ${organization.name}'s roster. This goes to an SDAO admin for review — the change won't take effect until they approve it. The org's adviser can also make this change directly and immediately via Manage Officers.`}
-                />
+                <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
+
+                <PageNotice tone="info">
+                    Request a change to {organization.name}&apos;s roster. SDAO must
+                    approve it first.
+                </PageNotice>
 
                 {currentOfficers.length > 0 && (
                     <div className="rounded-md border p-3 text-sm">

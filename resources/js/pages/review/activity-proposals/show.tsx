@@ -11,6 +11,7 @@ import type { ConfirmActions } from '@/components/confirm-dialog';
 import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
+import PageHeader from '@/components/page-header';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
 import SectionFlagFields from '@/components/section-flag-fields';
@@ -157,21 +158,16 @@ export default function ReviewActivityProposalShow({
 
             <CenteredContainer maxWidth="3xl" className="space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                            {doc.title}
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Name of RSO:</span>{' '}
-                            {doc.organization.name}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    title={doc.title}
+                    subtitle="Review the details and record your decision"
+                    actions={
+                        <>
                         <StatusBadge status={doc.status} />
                         <PrintFormButton documentId={doc.id} />
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 {/* Off-calendar conflict warning */}
                 {activityConflict && activityConflict.confirmed.length > 0 && (
@@ -228,6 +224,7 @@ export default function ReviewActivityProposalShow({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-3 text-sm">
+                            <Row label="Name of RSO" value={doc.organization.name} />
                             {proposal.activity_nature_label && (
                                 <Row
                                     label="Nature of Activity"

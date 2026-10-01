@@ -36,8 +36,9 @@ describe('StatTile — trend indicator', () => {
             weekly: { thisWeek: 5, lastWeek: 2, delta: 3, noun: 'submitted' },
         });
 
-        const trend = screen.getByText('+3 submitted vs. last week');
-        expect(trend.parentElement?.className).toContain('text-success');
+        expect(screen.getByText('+3 vs. last week')).toBeInTheDocument();
+        const trend = screen.getByRole('img', { name: '+3 submitted versus last week' });
+        expect(trend.className).toContain('text-success');
         expect(
             document.querySelector('.lucide-trending-up'),
         ).toBeInTheDocument();
@@ -48,8 +49,9 @@ describe('StatTile — trend indicator', () => {
             weekly: { thisWeek: 1, lastWeek: 4, delta: -3, noun: 'submitted' },
         });
 
-        const trend = screen.getByText('−3 submitted vs. last week');
-        expect(trend.parentElement?.className).toContain('text-destructive');
+        expect(screen.getByText('−3 vs. last week')).toBeInTheDocument();
+        const trend = screen.getByRole('img', { name: '−3 submitted versus last week' });
+        expect(trend.className).toContain('text-destructive');
         expect(
             document.querySelector('.lucide-trending-down'),
         ).toBeInTheDocument();
@@ -60,11 +62,20 @@ describe('StatTile — trend indicator', () => {
             weekly: { thisWeek: 2, lastWeek: 2, delta: 0, noun: 'submitted' },
         });
 
-        const trend = screen.getByText('No change vs. last week');
-        expect(trend.parentElement?.className).toContain(
-            'text-muted-foreground',
-        );
+        expect(screen.getByText('No change')).toBeInTheDocument();
+        const trend = screen.getByRole('img', { name: 'No change in submitted versus last week' });
+        expect(trend.className).toContain('text-muted-foreground');
         expect(document.querySelector('.lucide-minus')).toBeInTheDocument();
+    });
+
+    it('keeps the chip on one line and the full sentence in the label', () => {
+        renderTile({
+            weekly: { thisWeek: 5, lastWeek: 2, delta: 3, noun: 'registered' },
+        });
+
+        const trend = screen.getByRole('img', { name: '+3 registered versus last week' });
+        expect(trend.className).toContain('whitespace-nowrap');
+        expect(trend).toHaveTextContent('+3 vs. last week');
     });
 
     it('renders no trend row at all when weekly is omitted', () => {

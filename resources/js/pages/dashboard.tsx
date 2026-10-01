@@ -11,6 +11,7 @@ import type {
     WaitingTimeBucket,
 } from '@/components/approver-dashboard';
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
+import PageHeader from '@/components/page-header';
 import type { RequirementsData } from '@/components/requirements-checklist';
 import StudentDashboard from '@/components/student-dashboard';
 import type {
@@ -166,6 +167,11 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6">
+                <PageHeader
+                    title="Dashboard"
+                    subtitle="What needs your attention and where things stand"
+                />
+
                 {!hasAnyCard ? (
                     <div className="mx-auto w-full max-w-2xl">
                         {pendingJoinRequest ? (

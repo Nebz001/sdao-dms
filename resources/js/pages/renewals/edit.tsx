@@ -4,8 +4,8 @@ import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,10 +48,7 @@ export default function EditRenewal({
             <Head title="Edit Renewal" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Edit & Resubmit Renewal"
-                    description="Update the details below and resubmit for SDAO review."
-                />
+                <PageHeader title="Edit & Resubmit Renewal" subtitle="Update the details below and resubmit for SDAO review." />
 
                 {/* Organization Name / Type / College / Program — read-only;
                     not editable here. Type of Organization is derived from

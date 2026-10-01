@@ -8,6 +8,8 @@ import {
     UserCheck,
     UserPlus,
 } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import ProposalFunnelChart from '@/components/proposal-funnel-chart';
 import { RelativeTime } from '@/components/relative-time';
 import StatTile from '@/components/stat-tile';
@@ -95,29 +97,41 @@ const QUICK_STAT_ICONS = [Inbox, FileText, UserCheck, UserPlus];
 /** Fixed width so every row's timestamp lands in the same column regardless of label length ("just now" vs. "15d ago"). */
 const TIMESTAMP_COLUMN_CLASS = 'w-20 shrink-0 text-right text-sm text-muted-foreground tabular-nums';
 
+type WeeklyNotice = { tone: 'up' | 'down' | 'flat'; text: string };
+
 /**
- * "No submissions yet this week" / "12 submissions this week, up 4 from
- * last week" / "…, down 2 from last week" / "…, same as last week" — plain
- * language, no ± notation. `academicYear` used to be shown right above this
- * ("Showing: 2026-2027") but that's now persistent navbar context (see
- * app-sidebar-header.tsx) instead of body text repeated on every visit.
+ * The weekly volume message for the notice under the header, or null when
+ * both weeks are empty and there is nothing to say. Plain language, no ±
+ * notation. The header sublabel itself is static.
  */
-function weeklyVolumeCopy(thisWeek: number, delta: number): string {
+function weeklyVolumeNotice(thisWeek: number, delta: number): WeeklyNotice | null {
+    const lastWeek = thisWeek - delta;
+
+    if (thisWeek === 0 && lastWeek === 0) {
+        return null;
+    }
+
     if (thisWeek === 0) {
-        return 'No submissions yet this week';
+        return {
+            tone: 'down',
+            text: `No submissions yet this week, down ${lastWeek} from last week.`,
+        };
     }
 
     const noun = `submission${thisWeek === 1 ? '' : 's'}`;
 
     if (delta > 0) {
-        return `${thisWeek} ${noun} this week, up ${delta} from last week`;
+        return { tone: 'up', text: `${thisWeek} ${noun} this week, up ${delta} from last week.` };
     }
 
     if (delta < 0) {
-        return `${thisWeek} ${noun} this week, down ${Math.abs(delta)} from last week`;
+        return {
+            tone: 'down',
+            text: `${thisWeek} ${noun} this week, down ${Math.abs(delta)} from last week.`,
+        };
     }
 
-    return `${thisWeek} ${noun} this week, same as last week`;
+    return { tone: 'flat', text: `${thisWeek} ${noun} this week, same as last week.` };
 }
 
 /**
@@ -169,6 +183,7 @@ export default function AdminDashboard({
     const { currentPeriod } = usePage().props;
     const academicYear = currentPeriod.academic_year;
     const getInitials = useInitials();
+    const weeklyNotice = weeklyVolumeNotice(weeklyVolume.thisWeek, weeklyVolume.delta);
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
 
@@ -177,17 +192,14 @@ export default function AdminDashboard({
             <Head title="Admin Dashboard" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Admin Dashboard
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {weeklyVolumeCopy(
-                            weeklyVolume.thisWeek,
-                            weeklyVolume.delta,
-                        )}
-                    </p>
-                </div>
+                <PageHeader
+                    title="Admin Dashboard"
+                    subtitle="Everything happening across SDAO this academic year"
+                />
+
+                {weeklyNotice && (
+                    <PageNotice tone={weeklyNotice.tone}>{weeklyNotice.text}</PageNotice>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {quickStats.map((stat, index) => (

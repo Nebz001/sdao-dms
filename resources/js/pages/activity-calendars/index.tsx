@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Files } from 'lucide-react';
+import PageHeader from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,14 +25,11 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
             <Head title="Activity Calendars" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Activity Calendars
-                    </h1>
-                    <Button asChild>
+                <PageHeader title="Activity Calendars" subtitle="Your organization's term plans and their review status" actions={
+<Button asChild>
                         <Link href={activityCalendars.create().url}>New Activity Calendar</Link>
                     </Button>
-                </div>
+} />
 
                 <Card>
                     <CardHeader>
@@ -55,8 +53,8 @@ export default function ActivityCalendarsIndex({ calendars }: Props) {
                                 {calendars.map((c) => (
                                     <div key={c.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{c.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{c.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {c.organization.name}
                                             </p>
                                             <p className="text-xs text-muted-foreground">

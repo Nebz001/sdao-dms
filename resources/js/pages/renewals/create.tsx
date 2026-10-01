@@ -4,8 +4,9 @@ import RenewalController from '@/actions/App/Http/Controllers/RenewalController'
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
@@ -111,10 +112,12 @@ export default function CreateRenewal({
             <Head title="Submit Renewal" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Organization Renewal"
-                    description={`Renewing ${membership.organization.name} for ${coveredYear}. Details are pre-filled from the most recent approved record — update anything that has changed.`}
-                />
+                <PageHeader title="Organization Renewal" subtitle="Renew your organization for the coming year" />
+
+                <PageNotice tone="info">
+                    Renewing {membership.organization.name} for {coveredYear}, pre-filled
+                    from your last approved record.
+                </PageNotice>
 
                 {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —
                     read-only field-presence parity; not editable on renewal. */}

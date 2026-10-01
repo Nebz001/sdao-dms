@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { CalendarX2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -106,17 +107,7 @@ export default function CalendarIndex({ activities }: Props) {
 
             <div className="space-y-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                            Venue Calendar
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Confirmed (approved) and tentative (under review)
-                            activity bookings across all organizations. Venue
-                            names are matched exactly — same spelling required
-                            to detect conflicts.
-                        </p>
-                    </div>
+                    <PageHeader title="Venue Calendar" subtitle="Confirmed (approved) and tentative (under review) activity bookings across all organizations. Venue names are matched exactly — same spelling required to detect conflicts." />
 
                     <ToggleGroup
                         type="single"

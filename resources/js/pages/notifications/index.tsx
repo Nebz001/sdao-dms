@@ -3,6 +3,7 @@ import { Bell } from 'lucide-react';
 import { useState } from 'react';
 import { index as notificationsIndex, markAllRead } from '@/actions/App/Http/Controllers/NotificationController';
 import { NotificationRow } from '@/components/notification-row';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -104,12 +105,7 @@ export default function NotificationsIndex({ notifications, filters, unreadCount
 
             <div className="space-y-6">
                 <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">Notifications</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Approvals, hand-offs, and account updates for your account.
-                        </p>
-                    </div>
+                    <PageHeader title="Notifications" subtitle="Approvals, hand-offs, and account updates for your account." />
                     <Button
                         type="button"
                         variant="outline"

@@ -11,6 +11,14 @@ const alertVariants = cva(
         default: "bg-background text-foreground",
         destructive:
           "text-destructive-foreground [&>svg]:text-current *:data-[slot=alert-description]:text-destructive-foreground/80",
+        // Tonal states built on the same status tokens as StatusBadge. The
+        // text stays foreground so it keeps full contrast; the icon and the
+        // tinted surface carry the tone, so color is never the only signal.
+        success:
+          "border-success/40 bg-success/10 [&>svg]:text-success-foreground *:data-[slot=alert-description]:text-foreground",
+        warning:
+          "border-warning/40 bg-warning/10 [&>svg]:text-warning-foreground *:data-[slot=alert-description]:text-foreground",
+        info: "border-info/40 bg-info/10 [&>svg]:text-info-foreground *:data-[slot=alert-description]:text-foreground",
       },
     },
     defaultVariants: {

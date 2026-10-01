@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import { Row } from '@/components/labeled-row';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,10 +144,11 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
             <Head title={`Narrative — ${doc.title}`} />
 
             <CenteredContainer maxWidth="xl" className="space-y-6">
-                <div>
-                    <h1 className="text-xl font-semibold">Activity Proposal — Narrative</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">{doc.title}</p>
-                </div>
+                <PageHeader title="Activity Proposal — Narrative" subtitle="Describe the activity and attach your proposal" />
+
+                <PageNotice tone="info">
+                    Narrative for {doc.title}.
+                </PageNotice>
 
                 {/* Activity summary + step-1 read-only echoes (Phase 2 item 7
                     slice 4a — set once at step 1, not editable here). Group D

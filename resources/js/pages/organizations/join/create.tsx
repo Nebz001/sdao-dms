@@ -3,7 +3,8 @@ import { Search } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
-import Heading from '@/components/heading';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -107,11 +108,12 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <CenteredContainer maxWidth="2xl">
-                    <Heading
-                        title="Join an Organization"
-                        description="Your request is already on its way."
-                    />
+                <CenteredContainer maxWidth="2xl" className="space-y-6">
+                    <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
+
+                    <PageNotice tone="info">
+                        Your request is already on its way.
+                    </PageNotice>
                     <p className="text-sm text-muted-foreground">
                         You have a pending request to join{' '}
                         <strong className="text-foreground">
@@ -129,13 +131,13 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <CenteredContainer maxWidth="2xl">
-                    <Heading title="Join an Organization" />
-                    <p className="text-sm text-muted-foreground">
-                        You&apos;re already an active officer of an
-                        organization. A student can only belong to one
-                        organization at a time.
-                    </p>
+                <CenteredContainer maxWidth="2xl" className="space-y-6">
+                    <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
+
+                    <PageNotice tone="info">
+                        You&apos;re already an active officer of an organization. A student can
+                        only belong to one organization at a time.
+                    </PageNotice>
                 </CenteredContainer>
             </>
         );
@@ -146,10 +148,7 @@ export default function JoinOrganization({
             <Head title="Join an Organization" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Join an Organization"
-                    description="Search for your organization below. Once you send a request, its adviser or an active officer will need to approve it before you gain access."
-                />
+                <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
 
                 <div className="grid gap-2">
                     <Label htmlFor="organization-search">Organization</Label>

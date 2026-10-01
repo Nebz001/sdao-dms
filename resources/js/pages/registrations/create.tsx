@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
-import Heading from '@/components/heading';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -201,10 +201,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
             <Head title="Submit Registration" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Propose a New Organization"
-                    description="Found a brand-new student organization. SDAO reviews and approves your choice of adviser."
-                />
+                <PageHeader title="Propose a New Organization" subtitle="Found a brand-new student organization. SDAO reviews and approves your choice of adviser." />
 
                 <div className="space-y-6">
                     <div className="grid gap-2">

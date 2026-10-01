@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import CurrentPeriodController from '@/actions/App/Http/Controllers/Admin/CurrentPeriodController';
 import CenteredContainer from '@/components/centered-container';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -91,19 +92,7 @@ export default function CurrentPeriodSettings({
             <Head title="Current Period" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Current Period
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        The single, system-wide academic term and year new Activity
-                        Calendar submissions are filed under. Setting the term to 3rd
-                        opens organization renewal season and notifies every
-                        organization whose renewal is due. Changing the period never
-                        alters documents already submitted — each keeps the period it
-                        was submitted or approved under, permanently.
-                    </p>
-                </div>
+                <PageHeader title="Current Period" subtitle="The single, system-wide academic term and year new Activity Calendar submissions are filed under. Setting the term to 3rd opens organization renewal season and notifies every organization whose renewal is due. Changing the period never alters documents already submitted — each keeps the period it was submitted or approved under, permanently." />
 
                 <Card>
                     <CardHeader>

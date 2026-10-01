@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import { Check, UserCircle, Users, X } from 'lucide-react';
+import { Building2, Check, UserCircle, Users, X } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { OrganizationStatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -54,21 +56,17 @@ export default function MyOrganization({
             <Head title={organization.name} />
 
             <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                                {organization.name}
-                            </h1>
-                            <OrganizationStatusBadge status={status} />
-                        </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {[organization.school, organization.program]
-                                .filter(Boolean)
-                                .join(' · ') || 'No college'}
-                        </p>
-                    </div>
-                </div>
+                <PageHeader
+                    title={organization.name}
+                    subtitle="Your organization's details and officers"
+                    badge={<OrganizationStatusBadge status={status} />}
+                />
+
+                <PageNotice tone="info" icon={Building2}>
+                    {[organization.school, organization.program]
+                        .filter(Boolean)
+                        .join(' · ') || 'No college'}
+                </PageNotice>
 
                 {renewalDue && (
                     <Alert>
@@ -128,7 +126,7 @@ export default function MyOrganization({
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-6 sm:grid-cols-2 [&>*]:min-w-0">
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
@@ -155,10 +153,10 @@ export default function MyOrganization({
                                 <div className="divide-y">
                                     {officers.map((o) => (
                                         <div key={o.id} className="py-2.5">
-                                            <p className="truncate font-medium">
+                                            <p className="sm:truncate max-sm:break-words font-medium">
                                                 {o.user.name}
                                             </p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {o.position_label} ·{' '}
                                                 {o.user.email}
                                             </p>
@@ -191,10 +189,10 @@ export default function MyOrganization({
                                 </Empty>
                             ) : (
                                 <div>
-                                    <p className="truncate font-medium">
+                                    <p className="sm:truncate max-sm:break-words font-medium">
                                         {adviser.name}
                                     </p>
-                                    <p className="truncate text-sm text-muted-foreground">
+                                    <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                         {adviser.email}
                                     </p>
                                 </div>

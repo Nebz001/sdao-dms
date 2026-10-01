@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Files } from 'lucide-react';
+import PageHeader from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,14 +25,11 @@ export default function RenewalsIndex({ renewals: items }: Props) {
             <Head title="Renewals" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Organization Renewals
-                    </h1>
-                    <Button asChild>
+                <PageHeader title="Organization Renewals" subtitle="Your organization's yearly renewals and their status" actions={
+<Button asChild>
                         <Link href={renewals.create().url}>New Renewal</Link>
                     </Button>
-                </div>
+} />
 
                 <Card>
                     <CardHeader>
@@ -55,8 +53,8 @@ export default function RenewalsIndex({ renewals: items }: Props) {
                                 {items.map((r) => (
                                     <div key={r.id} className="flex items-center justify-between gap-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="truncate font-medium">{r.title}</p>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words font-medium">{r.title}</p>
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {r.organization.name}
                                             </p>
                                         </div>

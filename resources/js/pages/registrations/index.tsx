@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Files } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -152,22 +153,13 @@ export default function RegistrationsIndex({
             <Head title="Registrations" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                            Registrations
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Every organization registration you've submitted,
-                            and its status in SDAO review.
-                        </p>
-                    </div>
-                    <Button asChild>
+                <PageHeader title="Registrations" subtitle="Every organization registration you've submitted, and its status in SDAO review." actions={
+<Button asChild>
                         <Link href={registrations.create().url}>
                             New Registration
                         </Link>
                     </Button>
-                </div>
+} />
 
                 <QueueStatStrip
                     stats={[
@@ -302,11 +294,11 @@ export default function RegistrationsIndex({
                                                 href={r.href}
                                                 className="font-medium after:absolute after:inset-0"
                                             >
-                                                <p className="truncate">
+                                                <p className="sm:truncate max-sm:break-words">
                                                     {r.title}
                                                 </p>
                                             </Link>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {r.organization.name} ·{' '}
                                                 {new Date(
                                                     r.created_at,

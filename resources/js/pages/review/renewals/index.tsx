@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -44,16 +46,14 @@ export default function ReviewRenewalsIndex({ queue }: Props) {
             <Head title="Review: Renewals" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                        Renewal Review Queue
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {queue.length === 0
-                            ? 'No renewals pending review.'
-                            : `${queue.length} renewal${queue.length !== 1 ? 's' : ''} awaiting review.`}
-                    </p>
-                </div>
+                <PageHeader title="Renewal Review Queue" subtitle="Organization renewals waiting for SDAO review" />
+
+                {queue.length > 0 && (
+                    <PageNotice tone="info" icon={Inbox}>
+                        {queue.length} renewal
+                        {queue.length !== 1 ? 's' : ''} awaiting review.
+                    </PageNotice>
+                )}
 
                 <QueueStatStrip
                     stats={[

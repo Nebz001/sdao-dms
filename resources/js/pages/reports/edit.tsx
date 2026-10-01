@@ -5,8 +5,8 @@ import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,10 +55,7 @@ export default function EditReport({
             <Head title="Edit After-Activity Report" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <Heading
-                    title="Edit & Resubmit Report"
-                    description="Update the details below and resubmit for SDAO review."
-                />
+                <PageHeader title="Edit & Resubmit Report" subtitle="Update the details below and resubmit for SDAO review." />
 
                 {flaggedSections.includes('general') && (
                     <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
