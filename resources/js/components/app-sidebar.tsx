@@ -29,12 +29,14 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { resolveActiveNavItem } from '@/lib/active-nav';
 import { dashboard } from '@/routes';
 import * as activityCalendars from '@/routes/activity-calendars';
 import * as activityProposals from '@/routes/activity-proposals';
 import * as activityLog from '@/routes/admin/activity';
 import * as approvers from '@/routes/admin/approvers';
 import * as archive from '@/routes/admin/archive';
+import * as adminDashboard from '@/routes/admin/dashboard';
 import * as adminOfficerChangeRequests from '@/routes/admin/officer-change-requests';
 import * as adminOrganizations from '@/routes/admin/organizations';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
@@ -69,7 +71,8 @@ const PROPOSAL_APPROVER_ROLES = new Set([
 ]);
 
 export function AppSidebar() {
-    const { auth } = usePage().props;
+    const page = usePage();
+    const { auth } = page.props;
     const roles: RoleAssignment[] = auth?.roles ?? [];
 
     // The real source of truth for "currently an active student officer" is
@@ -101,7 +104,13 @@ export function AppSidebar() {
         {
             label: 'Platform',
             items: [
-                { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+                {
+                    title: 'Dashboard',
+                    href: dashboard(),
+                    icon: LayoutGrid,
+                    // SDAO members are sent to the admin dashboard from /dashboard.
+                    alsoActiveOn: [adminDashboard.index.url()],
+                },
                 {
                     title: 'Venue Calendar',
                     href: calendar.index(),
@@ -314,6 +323,19 @@ export function AppSidebar() {
         });
     }
 
+    // One selected item across all sections, resolved from the current path.
+    const activeItem = resolveActiveNavItem(
+        sections.flatMap((section) => section.items),
+        page.url,
+    );
+    const sectionsWithActive = sections.map((section) => ({
+        ...section,
+        items: section.items.map((item) => ({
+            ...item,
+            isActive: item === activeItem,
+        })),
+    }));
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -336,7 +358,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                {sections.map((section) => (
+                {sectionsWithActive.map((section) => (
                     <NavMain
                         key={section.label}
                         label={section.label}
