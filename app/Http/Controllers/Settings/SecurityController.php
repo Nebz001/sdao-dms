@@ -53,6 +53,9 @@ class SecurityController extends Controller
             'password' => $request->password,
         ]);
 
+        // The current browser stays signed in. Every other browser and every
+        // mobile token that used the old password is ended.
+        $user->endOtherSessions($request->session()->getId());
         $user->revokeAllApiTokens();
 
         return back()->with('flash', ['message' => __('Password changed.')]);
