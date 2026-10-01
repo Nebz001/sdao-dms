@@ -6,12 +6,12 @@ import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/80 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+          "border border-transparent bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 dark:border-brand-edge",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
@@ -19,14 +19,13 @@ const buttonVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary-text underline-offset-4 hover:underline",
         brand:
-          "bg-brand text-brand-foreground shadow-xs hover:bg-brand-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        // Fixed navy in both themes — never flips to gold. Used on the
-        // landing page and the login/register/verify pages, which must
-        // stay on-brand navy in dark theme; see --brand-fixed in app.css.
+          "border border-transparent bg-brand text-brand-foreground shadow-xs hover:bg-brand-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-brand-edge",
+        // Same navy as the default variant; kept as a named alias for the
+        // landing page and the login/register/verify pages (see --brand-fixed).
         "brand-fixed":
-          "bg-brand-fixed text-brand-fixed-foreground shadow-xs hover:bg-brand-fixed-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "border border-transparent bg-brand-fixed text-brand-fixed-foreground shadow-xs hover:bg-brand-fixed-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-brand-edge",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

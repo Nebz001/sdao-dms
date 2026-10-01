@@ -53,11 +53,16 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+    --color-card-border: var(--card-border);
+
+    --color-primary-text: var(--primary-text);
 
     --color-brand: var(--brand);
     --color-brand-foreground: var(--brand-foreground);
     --color-brand-hover: var(--brand-hover);
     --color-brand-accent: var(--brand-accent);
+    --color-brand-tint: var(--brand-tint);
+    --color-brand-edge: var(--brand-edge);
 
     --color-brand-fixed: var(--brand-fixed);
     --color-brand-fixed-foreground: var(--brand-fixed-foreground);
@@ -78,6 +83,7 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-indicator: var(--sidebar-indicator);
 }
 
 :root {
@@ -91,8 +97,13 @@
     --card-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
     --popover: oklch(1 0 0); /* white */
     --popover-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
-    --primary: oklch(0.32 0.07 264);
-    --primary-foreground: oklch(0.99 0.006 264);
+    /* One blue: the NU Navy brand (#35408e). --primary is the FILL (buttons,
+       selected states) with white text on it; --primary-text is the same hue
+       used as text, links and selection rings, and flips to --brand-tint in
+       dark theme where navy on a dark surface is under 2.2:1. */
+    --primary: #35408e;
+    --primary-foreground: #ffffff;
+    --primary-text: #35408e;
     --secondary: oklch(0.967 0.001 286.375); /* zinc-100 */
     --secondary-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
     --muted: oklch(0.967 0.001 286.375); /* zinc-100 */
@@ -115,47 +126,48 @@
     --info-foreground: oklch(0.5 0.134 242.749); /* sky-700 */
     --border: oklch(0.92 0.004 286.32); /* zinc-200 */
     --input: oklch(0.92 0.004 286.32); /* zinc-200 */
-    --ring: oklch(0.6 0.07 264);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    --ring: #35408e;
+    /* Card outline only (ui/card.tsx): the same neutral zinc hue as --border,
+       a few steps darker. 1.92:1 against the page, 2.0:1 against the card. */
+    --card-border: oklch(0.78 0.005 286);
+    /* Chart series: chart-1 is the brand series (navy light / tint dark);
+       the rest reuse the semantic status hues so no stray blue exists. */
+    --chart-1: #35408e;
+    --chart-2: oklch(0.596 0.145 163.225); /* emerald-600 */
+    --chart-3: oklch(0.666 0.179 58.318); /* amber-600 */
+    --chart-4: oklch(0.577 0.245 27.325); /* red-600 */
+    --chart-5: oklch(0.552 0.016 285.938); /* zinc-500 */
     --radius: 0.625rem;
     --sidebar: oklch(1 0 0); /* white */
     --sidebar-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
-    --sidebar-primary: oklch(0.32 0.07 264);
-    --sidebar-primary-foreground: oklch(0.99 0.006 264);
+    --sidebar-primary: #35408e;
+    --sidebar-primary-foreground: #ffffff;
+    /* 3px selected-item indicator bar: lighter blue tint of the brand. */
+    --sidebar-indicator: #9ea8ee;
     --sidebar-accent: oklch(0.967 0.001 286.375); /* zinc-100 */
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885); /* zinc-900 */
     --sidebar-border: oklch(0.92 0.004 286.32); /* zinc-200 */
-    --sidebar-ring: oklch(0.6 0.07 264);
-    /* Brand — fixed NU Lipa colors, not theme-derived like the tokens above.
-       Navy in light theme, gold in dark theme; foreground flips with it
-       (white-on-gold fails contrast, so it must never be reused as-is).
-       Reserved for potential reuse elsewhere — the landing page and the
-       auth pages (login/register/verify) intentionally do NOT use this
-       flipping token; see --brand-fixed below for those. */
+    --sidebar-ring: #35408e;
+    /* Brand: NU Navy, the same in both themes (the old dark-theme gold flip
+       is gone). --brand-fixed* are kept as aliases for the landing and auth
+       pages. White text sits on navy at 9.2:1. */
     --brand: #35408e;
     --brand-foreground: #ffffff;
     --brand-hover: color-mix(in oklab, var(--brand) 88%, black);
-    /* Same gold in both themes — the seal's own monogram color (matches
-       both nulp-logo-*.svg lockups), used where --brand itself would be
-       illegible (e.g. navy-on-navy in light theme). */
+    /* Lighter tint of the brand hue for text, links, focus rings and chart
+       series on dark surfaces (8.8:1 on the dark page, 7.8:1 on the dark
+       card; #8f9bea measured 7.6:1 and 6.8:1, below the 7:1 bar). */
+    --brand-tint: #9ea8ee;
+    /* Subtle lighter edge for filled brand buttons in dark theme. */
+    --brand-edge: transparent;
+    /* Gold: a small separate accent (the seal's monogram color). Never used
+       for buttons. */
     --brand-accent: #ffd41c;
-    /* Brand, fixed — always navy, same value in both themes (no .dark
-       override below). Used by the landing page and the login/register/
-       verify pages, which must stay on-brand navy in dark theme instead of
-       following --brand's gold flip. */
-    --brand-fixed: #35408e;
-    --brand-fixed-foreground: #ffffff;
-    --brand-fixed-hover: color-mix(in oklab, var(--brand-fixed) 88%, black);
-    /* Light blue tint of --brand-fixed, always the same in both themes —
-       for text that sits directly on the landing/auth hero's photo scrim
-       (itself fixed-dark in both themes now), where solid navy text
-       wouldn't read. Not a gold stand-in: this is the legibility role
-       --brand-accent used to fill for that one spot, done in navy/blue
-       instead. */
+    --brand-fixed: var(--brand);
+    --brand-fixed-foreground: var(--brand-foreground);
+    --brand-fixed-hover: var(--brand-hover);
+    /* Light blue tint for text directly on the landing/auth hero's photo
+       scrim, same in both themes. */
     --brand-fixed-tint: color-mix(in oklab, var(--brand-fixed) 42%, white);
 }
 
@@ -167,8 +179,9 @@
     --card-foreground: oklch(0.985 0 0); /* zinc-50 */
     --popover: oklch(0.21 0.006 285.885); /* zinc-900 */
     --popover-foreground: oklch(0.985 0 0); /* zinc-50 */
-    --primary: oklch(0.7 0.09 264);
-    --primary-foreground: oklch(0.16 0.02 264);
+    --primary: #35408e;
+    --primary-foreground: #ffffff;
+    --primary-text: #9ea8ee; /* --brand-tint */
     --secondary: oklch(0.274 0.006 286.033); /* zinc-800 */
     --secondary-foreground: oklch(0.985 0 0); /* zinc-50 */
     --muted: oklch(0.274 0.006 286.033); /* zinc-800 */
@@ -187,26 +200,26 @@
         0.274 0.006 286.033
     ); /* zinc-800 — one step above zinc-900 */
     --input: oklch(0.274 0.006 286.033); /* zinc-800 */
-    --ring: oklch(0.55 0.08 264);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
+    --ring: #9ea8ee; /* --brand-tint */
+    /* Same neutral hue as --border (zinc-800), lifted to 2.35:1 against the
+       page and 2.1:1 against the card. */
+    --card-border: oklch(0.42 0.008 286);
+    --chart-1: #9ea8ee; /* brand tint: stays visible on dark surfaces */
+    --chart-2: oklch(0.696 0.17 162.48); /* emerald-500 */
+    --chart-3: oklch(0.769 0.188 70.08); /* amber-500 */
+    --chart-4: oklch(0.637 0.237 25.331); /* red-500 */
+    --chart-5: oklch(0.705 0.015 286.067); /* zinc-400 */
     --sidebar: oklch(0.21 0.006 285.885); /* zinc-900 */
     --sidebar-foreground: oklch(0.985 0 0); /* zinc-50 */
-    --sidebar-primary: oklch(0.7 0.09 264);
-    --sidebar-primary-foreground: oklch(0.16 0.02 264);
+    --sidebar-primary: #35408e;
+    --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: oklch(0.274 0.006 286.033); /* zinc-800 */
     --sidebar-accent-foreground: oklch(0.985 0 0); /* zinc-50 */
     --sidebar-border: oklch(0.274 0.006 286.033); /* zinc-800 */
-    --sidebar-ring: oklch(0.55 0.08 264);
-    /* Brand — gold in dark theme; foreground is the same near-black as
-       --background so it matches every other dark-mode "black" text. */
-    --brand: #ffca2c;
-    --brand-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
-    --brand-hover: color-mix(in oklab, var(--brand) 88%, white);
-    --brand-accent: #ffd41c;
+    --sidebar-ring: #9ea8ee;
+    /* Brand stays navy in dark theme. The navy alone nearly vanishes on
+       zinc-900 (1.9:1), so filled brand buttons get a lighter edge. */
+    --brand-edge: color-mix(in oklab, var(--brand-tint) 45%, transparent);
 }
 
 @layer base {
