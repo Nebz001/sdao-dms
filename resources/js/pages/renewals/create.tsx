@@ -115,9 +115,8 @@ export default function CreateRenewal({
                 <PageHeader title="Organization Renewal" subtitle="Renew your organization for the coming year" />
 
                 <PageNotice tone="info">
-                    Renewing {membership.organization.name} for {coveredYear}. Details are
-                    pre-filled from your most recent approved record, so update
-                    anything that has changed.
+                    Renewing {membership.organization.name} for {coveredYear}, pre-filled
+                    from your last approved record.
                 </PageNotice>
 
                 {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —

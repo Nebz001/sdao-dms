@@ -17,7 +17,9 @@ const roles = {
   sdao: ['sdao-a@nu-lipa.edu.ph', ['/review/registrations/1', '/admin/approvers/create', '/notifications']],
   adviser: ['adviser-one@nu-lipa.edu.ph', ['/notifications']],
   dean: ['dean-ccit@nu-lipa.edu.ph', ['/notifications']],
-  officer: ['student-alpha@students.nu-lipa.edu.ph', ['/registrations/create', '/notifications']],
+  officer: ['student-alpha@students.nu-lipa.edu.ph', ['/registrations/create', '/organizations/join', '/notifications']],
+  // Needs the full demo data (php artisan demo:reset on a throwaway database).
+  president: ['torresm@students.nu-lipa.edu.ph', ['/activity-proposals/31', '/activity-calendars/create', '/renewals/create', '/organizations/officer-change', '/notifications']],
 };
 const viewports = { desktop: [1366, 860], tablet: [1024, 768], phone: [390, 844] };
 const out = tmpdir() + '/shots/b'; mkdirSync(out, { recursive: true });

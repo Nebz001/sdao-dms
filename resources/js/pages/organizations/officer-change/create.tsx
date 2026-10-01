@@ -173,7 +173,7 @@ export default function RequestOfficerChange({
 
                 <PageNotice tone="info">
                     Request a change to {organization.name}&apos;s roster. SDAO must
-                    approve it before it takes effect.
+                    approve it first.
                 </PageNotice>
 
                 {currentOfficers.length > 0 && (
