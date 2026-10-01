@@ -102,19 +102,31 @@ export function deltaLabel(delta: number): {
 }
 
 /**
- * "+3 submitted vs. last week" / "−1 registered vs. last week" / "No change
- * vs. last week" — a real minus sign (−), not a hyphen, and the noun so the
- * delta reads as its own event count, not a change to the tile's headline.
+ * Short chip text: "+3 vs. last week" / "−1 vs. last week" / "No change" — a
+ * real minus sign (−), not a hyphen. It has to fit on one line in a narrow
+ * tile, so the noun lives in `trendLabel` (the aria-label) instead.
  */
 function trendCopy(weekly: WeeklyDelta): string {
     if (weekly.delta === 0) {
-        return 'No change vs. last week';
+        return 'No change';
     }
 
     const signed =
         weekly.delta > 0 ? `+${weekly.delta}` : `−${Math.abs(weekly.delta)}`;
 
-    return `${signed} ${weekly.noun} vs. last week`;
+    return `${signed} vs. last week`;
+}
+
+/** Full sentence for assistive tech, with the noun the chip leaves out. */
+function trendLabel(weekly: WeeklyDelta): string {
+    if (weekly.delta === 0) {
+        return `No change in ${weekly.noun} versus last week`;
+    }
+
+    const signed =
+        weekly.delta > 0 ? `+${weekly.delta}` : `−${Math.abs(weekly.delta)}`;
+
+    return `${signed} ${weekly.noun} versus last week`;
 }
 
 /**
@@ -209,8 +221,10 @@ export default function StatTile({
                         )}
                         {weekly && trend && TrendIcon && (
                             <div
+                                role="img"
+                                aria-label={trendLabel(weekly)}
                                 className={cn(
-                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-sm bg-muted/60 px-2 py-0.5 text-xs font-medium',
+                                    'mt-2.5 inline-flex w-fit items-center gap-1 rounded-sm bg-muted/60 px-2 py-0.5 text-xs font-medium whitespace-nowrap',
                                     trend.className,
                                 )}
                             >
