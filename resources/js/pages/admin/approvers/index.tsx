@@ -60,7 +60,11 @@ function AccountRow({ account, onChanged }: { account: AccountEntry; onChanged?:
                         <Badge variant="outline">No role</Badge>
                     ) : (
                         account.roles.map((r, i) => (
-                            <Badge key={i} variant="secondary">
+                            <Badge
+                                key={i}
+                                variant="secondary"
+                                className="h-auto max-w-full text-left whitespace-normal"
+                            >
                                 {r.label} · {r.scope}
                             </Badge>
                         ))

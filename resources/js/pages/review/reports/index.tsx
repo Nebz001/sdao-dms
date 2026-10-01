@@ -94,10 +94,10 @@ export default function ReviewReportsIndex({ queue }: Props) {
                                     className="flex items-center justify-between gap-4 py-3"
                                 >
                                     <div className="min-w-0">
-                                        <p className="truncate font-medium">
+                                        <p className="sm:truncate max-sm:break-words font-medium">
                                             {doc.title}
                                         </p>
-                                        <p className="truncate text-sm text-muted-foreground">
+                                        <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                             {doc.organization.name} ·{' '}
                                             {new Date(
                                                 doc.created_at,

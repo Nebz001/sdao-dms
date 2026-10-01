@@ -311,11 +311,11 @@ export default function ActivityLogIndex({
                                         <div className="min-w-0">
                                             <Link
                                                 href={entry.href}
-                                                className="truncate font-medium hover:underline"
+                                                className="sm:truncate max-sm:break-words font-medium hover:underline"
                                             >
                                                 {entry.documentTitle}
                                             </Link>
-                                            <p className="truncate text-sm text-muted-foreground">
+                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {entry.actorName}{' '}
                                                 {statusLabel(
                                                     entry.action,

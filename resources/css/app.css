@@ -290,7 +290,7 @@
 
     /* Global fallback for anything without its own focus style (plain links,
        summary, tabindex elements): the same 1px line and 2px halo. */
-    :where(a, button, summary, [role='button'], [tabindex]):focus-visible {
+    :where(a, button, summary, [role='button'], [tabindex]):focus-visible:not([role='option'], [role^='menuitem']) {
         outline: 1px solid var(--ring);
         outline-offset: 0;
         box-shadow: 0 0 0 3px var(--ring-halo);

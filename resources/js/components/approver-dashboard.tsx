@@ -440,10 +440,10 @@ export default function ApproverDashboard({
                                         className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-semibold">
+                                            <p className="sm:truncate max-sm:break-words text-sm font-semibold">
                                                 {event.title}
                                             </p>
-                                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                                            <p className="mt-1 sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                                 {event.organizationName} ·{' '}
                                                 {event.venue}
                                             </p>
@@ -494,7 +494,7 @@ export default function ApproverDashboard({
                                         <div className="min-w-0 flex-1">
                                             <Link
                                                 href={entry.href}
-                                                className="block truncate text-sm font-semibold hover:underline"
+                                                className="block sm:truncate max-sm:break-words text-sm font-semibold hover:underline"
                                             >
                                                 {entry.documentTitle}
                                             </Link>
@@ -505,7 +505,7 @@ export default function ApproverDashboard({
                                                 <FormTypeBadge
                                                     label={entry.formTypeLabel}
                                                 />
-                                                <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                                <span className="sm:truncate max-sm:break-words rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                                                     {entry.organizationName}
                                                 </span>
                                             </div>

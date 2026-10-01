@@ -61,8 +61,8 @@ function DialogContent({
         )}
         {...props}
       >
-        <ScrollArea viewportClassName="max-h-[calc(100dvh-5rem)]">
-          <div className="grid gap-4">{children}</div>
+        <ScrollArea className="-m-1" viewportClassName="max-h-[calc(100dvh-5rem)]">
+          <div className="grid gap-4 p-1">{children}</div>
         </ScrollArea>
         <DialogPrimitive.Close className="data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:focus-ring-edge">
           <XIcon />
