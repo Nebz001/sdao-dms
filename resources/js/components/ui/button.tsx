@@ -25,7 +25,7 @@ const buttonVariants = cva(
         // Same navy as the default variant; kept as a named alias for the
         // landing page and the login/register/verify pages (see --brand-fixed).
         "brand-fixed":
-          "border border-transparent bg-brand-fixed text-brand-fixed-foreground shadow-xs hover:bg-brand-fixed-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-brand-edge",
+          "border border-brand-fixed-tint/45 bg-brand-fixed text-brand-fixed-foreground shadow-xs hover:bg-brand-fixed-hover focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
