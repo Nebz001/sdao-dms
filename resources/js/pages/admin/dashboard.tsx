@@ -1,5 +1,4 @@
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
-import { TriangleAlert } from 'lucide-react';
 import OldestInReviewCard from '@/components/oldest-in-review-card';
 import type { OldestDocument } from '@/components/oldest-in-review-card';
 import OrgComplianceCard, { academicYearLabel } from '@/components/org-compliance-card';
@@ -76,24 +75,23 @@ export default function AdminDashboard({
 
                 {upcomingAlert && (
                     <PageNotice
-                        tone="down"
-                        icon={TriangleAlert}
-                        className="border-destructive/40 bg-destructive/10"
+                        tone="destructive"
+                        urgent
+                        title={
+                            upcomingAlert.count === 1
+                                ? '1 activity happens within 7 days and is still not approved.'
+                                : `${upcomingAlert.count} activities happen within 7 days and are still not approved.`
+                        }
                         action={
                             <Link
                                 href={upcomingAlert.href}
-                                className="shrink-0 text-sm font-medium text-destructive-foreground hover:underline"
+                                className="text-sm font-medium text-destructive-foreground hover:underline"
                             >
                                 Open these {upcomingAlert.count}
                             </Link>
                         }
                     >
-                        <strong className="font-semibold text-destructive-foreground">
-                            {upcomingAlert.count === 1
-                                ? '1 activity happens within 7 days and is still not approved.'
-                                : `${upcomingAlert.count} activities happen within 7 days and are still not approved.`}
-                        </strong>{' '}
-                        <span className="text-muted-foreground">{upcomingAlert.names.join(', ')}</span>
+                        {upcomingAlert.names.join(', ')}
                     </PageNotice>
                 )}
 

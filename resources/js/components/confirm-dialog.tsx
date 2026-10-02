@@ -40,6 +40,13 @@ type ConfirmDialogProps = {
     trigger?: ReactNode;
     title: string;
     description: ReactNode;
+    /**
+     * Inline messages shown under the description: a caution (PageNotice
+     * warning) or the error from a failed request (PageNotice destructive,
+     * urgent). It is a sibling of the description, not inside it, because the
+     * description renders a paragraph and a notice is a block.
+     */
+    notice?: ReactNode;
     /** Disables the trigger itself (e.g. while a related mutation is in flight). */
     triggerDisabled?: boolean;
     /** Externally controlled open state — pairs with `onOpenChange`. Omit both to manage state internally (the default, used by every trigger-based caller). */
@@ -80,6 +87,7 @@ export default function ConfirmDialog({
     trigger,
     title,
     description,
+    notice,
     triggerDisabled = false,
     open: openProp,
     onOpenChange: onOpenChangeProp,
@@ -126,6 +134,7 @@ export default function ConfirmDialog({
             <DialogContent>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>{description}</DialogDescription>
+                {notice}
                 {children ? (
                     children(close)
                 ) : (

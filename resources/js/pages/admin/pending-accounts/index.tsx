@@ -4,6 +4,7 @@ import { useState } from 'react';
 import PendingAccountController from '@/actions/App/Http/Controllers/Admin/PendingAccountController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -157,15 +158,19 @@ export default function PendingAccountsIndex({ accounts }: Props) {
                                                         documents or be bound as
                                                         an officer. Their
                                                         account is not deleted.
-                                                        {rejectError?.accountId ===
-                                                            account.id && (
-                                                            <span className="mt-2 block text-destructive">
-                                                                {
-                                                                    rejectError.message
-                                                                }
-                                                            </span>
-                                                        )}
                                                     </>
+                                                }
+                                                notice={
+                                                    rejectError?.accountId ===
+                                                        account.id && (
+                                                        <PageNotice
+                                                            tone="destructive"
+                                                            urgent
+                                                            title={
+                                                                rejectError.message
+                                                            }
+                                                        />
+                                                    )
                                                 }
                                                 confirmLabel="Reject Account"
                                                 confirmVariant="destructive"

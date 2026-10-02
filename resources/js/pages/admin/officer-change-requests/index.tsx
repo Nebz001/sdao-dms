@@ -5,6 +5,7 @@ import OfficerChangeReviewController from '@/actions/App/Http/Controllers/Admin/
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -122,17 +123,28 @@ export default function OfficerChangeRequestsIndex({ requests }: Props) {
                                                 </p>
                                             )}
                                             {request.is_stale && (
-                                                <p className="text-xs text-amber-600 dark:text-amber-500">
-                                                    {request.outgoing_officer
-                                                        ? `The seat has changed hands since this was filed (was ${request.outgoing_officer.name}).`
-                                                        : 'The seat has changed hands since this was filed.'}
-                                                </p>
+                                                <div className="mt-2">
+                                                    <PageNotice
+                                                        tone="warning"
+                                                        title="The seat has changed hands since this was filed."
+                                                    >
+                                                        {request.outgoing_officer
+                                                            ? `The previous officer was ${request.outgoing_officer.name}.`
+                                                            : null}
+                                                    </PageNotice>
+                                                </div>
                                             )}
                                             {approveError?.requestId ===
                                                 request.id && (
-                                                <p className="text-xs text-destructive">
-                                                    {approveError.message}
-                                                </p>
+                                                <div className="mt-2">
+                                                    <PageNotice
+                                                        tone="destructive"
+                                                        urgent
+                                                        title={
+                                                            approveError.message
+                                                        }
+                                                    />
+                                                </div>
                                             )}
                                             <p className="text-xs text-muted-foreground">
                                                 Requested{' '}

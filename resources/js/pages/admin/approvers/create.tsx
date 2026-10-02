@@ -6,6 +6,7 @@ import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -320,22 +321,21 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             <span className="block py-2 font-medium break-all text-foreground">
                                 {form.data.email}
                             </span>
-                            <span className="block">
-                                Check the address carefully. A typo sends the temporary password to the wrong person.
-                            </span>
+                            </>
+                    }
+                    notice={
+                        <div className="flex flex-col gap-2">
+                            <PageNotice tone="warning" title="Check the address carefully.">
+                                A typo sends the temporary password to the wrong person.
+                            </PageNotice>
                             {replacedMember !== undefined && (
-                                <span className="mt-3 block">
-                                    <span className="block font-medium text-foreground">
-                                        Remove SDAO role from {replacedMember.name}?
-                                    </span>
-                                    <span className="block">
-                                        {form.data.deactivate_replaced
-                                            ? 'They will also be deactivated and can no longer log in. Their history stays and keeps showing their name.'
-                                            : 'They keep their account and history but can no longer review documents.'}
-                                    </span>
-                                </span>
+                                <PageNotice tone="info" title={`Remove SDAO role from ${replacedMember.name}?`}>
+                                    {form.data.deactivate_replaced
+                                        ? 'They will also be deactivated and can no longer log in. Their history stays and keeps showing their name.'
+                                        : 'They keep their account and history but can no longer review documents.'}
+                                </PageNotice>
                             )}
-                        </>
+                        </div>
                     }
                     confirmLabel="Create approver"
                     onConfirm={({ close }) => create(close)}

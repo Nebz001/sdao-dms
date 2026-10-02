@@ -5,7 +5,9 @@ import AccountController from '@/actions/App/Http/Controllers/Admin/AccountContr
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
-import { Badge } from '@/components/ui/badge';
+import PageNotice from '@/components/page-notice';
+import { FlagBadge } from '@/components/status-badge';
+import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
@@ -47,7 +49,7 @@ function AccountRow({ account, onChanged }: { account: AccountEntry; onChanged?:
             <div className={deactivated ? 'min-w-0 opacity-70' : 'min-w-0'}>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-medium">{account.name}</p>
-                    {deactivated && <Badge variant="destructive">Deactivated</Badge>}
+                    {deactivated && <FlagBadge flag="deactivated" />}
                 </div>
                 <p className="truncate text-sm text-muted-foreground">{account.email}</p>
                 {deactivated && (
@@ -58,16 +60,12 @@ function AccountRow({ account, onChanged }: { account: AccountEntry; onChanged?:
                 )}
                 <div className="mt-2 flex flex-wrap gap-1">
                     {account.roles.length === 0 ? (
-                        <Badge variant="outline">No role</Badge>
+                        <TagBadge>No role</TagBadge>
                     ) : (
                         account.roles.map((r, i) => (
-                            <Badge
-                                key={i}
-                                variant="secondary"
-                                className="h-auto max-w-full text-left whitespace-normal"
-                            >
+                            <TagBadge key={i}>
                                 {r.label} · {r.scope}
-                            </Badge>
+                            </TagBadge>
                         ))
                     )}
                 </div>
@@ -265,7 +263,9 @@ function FindAccount() {
                     </p>
                 )}
                 {status === 'done' && searchFailed && (
-                    <p className="text-sm text-destructive">Could not search accounts just now. Try again.</p>
+                    <PageNotice tone="destructive" urgent title="Could not search accounts just now.">
+                        Try again.
+                    </PageNotice>
                 )}
                 {status === 'done' && !searchFailed && results.length === 0 && (
                     <p className="text-sm text-muted-foreground">No matching accounts.</p>

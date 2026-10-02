@@ -5,6 +5,7 @@ import IdleBadge from '@/components/idle-badge';
 import type { IdleTier } from '@/components/idle-badge';
 import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
+import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -298,9 +299,7 @@ export default function StuckDocumentsIndex({
                                                 <p className="text-sm font-semibold break-words">
                                                     {activity.name}
                                                 </p>
-                                                <span className="mt-1 inline-block rounded-sm border px-1.5 py-0.5 text-xs text-muted-foreground">
-                                                    {activity.organizationName}
-                                                </span>
+                                                <TagBadge className="mt-1 text-[0.7rem]">{activity.organizationName}</TagBadge>
                                             </div>
                                             <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
                                                 <CalendarClock className="size-4" aria-hidden />
@@ -479,9 +478,7 @@ export default function StuckDocumentsIndex({
                                                 {row.title}
                                             </Link>
                                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                                <span className="rounded-sm border px-1.5 py-0.5">
-                                                    {row.organizationName}
-                                                </span>
+                                                <TagBadge className="text-[0.7rem]">{row.organizationName}</TagBadge>
                                                 <span>
                                                     {row.state === 'returned'
                                                         ? 'Returned, waiting on the organization'

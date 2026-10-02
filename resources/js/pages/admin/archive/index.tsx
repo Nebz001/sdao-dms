@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Archive as ArchiveIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -252,17 +253,23 @@ export default function DocumentArchiveIndex({
                         </div>
 
                         {yearOnly && (
-                            <p className="text-sm text-muted-foreground sm:basis-full">
-                                Showing documents created in the current academic year.{' '}
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    className="h-auto p-0"
-                                    onClick={() => setYearOnly(false)}
+                            <div className="sm:basis-full">
+                                <PageNotice
+                                    tone="info"
+                                    action={
+                                        <Button
+                                            type="button"
+                                            variant="link"
+                                            className="h-auto p-0"
+                                            onClick={() => setYearOnly(false)}
+                                        >
+                                            Show all years
+                                        </Button>
+                                    }
                                 >
-                                    Show all years
-                                </Button>
-                            </p>
+                                    Showing documents created in the current academic year.
+                                </PageNotice>
+                            </div>
                         )}
 
                         {hasFilters && (

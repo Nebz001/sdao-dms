@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { CircleCheck } from 'lucide-react';
 import IdleBadge from '@/components/idle-badge';
 import type { IdleTier } from '@/components/idle-badge';
-import { Badge } from '@/components/ui/badge';
+import TagBadge from '@/components/tag-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Empty,
@@ -76,13 +76,9 @@ export default function OldestInReviewCard({ documents, viewAllHref }: OldestInR
                                         {doc.title}
                                     </Link>
                                     <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                                        <Badge
-                                            variant="outline"
-                                            className="h-auto max-w-40 text-left text-[0.7rem] font-medium break-words whitespace-normal text-foreground"
-                                            title={doc.organizationName}
-                                        >
+                                        <TagBadge className="max-w-40 text-[0.7rem]" title={doc.organizationName}>
                                             {doc.organizationName}
-                                        </Badge>
+                                        </TagBadge>
                                         <span className="break-words">at {doc.approverName}</span>
                                     </div>
                                 </div>

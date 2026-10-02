@@ -3,7 +3,7 @@ import { Building2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
-import { OrganizationStatusBadge } from '@/components/status-badge';
+import { OrganizationStatusBadge, RenewalBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -297,11 +297,7 @@ export default function OrganizationsIndex({
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
-                                            {org.renewalDue && (
-                                                <span className="rounded-sm bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">
-                                                    Renewal due
-                                                </span>
-                                            )}
+                                            {org.renewalDue && <RenewalBadge status="due" />}
                                             <OrganizationStatusBadge
                                                 status={org.status}
                                             />

@@ -43,8 +43,8 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
                 {data.renewalSeason && (
-                    <PageNotice tone="warning">
-                        Renewal season is open. Organizations can renew for A.Y. {year} now.
+                    <PageNotice tone="warning" title="Renewal season is open.">
+                        Organizations can renew for A.Y. {year} now.
                     </PageNotice>
                 )}
 

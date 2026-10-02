@@ -20,7 +20,6 @@ import { describe, expect, it } from 'vitest';
  */
 const PENDING = new Set<string>([
     'activity-proposals/show.tsx',
-    'admin/approvers/index.tsx',
     'review/activity-proposals/show.tsx',
 ]);
 

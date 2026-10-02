@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import CurrentPeriodController from '@/actions/App/Http/Controllers/Admin/CurrentPeriodController';
 import CenteredContainer from '@/components/centered-container';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -153,28 +154,31 @@ export default function CurrentPeriodSettings({
                                 <DialogTitle>
                                     Change current period to {termLabel(pendingTerm)}, {pendingYear}?
                                 </DialogTitle>
-                                <DialogDescription className="space-y-2">
+                                <DialogDescription>
                                     <span className="block">
                                         This applies system-wide: every new Activity Calendar
                                         submission from now on uses this period. Documents already
                                         submitted or approved under {current.label} (or any earlier
                                         period) are not affected.
                                     </span>
-                                    {opensRenewalSeason && (
-                                        <span className="block font-medium text-foreground">
-                                            {renewalNoticeRecipientCount > 0
-                                                ? `This opens renewal season — ${renewalNoticeRecipientCount} officer(s) will be emailed that renewal is now due.`
-                                                : 'This opens renewal season. No organizations currently appear to be due.'}
-                                        </span>
-                                    )}
-                                    {movesBackwards && (
-                                        <span className="block font-medium text-destructive">
-                                            This moves the system backwards. Organizations that
-                                            already renewed for a later period will appear active
-                                            again.
-                                        </span>
-                                    )}
-                                </DialogDescription>
+                                    </DialogDescription>
+                                {(opensRenewalSeason || movesBackwards) && (
+                                    <div className="flex flex-col gap-2">
+                                        {opensRenewalSeason && (
+                                            <PageNotice tone="info" title="This opens renewal season.">
+                                                {renewalNoticeRecipientCount > 0
+                                                    ? `${renewalNoticeRecipientCount} officer(s) will be emailed that renewal is now due.`
+                                                    : 'No organizations currently appear to be due.'}
+                                            </PageNotice>
+                                        )}
+                                        {movesBackwards && (
+                                            <PageNotice tone="warning" title="This moves the system backwards.">
+                                                Organizations that already renewed for a later period will appear
+                                                active again.
+                                            </PageNotice>
+                                        )}
+                                    </div>
+                                )}
 
                                 <Form
                                     {...CurrentPeriodController.update.form()}

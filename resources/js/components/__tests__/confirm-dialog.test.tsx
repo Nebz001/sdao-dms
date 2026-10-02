@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import PageNotice from '@/components/page-notice';
 
 /**
  * These specs pin down the dismissal contract that was the root cause of
@@ -205,5 +206,31 @@ describe('ConfirmDialog', () => {
         // caller's onOpenChange rather than any internal state, since this
         // instance was never given internal state to fall back on.
         expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+});
+
+describe('ConfirmDialog notice', () => {
+    it('shows a notice under the description, outside the description paragraph', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <ConfirmDialog
+                trigger={<button type="button">Open</button>}
+                title="Reject this account?"
+                description="This is permanent."
+                notice={
+                    <PageNotice tone="destructive" urgent title="Could not reject the account." />
+                }
+                confirmLabel="Reject"
+                onConfirm={() => {}}
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Open' }));
+
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent('Could not reject the account.');
+        // A notice is a block, so it must not sit inside the description's paragraph.
+        expect(screen.getByText('This is permanent.').contains(alert)).toBe(false);
     });
 });

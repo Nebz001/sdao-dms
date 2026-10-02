@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { Button } from '@/components/ui/button';
@@ -256,17 +257,23 @@ export default function ActivityLogIndex({
                         </div>
 
                         {dateRange && (
-                            <p className="text-sm text-muted-foreground sm:basis-full">
-                                Showing activity from {dateRange.from} to {dateRange.to}.{' '}
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    className="h-auto p-0"
-                                    onClick={() => setDateRange(null)}
+                            <div className="sm:basis-full">
+                                <PageNotice
+                                    tone="info"
+                                    action={
+                                        <Button
+                                            type="button"
+                                            variant="link"
+                                            className="h-auto p-0"
+                                            onClick={() => setDateRange(null)}
+                                        >
+                                            Show all dates
+                                        </Button>
+                                    }
                                 >
-                                    Show all dates
-                                </Button>
-                            </p>
+                                    Showing activity from {dateRange.from} to {dateRange.to}.
+                                </PageNotice>
+                            </div>
                         )}
 
                         {hasFilters && (
