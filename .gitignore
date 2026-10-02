@@ -33,3 +33,6 @@ yarn-error.log
 restore_errors.log
 # Full database dumps contain user data and password hashes; never commit them.
 /database_backup.sql
+
+# Local reference screenshots and mockups; never ship these.
+/tmp-reference
