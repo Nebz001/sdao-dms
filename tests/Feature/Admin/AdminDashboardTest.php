@@ -176,8 +176,8 @@ test('status distribution counts every status, including zero counts, scoped to 
         );
 });
 
-test('recent activity lists a submitted transition with the actor and document', function () {
-    $doc = inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+test('recent activity lists a submission with the actor, a badge, the org and a two-part summary', function () {
+    inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
@@ -185,13 +185,54 @@ test('recent activity lists a submitted transition with the actor and document',
         ->assertInertia(fn ($page) => $page
             ->has('recentActivity', 1)
             ->where('recentActivity.0.actorName', $this->studentAlpha->name)
-            ->where('recentActivity.0.action', 'submitted')
-            ->where('recentActivity.0.documentTitle', $doc->title)
+            ->where('recentActivity.0.badge', 'submitted')
             ->where('recentActivity.0.organizationName', 'Computing Society')
+            ->where('recentActivity.0.summary', 'Organization Registration: Computing Society')
         );
 });
 
-test('oldest in-review uses the latest transition as the activity clock, not documents.updated_at', function () {
+test('recent activity leaves out advanced, completed and withdrawn rows so an approval shows once', function () {
+    $doc = inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+    $this->engine->approve($doc, $this->sdaoA);
+    $this->engine->approve($doc->refresh(), $this->sdaoB);
+
+    // submitted + approved + approved + completed were written; completed is hidden.
+    expect($doc->transitions()->pluck('action')->map->value->all())->toContain('completed');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('recentActivity', 3)
+            ->where('recentActivity', fn ($rows) => collect($rows)->pluck('badge')->sort()->values()->all() === ['approved', 'approved', 'submitted'])
+        );
+});
+
+test('recent activity names a return by how many sections were flagged', function () {
+    $doc = inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Fix', ['organization_details', 'letter_of_intent']);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('recentActivity.0.badge', 'returned')
+            ->where('recentActivity.0.summary', '2 sections flagged on Organization Registration: Computing Society')
+        );
+});
+
+test('a resubmission reads as submitted, revised and resubmitted', function () {
+    $doc = inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Fix', ['general']);
+    $this->engine->resubmit($doc->refresh(), $this->studentAlpha);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('recentActivity.0.badge', 'submitted')
+            ->where('recentActivity.0.summary', 'Revised and resubmitted Organization Registration: Computing Society')
+        );
+});
+
+test('oldest in review uses the latest transition as the activity clock, not documents.updated_at', function () {
     $doc = inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
     // Backdate both the document row and its transition so the baseline is
     // "old" on every clock.
@@ -200,7 +241,7 @@ test('oldest in-review uses the latest transition as the activity clock, not doc
 
     // A partial SDAO approval (first of two required) writes a fresh
     // DocumentTransition, but ApprovalEngine::approve() returns early on
-    // unmet quorum WITHOUT saving the Document — documents.updated_at stays
+    // unmet quorum WITHOUT saving the Document, so documents.updated_at stays
     // stale even though real activity just happened.
     $this->engine->approve($doc, $this->sdaoA);
 
@@ -209,18 +250,15 @@ test('oldest in-review uses the latest transition as the activity clock, not doc
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('oldestInReview', 1)
-            // Reading documents.updated_at instead would show ~10 days; the
-            // partial approval's transition is what's actually recent.
-            ->where('oldestInReview.0.daysSinceActivity', 0)
+            ->where('oldestInReview.0.title', 'Organization Registration: Computing Society')
+            ->where('oldestInReview.0.approverName', 'SDAO Office')
+            // Reading documents.updated_at instead would show about 10 days.
+            ->where('oldestInReview.0.idleDays', 0)
+            ->where('oldestInReview.0.tier', 'fresh')
         );
 });
 
-test('recent activity and oldest in-review are each capped at 5 rows, not the old 8', function () {
-    // 7 short-chain submissions on the same org — more than the 5-row cap.
-    // Direct Document::factory() + engine->submit() (like inReviewRegistration
-    // already does elsewhere in this file) bypasses the "one active
-    // registration per org" action-layer guard, which is fine for seeding a
-    // count-only assertion here.
+test('recent activity and oldest in review are each capped at 5 rows', function () {
     for ($i = 0; $i < 7; $i++) {
         inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
     }
@@ -234,37 +272,55 @@ test('recent activity and oldest in-review are each capped at 5 rows, not the ol
         );
 });
 
-test('org compliance lists organizations with pending items and organizations genuinely overdue for renewal', function () {
+test('org compliance counts covered approved organizations and lists the top organizations with pending items', function () {
     inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
 
-    // itGuild has a lapsed approved registration — the org WAS approved, but
-    // its coverage is behind the current academic year, so it is genuinely
-    // overdue. This is the OrganizationStatusResolver-derived NeedsRenewal
-    // case orgCompliance()'s notRenewed list now sources from.
+    // IT Guild WAS approved but its coverage is behind the current academic
+    // year, so it is approved yet not covered.
     adminDashboardLapsedRegistration($this->itGuild);
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->has('orgCompliance.pending', 1)
+            ->where('orgCompliance.renewalSeason', false)
+            ->where('orgCompliance.total', 1)
+            ->where('orgCompliance.done', 0)
+            ->where('orgCompliance.pendingTotal', 1)
             ->where('orgCompliance.pending.0.organizationName', 'Computing Society')
             ->where('orgCompliance.pending.0.count', 1)
-            ->where('orgCompliance.notRenewed', fn ($orgs) => count($orgs) === 1)
-            ->where('orgCompliance.notRenewed.0.organizationName', 'IT Guild')
+            ->where('orgCompliance.viewAllHref', route('admin.organizations.index', ['status' => 'needs_renewal']))
         );
 });
 
-test('org compliance does not flag an organization that was never approved as not renewed', function () {
-    // Neither Computing Society nor IT Guild has ever been approved in this
-    // seed (MembershipSeeder wires memberships directly, not through
-    // SubmitOrganizationRegistration/Approve) — this is the exact bug the
-    // OrganizationStatusResolver-based rewrite fixes: a never-approved org
-    // must read Inactive/PendingReview, never NeedsRenewal.
+test('org compliance does not count an organization that was never approved', function () {
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('orgCompliance.notRenewed', fn ($orgs) => count($orgs) === 0)
+            ->where('orgCompliance.total', 0)
+            ->where('orgCompliance.done', 0)
+        );
+});
+
+test('org compliance lists at most four organizations with pending items, most first', function () {
+    foreach (range(1, 6) as $i) {
+        $org = Organization::factory()->create(['name' => "Org {$i}"]);
+        foreach (range(1, $i) as $n) {
+            Document::factory()->create([
+                'form_type' => FormType::OrganizationRegistration,
+                'organization_id' => $org->id,
+                'status' => DocumentStatus::Draft,
+            ]);
+        }
+    }
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('orgCompliance.pendingTotal', 6)
+            ->has('orgCompliance.pending', 4)
+            ->where('orgCompliance.pending.0.organizationName', 'Org 6')
+            ->where('orgCompliance.pending.0.count', 6)
         );
 });

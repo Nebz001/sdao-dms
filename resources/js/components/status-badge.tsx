@@ -72,6 +72,20 @@ const DEFAULT_ACTION_STYLE =
 type ActionBadgeProps = {
     action: string;
     className?: string;
+    /** "outline" is the small uppercase tinted chip the dashboard feed uses; "solid" is the default. */
+    appearance?: 'solid' | 'outline';
+};
+
+/**
+ * Tinted outline chips for the dashboard feed. The text uses the semantic
+ * "-foreground" token so it stays readable on its own tint in both themes.
+ */
+const outlineActionStyles: Record<string, string> = {
+    submitted: 'border-info/40 bg-info/10 text-info-foreground',
+    resubmitted: 'border-info/40 bg-info/10 text-info-foreground',
+    approved: 'border-success/40 bg-success/10 text-success-foreground',
+    returned: 'border-warning/40 bg-warning/10 text-warning-foreground',
+    rejected: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
 };
 
 /**
@@ -80,7 +94,22 @@ type ActionBadgeProps = {
  * recipe (solid fill, `text-background`/`text-white`) so both
  * badge types read as the same visual language.
  */
-export function ActionBadge({ action, className }: ActionBadgeProps) {
+export function ActionBadge({ action, className, appearance = 'solid' }: ActionBadgeProps) {
+    if (appearance === 'outline') {
+        return (
+            <Badge
+                variant="outline"
+                className={cn(
+                    'text-[0.65rem] font-semibold tracking-wide uppercase',
+                    outlineActionStyles[action] ?? 'text-muted-foreground',
+                    className,
+                )}
+            >
+                {statusLabel(action)}
+            </Badge>
+        );
+    }
+
     return (
         <Badge
             variant="outline"

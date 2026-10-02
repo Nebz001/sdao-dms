@@ -115,3 +115,42 @@ export function formatTimeRange(start: string, end: string): string {
 
     return `${formatTime(start)} – ${formatTime(end)}`;
 }
+
+/**
+ * A fixed, non-ticking activity time for dashboard feeds, in the wording a
+ * person would use: "Just now", "14 min ago", "1 hr ago", "3 hrs ago",
+ * "Yesterday", "3 days ago", then a short date. Computed once per render and
+ * never refreshed on a timer, so a dashboard figure does not change under the
+ * reader. `now` is injectable for tests.
+ */
+export function formatActivityTime(dateString: string, now: Date = new Date()): string {
+    const date = new Date(dateString);
+    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+    if (diffMinutes < 1) {
+        return 'Just now';
+    }
+
+    if (diffMinutes < 60) {
+        return `${diffMinutes} min ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+        return diffHours === 1 ? '1 hr ago' : `${diffHours} hrs ago`;
+    }
+
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diffDays = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+
+    if (diffDays <= 1) {
+        return 'Yesterday';
+    }
+
+    if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    }
+
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}

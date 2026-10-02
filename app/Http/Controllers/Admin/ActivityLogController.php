@@ -7,6 +7,7 @@ use App\Enums\TransitionAction;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentTransition;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +38,18 @@ class ActivityLogController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
+    /**
+     * The date as given when it is a real YYYY-MM-DD calendar date, else null.
+     */
+    private function validDate(string $value): ?string
+    {
+        if (! preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts)) {
+            return null;
+        }
+
+        return checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]) ? $value : null;
+    }
+
     public function index(Request $request): Response
     {
         // Unrecognized filter values are treated as "no filter" rather than
@@ -45,8 +58,14 @@ class ActivityLogController extends Controller
         $formType = FormType::tryFrom($request->string('form_type')->toString())?->value;
         $action = TransitionAction::tryFrom($request->string('action')->toString())?->value;
         $search = $request->string('search')->trim()->toString();
+        // `from` / `to` (YYYY-MM-DD, both days included) are the dashboard
+        // weekly chart's destination. An invalid date is treated as no filter.
+        $from = $this->validDate($request->string('from')->toString());
+        $to = $this->validDate($request->string('to')->toString());
 
         $base = DocumentTransition::query()
+            ->when($from, fn ($query, $value) => $query->where('created_at', '>=', Carbon::parse($value)->startOfDay()))
+            ->when($to, fn ($query, $value) => $query->where('created_at', '<', Carbon::parse($value)->addDay()->startOfDay()))
             ->when($formType, fn ($query, $value) => $query->whereHas(
                 'document',
                 fn ($q) => $q->where('form_type', $value)
@@ -99,6 +118,8 @@ class ActivityLogController extends Controller
                 'form_type' => $formType,
                 'action' => $action,
                 'search' => $search,
+                'from' => $from,
+                'to' => $to,
             ],
             'formTypes' => collect(FormType::cases())
                 ->map(fn (FormType $t) => ['value' => $t->value, 'label' => $t->label()])

@@ -7,6 +7,7 @@ use App\Dashboard\AdminAttentionData;
 use App\Dashboard\DocumentDisplayTitle;
 use App\Dashboard\InReviewSnapshot;
 use App\Dashboard\ReturnAnalytics;
+use App\Dashboard\WeeklySubmissions;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -15,12 +16,15 @@ use App\Enums\Role;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
 use App\Support\CurrentPeriod;
+use Carbon\Carbon;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -426,7 +430,7 @@ test('the dashboard sends the alert, tiles, stuck table, split and oldest list',
             ->where('tiles.0.label', 'Awaiting SDAO review')
             ->where('stuckByApprover.total', 1)
             ->where('waitingSplit.total', 1)
-            ->where('oldestWaiting.0.title', 'Organization Registration: Computing Society')
+            ->where('oldestInReview.0.title', 'Organization Registration: Computing Society')
         );
 });
 
@@ -665,5 +669,126 @@ test('the dashboard defers return analytics to a second request', function () {
                 ->where('returnAnalytics.reasons.rows.0.label', 'General')
                 ->where('returnAnalytics.reasons.rows.0.percent', 100)
             )
+        );
+});
+
+test('term ranges are read off the month to term calendar, half open', function (string $term, string $start, string $end) {
+    [$from, $to] = AcademicPeriod::fromString("2026-2027:{$term}")->termRange();
+
+    expect($from->toDateString())->toBe($start)
+        ->and($to->toDateString())->toBe($end);
+})->with([
+    'first term' => ['first_term', '2026-08-01', '2026-12-01'],
+    'second term' => ['second_term', '2026-12-01', '2027-04-01'],
+    'third term' => ['third_term', '2027-04-01', '2027-08-01'],
+]);
+
+/** Writes a transition at an exact moment for a throwaway document. */
+function attentionTransitionAt(Organization $org, string $action, string $when): void
+{
+    $doc = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $org->id,
+        'status' => DocumentStatus::InReview,
+    ]);
+    DocumentTransition::create([
+        'document_id' => $doc->id,
+        'actor_id' => null,
+        'action' => $action,
+        'from_status' => 'draft',
+        'to_status' => 'in_review',
+        'step_position' => 1,
+        'created_at' => $when,
+    ]);
+}
+
+test('weekly submissions chart the current term from its first week, labelling this week Now', function () {
+    $now = Carbon::parse('2026-10-02 10:00:00');
+    $period = AcademicPeriod::fromString('2026-2027:first_term');
+
+    foreach (['2026-09-29 09:00', '2026-09-30 09:00', '2026-10-01 09:00'] as $when) {
+        attentionTransitionAt($this->org, 'submitted', $when);
+    }
+    attentionTransitionAt($this->org, 'submitted', '2026-09-22 09:00');
+    // A resubmission is not a second submission.
+    attentionTransitionAt($this->org, 'resubmitted', '2026-10-01 11:00');
+
+    $data = app(WeeklySubmissions::class)->forPeriod($period, $now);
+
+    expect($data['termLabel'])->toBe('1st Term')
+        ->and($data['weeks'])->toHaveCount(10)
+        ->and($data['weeks'][0]['label'])->toBe('W1')
+        ->and($data['weeks'][8]['label'])->toBe('W9')
+        ->and($data['weeks'][9])->toMatchArray(['label' => 'Now', 'current' => true, 'count' => 3, 'start' => '2026-09-28'])
+        ->and($data['weeks'][8]['count'])->toBe(1)
+        ->and($data['thisWeek'])->toBe(3)
+        ->and($data['lastWeek'])->toBe(1)
+        ->and($data['delta'])->toBe(2);
+});
+
+test('a submission on the Monday boundary belongs to the new week only', function () {
+    $now = Carbon::parse('2026-10-02 10:00:00');
+    attentionTransitionAt($this->org, 'submitted', '2026-09-28 00:00:00');
+    attentionTransitionAt($this->org, 'submitted', '2026-09-27 23:59:59');
+
+    $data = app(WeeklySubmissions::class)->forPeriod(AcademicPeriod::fromString('2026-2027:first_term'), $now);
+
+    expect($data['thisWeek'])->toBe(1)->and($data['lastWeek'])->toBe(1);
+});
+
+test('after the term has ended the last week is not labelled Now', function () {
+    $now = Carbon::parse('2026-12-10 10:00:00');
+
+    $data = app(WeeklySubmissions::class)->forPeriod(AcademicPeriod::fromString('2026-2027:first_term'), $now);
+    $last = collect($data['weeks'])->last();
+
+    expect($last['current'])->toBeFalse()->and($last['label'])->not->toBe('Now');
+});
+
+test('a term that has not started yet has no weeks', function () {
+    $now = Carbon::parse('2026-10-02 10:00:00');
+
+    $data = app(WeeklySubmissions::class)->forPeriod(AcademicPeriod::fromString('2026-2027:second_term'), $now);
+
+    expect($data['weeks'])->toBe([])->and($data['delta'])->toBeNull();
+});
+
+test('the dashboard defers weekly submissions alongside the return analytics', function () {
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->missing('weeklySubmissions')
+            ->loadDeferredProps('analytics', fn ($reload) => $reload
+                ->has('weeklySubmissions.weeks')
+                ->has('returnAnalytics.reasons')
+            )
+        );
+});
+
+test('the activity log can be limited to a date range, inclusive of both days', function () {
+    attentionTransitionAt($this->org, 'submitted', '2026-09-01 12:00:00');
+    attentionTransitionAt($this->org, 'submitted', '2026-09-05 23:30:00');
+    attentionTransitionAt($this->org, 'submitted', '2026-09-09 08:00:00');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.activity.index', ['from' => '2026-09-02', 'to' => '2026-09-05']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.total', 1)
+            ->where('filters.from', '2026-09-02')
+            ->where('filters.to', '2026-09-05')
+        );
+});
+
+test('an invalid activity log date is ignored rather than trusted', function () {
+    attentionTransitionAt($this->org, 'submitted', '2026-09-01 12:00:00');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.activity.index', ['from' => 'not-a-date', 'to' => '2026-13-45']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.total', 1)
+            ->where('filters.from', null)
+            ->where('filters.to', null)
         );
 });

@@ -167,4 +167,30 @@ final readonly class AcademicPeriod
             Date::create($startYear + 1, 8, 1)->startOfDay(),
         ];
     }
+
+    /**
+     * [start, end) for this period's TERM, read off MONTH_TO_TERM so the term
+     * calendar stays stated in exactly one place (and is just as PROVISIONAL).
+     * The academic year runs August to July, so months are walked in that
+     * order.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    public function termRange(): array
+    {
+        $startYear = $this->startYear();
+        $months = array_merge(
+            array_map(fn (int $month) => [$startYear, $month], range(8, 12)),
+            array_map(fn (int $month) => [$startYear + 1, $month], range(1, 7)),
+        );
+
+        $inTerm = array_values(array_filter($months, fn (array $ym) => self::MONTH_TO_TERM[$ym[1]] === $this->term));
+        [$firstYear, $firstMonth] = $inTerm[0];
+        [$lastYear, $lastMonth] = $inTerm[count($inTerm) - 1];
+
+        return [
+            Date::create($firstYear, $firstMonth, 1)->startOfDay(),
+            Date::create($lastYear, $lastMonth, 1)->addMonth()->startOfDay(),
+        ];
+    }
 }

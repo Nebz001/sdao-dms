@@ -56,6 +56,8 @@ type Props = {
         form_type: string | null;
         action: string | null;
         search: string;
+        from?: string | null;
+        to?: string | null;
     };
     formTypes: FormTypeOption[];
     actions: ActionOption[];
@@ -75,6 +77,9 @@ export default function ActivityLogIndex({
     const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
     const [action, setAction] = useState(filters.action ?? ALL_ACTIONS);
     const [search, setSearch] = useState(filters.search);
+    const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(
+        filters.from && filters.to ? { from: filters.from, to: filters.to } : null,
+    );
     const [loading, setLoading] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
     const isFirstRender = useRef(true);
@@ -120,6 +125,11 @@ export default function ActivityLogIndex({
                 params.search = search.trim();
             }
 
+            if (dateRange) {
+                params.from = dateRange.from;
+                params.to = dateRange.to;
+            }
+
             reload(params);
         }, 400);
 
@@ -128,14 +138,16 @@ export default function ActivityLogIndex({
                 clearTimeout(debounceTimer.current);
             }
         };
-    }, [formType, action, search]);
+    }, [formType, action, search, dateRange]);
 
     const hasFilters =
+        dateRange !== null ||
         formType !== ALL_TYPES ||
         action !== ALL_ACTIONS ||
         search.trim() !== '';
 
     function clearFilters() {
+        setDateRange(null);
         setFormType(ALL_TYPES);
         setAction(ALL_ACTIONS);
         setSearch('');
@@ -242,6 +254,20 @@ export default function ActivityLogIndex({
                                 placeholder="Document title or organization…"
                             />
                         </div>
+
+                        {dateRange && (
+                            <p className="text-sm text-muted-foreground sm:basis-full">
+                                Showing activity from {dateRange.from} to {dateRange.to}.{' '}
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto p-0"
+                                    onClick={() => setDateRange(null)}
+                                >
+                                    Show all dates
+                                </Button>
+                            </p>
+                        )}
 
                         {hasFilters && (
                             <Button
