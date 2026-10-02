@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Approval\StepApproverResolver;
+use App\Dashboard\AdminAttentionData;
 use App\Enums\AccountStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -72,7 +73,7 @@ class AdminDashboardController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
-    public function index(StepApproverResolver $resolver, OrganizationStatusResolver $statusResolver): Response
+    public function index(StepApproverResolver $resolver, OrganizationStatusResolver $statusResolver, AdminAttentionData $attention): Response
     {
         $user = Auth::user();
         // Not sent as a page prop anymore — it's now a globally shared prop
@@ -90,7 +91,35 @@ class AdminDashboardController extends Controller
             'recentActivity' => $this->recentActivity(),
             'oldestInReview' => $this->oldestInReview(),
             'orgCompliance' => $this->orgCompliance($statusResolver, $period),
+            // Slice 1 additions (redesign): the new attention data. The old
+            // props above are removed as each card is rebuilt.
+            'upcomingAlert' => $this->upcomingAlert($attention),
+            'tiles' => $attention->tiles(),
+            'stuckByApprover' => $attention->stuckByApprover(),
+            'waitingSplit' => $attention->waitingSplit(),
+            'oldestWaiting' => $attention->oldestInReview(),
         ]);
+    }
+
+    /**
+     * The inline alert: activities within the next 7 days that are still not
+     * approved. Null (so the page hides the alert) when there are none.
+     *
+     * @return array{count: int, names: array<int, string>, href: string}|null
+     */
+    private function upcomingAlert(AdminAttentionData $attention): ?array
+    {
+        $activities = $attention->upcomingUnapprovedActivities();
+
+        if ($activities->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'count' => $activities->count(),
+            'names' => $activities->pluck('name')->all(),
+            'href' => route('admin.stuck-documents.index', ['view' => 'upcoming']),
+        ];
     }
 
     /**

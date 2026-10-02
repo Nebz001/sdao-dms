@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DocumentArchiveController;
 use App\Http\Controllers\Admin\OfficerChangeReviewController as AdminOfficerChangeReviewController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\PendingAccountController;
+use App\Http\Controllers\Admin\StuckDocumentsController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
 use App\Http\Controllers\AttachmentController;
@@ -256,6 +257,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // (App\Organizations\OrganizationStatusResolver) and requirements
         // checklist.
         Route::get('/organizations', [AdminOrganizationController::class, 'index'])->name('organizations.index');
+
+        // SDAO admin: every open document (with an approver or returned to
+        // its organization). Reached only from dashboard links, never the
+        // sidebar.
+        Route::get('/stuck-documents', [StuckDocumentsController::class, 'index'])->name('stuck-documents.index');
     });
 });
 

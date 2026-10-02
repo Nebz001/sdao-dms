@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Dashboard\AdminAttentionData;
 use App\Enums\OrganizationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
@@ -27,16 +28,23 @@ class OrganizationController extends Controller
      * to narrow what gets resolved and to match the rest of the app's
      * filter conventions.
      */
-    public function index(Request $request, OrganizationStatusResolver $statusResolver): Response
+    public function index(Request $request, OrganizationStatusResolver $statusResolver, AdminAttentionData $attention): Response
     {
         // Unrecognized filter values are treated as "no filter" rather than
         // trusted into the query — same defensive pattern as
         // RegistrationController/DocumentArchiveController.
         $status = OrganizationStatus::tryFrom($request->string('status')->toString())?->value;
         $search = $request->string('search')->trim()->toString();
+        // `adviser=none` is the dashboard tile's destination: approved
+        // organizations with no adviser bound. Any other value is ignored.
+        $withoutAdviser = $request->string('adviser')->toString() === 'none';
 
         $organizations = Organization::query()
             ->with(['school:id,name', 'program:id,name'])
+            ->when($withoutAdviser, fn ($query) => $query->whereIn(
+                'id',
+                $attention->approvedOrganizationsWithoutAdviser()->pluck('id'),
+            ))
             ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy('name')
             ->get();
@@ -93,6 +101,7 @@ class OrganizationController extends Controller
             ],
             'filters' => [
                 'status' => $status,
+                'adviser' => $withoutAdviser ? 'none' : null,
                 'search' => $search,
             ],
             // Values only — the client labels them with statusLabel() from

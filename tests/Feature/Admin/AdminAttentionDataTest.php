@@ -1,0 +1,435 @@
+<?php
+
+use App\ActivityProposals\StartProposalDraft;
+use App\ActivityProposals\SubmitActivityProposal;
+use App\Approval\ApprovalEngine;
+use App\Dashboard\AdminAttentionData;
+use App\Dashboard\DocumentDisplayTitle;
+use App\Dashboard\InReviewSnapshot;
+use App\Enums\DocumentStatus;
+use App\Enums\FormType;
+use App\Enums\OrganizationType;
+use App\Enums\ProposalCalendarMode;
+use App\Enums\Role;
+use App\Models\ActivityCalendar;
+use App\Models\CalendarActivity;
+use App\Models\Document;
+use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
+use App\Models\RoleAssignment;
+use App\Models\User;
+use App\Support\AcademicYear;
+use Database\Seeders\IdentitySeeder;
+use Database\Seeders\MembershipSeeder;
+use Database\Seeders\WorkflowTemplateSeeder;
+
+beforeEach(function () {
+    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->engine = app(ApprovalEngine::class);
+    $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
+    $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+});
+
+function attentionRegistration(Organization $org, ApprovalEngine $engine, User $submitter): Document
+{
+    $doc = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $org->id,
+        'status' => DocumentStatus::Draft,
+        'submitted_by' => $submitter->id,
+    ]);
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $doc->id,
+        'organization_type' => OrganizationType::CoCurricular,
+    ]);
+    $engine->submit($doc, $submitter);
+
+    return $doc->refresh();
+}
+
+/** A row on an Approved calendar, `$daysAhead` days from today. */
+function attentionCalendarActivity(Organization $org, int $daysAhead, string $name, DocumentStatus $status = DocumentStatus::Approved): CalendarActivity
+{
+    $doc = Document::create([
+        'form_type' => FormType::ActivityCalendar,
+        'variant' => null,
+        'title' => 'Calendar',
+        'status' => $status,
+        'current_step_position' => null,
+        'organization_id' => $org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => null,
+    ]);
+    $calendar = ActivityCalendar::create([
+        'document_id' => $doc->id,
+        'academic_year' => AcademicYear::current(),
+        'term' => 'first_term',
+    ]);
+
+    return CalendarActivity::create([
+        'activity_calendar_id' => $calendar->id,
+        'name' => $name,
+        'venue' => 'Auditorium',
+        'activity_date' => today()->addDays($daysAhead)->toDateString(),
+        'start_time' => '09:00',
+        'end_time' => '12:00',
+    ]);
+}
+
+/** An on-calendar proposal in review at the Adviser step. */
+function attentionProposalInReview(Organization $org, User $student, CalendarActivity $activity): Document
+{
+    $draft = app(StartProposalDraft::class)->execute(
+        actor: $student,
+        organization: $org,
+        mode: ProposalCalendarMode::OnCalendar,
+        data: ['calendar_activity_id' => $activity->id],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
+    );
+
+    app(SubmitActivityProposal::class)->execute(
+        actor: $student,
+        document: $draft,
+        objectives: "Overall Goal\n\nSpecific Objectives",
+        criteriaMechanics: 'Criteria',
+        programFlow: 'Flow',
+        expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
+    );
+
+    return $draft->refresh();
+}
+
+test('idle tiers are fresh under 3 days, aging from 3 to 7, stale over 7', function (int $days, string $tier) {
+    expect(InReviewSnapshot::tierFor($days))->toBe($tier);
+})->with([
+    'zero days' => [0, 'fresh'],
+    'two days' => [2, 'fresh'],
+    'three days' => [3, 'aging'],
+    'seven days' => [7, 'aging'],
+    'eight days' => [8, 'stale'],
+]);
+
+test('median is the middle value, rounding an even pair', function () {
+    expect(InReviewSnapshot::median([]))->toBe(0)
+        ->and(InReviewSnapshot::median([4]))->toBe(4)
+        ->and(InReviewSnapshot::median([1, 9, 3]))->toBe(3)
+        ->and(InReviewSnapshot::median([2, 4, 6, 10]))->toBe(5);
+});
+
+test('the SDAO step is one group and its documents idle from the latest transition', function () {
+    $first = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $second = attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $first->transitions()->update(['created_at' => now()->subDays(10)]);
+    $second->transitions()->update(['created_at' => now()->subDays(2)]);
+
+    $groups = app(InReviewSnapshot::class)->groups();
+
+    expect($groups)->toHaveCount(1)
+        ->and($groups->first())->toMatchArray([
+            'key' => 'sdao',
+            'name' => 'SDAO Office',
+            'line' => 'SDAO review step',
+            'waiting' => 2,
+            'oldest' => 10,
+            'median' => 6,
+            'tier' => 'stale',
+        ]);
+});
+
+test('a partial SDAO approval resets the idle clock because it writes a transition', function () {
+    $doc = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $doc->transitions()->update(['created_at' => now()->subDays(10)]);
+    $doc->update(['updated_at' => now()->subDays(10)]);
+
+    $this->engine->approve($doc, $this->sdaoA);
+
+    expect(app(InReviewSnapshot::class)->rows()->first()->idleDays)->toBe(0);
+});
+
+test('a proposal at the adviser step groups under the resolved adviser with the org as scope', function () {
+    $proposal = attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 20, 'Hack Day'));
+
+    $row = app(InReviewSnapshot::class)->rows()->firstWhere(fn ($r) => $r->document->is($proposal));
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    expect($row->approverKey)->toBe('user:'.$adviser->id)
+        ->and($row->approverName)->toBe($adviser->name)
+        ->and($row->approverLine)->toBe('Adviser, Computing Society');
+});
+
+test('a vacant seat is grouped as Unassigned and still counted', function () {
+    $proposal = attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 20, 'Hack Day'));
+    RoleAssignment::where('role', Role::Adviser->value)->where('organization_id', $this->org->id)->delete();
+
+    $row = app(InReviewSnapshot::class)->rows()->firstWhere(fn ($r) => $r->document->is($proposal));
+
+    expect($row->approverName)->toBe('Unassigned')
+        ->and($row->approverKey)->toStartWith('unassigned:adviser:');
+});
+
+test('per-approver counts add up to the waiting-on-an-approver number and the stuck tile', function () {
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 20, 'Hack Day'));
+
+    $attention = app(AdminAttentionData::class);
+    $tiles = collect($attention->tiles())->keyBy('key');
+    $grouped = $attention->stuckByApprover(100);
+
+    expect($grouped['rows'])->toHaveCount(2)
+        ->and(collect($grouped['rows'])->sum('waiting'))->toBe(3)
+        ->and($attention->waitingSplit()['approver']['count'])->toBe(3)
+        ->and($tiles['stuck_with_approvers']['count'])->toBe(3)
+        ->and($tiles['awaiting_sdao']['count'])->toBe(2);
+});
+
+test('returned documents are their own bucket and never appear in oldest in review', function () {
+    $inReview = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $returned = attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($returned, $this->sdaoA, 'Fix it', ['organization_details']);
+
+    $attention = app(AdminAttentionData::class);
+    $tiles = collect($attention->tiles())->keyBy('key');
+
+    expect($tiles['returned']['count'])->toBe(1)
+        ->and($tiles['returned']['hint'])->toBe('Waiting on 1 organization')
+        ->and($attention->waitingSplit())->toMatchArray(['total' => 2])
+        ->and($attention->waitingSplit()['org']['count'])->toBe(1)
+        ->and($attention->waitingSplit()['approver']['count'])->toBe(1)
+        ->and(collect($attention->oldestInReview())->pluck('id')->all())->toBe([$inReview->id]);
+});
+
+test('oldest in review is capped at five and ordered oldest first', function () {
+    foreach (range(1, 7) as $days) {
+        $doc = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+        $doc->transitions()->update(['created_at' => now()->subDays($days)]);
+    }
+
+    $idle = collect(app(AdminAttentionData::class)->oldestInReview())->pluck('idleDays')->all();
+
+    expect($idle)->toBe([7, 6, 5, 4, 3]);
+});
+
+test('the awaiting SDAO hint counts documents waiting over five days', function () {
+    $old = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $old->transitions()->update(['created_at' => now()->subDays(6)]);
+    attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+
+    $tile = collect(app(AdminAttentionData::class)->tiles())->firstWhere('key', 'awaiting_sdao');
+
+    expect($tile['count'])->toBe(2)
+        ->and($tile['hint'])->toBe('1 waiting over 5 days')
+        ->and($tile['hintTone'])->toBe('warning');
+});
+
+test('the stuck tile hint reports the oldest idle days in plural form', function () {
+    $doc = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $doc->transitions()->update(['created_at' => now()->subDays(11)]);
+
+    $tile = collect(app(AdminAttentionData::class)->tiles())->firstWhere('key', 'stuck_with_approvers');
+
+    expect($tile['hint'])->toBe('Oldest idle 11 days')
+        ->and($tile['hintTone'])->toBe('destructive');
+});
+
+test('only approved organizations without an adviser count, and names show when there are three or fewer', function () {
+    // Pending registration: never approved, so no adviser gap.
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $approved = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->itGuild->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+    RoleAssignment::where('role', Role::Adviser->value)->where('organization_id', $this->itGuild->id)->delete();
+
+    $attention = app(AdminAttentionData::class);
+    $tile = collect($attention->tiles())->firstWhere('key', 'without_adviser');
+
+    expect($approved->exists)->toBeTrue()
+        ->and($tile['count'])->toBe(1)
+        ->and($tile['hint'])->toBe('IT Guild');
+});
+
+test('the upcoming alert lists approved-calendar activities in the next seven days with no approved proposal', function () {
+    attentionCalendarActivity($this->org, 3, 'General Assembly');
+    attentionCalendarActivity($this->org, 8, 'Too Far Away');
+    attentionCalendarActivity($this->org, -1, 'Already Happened');
+    attentionCalendarActivity($this->org, 2, 'Tentative Calendar', DocumentStatus::InReview);
+
+    $names = app(AdminAttentionData::class)->upcomingUnapprovedActivities()->pluck('name')->all();
+
+    expect($names)->toBe(['General Assembly']);
+});
+
+test('an activity whose proposal is approved leaves the alert', function () {
+    $activity = attentionCalendarActivity($this->org, 3, 'Seminar');
+    $proposal = attentionProposalInReview($this->org, $this->studentAlpha, $activity);
+
+    expect(app(AdminAttentionData::class)->upcomingUnapprovedActivities())->toHaveCount(1);
+
+    $proposal->update(['status' => DocumentStatus::Approved]);
+
+    expect(app(AdminAttentionData::class)->upcomingUnapprovedActivities())->toHaveCount(0);
+});
+
+test('an off-calendar proposal in draft counts but a rejected one does not', function () {
+    $draft = app(StartProposalDraft::class)->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        mode: ProposalCalendarMode::OffCalendar,
+        data: [
+            'title' => 'Surprise Outreach',
+            'venue' => 'Quadrangle',
+            'activity_date' => today()->addDays(2)->toDateString(),
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+        ],
+        attachmentFiles: proposalStepOneAttachmentFiles(),
+    );
+
+    expect(app(AdminAttentionData::class)->upcomingUnapprovedActivities()->pluck('name')->all())->toBe(['Surprise Outreach']);
+
+    $draft->update(['status' => DocumentStatus::Rejected]);
+
+    expect(app(AdminAttentionData::class)->upcomingUnapprovedActivities())->toHaveCount(0);
+});
+
+test('display titles are built from source models without em dashes or the org baked in', function () {
+    $registration = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $proposal = attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 20, 'Hack Day'));
+
+    expect(DocumentDisplayTitle::for($registration->load(DocumentDisplayTitle::relations())))->toBe('Organization Registration: Computing Society')
+        ->and(DocumentDisplayTitle::for($proposal->load(DocumentDisplayTitle::relations())))->toBe('Activity Proposal: Hack Day')
+        ->and(DocumentDisplayTitle::coverageLabel('2026-2027'))->toBe('2026 to 2027');
+});
+
+test('the display title falls back to the stored title with its prefix and org suffix removed', function () {
+    $doc = Document::factory()->create([
+        'form_type' => FormType::ActivityProposal,
+        'organization_id' => $this->org->id,
+        'title' => 'Activity Proposal — Orphaned Event (Computing Society)',
+    ]);
+
+    expect(DocumentDisplayTitle::for($doc))->toBe('Activity Proposal: Orphaned Event');
+});
+
+test('the stuck documents page lists in-review and returned documents and counts match the dashboard', function () {
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $returned = attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($returned, $this->sdaoA, 'Fix it', ['organization_details']);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.stuck-documents.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/stuck-documents/index')
+            ->where('mode', 'documents')
+            ->where('documents.meta.total', 2)
+            ->where('stats.withApprovers', 1)
+            ->where('stats.returned', 1)
+        );
+});
+
+test('the stuck documents page filters by who the document is waiting on', function () {
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $returned = attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($returned, $this->sdaoA, 'Fix it', ['organization_details']);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.stuck-documents.index', ['waiting_on' => 'approver']))
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.meta.total', 1)
+            ->where('documents.data.0.state', 'in_review')
+        );
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.stuck-documents.index', ['waiting_on' => 'org']))
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.meta.total', 1)
+            ->where('documents.data.0.state', 'returned')
+            ->where('documents.data.0.title', 'Organization Registration: IT Guild')
+        );
+});
+
+test('the stuck documents page filters by approver key, role, idle days and search, ignoring unknown values', function () {
+    $old = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $old->transitions()->update(['created_at' => now()->subDays(9)]);
+    attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+
+    $get = fn (array $query) => $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.stuck-documents.index', $query));
+
+    $get(['approver' => 'sdao'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 2));
+    $get(['approver' => 'user:999999'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 0));
+    $get(['role' => 'sdao_member'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 2));
+    $get(['role' => 'adviser'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 0));
+    $get(['idle' => 7])->assertInertia(fn ($page) => $page->where('documents.meta.total', 1));
+    $get(['search' => 'computing'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 1));
+    $get(['idle' => 4, 'waiting_on' => 'nonsense', 'role' => 'nope'])
+        ->assertInertia(fn ($page) => $page->where('documents.meta.total', 2)->where('filters.idle', null));
+});
+
+test('the upcoming view lists the activities behind the dashboard alert', function () {
+    attentionCalendarActivity($this->org, 3, 'General Assembly');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.stuck-documents.index', ['view' => 'upcoming']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('mode', 'upcoming')
+            ->where('activities.meta.total', 1)
+            ->where('activities.data.0.name', 'General Assembly')
+        );
+});
+
+test('only SDAO members can open the stuck documents page', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    $this->actingAs($this->studentAlpha)->withoutVite()->get(route('admin.stuck-documents.index'))->assertForbidden();
+    $this->actingAs($adviser)->withoutVite()->get(route('admin.stuck-documents.index'))->assertForbidden();
+});
+
+test('the organizations page can filter to approved organizations without an adviser', function () {
+    Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->itGuild->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+    RoleAssignment::where('role', Role::Adviser->value)->where('organization_id', $this->itGuild->id)->delete();
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.index', ['adviser' => 'none']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('organizations.meta.total', 1)
+            ->where('organizations.data.0.name', 'IT Guild')
+            ->where('filters.adviser', 'none')
+        );
+});
+
+test('the dashboard sends the alert, tiles, stuck table, split and oldest list', function () {
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    attentionCalendarActivity($this->org, 3, 'General Assembly');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('upcomingAlert.count', 1)
+            ->where('upcomingAlert.names.0', 'General Assembly')
+            ->has('tiles', 5)
+            ->where('tiles.0.label', 'Awaiting SDAO review')
+            ->where('stuckByApprover.total', 1)
+            ->where('waitingSplit.total', 1)
+            ->where('oldestWaiting.0.title', 'Organization Registration: Computing Society')
+        );
+});
+
+test('the dashboard has no alert when nothing upcoming is unapproved', function () {
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page->where('upcomingAlert', null));
+});
