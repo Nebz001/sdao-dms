@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Check, CircleDashed, Clock, Info } from 'lucide-react';
+import { RequirementBadge } from '@/components/status-badge';
 import { cn } from '@/lib/utils';
 
 export type RequirementState =
@@ -38,22 +39,6 @@ const STATE_ICON_CLASS: Record<RequirementState, string> = {
     action_needed: 'bg-warning/15 text-warning',
     not_applicable: 'bg-muted text-muted-foreground',
     info: 'bg-muted text-muted-foreground',
-};
-
-const STATE_LABEL: Record<RequirementState, string> = {
-    done: 'Done',
-    in_progress: 'In review',
-    action_needed: 'Missing',
-    not_applicable: 'Not due',
-    info: 'Info',
-};
-
-const STATE_BADGE_CLASS: Record<RequirementState, string> = {
-    done: 'border-transparent bg-success text-background',
-    in_progress: 'border-transparent bg-info text-background',
-    action_needed: 'border-transparent bg-warning text-background',
-    not_applicable: 'border-transparent bg-muted text-muted-foreground',
-    info: 'border-transparent bg-muted text-muted-foreground',
 };
 
 const RING_RADIUS = 30;
@@ -153,14 +138,7 @@ export default function RequirementsChecklist({
                                     {item.detail}
                                 </p>
                             </div>
-                            <span
-                                className={cn(
-                                    'shrink-0 rounded-sm px-2 py-0.5 text-[0.6875rem] font-semibold',
-                                    STATE_BADGE_CLASS[item.state],
-                                )}
-                            >
-                                {STATE_LABEL[item.state]}
-                            </span>
+                            <RequirementBadge status={item.state} />
                         </div>
                     );
 

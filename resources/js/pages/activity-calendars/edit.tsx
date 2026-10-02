@@ -2,7 +2,9 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,9 +117,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {errors.activities && (
-                        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                            {errors.activities}
-                        </div>
+                        <PageNotice tone="destructive" urgent title={errors.activities} />
                     )}
 
                     {/* Term is frozen at original submission — shown read-only. */}
@@ -167,7 +167,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         required
                                     />
                                     {errors[`activities.${i}.name`] && (
-                                        <p className="text-sm text-destructive">{errors[`activities.${i}.name`]}</p>
+                                        <InputError message={errors[`activities.${i}.name`]} />
                                     )}
                                 </div>
 
@@ -180,7 +180,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         required
                                     />
                                     {errors[`activities.${i}.venue`] && (
-                                        <p className="text-sm text-destructive">{errors[`activities.${i}.venue`]}</p>
+                                        <InputError message={errors[`activities.${i}.venue`]} />
                                     )}
                                 </div>
 
@@ -195,7 +195,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             required
                                         />
                                         {errors[`activities.${i}.activity_date`] && (
-                                            <p className="text-sm text-destructive">{errors[`activities.${i}.activity_date`]}</p>
+                                            <InputError message={errors[`activities.${i}.activity_date`]} />
                                         )}
                                     </div>
                                     <div className="grid gap-2">
@@ -207,7 +207,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             required
                                         />
                                         {errors[`activities.${i}.start_time`] && (
-                                            <p className="text-sm text-destructive">{errors[`activities.${i}.start_time`]}</p>
+                                            <InputError message={errors[`activities.${i}.start_time`]} />
                                         )}
                                     </div>
                                     <div className="grid gap-2">
@@ -219,7 +219,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                             required
                                         />
                                         {errors[`activities.${i}.end_time`] && (
-                                            <p className="text-sm text-destructive">{errors[`activities.${i}.end_time`]}</p>
+                                            <InputError message={errors[`activities.${i}.end_time`]} />
                                         )}
                                     </div>
                                 </div>
@@ -233,7 +233,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         onChange={(next) => updateActivity(i, 'sdg', next)}
                                     />
                                     {errors[`activities.${i}.sdg`] && (
-                                        <p className="text-sm text-destructive">{errors[`activities.${i}.sdg`]}</p>
+                                        <InputError message={errors[`activities.${i}.sdg`]} />
                                     )}
                                 </div>
 
@@ -246,9 +246,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         required
                                     />
                                     {errors[`activities.${i}.participant_program_assigned`] && (
-                                        <p className="text-sm text-destructive">
-                                            {errors[`activities.${i}.participant_program_assigned`]}
-                                        </p>
+                                        <InputError message={errors[`activities.${i}.participant_program_assigned`]} />
                                     )}
                                 </div>
 
@@ -263,7 +261,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         required
                                     />
                                     {errors[`activities.${i}.budget`] && (
-                                        <p className="text-sm text-destructive">{errors[`activities.${i}.budget`]}</p>
+                                        <InputError message={errors[`activities.${i}.budget`]} />
                                     )}
                                 </div>
 
@@ -275,7 +273,7 @@ export default function EditActivityCalendar({ document, calendar, sdgs, flagged
                                         rows={2}
                                     />
                                     {errors[`activities.${i}.description`] && (
-                                        <p className="text-sm text-destructive">{errors[`activities.${i}.description`]}</p>
+                                        <InputError message={errors[`activities.${i}.description`]} />
                                     )}
                                 </div>
                             </div>

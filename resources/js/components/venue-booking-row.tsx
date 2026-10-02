@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { VenueStatusBadge } from '@/components/status-badge';
 import { formatTimeRange } from '@/lib/utils';
 import type { VenueBooking } from '@/types/venue-calendar';
 
@@ -30,16 +30,7 @@ export default function VenueBookingRow({ booking, showVenue = false }: Props) {
                     </p>
                 )}
             </div>
-            <Badge
-                variant="outline"
-                className={
-                    isConfirmed
-                        ? 'shrink-0 border-success/20 bg-success/10 text-success-foreground'
-                        : 'shrink-0 border-warning/20 bg-warning/10 text-warning-foreground'
-                }
-            >
-                {isConfirmed ? 'Confirmed' : 'Tentative'}
-            </Badge>
+            <VenueStatusBadge status={isConfirmed ? 'confirmed' : 'tentative'} />
         </div>
     );
 }

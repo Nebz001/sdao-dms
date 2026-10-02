@@ -9,7 +9,6 @@ import PageNotice from '@/components/page-notice';
 import PartnerOrganizationsField from '@/components/partner-organizations-field';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -356,53 +355,32 @@ export default function CreateActivityProposal({
 
                                     {/* Live conflict preview */}
                                     {confirmedConflicts.length > 0 && (
-                                        <Card className="border-destructive bg-destructive/5">
-                                            <CardContent>
-                                                <p className="mb-2 text-sm font-medium text-destructive">
-                                                    Venue conflict — this slot
-                                                    is already booked:
+                                        <PageNotice
+                                            tone="destructive"
+                                            urgent
+                                            title="Venue conflict. This slot is already booked."
+                                        >
+                                            {confirmedConflicts.map((c, i) => (
+                                                <p key={i}>
+                                                    {c.name} ({c.organization}) ·{' '}
+                                                    {c.start_time}–{c.end_time}
                                                 </p>
-                                                {confirmedConflicts.map(
-                                                    (c, i) => (
-                                                        <p
-                                                            key={i}
-                                                            className="text-sm text-destructive"
-                                                        >
-                                                            {c.name} (
-                                                            {c.organization}) ·{' '}
-                                                            {c.start_time}–
-                                                            {c.end_time}
-                                                        </p>
-                                                    ),
-                                                )}
-                                            </CardContent>
-                                        </Card>
+                                            ))}
+                                        </PageNotice>
                                     )}
                                     {tentativeConflicts.length > 0 &&
                                         confirmedConflicts.length === 0 && (
-                                            <Card className="border-warning/40 bg-warning/10">
-                                                <CardContent>
-                                                    <p className="mb-2 text-sm font-medium text-warning-foreground">
-                                                        Possible conflict —
-                                                        another pending activity
-                                                        overlaps this slot:
+                                            <PageNotice
+                                                tone="warning"
+                                                title="Possible conflict. Another pending activity overlaps this slot."
+                                            >
+                                                {tentativeConflicts.map((c, i) => (
+                                                    <p key={i}>
+                                                        {c.name} ({c.organization}) ·{' '}
+                                                        {c.start_time}–{c.end_time}
                                                     </p>
-                                                    {tentativeConflicts.map(
-                                                        (c, i) => (
-                                                            <p
-                                                                key={i}
-                                                                className="text-sm text-warning-foreground"
-                                                            >
-                                                                {c.name} (
-                                                                {c.organization}
-                                                                ) ·{' '}
-                                                                {c.start_time}–
-                                                                {c.end_time}
-                                                            </p>
-                                                        ),
-                                                    )}
-                                                </CardContent>
-                                            </Card>
+                                                ))}
+                                            </PageNotice>
                                         )}
                                 </>
                             )}

@@ -12,6 +12,7 @@ import type {
 } from '@/components/approver-dashboard';
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import type { RequirementsData } from '@/components/requirements-checklist';
 import StudentDashboard from '@/components/student-dashboard';
 import type {
@@ -24,7 +25,6 @@ import type {
 } from '@/components/student-dashboard';
 import StudentDashboardSkeleton from '@/components/student-dashboard-skeleton';
 import type { SubmissionMonth } from '@/components/submissions-chart';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import * as calendar from '@/routes/calendar';
@@ -105,33 +105,29 @@ export default function Dashboard({
             <>
                 <Head title="Dashboard" />
                 <div className="mx-auto w-full max-w-2xl">
-                    <Alert>
-                        <Hourglass />
-                        <AlertTitle>Pending SDAO verification</AlertTitle>
-                        <AlertDescription>
-                            <p>
-                                Your account is awaiting review. Once SDAO
-                                verifies it, you&apos;ll be able to be bound as
-                                an organization officer and submit documents.
+                    <PageNotice tone="info" icon={Hourglass} title="Pending SDAO verification.">
+                        <p>
+                            Your account is awaiting review. Once SDAO verifies
+                            it, you&apos;ll be able to be bound as an
+                            organization officer and submit documents.
+                        </p>
+                        {pendingJoinRequest ? (
+                            <p className="mt-1">
+                                You also have a pending request to join{' '}
+                                <strong>
+                                    {pendingJoinRequest.organizationName}
+                                </strong>
+                                . It is waiting on both your account
+                                verification and the approval of its adviser or
+                                officers.
                             </p>
-                            {pendingJoinRequest ? (
-                                <p>
-                                    You also have a pending request to join{' '}
-                                    <strong>
-                                        {pendingJoinRequest.organizationName}
-                                    </strong>{' '}
-                                    — it&apos;s waiting on both your account
-                                    verification and its adviser/officers&apos;
-                                    approval.
-                                </p>
-                            ) : (
-                                <p>
-                                    There&apos;s nothing else to do right now —
-                                    check back later.
-                                </p>
-                            )}
-                        </AlertDescription>
-                    </Alert>
+                        ) : (
+                            <p className="mt-1">
+                                There&apos;s nothing else to do right now.
+                                Check back later.
+                            </p>
+                        )}
+                    </PageNotice>
                 </div>
             </>
         );
@@ -142,20 +138,16 @@ export default function Dashboard({
             <>
                 <Head title="Dashboard" />
                 <div className="mx-auto w-full max-w-2xl">
-                    <Alert variant="destructive">
-                        <Ban />
-                        <AlertTitle>Account not approved</AlertTitle>
-                        <AlertDescription>
-                            <p>
-                                SDAO reviewed your registration and it was not
-                                approved.
-                            </p>
-                            <p>
-                                Contact SDAO directly if you believe this was a
-                                mistake.
-                            </p>
-                        </AlertDescription>
-                    </Alert>
+                    <PageNotice tone="destructive" urgent icon={Ban} title="Account not approved.">
+                        <p>
+                            SDAO reviewed your registration and it was not
+                            approved.
+                        </p>
+                        <p className="mt-1">
+                            Contact SDAO directly if you believe this was a
+                            mistake.
+                        </p>
+                    </PageNotice>
                 </div>
             </>
         );
@@ -175,95 +167,80 @@ export default function Dashboard({
                 {!hasAnyCard ? (
                     <div className="mx-auto w-full max-w-2xl">
                         {pendingJoinRequest ? (
-                            <Alert>
-                                <Hourglass />
-                                <AlertTitle>Join request pending</AlertTitle>
-                                <AlertDescription>
-                                    <p>
-                                        Your request to join{' '}
-                                        <strong>
-                                            {
-                                                pendingJoinRequest.organizationName
-                                            }
-                                        </strong>{' '}
-                                        is waiting on its adviser or an active
-                                        officer. You&apos;ll be notified as soon
-                                        as it&apos;s decided.
-                                    </p>
-                                </AlertDescription>
-                            </Alert>
+                            <PageNotice tone="info" icon={Hourglass} title="Join request pending.">
+                                <p>
+                                    Your request to join{' '}
+                                    <strong>
+                                        {pendingJoinRequest.organizationName}
+                                    </strong>{' '}
+                                    is waiting on its adviser or an active
+                                    officer. You&apos;ll be notified as soon as
+                                    it&apos;s decided.
+                                </p>
+                            </PageNotice>
                         ) : auth.canProposeOrganization ? (
-                            <Alert>
-                                <FilePlus2 />
-                                <AlertTitle>
-                                    Ready to get your organization set up?
-                                </AlertTitle>
-                                <AlertDescription>
-                                    <p>
-                                        Your account is verified and you
-                                        aren&apos;t affiliated with an
-                                        organization yet. If your organization
-                                        isn&apos;t registered in the system, you
-                                        can submit its registration now — SDAO
-                                        will review it, and you&apos;ll be bound
-                                        as its president once it&apos;s
-                                        approved.
-                                    </p>
-                                    <p>
-                                        Already part of an existing
-                                        organization? Search for it and send a
-                                        request to join instead.
-                                    </p>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        <Button asChild>
-                                            <Link href={registrations.create()}>
-                                                Submit Registration
-                                            </Link>
-                                        </Button>
-                                        <Button asChild variant="outline">
-                                            <Link
-                                                href={organizationsJoin.create()}
-                                            >
-                                                <UserPlus data-icon="inline-start" />
-                                                Join an Organization
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <Alert>
-                                <UserCog />
-                                <AlertTitle>Nothing to do yet</AlertTitle>
-                                <AlertDescription>
-                                    <p>
-                                        Your account is verified, but you
-                                        aren&apos;t bound to an organization or
-                                        an approval role yet.
-                                    </p>
-                                    <p>
-                                        Search for your organization and send a
-                                        request to join, or check the{' '}
-                                        <Link
-                                            href={calendar.index()}
-                                            className="underline"
-                                        >
-                                            Venue Calendar
-                                        </Link>{' '}
-                                        in the meantime.
-                                    </p>
-                                    <Button
-                                        asChild
-                                        className="mt-2"
-                                        variant="outline"
-                                    >
+                            <PageNotice
+                                tone="neutral"
+                                icon={FilePlus2}
+                                title="Ready to get your organization set up?"
+                            >
+                                <p>
+                                    Your account is verified and you
+                                    aren&apos;t affiliated with an organization
+                                    yet. If your organization isn&apos;t
+                                    registered in the system, you can submit its
+                                    registration now. SDAO will review it, and
+                                    you&apos;ll be bound as its president once
+                                    it&apos;s approved.
+                                </p>
+                                <p className="mt-1">
+                                    Already part of an existing organization?
+                                    Search for it and send a request to join
+                                    instead.
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Button asChild>
+                                        <Link href={registrations.create()}>
+                                            Submit Registration
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline">
                                         <Link href={organizationsJoin.create()}>
                                             <UserPlus data-icon="inline-start" />
                                             Join an Organization
                                         </Link>
                                     </Button>
-                                </AlertDescription>
-                            </Alert>
+                                </div>
+                            </PageNotice>
+                        ) : (
+                            <PageNotice tone="neutral" icon={UserCog} title="Nothing to do yet.">
+                                <p>
+                                    Your account is verified, but you
+                                    aren&apos;t bound to an organization or an
+                                    approval role yet.
+                                </p>
+                                <p className="mt-1">
+                                    Search for your organization and send a
+                                    request to join, or check the{' '}
+                                    <Link
+                                        href={calendar.index()}
+                                        className="underline"
+                                    >
+                                        Venue Calendar
+                                    </Link>{' '}
+                                    in the meantime.
+                                </p>
+                                <Button
+                                    asChild
+                                    className="mt-3"
+                                    variant="outline"
+                                >
+                                    <Link href={organizationsJoin.create()}>
+                                        <UserPlus data-icon="inline-start" />
+                                        Join an Organization
+                                    </Link>
+                                </Button>
+                            </PageNotice>
                         )}
                     </div>
                 ) : (

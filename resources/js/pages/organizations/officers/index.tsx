@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -139,12 +140,12 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                                 This removes their ability to submit or act on documents for this
                                                 organization. Their history is retained, and the adviser can bind a
                                                 replacement afterward.
-                                                {deactivateError?.membershipId === m.id && (
-                                                    <span className="mt-2 block text-destructive">
-                                                        {deactivateError.message}
-                                                    </span>
-                                                )}
                                             </>
+                                        }
+                                        notice={
+                                            deactivateError?.membershipId === m.id && (
+                                                <PageNotice tone="destructive" urgent title={deactivateError.message} />
+                                            )
                                         }
                                         confirmLabel="Deactivate"
                                         confirmVariant="destructive"

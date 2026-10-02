@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -210,7 +211,9 @@ function PartnerOrganizationRow({ index, value, onChange, onRemove, canRemove, e
                 </p>
             )}
             {status === 'done' && searchFailed && (
-                <p className="text-sm text-destructive">Couldn't search organizations just now. Try again.</p>
+                <PageNotice tone="destructive" urgent title="Couldn't search organizations just now.">
+                    Try again.
+                </PageNotice>
             )}
             {status === 'done' && !searchFailed && results.length === 0 && value.organization_id === null && (
                 <p className="text-sm text-muted-foreground">

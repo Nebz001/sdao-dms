@@ -2,8 +2,8 @@ import { Form, Head, router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import ChangeTemporaryPasswordController from '@/actions/App/Http/Controllers/Settings/ChangeTemporaryPasswordController';
 import InputError from '@/components/input-error';
+import PageNotice from '@/components/page-notice';
 import PasswordInput from '@/components/password-input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -24,12 +24,9 @@ export default function ChangePassword({ passwordRules }: Props) {
             >
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
-                        <Alert>
-                            <KeyRound />
-                            <AlertDescription>
-                                You are using a temporary password. Set a new one to continue. You will stay logged in.
-                            </AlertDescription>
-                        </Alert>
+                        <PageNotice tone="info" icon={KeyRound} title="You are using a temporary password.">
+                            Set a new one to continue. You will stay logged in.
+                        </PageNotice>
 
                         <div className="grid gap-2">
                             <Label htmlFor="current_password">Temporary password</Label>

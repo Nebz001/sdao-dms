@@ -5,8 +5,11 @@ import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import GeneralRevisionNotice from '@/components/general-revision-notice';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
+import { ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -149,11 +152,10 @@ export default function EditRegistration({
                 </div>
 
                 {flaggedSections.includes('general') && (
-                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
-                        <p className="font-medium">General revisions requested</p>
-                        {flaggedSectionComments.general && <p className="mt-1">{flaggedSectionComments.general}</p>}
-                        {flaggedComment && <p className="mt-1 text-destructive/80">{flaggedComment}</p>}
-                    </div>
+                    <GeneralRevisionNotice
+                        sectionComment={flaggedSectionComments.general}
+                        comment={flaggedComment}
+                    />
                 )}
 
                 <Form
@@ -189,7 +191,9 @@ export default function EditRegistration({
                                     </p>
                                 )}
                                 {adviserTouched && adviserSearchStatus === 'done' && adviserSearchFailed && (
-                                    <p className="text-sm text-destructive">Couldn't search advisers just now. Try again.</p>
+                                    <PageNotice tone="destructive" urgent title="Couldn't search advisers just now.">
+                                        Try again.
+                                    </PageNotice>
                                 )}
                                 {adviserTouched &&
                                     adviserSearchStatus === 'done' &&
@@ -220,9 +224,7 @@ export default function EditRegistration({
                                                     {a.name} <span className="text-muted-foreground">({a.email})</span>
                                                 </span>
                                                 {!a.is_available && (
-                                                    <span className="text-xs text-warning-foreground">
-                                                        Assigned elsewhere
-                                                    </span>
+                                                    <ToneBadge tone="warning">Assigned elsewhere</ToneBadge>
                                                 )}
                                             </button>
                                         ))}

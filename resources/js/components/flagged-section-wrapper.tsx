@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { FlagBadge } from '@/components/status-badge';
 
 type Props = {
     sectionKey: string;
@@ -27,14 +27,10 @@ export default function FlaggedSectionWrapper({ sectionKey, flagged, comment, se
     const isFlagged = flagged.includes(sectionKey);
 
     return (
-        <div className={isFlagged ? 'space-y-2 rounded-lg ring-2 ring-destructive/60' : undefined}>
-            {isFlagged && (
-                <Badge variant="destructive" className="ml-1">
-                    Flagged for revision
-                </Badge>
-            )}
+        <div className={isFlagged ? 'space-y-2 rounded-lg ring-2 ring-warning/60' : undefined}>
+            {isFlagged && <FlagBadge flag="flagged" className="ml-1" />}
             {isFlagged && sectionComment && (
-                <p className="ml-1 text-sm font-medium text-destructive">{sectionComment}</p>
+                <p className="ml-1 text-sm font-medium text-warning-foreground">{sectionComment}</p>
             )}
             {isFlagged && comment && (
                 <p className="ml-1 text-sm text-muted-foreground">{comment}</p>

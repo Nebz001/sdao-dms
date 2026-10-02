@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CenteredContainer from '@/components/centered-container';
+import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
@@ -226,14 +227,10 @@ export default function CreateActivityCalendar({
 
                 <form onSubmit={submit} className="space-y-8">
                     {errors.period && (
-                        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                            {errors.period}
-                        </div>
+                        <PageNotice tone="destructive" urgent title={errors.period} />
                     )}
                     {errors.activities && (
-                        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                            {errors.activities}
-                        </div>
+                        <PageNotice tone="destructive" urgent title={errors.activities} />
                     )}
 
                     {/* Term is a global, admin-controlled setting — shown read-only. */}
@@ -299,30 +296,33 @@ export default function CreateActivityCalendar({
                                 {conflicts[i] && (
                                     <>
                                         {conflicts[i].confirmed.length > 0 && (
-                                            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                                ⛔ Confirmed conflict with
-                                                approved booking:{' '}
+                                            <PageNotice
+                                                tone="destructive"
+                                                urgent
+                                                title="Confirmed conflict with an approved booking."
+                                            >
                                                 {conflicts[i].confirmed
                                                     .map(
                                                         (c) =>
                                                             `"${c.name}" (${c.organization})`,
                                                     )
                                                     .join(', ')}
-                                            </div>
+                                            </PageNotice>
                                         )}
                                         {conflicts[i].tentative.length > 0 && (
-                                            <div className="rounded-md bg-warning/10 p-3 text-sm text-warning-foreground">
-                                                ⚠ Tentative overlap with pending
-                                                booking:{' '}
+                                            <PageNotice
+                                                tone="warning"
+                                                title="Tentative overlap with a pending booking."
+                                            >
                                                 {conflicts[i].tentative
                                                     .map(
                                                         (c) =>
                                                             `"${c.name}" (${c.organization})`,
                                                     )
-                                                    .join(', ')}{' '}
-                                                — warning only, you can still
-                                                submit.
-                                            </div>
+                                                    .join(', ')}
+                                                . This is a warning only. You can
+                                                still submit.
+                                            </PageNotice>
                                         )}
                                     </>
                                 )}
@@ -341,9 +341,7 @@ export default function CreateActivityCalendar({
                                         required
                                     />
                                     {errors[`activities.${i}.name`] && (
-                                        <p className="text-sm text-destructive">
-                                            {errors[`activities.${i}.name`]}
-                                        </p>
+                                        <InputError message={errors[`activities.${i}.name`]} />
                                     )}
                                 </div>
 
@@ -362,9 +360,7 @@ export default function CreateActivityCalendar({
                                         required
                                     />
                                     {errors[`activities.${i}.venue`] && (
-                                        <p className="text-sm text-destructive">
-                                            {errors[`activities.${i}.venue`]}
-                                        </p>
+                                        <InputError message={errors[`activities.${i}.venue`]} />
                                     )}
                                 </div>
 
@@ -387,13 +383,11 @@ export default function CreateActivityCalendar({
                                         {errors[
                                             `activities.${i}.activity_date`
                                         ] && (
-                                            <p className="text-sm text-destructive">
-                                                {
+                                            <InputError message={
                                                     errors[
                                                         `activities.${i}.activity_date`
                                                     ]
-                                                }
-                                            </p>
+                                                } />
                                         )}
                                     </div>
                                     <div className="grid gap-2">
@@ -413,13 +407,11 @@ export default function CreateActivityCalendar({
                                         {errors[
                                             `activities.${i}.start_time`
                                         ] && (
-                                            <p className="text-sm text-destructive">
-                                                {
+                                            <InputError message={
                                                     errors[
                                                         `activities.${i}.start_time`
                                                     ]
-                                                }
-                                            </p>
+                                                } />
                                         )}
                                     </div>
                                     <div className="grid gap-2">
@@ -437,13 +429,11 @@ export default function CreateActivityCalendar({
                                             required
                                         />
                                         {errors[`activities.${i}.end_time`] && (
-                                            <p className="text-sm text-destructive">
-                                                {
+                                            <InputError message={
                                                     errors[
                                                         `activities.${i}.end_time`
                                                     ]
-                                                }
-                                            </p>
+                                                } />
                                         )}
                                     </div>
                                 </div>
@@ -459,9 +449,7 @@ export default function CreateActivityCalendar({
                                         }
                                     />
                                     {errors[`activities.${i}.sdg`] && (
-                                        <p className="text-sm text-destructive">
-                                            {errors[`activities.${i}.sdg`]}
-                                        </p>
+                                        <InputError message={errors[`activities.${i}.sdg`]} />
                                     )}
                                 </div>
 
@@ -484,13 +472,11 @@ export default function CreateActivityCalendar({
                                     {errors[
                                         `activities.${i}.participant_program_assigned`
                                     ] && (
-                                        <p className="text-sm text-destructive">
-                                            {
+                                        <InputError message={
                                                 errors[
                                                     `activities.${i}.participant_program_assigned`
                                                 ]
-                                            }
-                                        </p>
+                                            } />
                                     )}
                                 </div>
 
@@ -511,9 +497,7 @@ export default function CreateActivityCalendar({
                                         required
                                     />
                                     {errors[`activities.${i}.budget`] && (
-                                        <p className="text-sm text-destructive">
-                                            {errors[`activities.${i}.budget`]}
-                                        </p>
+                                        <InputError message={errors[`activities.${i}.budget`]} />
                                     )}
                                 </div>
 
@@ -531,13 +515,11 @@ export default function CreateActivityCalendar({
                                         rows={2}
                                     />
                                     {errors[`activities.${i}.description`] && (
-                                        <p className="text-sm text-destructive">
-                                            {
+                                        <InputError message={
                                                 errors[
                                                     `activities.${i}.description`
                                                 ]
-                                            }
-                                        </p>
+                                            } />
                                     )}
                                 </div>
                             </div>

@@ -179,7 +179,7 @@ export default function ShowActivityCalendar({ document, calendar, history }: Pr
                                         <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
                                     )}
                                     {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-destructive">
+                                        <p className="mt-1 text-xs text-warning-foreground">
                                             Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
                                         </p>
                                     )}

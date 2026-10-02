@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageNotice from '@/components/page-notice';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,13 +27,10 @@ export default function DeleteUser() {
                 title="Delete account"
                 description="Delete your account and all of its resources"
             />
-            <div className="space-y-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                <div className="relative space-y-0.5 text-destructive">
-                    <p className="font-medium">Warning</p>
-                    <p className="text-sm">
-                        Please proceed with caution, this cannot be undone.
-                    </p>
-                </div>
+            <div className="space-y-4">
+                <PageNotice tone="destructive" title="Warning.">
+                    Please proceed with caution, this cannot be undone.
+                </PageNotice>
 
                 <Dialog>
                     <DialogTrigger asChild>

@@ -4,6 +4,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,25 +94,27 @@ export default function Profile({
 
                             {mustVerifyEmail &&
                                 auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
-                                            <Link
-                                                href={send()}
-                                                as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                            >
-                                                Click here to re-send the
-                                                verification email.
-                                            </Link>
-                                        </p>
+                                    <div className="flex flex-col gap-2">
+                                        <PageNotice
+                                            tone="warning"
+                                            title="Your email address is unverified."
+                                            action={
+                                                <Link
+                                                    href={send()}
+                                                    as="button"
+                                                    className="text-sm font-medium text-warning-foreground underline underline-offset-4 hover:no-underline"
+                                                >
+                                                    Re-send the verification email
+                                                </Link>
+                                            }
+                                        />
 
                                         {status ===
                                             'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-success">
+                                            <PageNotice tone="success">
                                                 A new verification link has been
                                                 sent to your email address.
-                                            </div>
+                                            </PageNotice>
                                         )}
                                     </div>
                                 )}

@@ -3,7 +3,6 @@ import { Building2, Check, UserCircle, Users, X } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { OrganizationStatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -69,21 +68,20 @@ export default function MyOrganization({
                 </PageNotice>
 
                 {renewalDue && (
-                    <Alert>
-                        <AlertTitle>Renewal is open</AlertTitle>
-                        <AlertDescription>
-                            <p>
-                                It&apos;s renewal season, and{' '}
-                                {organization.name} hasn&apos;t filed for next
-                                year yet.
-                            </p>
-                            <Button asChild size="sm" className="mt-2">
+                    <PageNotice
+                        tone="warning"
+                        title="Renewal is open."
+                        action={
+                            <Button asChild size="sm">
                                 <Link href={renewals.create().url}>
                                     Start renewal
                                 </Link>
                             </Button>
-                        </AlertDescription>
-                    </Alert>
+                        }
+                    >
+                        It&apos;s renewal season, and {organization.name} hasn&apos;t
+                        filed for next year yet.
+                    </PageNotice>
                 )}
 
                 <Card>

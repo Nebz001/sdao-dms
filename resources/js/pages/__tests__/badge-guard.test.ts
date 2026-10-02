@@ -19,7 +19,6 @@ import { describe, expect, it } from 'vitest';
  * slice is done this list is empty and the allowance is deleted.
  */
 const PENDING = new Set<string>([
-    'activity-proposals/show.tsx',
     'review/activity-proposals/show.tsx',
 ]);
 

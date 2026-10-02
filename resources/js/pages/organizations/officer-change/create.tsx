@@ -225,9 +225,9 @@ export default function RequestOfficerChange({
                         </p>
                     )}
                     {status === 'done' && searchFailed && (
-                        <p className="text-sm text-destructive">
-                            Couldn&apos;t search students just now. Try again.
-                        </p>
+                        <PageNotice tone="destructive" urgent title="Couldn't search students just now.">
+                            Try again.
+                        </PageNotice>
                     )}
                     {results.length > 0 && (
                         <div className="divide-y rounded-md border">
@@ -260,7 +260,7 @@ export default function RequestOfficerChange({
                 </div>
 
                 {submitError && (
-                    <p className="text-sm text-destructive">{submitError}</p>
+                    <PageNotice tone="destructive" urgent title={submitError} />
                 )}
 
                 <ConfirmDialog

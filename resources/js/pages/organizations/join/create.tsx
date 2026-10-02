@@ -169,10 +169,9 @@ export default function JoinOrganization({
                         </p>
                     )}
                     {status === 'done' && searchFailed && (
-                        <p className="text-sm text-destructive">
-                            Couldn&apos;t search organizations just now. Try
-                            again.
-                        </p>
+                        <PageNotice tone="destructive" urgent title="Couldn't search organizations just now.">
+                            Try again.
+                        </PageNotice>
                     )}
                     {results.length > 0 && (
                         <div className="divide-y rounded-md border">
@@ -220,9 +219,7 @@ export default function JoinOrganization({
                     </p>
 
                     {submitError && (
-                        <p className="text-sm text-destructive">
-                            {submitError}
-                        </p>
+                        <PageNotice tone="destructive" urgent title={submitError} />
                     )}
                 </div>
 

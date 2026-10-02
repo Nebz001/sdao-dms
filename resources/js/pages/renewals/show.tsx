@@ -134,12 +134,12 @@ export default function ShowRenewal({ document, detail, attachmentSlots, attachm
                                         </p>
                                     )}
                                     {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-destructive">
+                                        <p className="mt-1 text-xs text-warning-foreground">
                                             Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
                                         </p>
                                     )}
                                     {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
-                                        <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                        <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
                                             {Object.entries(entry.section_comments).map(([key, note]) => (
                                                 <li key={key}>
                                                     <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}

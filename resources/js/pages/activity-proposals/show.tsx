@@ -9,10 +9,11 @@ import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
 import { StatusBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
+import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -139,14 +140,10 @@ export default function ShowActivityProposal({
 
                 {/* Flash warnings */}
                 {flash?.warnings && flash.warnings.length > 0 && (
-                    <Card className="border-warning/40 bg-warning/10">
-                        <CardContent>
-                            <p className="text-sm font-medium text-warning-foreground">
-                                Submitted, but a possible venue conflict was
-                                detected:
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <PageNotice
+                        tone="warning"
+                        title="Submitted, but a possible venue conflict was detected."
+                    />
                 )}
 
                 {/* Activity summary */}
@@ -209,7 +206,7 @@ export default function ShowActivityProposal({
                                                     <li key={i} className="flex items-center gap-2">
                                                         {org.name}
                                                         {org.organization_id !== null && (
-                                                            <Badge variant="secondary">Linked</Badge>
+                                                            <TagBadge>Linked</TagBadge>
                                                         )}
                                                     </li>
                                                 ),
@@ -358,7 +355,7 @@ export default function ShowActivityProposal({
                                         {entry.flagged_sections &&
                                             entry.flagged_sections.length >
                                                 0 && (
-                                                <p className="mt-1 text-xs text-destructive">
+                                                <p className="mt-1 text-xs text-warning-foreground">
                                                     Flagged:{' '}
                                                     {entry.flagged_sections
                                                         .map(
@@ -373,7 +370,7 @@ export default function ShowActivityProposal({
                                         {entry.section_comments &&
                                             Object.keys(entry.section_comments)
                                                 .length > 0 && (
-                                                <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                                <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
                                                     {Object.entries(
                                                         entry.section_comments,
                                                     ).map(([key, note]) => (

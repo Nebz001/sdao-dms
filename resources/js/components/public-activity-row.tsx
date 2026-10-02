@@ -1,3 +1,4 @@
+import TagBadge from '@/components/tag-badge';
 import { formatTimeRange } from '@/lib/utils';
 import type { PublicActivity } from '@/types/public-activity';
 
@@ -58,9 +59,7 @@ export default function PublicActivityRow({ activity }: Props) {
                         ? `${timeRange} · ${activity.venue}`
                         : activity.venue}
                 </p>
-                <span className="mt-1.5 inline-flex max-w-full items-center truncate rounded-sm border border-primary-text/20 bg-primary-text/10 px-2 py-0.5 text-xs font-medium text-primary-text">
-                    {activity.organization}
-                </span>
+                <TagBadge className="mt-1.5">{activity.organization}</TagBadge>
             </div>
         </div>
     );

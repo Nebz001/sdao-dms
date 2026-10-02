@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
+import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
+import { ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -207,7 +210,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                     <div className="grid gap-2">
                         <Label htmlFor="name">Organization Name</Label>
                         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                        <InputError message={errors.name} />
                     </div>
 
                     <div className="grid gap-2">
@@ -237,7 +240,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                 ))}
                             </SelectContent>
                         </Select>
-                        {errors.organization_type && <p className="text-sm text-destructive">{errors.organization_type}</p>}
+                        <InputError message={errors.organization_type} />
                     </div>
 
                     {needsCollege && (
@@ -261,7 +264,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.school_id && <p className="text-sm text-destructive">{errors.school_id}</p>}
+                            <InputError message={errors.school_id} />
                         </div>
                     )}
 
@@ -280,7 +283,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.program_id && <p className="text-sm text-destructive">{errors.program_id}</p>}
+                            <InputError message={errors.program_id} />
                         </div>
                     )}
 
@@ -303,7 +306,9 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             </p>
                         )}
                         {adviserSearchStatus === 'done' && adviserSearchFailed && (
-                            <p className="text-sm text-destructive">Couldn't search advisers just now. Try again.</p>
+                            <PageNotice tone="destructive" urgent title="Couldn't search advisers just now.">
+                                Try again.
+                            </PageNotice>
                         )}
                         {adviserSearchStatus === 'done' &&
                             !adviserSearchFailed &&
@@ -327,19 +332,21 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                                             {a.name} <span className="text-muted-foreground">({a.email})</span>
                                         </span>
                                         {!a.is_available && (
-                                            <span className="text-xs text-warning-foreground">Assigned elsewhere</span>
+                                            <ToneBadge tone="warning">Assigned elsewhere</ToneBadge>
                                         )}
                                     </button>
                                 ))}
                             </div>
                         )}
                         {selectedAdviser && !selectedAdviser.is_available && (
-                            <div className="rounded-md bg-warning/10 p-3 text-sm text-warning-foreground">
-                                ⚠ This adviser is already assigned to another organization — you may still
-                                submit, but SDAO will need a different adviser to approve this.
-                            </div>
+                            <PageNotice
+                                tone="warning"
+                                title="This adviser is already assigned to another organization."
+                            >
+                                You may still submit, but SDAO will need a different adviser to approve this.
+                            </PageNotice>
                         )}
-                        {errors.adviser_id && <p className="text-sm text-destructive">{errors.adviser_id}</p>}
+                        <InputError message={errors.adviser_id} />
                     </div>
 
                     <div className="grid gap-2">
@@ -351,7 +358,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             placeholder="Full name of contact officer"
                             required
                         />
-                        {errors.contact_person && <p className="text-sm text-destructive">{errors.contact_person}</p>}
+                        <InputError message={errors.contact_person} />
                     </div>
 
                     <div className="grid gap-2">
@@ -363,7 +370,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             placeholder="e.g. 09171234567"
                             required
                         />
-                        {errors.contact_no && <p className="text-sm text-destructive">{errors.contact_no}</p>}
+                        <InputError message={errors.contact_no} />
                     </div>
 
                     <div className="grid gap-2">
@@ -376,7 +383,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             placeholder="organization@email.com"
                             required
                         />
-                        {errors.email_address && <p className="text-sm text-destructive">{errors.email_address}</p>}
+                        <InputError message={errors.email_address} />
                     </div>
 
                     <div className="grid gap-2">
@@ -388,7 +395,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             onChange={(e) => setDateOrganized(e.target.value)}
                             required
                         />
-                        {errors.date_organized && <p className="text-sm text-destructive">{errors.date_organized}</p>}
+                        <InputError message={errors.date_organized} />
                     </div>
 
                     <div className="grid gap-2">
@@ -402,7 +409,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
                             required
                         />
                         {errors.purpose_of_organization && (
-                            <p className="text-sm text-destructive">{errors.purpose_of_organization}</p>
+                            <InputError message={errors.purpose_of_organization} />
                         )}
                     </div>
 

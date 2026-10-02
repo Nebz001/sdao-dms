@@ -17,14 +17,14 @@ import DocumentStepTracker from '@/components/document-step-tracker';
 import type { TrackerStep } from '@/components/document-step-tracker';
 import FormTypeBadge from '@/components/form-type-badge';
 import { NotificationRow } from '@/components/notification-row';
+import PageNotice from '@/components/page-notice';
 import { RelativeTime } from '@/components/relative-time';
 import RequirementsChecklist from '@/components/requirements-checklist';
 import type { RequirementsData } from '@/components/requirements-checklist';
 import StatTile from '@/components/stat-tile';
-import { OrganizationStatusBadge, StatusBadge } from '@/components/status-badge';
+import { OrganizationStatusBadge, StatusBadge, ToneBadge } from '@/components/status-badge';
 import SubmissionsChart from '@/components/submissions-chart';
 import type { SubmissionMonth } from '@/components/submissions-chart';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -280,17 +280,14 @@ export default function StudentDashboard({
                                                         }
                                                     />
                                                     {item.flaggedCount > 0 && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="border-transparent bg-warning/10 text-[0.625rem] text-warning"
-                                                        >
+                                                        <ToneBadge tone="warning">
                                                             {item.flaggedCount}{' '}
                                                             section
                                                             {item.flaggedCount === 1
                                                                 ? ''
                                                                 : 's'}{' '}
                                                             flagged
-                                                        </Badge>
+                                                        </ToneBadge>
                                                     )}
                                                 </div>
                                                 <p className="mt-1 sm:truncate max-sm:break-words text-sm font-semibold">
@@ -619,10 +616,7 @@ export default function StudentDashboard({
                         )}
 
                         {upcoming.reportsDue.length > 0 && (
-                            <div className="rounded-md border border-warning/30 bg-warning/10 p-3">
-                                <p className="text-xs font-semibold text-warning">
-                                    Reports to file
-                                </p>
+                            <PageNotice tone="warning" title="Reports to file.">
                                 <div className="mt-1.5 divide-y divide-warning/20">
                                     {upcoming.reportsDue.map((report) => (
                                         <div
@@ -630,10 +624,10 @@ export default function StudentDashboard({
                                             className="flex items-center justify-between gap-3 py-1.5 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0 flex-1">
-                                                <p className="sm:truncate max-sm:break-words text-sm font-medium">
+                                                <p className="sm:truncate max-sm:break-words text-sm font-medium text-foreground">
                                                     {report.title}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs">
                                                     {report.daysSince}{' '}
                                                     day
                                                     {report.daysSince === 1
@@ -654,7 +648,7 @@ export default function StudentDashboard({
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </PageNotice>
                         )}
                     </CardContent>
                 </Card>

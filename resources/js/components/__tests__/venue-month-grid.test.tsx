@@ -40,7 +40,7 @@ describe('VenueMonthGrid', () => {
 
         const chip = screen.getByText('Auditorium');
 
-        expect(chip).toHaveClass('bg-success/15');
+        expect(chip).toHaveClass('bg-success/10');
     });
 
     it('renders a dashed outline chip for a tentative booking', () => {
@@ -64,7 +64,7 @@ describe('VenueMonthGrid', () => {
         const chip = screen.getByText('Gymnasium');
 
         expect(chip).toHaveClass('border-dashed');
-        expect(chip).not.toHaveClass('bg-success/15');
+        expect(chip).not.toHaveClass('bg-success/10');
     });
 
     it('shows both a confirmed and a tentative chip on the same day', () => {

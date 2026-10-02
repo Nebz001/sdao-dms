@@ -1,10 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
-import { AlertCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
+import PageNotice from '@/components/page-notice';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -56,19 +55,17 @@ export default function Login({ status, canResetPassword, retryAfterSeconds }: P
             <Head title="Log in" />
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
+                <div className="mb-4">
+                    <PageNotice tone="success">{status}</PageNotice>
                 </div>
             )}
 
             {throttled && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertCircleIcon />
-                    <AlertTitle>Too many attempts</AlertTitle>
-                    <AlertDescription>
+                <div className="mb-4">
+                    <PageNotice tone="destructive" urgent title="Too many attempts.">
                         Please wait {secondsRemaining}s before trying again.
-                    </AlertDescription>
-                </Alert>
+                    </PageNotice>
+                </div>
             )}
 
             <Form

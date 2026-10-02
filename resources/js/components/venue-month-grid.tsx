@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { ToneBadge } from '@/components/status-badge';
 import { buildMonthGrid } from '@/lib/month-grid';
+import { toneFor } from '@/lib/status-tones';
 import { cn, formatCalendarDate } from '@/lib/utils';
 import type { VenueBooking } from '@/types/venue-calendar';
 
@@ -218,18 +219,18 @@ export default function VenueMonthGrid({
 
                             <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
                                 {visible.map((booking) => (
-                                    <Badge
+                                    <ToneBadge
                                         key={booking.id}
-                                        variant="outline"
+                                        tone={toneFor('venue', booking.status === 'approved' ? 'confirmed' : 'tentative')}
                                         className={cn(
-                                            'block w-full truncate rounded-sm px-1 py-0 text-left text-[0.625rem] leading-4 font-normal',
-                                            booking.status === 'approved'
-                                                ? 'border-success/40 bg-success/15 text-success-foreground'
-                                                : 'border-dashed border-warning/50 bg-transparent text-warning-foreground',
+                                            'block w-full truncate rounded-sm px-1 py-0 text-left text-[0.625rem] leading-4 font-normal tracking-normal normal-case',
+                                            // A tentative booking keeps a dashed edge, so it differs from a confirmed
+                                            // one by shape as well as by color.
+                                            booking.status !== 'approved' && 'border-dashed',
                                         )}
                                     >
                                         {booking.venue}
-                                    </Badge>
+                                    </ToneBadge>
                                 ))}
                                 {overflowCount > 0 && (
                                     <span className="px-0.5 text-[0.625rem] text-muted-foreground">

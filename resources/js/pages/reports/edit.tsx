@@ -5,6 +5,7 @@ import AttachmentSlotField from '@/components/attachment-slot-field';
 import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import GeneralRevisionNotice from '@/components/general-revision-notice';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -58,11 +59,10 @@ export default function EditReport({
                 <PageHeader title="Edit & Resubmit Report" subtitle="Update the details below and resubmit for SDAO review." />
 
                 {flaggedSections.includes('general') && (
-                    <div className="rounded-md border border-destructive/60 bg-destructive/10 p-3 text-sm text-destructive">
-                        <p className="font-medium">General revisions requested</p>
-                        {flaggedSectionComments.general && <p className="mt-1">{flaggedSectionComments.general}</p>}
-                        {flaggedComment && <p className="mt-1 text-destructive/80">{flaggedComment}</p>}
-                    </div>
+                    <GeneralRevisionNotice
+                        sectionComment={flaggedSectionComments.general}
+                        comment={flaggedComment}
+                    />
                 )}
 
                 {detail?.activity && (
