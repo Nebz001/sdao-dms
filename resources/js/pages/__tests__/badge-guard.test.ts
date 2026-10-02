@@ -13,14 +13,9 @@ import { describe, expect, it } from 'vitest';
  *   1. an import of the raw shadcn badge, `@/components/ui/badge`;
  *   2. the old solid badge recipe, `border-transparent bg-<tone> text-...`.
  *
- * Pages that have not been migrated yet are listed in PENDING. The list only
- * shrinks: a page in it that no longer violates fails the test until it is
- * removed, and a page not in it that violates fails immediately. When the last
- * slice is done this list is empty and the allowance is deleted.
+ * Every page has been migrated, so there is no allowance list: any page that
+ * imports a raw badge or uses a solid badge recipe fails.
  */
-const PENDING = new Set<string>([
-    'review/activity-proposals/show.tsx',
-]);
 
 const PAGES_DIR = path.resolve(__dirname, '..');
 
@@ -60,22 +55,11 @@ describe('pages do not style their own badges', () => {
         expect(files.length).toBeGreaterThan(40);
     });
 
-    it('has no new page that imports a raw badge or a solid badge recipe', () => {
+    it('has no page that imports a raw badge or a solid badge recipe', () => {
         const offenders = files
-            .filter((f) => !PENDING.has(f.relative))
             .map((f) => ({ file: f.relative, found: violations(f.source) }))
             .filter((f) => f.found.length > 0);
 
         expect(offenders).toEqual([]);
-    });
-
-    it('keeps the pending list honest: every listed page still violates', () => {
-        const stale = [...PENDING].filter((file) => {
-            const page = files.find((f) => f.relative === file);
-
-            return !page || violations(page.source).length === 0;
-        });
-
-        expect(stale).toEqual([]);
     });
 });

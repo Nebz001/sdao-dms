@@ -10,7 +10,9 @@ import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import PrintFormButton from '@/components/print-form-button';
+import ReviewStatusNotice from '@/components/review-status-notice';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge } from '@/components/status-badge';
@@ -265,23 +267,21 @@ export default function ReviewRenewalShow({
                 )}
 
                 {canAct && hasApproved && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         You have already approved this step. Waiting for the
                         other SDAO member.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {isInReview && !canAct && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         This renewal has moved on to the next approver. No
                         further action is needed from you.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">
-                        {reviewOnlyStatusNote(document.status)}
-                    </p>
+                    <ReviewStatusNotice status={document.status}>{reviewOnlyStatusNote(document.status)}</ReviewStatusNotice>
                 )}
 
                 {/* History */}
@@ -312,7 +312,7 @@ export default function ReviewRenewalShow({
                                     )}
                                     {entry.flagged_sections &&
                                         entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-destructive">
+                                            <p className="mt-1 text-xs text-warning-foreground">
                                                 Flagged:{' '}
                                                 {entry.flagged_sections
                                                     .map(
@@ -327,7 +327,7 @@ export default function ReviewRenewalShow({
                                     {entry.section_comments &&
                                         Object.keys(entry.section_comments)
                                             .length > 0 && (
-                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                            <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
                                                 {Object.entries(
                                                     entry.section_comments,
                                                 ).map(([key, note]) => (

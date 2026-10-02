@@ -14,8 +14,8 @@ import OutcomeSplitBar from '@/components/outcome-split-bar';
 import { RelativeTime } from '@/components/relative-time';
 import ReviewActivityChart from '@/components/review-activity-chart';
 import StatTile from '@/components/stat-tile';
-import { ActionBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
+import { ActionBadge, FlagBadge } from '@/components/status-badge';
+import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -314,12 +314,7 @@ export default function ApproverDashboard({
                                                         </span>
                                                     </div>
                                                     {row.wasResubmitted && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="w-fit border-transparent bg-info/10 text-[0.625rem] text-info"
-                                                        >
-                                                            Resubmitted
-                                                        </Badge>
+                                                        <FlagBadge flag="resubmitted" className="w-fit" />
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -333,12 +328,7 @@ export default function ApproverDashboard({
                                                             : '—'}
                                                     </span>
                                                     {row.eventSoon && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="border-transparent bg-destructive/10 text-[0.625rem] text-destructive"
-                                                        >
-                                                            Urgent
-                                                        </Badge>
+                                                        <FlagBadge flag="urgent" />
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -505,9 +495,7 @@ export default function ApproverDashboard({
                                                 <FormTypeBadge
                                                     label={entry.formTypeLabel}
                                                 />
-                                                <span className="sm:truncate max-sm:break-words rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                                                    {entry.organizationName}
-                                                </span>
+                                                <TagBadge>{entry.organizationName}</TagBadge>
                                             </div>
                                         </div>
                                         <span className="w-20 shrink-0 text-right text-sm text-muted-foreground tabular-nums">

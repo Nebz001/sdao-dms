@@ -75,17 +75,6 @@ describe('PageNotice', () => {
         expect(row?.className).toContain('flex-wrap');
     });
 
-    it('still accepts the old up, down and flat names until the last page has moved', () => {
-        const { rerender } = render(<PageNotice tone="up">Up</PageNotice>);
-        expect(screen.getByRole('status').className).toContain('bg-success/10');
-
-        rerender(<PageNotice tone="down">Down</PageNotice>);
-        expect(screen.getByRole('status').className).toContain('bg-destructive/10');
-
-        rerender(<PageNotice tone="flat">Flat</PageNotice>);
-        expect(screen.getByRole('status').className).toContain('bg-muted-foreground/10');
-    });
-
     it('renders an action beside the message', () => {
         render(
             <PageNotice tone="destructive" action={<a href="/x">Open these 3</a>}>

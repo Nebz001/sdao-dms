@@ -12,12 +12,14 @@ import ExpenseItemsTable from '@/components/expense-items-table';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { Row } from '@/components/labeled-row';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
 import PrintFormButton from '@/components/print-form-button';
+import ReviewStatusNotice from '@/components/review-status-notice';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
+import TagBadge from '@/components/tag-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
@@ -171,23 +173,21 @@ export default function ReviewActivityProposalShow({
 
                 {/* Off-calendar conflict warning */}
                 {activityConflict && activityConflict.confirmed.length > 0 && (
-                    <Card className="border-destructive bg-destructive/5">
-                        <CardContent>
-                            <p className="text-sm font-medium text-destructive">
-                                Venue conflict — this activity overlaps an
-                                already-approved booking:
+                    <PageNotice
+                        tone="destructive"
+                        urgent
+                        title="Venue conflict. This activity overlaps an already-approved booking."
+                    >
+                        {activityConflict.confirmed.map((c, i) => (
+                            <p key={i}>
+                                {c.name} ({c.organization})
                             </p>
-                            {activityConflict.confirmed.map((c, i) => (
-                                <p key={i} className="text-sm text-destructive">
-                                    {c.name} ({c.organization})
-                                </p>
-                            ))}
-                            <p className="mt-2 text-sm text-destructive">
-                                Approval is blocked. Return this proposal to the
-                                submitter to resolve the conflict.
-                            </p>
-                        </CardContent>
-                    </Card>
+                        ))}
+                        <p className="mt-2">
+                            Approval is blocked. Return this proposal to the
+                            submitter to resolve the conflict.
+                        </p>
+                    </PageNotice>
                 )}
 
                 {/* Activity */}
@@ -250,7 +250,7 @@ export default function ReviewActivityProposalShow({
                                                     <li key={i} className="flex items-center gap-2">
                                                         {org.name}
                                                         {org.organization_id !== null && (
-                                                            <Badge variant="secondary">Linked</Badge>
+                                                            <TagBadge>Linked</TagBadge>
                                                         )}
                                                     </li>
                                                 ),
@@ -397,13 +397,11 @@ export default function ReviewActivityProposalShow({
                                 <>
                                     This action is irreversible once all
                                     required approvals are met.
-                                    {errors.approve && (
-                                        <span className="mt-2 block text-destructive">
-                                            {errors.approve}
-                                        </span>
-                                    )}
                                 </>
                             ),
+                            confirmNotice: errors.approve ? (
+                                <PageNotice tone="destructive" urgent title={errors.approve} />
+                            ) : undefined,
                             confirmDisabled:
                                 hasApproved || hasConfirmedConflict,
                             onConfirm: ({
@@ -446,16 +444,14 @@ export default function ReviewActivityProposalShow({
                 )}
 
                 {isInReview && !canAct && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         This proposal has moved on to the next approver. No
                         further action is needed from you.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">
-                        {reviewOnlyStatusNote(doc.status)}
-                    </p>
+                    <ReviewStatusNotice status={doc.status}>{reviewOnlyStatusNote(doc.status)}</ReviewStatusNotice>
                 )}
 
                 {/* Revision history */}
@@ -486,7 +482,7 @@ export default function ReviewActivityProposalShow({
                                     )}
                                     {entry.flagged_sections &&
                                         entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-destructive">
+                                            <p className="mt-1 text-xs text-warning-foreground">
                                                 Flagged:{' '}
                                                 {entry.flagged_sections
                                                     .map(
@@ -501,7 +497,7 @@ export default function ReviewActivityProposalShow({
                                     {entry.section_comments &&
                                         Object.keys(entry.section_comments)
                                             .length > 0 && (
-                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                            <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
                                                 {Object.entries(
                                                     entry.section_comments,
                                                 ).map(([key, note]) => (

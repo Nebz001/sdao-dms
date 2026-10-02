@@ -18,6 +18,8 @@ type ApproveConfig = {
     blocked?: ReactNode;
     confirmTitle: string;
     confirmDescription: ReactNode;
+    /** An inline message under the description, e.g. the error from a failed approval (PageNotice destructive, urgent). */
+    confirmNotice?: ReactNode;
     confirmLabel?: string;
     confirmDisabled?: boolean;
     onConfirm: (actions: ConfirmActions) => void;
@@ -101,6 +103,7 @@ export default function ApprovalActionsCard({
                             }
                             title={approve.confirmTitle}
                             description={approve.confirmDescription}
+                            notice={approve.confirmNotice}
                             confirmLabel={
                                 approve.confirmLabel ?? 'Confirm Approval'
                             }

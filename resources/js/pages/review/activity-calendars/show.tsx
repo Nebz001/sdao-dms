@@ -6,7 +6,9 @@ import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import PrintFormButton from '@/components/print-form-button';
+import ReviewStatusNotice from '@/components/review-status-notice';
 import { StatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
@@ -261,15 +263,18 @@ export default function ReviewActivityCalendarShow({
                                             </p>
                                         )}
                                         {conflict?.confirmed.length > 0 && (
-                                            <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
-                                                ⛔ Confirmed conflict:{' '}
+                                            <PageNotice
+                                                tone="destructive"
+                                                urgent
+                                                title="Confirmed conflict."
+                                            >
                                                 {conflict.confirmed
                                                     .map(
                                                         (c) =>
                                                             `"${c.name}" (${c.organization})`,
                                                     )
                                                     .join(', ')}
-                                            </div>
+                                            </PageNotice>
                                         )}
                                     </div>
                                 );
@@ -284,12 +289,15 @@ export default function ReviewActivityCalendarShow({
                         title="Review Actions"
                         approve={{
                             blocked: hasConfirmedConflict ? (
-                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                    ⛔ Cannot approve: one or more activities
-                                    conflict with an already-approved booking.
-                                    Return the document to the submitter to
-                                    resolve.
-                                </div>
+                                <PageNotice
+                                    tone="destructive"
+                                    urgent
+                                    title="Cannot approve."
+                                >
+                                    One or more activities conflict with an
+                                    already-approved booking. Return the
+                                    document to the submitter to resolve.
+                                </PageNotice>
                             ) : undefined,
                             confirmTitle: 'Approve this activity calendar?',
                             confirmDescription: (
@@ -297,13 +305,11 @@ export default function ReviewActivityCalendarShow({
                                     This action is irreversible once the SDAO
                                     quorum is met — every listed activity
                                     becomes an approved, venue-blocking booking.
-                                    {errors.approve && (
-                                        <span className="mt-2 block text-destructive">
-                                            {errors.approve}
-                                        </span>
-                                    )}
                                 </>
                             ),
+                            confirmNotice: errors.approve ? (
+                                <PageNotice tone="destructive" urgent title={errors.approve} />
+                            ) : undefined,
                             onConfirm: handleApprove,
                         }}
                         return={{
@@ -332,23 +338,21 @@ export default function ReviewActivityCalendarShow({
                 )}
 
                 {canAct && hasApproved && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         You have already approved this step. Waiting for the
                         other SDAO member.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {isInReview && !canAct && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         This activity calendar has moved on to the next
                         approver. No further action is needed from you.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">
-                        {reviewOnlyStatusNote(document.status)}
-                    </p>
+                    <ReviewStatusNotice status={document.status}>{reviewOnlyStatusNote(document.status)}</ReviewStatusNotice>
                 )}
 
                 {/* History */}
@@ -379,7 +383,7 @@ export default function ReviewActivityCalendarShow({
                                     )}
                                     {entry.flagged_sections &&
                                         entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-destructive">
+                                            <p className="mt-1 text-xs text-warning-foreground">
                                                 Flagged:{' '}
                                                 {entry.flagged_sections
                                                     .map(calendarFlagLabel)

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ApprovalActionsCard from '@/components/approval-actions-card';
+import PageNotice from '@/components/page-notice';
 
 const returnFormProps = { action: '/fake/return', method: 'post' as const };
 const rejectFormProps = { action: '/fake/reject', method: 'post' as const };
@@ -188,5 +189,31 @@ describe('ApprovalActionsCard', () => {
         expect(screen.getByRole('button', { name: 'Reject' })).toHaveClass(
             'bg-destructive',
         );
+    });
+});
+
+describe('ApprovalActionsCard confirmNotice', () => {
+    it('shows a failed approval as an urgent notice inside the confirm dialog', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <ApprovalActionsCard
+                {...baseProps({
+                    approve: {
+                        confirmTitle: 'Approve this document?',
+                        confirmDescription: 'This is irreversible.',
+                        confirmNotice: (
+                            <PageNotice tone="destructive" urgent title="The adviser is assigned elsewhere." />
+                        ),
+                        onConfirm: vi.fn(),
+                    },
+                })}
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Approve' }));
+
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).getByRole('alert')).toHaveTextContent('The adviser is assigned elsewhere.');
     });
 });

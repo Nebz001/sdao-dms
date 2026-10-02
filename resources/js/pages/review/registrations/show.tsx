@@ -10,7 +10,9 @@ import CenteredContainer from '@/components/centered-container';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import PageHeader from '@/components/page-header';
+import PageNotice from '@/components/page-notice';
 import PrintFormButton from '@/components/print-form-button';
+import ReviewStatusNotice from '@/components/review-status-notice';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
 import { StatusBadge } from '@/components/status-badge';
@@ -239,13 +241,17 @@ export default function ReviewRegistrationShow({
                             // (Phase 2 item 5 race-condition guard).
                             blocked:
                                 !adviserAvailable || errors.approve ? (
-                                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                        ⛔{' '}
-                                        {errors.approve ??
-                                            'Cannot approve: the chosen adviser is now assigned to a different organization.'}{' '}
+                                    <PageNotice
+                                        tone="destructive"
+                                        urgent
+                                        title={
+                                            errors.approve ??
+                                            'Cannot approve: the chosen adviser is now assigned to a different organization.'
+                                        }
+                                    >
                                         Return the document so the student can
                                         pick a different adviser.
-                                    </div>
+                                    </PageNotice>
                                 ) : undefined,
                             confirmTitle: 'Approve this registration?',
                             confirmDescription:
@@ -274,23 +280,21 @@ export default function ReviewRegistrationShow({
                 )}
 
                 {canAct && hasApproved && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         You have already approved this step. Waiting for the
                         other SDAO member.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {isInReview && !canAct && (
-                    <p className="text-sm text-muted-foreground">
+                    <PageNotice tone="info">
                         This registration has moved on to the next approver.
                         No further action is needed from you.
-                    </p>
+                    </PageNotice>
                 )}
 
                 {!isInReview && (
-                    <p className="text-sm text-muted-foreground">
-                        {reviewOnlyStatusNote(document.status)}
-                    </p>
+                    <ReviewStatusNotice status={document.status}>{reviewOnlyStatusNote(document.status)}</ReviewStatusNotice>
                 )}
 
                 {/* History */}
@@ -321,7 +325,7 @@ export default function ReviewRegistrationShow({
                                     )}
                                     {entry.flagged_sections &&
                                         entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-destructive">
+                                            <p className="mt-1 text-xs text-warning-foreground">
                                                 Flagged:{' '}
                                                 {entry.flagged_sections
                                                     .map(
@@ -336,7 +340,7 @@ export default function ReviewRegistrationShow({
                                     {entry.section_comments &&
                                         Object.keys(entry.section_comments)
                                             .length > 0 && (
-                                            <ul className="mt-1 space-y-0.5 text-xs text-destructive">
+                                            <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
                                                 {Object.entries(
                                                     entry.section_comments,
                                                 ).map(([key, note]) => (
