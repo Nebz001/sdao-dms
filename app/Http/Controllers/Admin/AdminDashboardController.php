@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Dashboard\AdminAttentionData;
+use App\Dashboard\ProposalFunnelData;
 use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
-use App\Enums\ProposalVariant;
-use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentTransition;
@@ -51,7 +49,7 @@ class AdminDashboardController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
-    public function index(OrganizationStatusResolver $statusResolver, AdminAttentionData $attention): Response
+    public function index(OrganizationStatusResolver $statusResolver, AdminAttentionData $attention, ProposalFunnelData $funnel): Response
     {
         // Not sent as a page prop anymore — it's now a globally shared prop
         // (HandleInertiaRequests::share()) driving the persistent navbar
@@ -62,7 +60,7 @@ class AdminDashboardController extends Controller
 
         return Inertia::render('admin/dashboard', [
             'statusDistribution' => $this->statusDistribution($yearStart, $yearEnd),
-            'proposalFunnel' => $this->proposalFunnel(),
+            'proposalFunnel' => $funnel->forAcademicYear($yearStart, $yearEnd),
             'recentActivity' => $this->recentActivity(),
             'oldestInReview' => $this->oldestInReview(),
             'orgCompliance' => $this->orgCompliance($statusResolver, $period),
@@ -96,12 +94,27 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Where a status segment or legend row links: the live lists for work in
+     * progress, the archive (this academic year only, matching the donut) for
+     * decided documents, and nothing for drafts, which have no list.
+     */
+    private function statusHref(DocumentStatus $status): ?string
+    {
+        return match ($status) {
+            DocumentStatus::InReview => route('admin.stuck-documents.index', ['waiting_on' => 'approver']),
+            DocumentStatus::Returned => route('admin.stuck-documents.index', ['waiting_on' => 'org']),
+            DocumentStatus::Approved, DocumentStatus::Rejected => route('admin.archive.index', ['status' => $status->value, 'academic_year' => 'current']),
+            DocumentStatus::Draft => null,
+        };
+    }
+
+    /**
      * All five statuses, across all five form types, scoped to the current
      * academic year — extends DocumentArchiveController's proven
      * `selectRaw('status, count(*)')` pattern to the full status set instead
      * of just the two terminal ones.
      *
-     * @return array<int, array{status: string, label: string, count: int}>
+     * @return array<int, array{status: string, count: int, href: string|null}>
      */
     private function statusDistribution(CarbonInterface $yearStart, CarbonInterface $yearEnd): array
     {
@@ -115,53 +128,8 @@ class AdminDashboardController extends Controller
             ->map(fn (DocumentStatus $s) => [
                 'status' => $s->value,
                 'count' => (int) ($counts[$s->value] ?? 0),
+                'href' => $this->statusHref($s),
             ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Where InReview activity proposals are sitting, grouped by variant then
-     * role — step POSITION alone is not comparable across variants (CLAUDE.md
-     * invariant #8: position 1 is the Adviser on-calendar but SDAO
-     * off-calendar), so this groups by variant first and labels each step by
-     * its actual role, never a raw number. The four short chains are
-     * single-step and are not duplicated here — their one number already
-     * lives in the quick-stats strip.
-     *
-     * @return array<int, array{variant: string, label: string, total: int, steps: array<int, array{role: string, count: int}>}>
-     */
-    private function proposalFunnel(): array
-    {
-        $rows = Document::query()
-            ->join('workflow_steps', function ($join) {
-                $join->on('workflow_steps.workflow_template_id', '=', 'documents.workflow_template_id')
-                    ->on('workflow_steps.position', '=', 'documents.current_step_position');
-            })
-            ->where('documents.form_type', FormType::ActivityProposal->value)
-            ->where('documents.status', DocumentStatus::InReview->value)
-            ->selectRaw('documents.variant as variant, workflow_steps.position as position, workflow_steps.role as role, count(*) as aggregate')
-            ->groupBy('documents.variant', 'workflow_steps.position', 'workflow_steps.role')
-            ->orderBy('workflow_steps.position')
-            ->get();
-
-        return collect(ProposalVariant::cases())
-            ->map(function (ProposalVariant $variant) use ($rows) {
-                $steps = $rows->where('variant', $variant->value)
-                    ->map(fn ($row) => [
-                        'role' => Role::from($row->role)->label(),
-                        'count' => (int) $row->aggregate,
-                    ])
-                    ->values();
-
-                return [
-                    'variant' => $variant->value,
-                    'label' => $variant->label(),
-                    'total' => (int) $steps->sum('count'),
-                    'steps' => $steps->all(),
-                ];
-            })
-            ->filter(fn (array $v) => $v['total'] > 0)
             ->values()
             ->all();
     }

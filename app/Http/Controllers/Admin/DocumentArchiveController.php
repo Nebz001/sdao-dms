@@ -6,6 +6,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,9 +55,13 @@ class DocumentArchiveController extends Controller
             ? $request->string('status')->toString()
             : null;
         $search = $request->string('search')->trim()->toString();
+        // `academic_year=current` is the dashboard donut's destination: the same
+        // created-this-academic-year window the donut counts, so the numbers match.
+        $currentYearOnly = $request->string('academic_year')->toString() === 'current';
 
         $base = Document::query()
             ->whereIn('status', self::ARCHIVED_STATUSES)
+            ->when($currentYearOnly, fn ($query) => $query->whereBetween('created_at', CurrentPeriod::get()->academicYearRange()))
             ->when($formType, fn ($query, $value) => $query->where('form_type', $value))
             ->when($search !== '', fn ($query) => $query->where(
                 fn ($q) => $q->where('title', 'like', "%{$search}%")
@@ -111,6 +116,7 @@ class DocumentArchiveController extends Controller
                 'form_type' => $formType,
                 'status' => $status,
                 'search' => $search,
+                'academic_year' => $currentYearOnly ? 'current' : null,
             ],
             'formTypes' => collect(FormType::cases())
                 ->map(fn (FormType $t) => ['value' => $t->value, 'label' => $t->label()])

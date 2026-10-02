@@ -1,13 +1,10 @@
 <?php
 
-use App\ActivityProposals\StartProposalDraft;
-use App\ActivityProposals\SubmitActivityProposal;
 use App\Approval\ApprovalEngine;
 use App\Enums\AccountStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
-use App\Enums\ProposalCalendarMode;
 use App\Enums\Role;
 use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
@@ -176,40 +173,6 @@ test('status distribution counts every status, including zero counts, scoped to 
             // range and must not be counted.
             ->where('statusDistribution.0.status', 'draft')
             ->where('statusDistribution.0.count', 0)
-        );
-});
-
-test('the proposal funnel groups an in-review proposal by variant and labels the step by role, not position', function () {
-    $activity = adminDashboardApprovedActivity($this->org);
-
-    $draft = app(StartProposalDraft::class)->execute(
-        actor: $this->studentAlpha,
-        organization: $this->org,
-        mode: ProposalCalendarMode::OnCalendar,
-        data: ['calendar_activity_id' => $activity->id],
-        attachmentFiles: proposalStepOneAttachmentFiles(),
-    );
-
-    app(SubmitActivityProposal::class)->execute(
-        actor: $this->studentAlpha,
-        document: $draft,
-        objectives: "Overall Goal\n\nSpecific Objectives",
-        criteriaMechanics: 'Criteria',
-        programFlow: 'Flow',
-        expenseItems: [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
-    );
-
-    $this->actingAs($this->sdaoA)->withoutVite()
-        ->get(route('admin.dashboard.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->has('proposalFunnel', 1)
-            ->where('proposalFunnel.0.variant', 'regular_on_calendar')
-            ->where('proposalFunnel.0.total', 1)
-            // Step 1 of the on-calendar chain is the Adviser (CLAUDE.md #8)
-            // — the label must say "Adviser", never a raw step number.
-            ->where('proposalFunnel.0.steps.0.role', 'Adviser')
-            ->where('proposalFunnel.0.steps.0.count', 1)
         );
 });
 

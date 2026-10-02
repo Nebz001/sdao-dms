@@ -433,3 +433,75 @@ test('the dashboard has no alert when nothing upcoming is unapproved', function 
         ->get(route('admin.dashboard.index'))
         ->assertInertia(fn ($page) => $page->where('upcomingAlert', null));
 });
+
+test('the proposal funnel counts proposals that cleared each step of their own chain, plus approved', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 20, 'Stays at adviser'));
+    $advanced = attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 21, 'Moves on'));
+    $this->engine->approve($advanced, $adviser);
+    $approved = attentionProposalInReview($this->org, $this->studentAlpha, attentionCalendarActivity($this->org, 22, 'Done'));
+    $approved->update(['status' => DocumentStatus::Approved]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('proposalFunnel', 1)
+            ->where('proposalFunnel.0.variant', 'regular_on_calendar')
+            ->where('proposalFunnel.0.label', 'Regular, On-Calendar')
+            ->where('proposalFunnel.0.submitted', 3)
+            ->where('proposalFunnel.0.approved', 1)
+            // The Adviser step is cleared by the advanced proposal and the
+            // approved one; Program Chair only by the approved one.
+            ->where('proposalFunnel.0.steps.0', ['label' => 'Adviser', 'count' => 2])
+            ->where('proposalFunnel.0.steps.1', ['label' => 'Program Chair', 'count' => 1])
+            ->where('proposalFunnel.0.steps.3.label', 'SDAO')
+        );
+});
+
+test('the proposal funnel only lists variants that have proposals this academic year, built from data not a fixed list', function () {
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page->has('proposalFunnel', 0));
+});
+
+test('status distribution rows link to the live lists and the current-year archive, never for drafts', function () {
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('statusDistribution.0.status', 'draft')
+            ->where('statusDistribution.0.href', null)
+            ->where('statusDistribution.1.href', route('admin.stuck-documents.index', ['waiting_on' => 'approver']))
+            ->where('statusDistribution.2.href', route('admin.stuck-documents.index', ['waiting_on' => 'org']))
+            ->where('statusDistribution.3.href', route('admin.archive.index', ['status' => 'approved', 'academic_year' => 'current']))
+            ->where('statusDistribution.4.href', route('admin.archive.index', ['status' => 'rejected', 'academic_year' => 'current']))
+        );
+});
+
+test('the archive can be limited to documents created in the current academic year', function () {
+    $current = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+    Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->itGuild->id,
+        'status' => DocumentStatus::Approved,
+        'created_at' => now()->subYears(3),
+    ]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index', ['academic_year' => 'current']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('documents.data', 1)
+            ->where('documents.data.0.id', $current->id)
+            ->where('filters.academic_year', 'current')
+        );
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertInertia(fn ($page) => $page->has('documents.data', 2)->where('filters.academic_year', null));
+});

@@ -2,11 +2,13 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { ChevronRight, CircleCheck, History, TriangleAlert } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
-import ProposalFunnelChart from '@/components/proposal-funnel-chart';
+import ProposalFunnelCard from '@/components/proposal-funnel-chart';
+import type { FunnelVariant } from '@/components/proposal-funnel-chart';
 import { RelativeTime } from '@/components/relative-time';
 import StatTile from '@/components/stat-tile';
 import { ActionBadge, StatusBadge } from '@/components/status-badge';
-import StatusDistributionPie from '@/components/status-distribution-pie';
+import StatusDistributionCard from '@/components/status-distribution-card';
+import type { StatusCount } from '@/components/status-distribution-card';
 import type { StuckByApprover } from '@/components/stuck-by-approver-card';
 import StuckByApproverCard from '@/components/stuck-by-approver-card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -14,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -40,17 +41,6 @@ type Tile = {
     href: string;
     hint: string;
     hintTone: 'muted' | 'warning' | 'destructive';
-};
-
-type StatusCount = { status: string; count: number };
-
-type FunnelStep = { role: string; count: number };
-
-type FunnelGroup = {
-    variant: string;
-    label: string;
-    total: number;
-    steps: FunnelStep[];
 };
 
 type ActivityEntry = {
@@ -86,7 +76,7 @@ type Props = {
     stuckByApprover: StuckByApprover;
     waitingSplit: WaitingSplit;
     statusDistribution: StatusCount[];
-    proposalFunnel: FunnelGroup[];
+    proposalFunnel: FunnelVariant[];
     recentActivity: ActivityEntry[];
     oldestInReview: AgingDocument[];
     orgCompliance: { pending: OrgWithPending[]; notRenewed: OrgNotRenewed[] };
@@ -146,8 +136,6 @@ export default function AdminDashboard({
     const { currentPeriod } = usePage().props;
     const academicYear = currentPeriod.academic_year;
     const getInitials = useInitials();
-    const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
-    const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
 
     return (
         <>
@@ -207,47 +195,9 @@ export default function AdminDashboard({
                     <WaitingSplitCard data={waitingSplit} />
                 </div>
 
-                {/* Default grid stretch (items-stretch): both cards match
-                    the row's tallest sibling instead of each sizing to its
-                    own content — the pie card's CardContent centers its
-                    (shorter) content vertically to fill that extra height
-                    gracefully rather than leaving it top-anchored. */}
                 <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Status Distribution
-                            </CardTitle>
-                            <CardDescription>
-                                {statusTotal > 0
-                                    ? `${statusTotal} documents in ${academicYear}`
-                                    : 'No documents in this academic year yet.'}
-                            </CardDescription>
-                        </CardHeader>
-                        {statusTotal > 0 && (
-                            <CardContent className="flex flex-1 items-center">
-                                <StatusDistributionPie data={statusDistribution} />
-                            </CardContent>
-                        )}
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Activity Proposal Funnel
-                            </CardTitle>
-                            <CardDescription>
-                                {proposalFunnel.length > 0
-                                    ? `${proposalTotal} proposals in review across ${proposalFunnel.length} chain variant${proposalFunnel.length === 1 ? '' : 's'}`
-                                    : 'No activity proposals are currently in review.'}
-                            </CardDescription>
-                        </CardHeader>
-                        {proposalFunnel.length > 0 && (
-                            <CardContent>
-                                <ProposalFunnelChart groups={proposalFunnel} />
-                            </CardContent>
-                        )}
-                    </Card>
+                    <StatusDistributionCard data={statusDistribution} />
+                    <ProposalFunnelCard funnels={proposalFunnel} />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">

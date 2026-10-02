@@ -54,6 +54,7 @@ type Props = {
         form_type: string | null;
         status: string | null;
         search: string;
+        academic_year?: string | null;
     };
     formTypes: FormTypeOption[];
     stats: { approved: number; rejected: number; total: number };
@@ -71,6 +72,7 @@ export default function DocumentArchiveIndex({
     const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
     const [status, setStatus] = useState(filters.status ?? ALL_STATUSES);
     const [search, setSearch] = useState(filters.search);
+    const [yearOnly, setYearOnly] = useState(filters.academic_year === 'current');
     const [loading, setLoading] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
     const isFirstRender = useRef(true);
@@ -115,6 +117,10 @@ export default function DocumentArchiveIndex({
                 params.search = search.trim();
             }
 
+            if (yearOnly) {
+                params.academic_year = 'current';
+            }
+
             reload(params);
         }, 400);
 
@@ -123,7 +129,7 @@ export default function DocumentArchiveIndex({
                 clearTimeout(debounceTimer.current);
             }
         };
-    }, [formType, status, search]);
+    }, [formType, status, search, yearOnly]);
 
     const hasFilters =
         formType !== ALL_TYPES ||
@@ -131,6 +137,7 @@ export default function DocumentArchiveIndex({
         search.trim() !== '';
 
     function clearFilters() {
+        setYearOnly(false);
         setFormType(ALL_TYPES);
         setStatus(ALL_STATUSES);
         setSearch('');
@@ -243,6 +250,20 @@ export default function DocumentArchiveIndex({
                                 placeholder="Title or organization…"
                             />
                         </div>
+
+                        {yearOnly && (
+                            <p className="text-sm text-muted-foreground sm:basis-full">
+                                Showing documents created in the current academic year.{' '}
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto p-0"
+                                    onClick={() => setYearOnly(false)}
+                                >
+                                    Show all years
+                                </Button>
+                            </p>
+                        )}
 
                         {hasFilters && (
                             <Button
