@@ -184,9 +184,9 @@ final readonly class AcademicPeriod
             array_map(fn (int $month) => [$startYear + 1, $month], range(1, 7)),
         );
 
-        $inTerm = array_values(array_filter($months, fn (array $ym) => self::MONTH_TO_TERM[$ym[1]] === $this->term));
-        [$firstYear, $firstMonth] = $inTerm[0];
-        [$lastYear, $lastMonth] = $inTerm[count($inTerm) - 1];
+        $inTerm = collect($months)->filter(fn (array $ym) => self::MONTH_TO_TERM[$ym[1]] === $this->term)->values();
+        [$firstYear, $firstMonth] = $inTerm->firstOrFail();
+        [$lastYear, $lastMonth] = $inTerm->reverse()->firstOrFail();
 
         return [
             Date::create($firstYear, $firstMonth, 1)->startOfDay(),

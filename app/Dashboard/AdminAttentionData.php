@@ -11,7 +11,6 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\OfficerChangeRequest;
 use App\Models\Organization;
-use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -245,10 +244,9 @@ class AdminAttentionData
             return $organizations->pluck('name')->implode(', ');
         }
 
-        $available = RoleAssignment::query()
-            ->where('role', Role::Adviser->value)
-            ->whereNull('organization_id')
-            ->whereHas('user', fn ($q) => $q->active())
+        $available = User::query()
+            ->active()
+            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value)->whereNull('organization_id'))
             ->count();
 
         return $available.' '.Str::plural('adviser', $available).' available to assign';

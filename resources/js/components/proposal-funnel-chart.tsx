@@ -152,7 +152,7 @@ export default function ProposalFunnelCard({ funnels }: { funnels: FunnelVariant
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Activity proposal funnel</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Activity proposal funnel</CardTitle>
                     <CardDescription>
                         {funnel
                             ? `${funnel.label} chain. Step position is not comparable across variants.`

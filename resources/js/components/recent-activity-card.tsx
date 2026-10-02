@@ -44,7 +44,7 @@ export default function RecentActivityCard({ entries, viewAllHref }: RecentActiv
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Recent activity</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Recent activity</CardTitle>
                     <CardDescription>Newest first</CardDescription>
                 </div>
                 <Link href={viewAllHref} className="shrink-0 text-sm text-primary-text hover:underline">
@@ -79,7 +79,7 @@ export default function RecentActivityCard({ entries, viewAllHref }: RecentActiv
                                         <ActionBadge action={entry.badge} appearance="outline" />
                                         <Badge
                                             variant="secondary"
-                                            className="max-w-40 truncate text-[0.7rem] font-normal"
+                                            className="h-auto max-w-40 text-left text-[0.7rem] font-normal break-words whitespace-normal"
                                             title={entry.organizationName}
                                         >
                                             {entry.organizationName}

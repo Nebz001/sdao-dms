@@ -7,6 +7,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\Role;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 use App\Models\Organization;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,13 @@ class InReviewSnapshot
      */
     public static function idleDays(Document $document): int
     {
-        return (int) ($document->latestTransition?->created_at ?? $document->created_at)->diffInDays(now());
+        $latest = $document->latestTransition;
+
+        // A document in review always has its Submitted transition; the
+        // creation time is only a guard for hand-built rows.
+        $lastActionAt = $latest instanceof DocumentTransition ? $latest->created_at : $document->created_at;
+
+        return (int) $lastActionAt->diffInDays(now());
     }
 
     /**

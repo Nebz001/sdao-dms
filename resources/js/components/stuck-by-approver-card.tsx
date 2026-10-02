@@ -50,7 +50,7 @@ export default function StuckByApproverCard({ data }: { data: StuckByApprover })
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Where documents are stuck</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Where documents are stuck</CardTitle>
                     <CardDescription>
                         In review documents grouped by the approver whose step they are sitting on
                     </CardDescription>
@@ -78,7 +78,7 @@ export default function StuckByApproverCard({ data }: { data: StuckByApprover })
                         </EmptyHeader>
                     </Empty>
                 ) : (
-                    <Table>
+                    <Table className="max-sm:[&_td]:px-1.5 max-sm:[&_th]:px-1.5">
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className={COLUMN_HEAD}>Approver</TableHead>
@@ -90,16 +90,16 @@ export default function StuckByApproverCard({ data }: { data: StuckByApprover })
                         <TableBody>
                             {data.rows.map((row) => (
                                 <TableRow key={row.key}>
-                                    <TableCell className="max-w-0 min-w-40">
+                                    <TableCell className="w-full max-w-0">
                                         <Link
                                             href={row.href}
-                                            className="block truncate text-sm font-semibold hover:underline"
+                                            className="block text-sm font-semibold hover:underline break-words"
                                             title={row.name}
                                         >
                                             {row.name}
                                         </Link>
                                         <p
-                                            className="truncate text-xs text-muted-foreground"
+                                            className="text-xs text-muted-foreground break-words"
                                             title={row.line}
                                         >
                                             {row.line}

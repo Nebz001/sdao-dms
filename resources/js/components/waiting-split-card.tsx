@@ -44,7 +44,7 @@ export default function WaitingSplitCard({ data }: { data: WaitingSplit }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Who are we waiting on</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="text-base">Who are we waiting on</CardTitle>
                 <CardDescription>
                     {data.total === 1
                         ? '1 document is open right now'

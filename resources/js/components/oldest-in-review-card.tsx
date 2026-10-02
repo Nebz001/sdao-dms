@@ -38,7 +38,7 @@ export default function OldestInReviewCard({ documents, viewAllHref }: OldestInR
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Oldest documents in review</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Oldest documents in review</CardTitle>
                     <CardDescription>
                         Idle time counted from the last real action, not from the last edit
                     </CardDescription>
@@ -70,7 +70,7 @@ export default function OldestInReviewCard({ documents, viewAllHref }: OldestInR
                                 <div className="min-w-0">
                                     <Link
                                         href={doc.href}
-                                        className="block truncate text-sm font-semibold hover:underline"
+                                        className="block text-sm font-semibold hover:underline break-words"
                                         title={doc.title}
                                     >
                                         {doc.title}
@@ -78,12 +78,12 @@ export default function OldestInReviewCard({ documents, viewAllHref }: OldestInR
                                     <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                                         <Badge
                                             variant="outline"
-                                            className="max-w-40 truncate text-[0.7rem] font-medium text-foreground"
+                                            className="h-auto max-w-40 text-left text-[0.7rem] font-medium break-words whitespace-normal text-foreground"
                                             title={doc.organizationName}
                                         >
                                             {doc.organizationName}
                                         </Badge>
-                                        <span className="truncate">at {doc.approverName}</span>
+                                        <span className="break-words">at {doc.approverName}</span>
                                     </div>
                                 </div>
                                 <IdleBadge days={doc.idleDays} tier={doc.tier} label="idle" />

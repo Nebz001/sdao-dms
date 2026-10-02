@@ -4,6 +4,7 @@ namespace App\Dashboard;
 
 use App\Enums\TransitionAction;
 use App\Models\DocumentTransition;
+use App\Models\User;
 use Illuminate\Support\Str;
 
 /**
@@ -48,7 +49,7 @@ class RecentActivityFeed
             ->get()
             ->map(fn (DocumentTransition $transition) => [
                 'id' => $transition->id,
-                'actorName' => $transition->actor?->name ?? 'System',
+                'actorName' => $transition->actor instanceof User ? $transition->actor->name : 'System',
                 'badge' => $this->badge($transition->action),
                 'organizationName' => $transition->document->organization->name,
                 'summary' => $this->summary($transition),

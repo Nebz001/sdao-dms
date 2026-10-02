@@ -295,7 +295,7 @@ export default function StuckDocumentsIndex({
                                             className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0">
-                                                <p className="text-sm font-semibold max-sm:break-words sm:truncate">
+                                                <p className="text-sm font-semibold break-words">
                                                     {activity.name}
                                                 </p>
                                                 <span className="mt-1 inline-block rounded-sm border px-1.5 py-0.5 text-xs text-muted-foreground">
@@ -420,7 +420,7 @@ export default function StuckDocumentsIndex({
                                 id="stuck-search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Document, organization or approver"
+                                placeholder="Document, org or approver"
                             />
                         </div>
 
@@ -474,7 +474,7 @@ export default function StuckDocumentsIndex({
                                         <div className="min-w-0">
                                             <Link
                                                 href={row.href}
-                                                className="block text-sm font-semibold hover:underline max-sm:break-words sm:truncate"
+                                                className="block text-sm font-semibold hover:underline break-words"
                                             >
                                                 {row.title}
                                             </Link>

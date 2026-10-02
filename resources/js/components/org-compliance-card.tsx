@@ -34,7 +34,7 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Organization compliance</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Organization compliance</CardTitle>
                     <CardDescription>Renewal opens when the term is set to 3rd</CardDescription>
                 </div>
                 <Link href={data.viewAllHref} className="shrink-0 text-sm text-primary-text hover:underline">
@@ -96,7 +96,7 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
                                             href={org.href}
                                             className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm transition-colors hover:border-primary-text/40 focus-visible:focus-ring-edge"
                                         >
-                                            <span className="min-w-0 truncate font-semibold" title={org.organizationName}>
+                                            <span className="min-w-0 font-semibold break-words" title={org.organizationName}>
                                                 {org.organizationName}
                                             </span>
                                             <span className="shrink-0 text-xs font-medium text-warning-foreground">

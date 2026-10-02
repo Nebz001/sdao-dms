@@ -73,7 +73,7 @@ class StuckDocumentsController extends Controller
 
         return Inertia::render('admin/stuck-documents/index', [
             'mode' => 'documents',
-            'documents' => $this->paginate($request, $rows),
+            'documents' => $this->paginate($request, $rows->all()),
             'activities' => null,
             'filters' => [
                 'waiting_on' => $waitingOn,
@@ -99,7 +99,7 @@ class StuckDocumentsController extends Controller
         return Inertia::render('admin/stuck-documents/index', [
             'mode' => 'upcoming',
             'documents' => null,
-            'activities' => $this->paginate($request, $attention->upcomingUnapprovedActivities()),
+            'activities' => $this->paginate($request, $attention->upcomingUnapprovedActivities()->all()),
             'filters' => [
                 'waiting_on' => null,
                 'approver' => null,
@@ -155,14 +155,14 @@ class StuckDocumentsController extends Controller
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $rows
-     * @return array{data: Collection<int, array<string, mixed>>, meta: array<string, int|null>, links: array<string, string|null>}
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, int|null>, links: array<string, string|null>}
      */
-    private function paginate(Request $request, Collection $rows): array
+    private function paginate(Request $request, array $rows): array
     {
         $page = max(1, $request->integer('page', 1));
-        $items = $rows->forPage($page, self::PER_PAGE)->values();
-        $paginator = new LengthAwarePaginator($items, $rows->count(), self::PER_PAGE, $page, [
+        $items = array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
+        $paginator = new LengthAwarePaginator($items, count($rows), self::PER_PAGE, $page, [
             'path' => $request->url(),
             'query' => $request->query(),
         ]);

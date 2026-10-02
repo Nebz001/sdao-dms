@@ -70,7 +70,7 @@ export default function StatusDistributionCard({ data }: { data: StatusCount[] }
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Status distribution</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="text-base">Status distribution</CardTitle>
                 <CardDescription>
                     {total > 0
                         ? 'All five form types, this academic year'

@@ -56,7 +56,7 @@ export default function WeeklySubmissionsCard({ data }: { data: WeeklySubmission
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div className="grid gap-1.5">
-                    <CardTitle className="text-base">Submissions per week</CardTitle>
+                    <CardTitle role="heading" aria-level={2} className="text-base">Submissions per week</CardTitle>
                     <CardDescription>{data.termLabel}, all form types</CardDescription>
                 </div>
                 {data.weeks.length > 0 && (
@@ -103,10 +103,10 @@ export default function WeeklySubmissionsCard({ data }: { data: WeeklySubmission
                                 </Bar>
                             </BarChart>
                         </ChartContainer>
-                        <ul className="sr-only">
+                        <ul className="sr-only focus-within:not-sr-only focus-within:mt-3 focus-within:flex focus-within:flex-wrap focus-within:gap-x-4 focus-within:gap-y-1 focus-within:text-xs">
                             {data.weeks.map((week) => (
                                 <li key={week.start}>
-                                    <Link href={week.href}>
+                                    <Link href={week.href} className="underline">
                                         {week.label}, week of {week.start}: {week.count} submitted
                                     </Link>
                                 </li>
@@ -124,7 +124,7 @@ export function WeeklySubmissionsSkeleton() {
     return (
         <Card aria-busy="true">
             <CardHeader>
-                <CardTitle className="text-base">Submissions per week</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="text-base">Submissions per week</CardTitle>
             </CardHeader>
             <CardContent>
                 <Skeleton className="h-[200px] w-full" />

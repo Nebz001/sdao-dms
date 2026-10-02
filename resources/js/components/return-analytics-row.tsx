@@ -58,7 +58,7 @@ function WhyReturnedCard({ reasons }: { reasons: ReturnAnalytics['reasons'] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Why documents get returned</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="text-base">Why documents get returned</CardTitle>
                 <CardDescription>
                     Sections flagged most often by approvers. High numbers usually mean the form or
                     the guidance is unclear, not that one org is careless.
@@ -74,7 +74,7 @@ function WhyReturnedCard({ reasons }: { reasons: ReturnAnalytics['reasons'] }) {
                                     className="block rounded-sm focus-visible:focus-ring-edge"
                                 >
                                     <span className="flex items-baseline justify-between gap-3 text-sm">
-                                        <span className="min-w-0 truncate" title={row.label}>
+                                        <span className="min-w-0 break-words" title={row.label}>
                                             {row.label}
                                         </span>
                                         <span className="font-semibold tabular-nums">{row.percent}%</span>
@@ -105,7 +105,7 @@ function ReturnRateCard({ rates }: { rates: ReturnAnalytics['rates'] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Return rate by form type</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="text-base">Return rate by form type</CardTitle>
                 <CardDescription>Share of submissions sent back at least once</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -116,7 +116,7 @@ function ReturnRateCard({ rates }: { rates: ReturnAnalytics['rates'] }) {
                                 href={row.href}
                                 className="grid grid-cols-[minmax(0,11rem)_1fr_3.5rem] items-center gap-3 rounded-sm text-sm focus-visible:focus-ring-edge"
                             >
-                                <span className="truncate" title={row.label}>
+                                <span className="break-words" title={row.label}>
                                     {row.label}
                                 </span>
                                 {row.percent !== null ? (
@@ -183,7 +183,7 @@ export function ReturnAnalyticsSkeleton() {
             {['Why documents get returned', 'Return rate by form type'].map((title) => (
                 <Card key={title}>
                     <CardHeader>
-                        <CardTitle className="text-base">{title}</CardTitle>
+                        <CardTitle role="heading" aria-level={2} className="text-base">{title}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
                         {Array.from({ length: 5 }).map((_, i) => (

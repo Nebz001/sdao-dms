@@ -34,10 +34,15 @@ export default function IdleBadge({ days, tier, label = 'compact', className }: 
     return (
         <Badge
             variant="outline"
-            aria-label={`Idle for ${days} ${days === 1 ? 'day' : 'days'} (${TIER_NAME[tier]})`}
             className={cn('font-mono font-semibold tabular-nums', TIER_STYLES[tier], className)}
         >
-            {days} d{label === 'idle' ? ' idle' : ''}
+            <span aria-hidden>
+                {days} d{label === 'idle' ? ' idle' : ''}
+            </span>
+            {/* A span cannot carry an aria-label, so the full reading is real text for assistive tech. */}
+            <span className="sr-only">
+                Idle for {days} {days === 1 ? 'day' : 'days'}, {TIER_NAME[tier]}
+            </span>
         </Badge>
     );
 }
