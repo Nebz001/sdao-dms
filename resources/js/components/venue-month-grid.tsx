@@ -158,16 +158,16 @@ export default function VenueMonthGrid({
         <div role="grid" aria-label={monthLabel}>
             <div
                 role="row"
-                className="grid grid-cols-7 gap-px text-center text-xs font-medium text-muted-foreground"
+                className="mb-1 grid grid-cols-7 gap-px text-center text-[0.65rem] font-medium tracking-wider text-muted-foreground uppercase sm:text-xs"
             >
                 {WEEKDAY_LABELS.map((label) => (
-                    <div key={label} role="columnheader" className="py-1">
+                    <div key={label} role="columnheader" className="py-1.5">
                         {label}
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-px overflow-hidden rounded-md border bg-border">
+            <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border/60">
                 {days.map((day, index) => {
                     const bookings = bookingsByDate[day.iso] ?? [];
                     const sorted = [...bookings].sort((a, b) =>
@@ -196,44 +196,51 @@ export default function VenueMonthGrid({
                             onKeyDown={(e) => handleKeyDown(e, index)}
                             onClick={() => onSelectDay(day.iso)}
                             className={cn(
-                                'flex min-h-20 flex-col items-stretch gap-0.5 bg-card p-1 text-left align-top transition-colors sm:min-h-24 sm:p-1.5',
+                                'flex h-[5.5rem] flex-col items-stretch gap-1 overflow-hidden bg-card p-1 text-left align-top transition-colors sm:h-28 sm:p-1',
                                 'hover:bg-accent focus-visible:focus-ring-inset',
-                                !day.inMonth &&
-                                    'bg-muted/40 text-muted-foreground',
-                                isSelected && 'ring-2 ring-primary-text ring-inset',
+                                !day.inMonth && 'bg-muted/30 opacity-60',
+                                isSelected &&
+                                    'ring-2 ring-primary-text ring-inset',
                             )}
                         >
                             <span
                                 className={cn(
-                                    'self-start text-xs',
-                                    day.isToday
-                                        ? 'flex size-5 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground ring-1 ring-brand-edge'
-                                        : 'px-0.5 text-muted-foreground',
-                                    day.inMonth &&
-                                        !day.isToday &&
-                                        'text-foreground',
+                                    'flex size-6 shrink-0 items-center justify-center self-start rounded-full text-xs font-medium',
+                                    isSelected
+                                        ? 'bg-primary text-primary-foreground'
+                                        : day.isToday
+                                          ? 'border border-primary-text font-semibold text-primary-text'
+                                          : day.inMonth
+                                            ? 'text-foreground'
+                                            : 'text-muted-foreground',
                                 )}
                             >
                                 {day.day}
                             </span>
 
-                            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
+                            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
                                 {visible.map((booking) => (
                                     <ToneBadge
                                         key={booking.id}
-                                        tone={toneFor('venue', booking.status === 'approved' ? 'confirmed' : 'tentative')}
+                                        tone={toneFor(
+                                            'venue',
+                                            booking.status === 'approved'
+                                                ? 'confirmed'
+                                                : 'tentative',
+                                        )}
                                         className={cn(
-                                            'block w-full truncate rounded-sm px-1 py-0 text-left text-[0.625rem] leading-4 font-normal tracking-normal normal-case',
+                                            'line-clamp-2 w-full rounded-md px-1 py-0.5 text-left text-[0.625rem] leading-3.5 font-medium tracking-normal break-words whitespace-normal normal-case max-sm:h-2.5 max-sm:overflow-hidden max-sm:p-0 max-sm:text-transparent',
                                             // A tentative booking keeps a dashed edge, so it differs from a confirmed
                                             // one by shape as well as by color.
-                                            booking.status !== 'approved' && 'border-dashed',
+                                            booking.status !== 'approved' &&
+                                                'border-dashed',
                                         )}
                                     >
                                         {booking.venue}
                                     </ToneBadge>
                                 ))}
                                 {overflowCount > 0 && (
-                                    <span className="px-0.5 text-[0.625rem] text-muted-foreground">
+                                    <span className="px-0.5 text-[0.65rem] font-medium text-muted-foreground">
                                         +{overflowCount} more
                                     </span>
                                 )}
