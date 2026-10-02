@@ -123,7 +123,10 @@
     --success: oklch(0.596 0.145 163.225); /* emerald-600 */
     --success-foreground: oklch(0.508 0.118 165.612); /* emerald-700 */
     --warning: oklch(0.666 0.179 58.318); /* amber-600 */
-    --warning-foreground: oklch(0.555 0.163 48.998); /* amber-700 */
+    /* amber-800, not 700: amber-700 on the 10% warning tint was 4.35:1 over
+       the page background (4.53:1 over a card); amber-800 is 6.1:1 or better,
+       so a warning badge or notice stays readable in the light theme. */
+    --warning-foreground: oklch(0.473 0.137 46.201); /* amber-800 */
     --info: oklch(0.588 0.158 241.966); /* sky-600 */
     --info-foreground: oklch(0.5 0.134 242.749); /* sky-700 */
     --border: oklch(0.92 0.004 286.32); /* zinc-200 */

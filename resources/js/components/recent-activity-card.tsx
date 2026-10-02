@@ -76,7 +76,7 @@ export default function RecentActivityCard({ entries, viewAllHref }: RecentActiv
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                         <span className="text-sm font-semibold">{entry.actorName}</span>
-                                        <ActionBadge action={entry.badge} appearance="outline" />
+                                        <ActionBadge action={entry.badge} />
                                         <Badge
                                             variant="secondary"
                                             className="h-auto max-w-40 text-left text-[0.7rem] font-normal break-words whitespace-normal"

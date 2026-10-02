@@ -9,16 +9,21 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-background text-foreground",
+        // One tinted recipe for every tone: a thin border and a very light
+        // tint of the tone, the icon in the tone's "-foreground" color, and
+        // the details a step softer than full foreground. The text keeps
+        // 4.5:1 or better on its own tint in both themes; the icon and the
+        // tint carry the tone, so color is never the only signal (PageNotice
+        // also prints a bold lead sentence).
         destructive:
-          "text-destructive-foreground [&>svg]:text-current *:data-[slot=alert-description]:text-destructive-foreground/80",
-        // Tonal states built on the same status tokens as StatusBadge. The
-        // text stays foreground so it keeps full contrast; the icon and the
-        // tinted surface carry the tone, so color is never the only signal.
+          "border-destructive/40 bg-destructive/10 [&>svg]:text-destructive-foreground *:data-[slot=alert-title]:text-destructive-foreground *:data-[slot=alert-description]:text-foreground/75",
         success:
-          "border-success/40 bg-success/10 [&>svg]:text-success-foreground *:data-[slot=alert-description]:text-foreground",
+          "border-success/40 bg-success/10 [&>svg]:text-success-foreground *:data-[slot=alert-title]:text-success-foreground *:data-[slot=alert-description]:text-foreground/75",
         warning:
-          "border-warning/40 bg-warning/10 [&>svg]:text-warning-foreground *:data-[slot=alert-description]:text-foreground",
-        info: "border-info/40 bg-info/10 [&>svg]:text-info-foreground *:data-[slot=alert-description]:text-foreground",
+          "border-warning/40 bg-warning/10 [&>svg]:text-warning-foreground *:data-[slot=alert-title]:text-warning-foreground *:data-[slot=alert-description]:text-foreground/75",
+        info: "border-info/40 bg-info/10 [&>svg]:text-info-foreground *:data-[slot=alert-title]:text-info-foreground *:data-[slot=alert-description]:text-foreground/75",
+        neutral:
+          "border-muted-foreground/40 bg-muted-foreground/10 [&>svg]:text-foreground/75 *:data-[slot=alert-title]:text-foreground *:data-[slot=alert-description]:text-foreground/75",
       },
     },
     defaultVariants: {
@@ -47,7 +52,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="alert-title"
       className={cn(
-        "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+        "col-start-2 line-clamp-1 min-h-4 font-semibold tracking-tight",
         className
       )}
       {...props}

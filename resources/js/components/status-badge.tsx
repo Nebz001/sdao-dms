@@ -1,169 +1,117 @@
+import type { ComponentProps } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { cn, statusLabel } from '@/lib/utils';
+import { labelFor, toneFor } from '@/lib/status-tones';
+import type { StatusDomain, Tone } from '@/lib/status-tones';
+import { cn } from '@/lib/utils';
 
 /**
- * Solid fill chips, not tinted — status is the one thing an approver scans
- * for, so it gets the loudest treatment on the page. `border-transparent` is
- * required, not decorative: app.css's `* { @apply border-border }` base rule
- * would otherwise paint a zinc outline around every chip. `text-background`
- * resolves to the correct on-fill color in both themes (near-white on the
- * 600-level light fills, near-black on the 500-level dark fills) without a
- * manual `dark:` branch. Draft stays a neutral `bg-muted` chip — the
- * "nothing happening yet" state shouldn't compete with the four active ones.
+ * The one status badge: small, outlined, uppercase and bold, with a thin
+ * border and a very light tint of the same color. Never a solid fill. The
+ * text uses the tone's "-foreground" token, which is the darker shade in the
+ * light theme, so it stays readable on its own tint (see the contrast table in
+ * the PR notes: every tone is 4.5:1 or better in both themes). Neutral is the
+ * gray tone for "nothing is happening" states such as Draft or Inactive.
+ *
+ * `border-<tone>/40` is explicit on purpose: app.css's `* { border-border }`
+ * base rule would otherwise paint a zinc outline around every chip.
  */
-const statusStyles: Record<string, string> = {
-    draft: 'border-transparent bg-muted text-muted-foreground',
-    in_review: 'border-transparent bg-info text-background',
-    returned: 'border-transparent bg-warning text-background',
-    approved: 'border-transparent bg-success text-background',
-    rejected: 'border-transparent bg-destructive text-white',
+const TONE_STYLES: Record<Tone, string> = {
+    success: 'border-success/40 bg-success/10 text-success-foreground',
+    info: 'border-info/40 bg-info/10 text-info-foreground',
+    warning: 'border-warning/40 bg-warning/10 text-warning-foreground',
+    destructive: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
+    neutral: 'border-muted-foreground/40 bg-muted-foreground/10 text-foreground/75',
 };
 
-type StatusBadgeProps = {
-    status: string;
-    className?: string;
+type ToneBadgeProps = Omit<ComponentProps<typeof Badge>, 'variant'> & {
+    tone: Tone;
 };
 
 /**
- * Shared solid-chip status badge used across every document list/show and
- * review page instead of a per-page `statusVariant` map. Squared like every
- * other badge (`rounded-sm`); the solid fill carries the status distinction
- * from the app's neutral count/role badges.
+ * The primitive every status badge is built on. Pages never style a badge
+ * themselves: they pass a status to one of the wrappers below, or a tone and
+ * words to this component when no status domain fits.
  */
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function ToneBadge({ tone, className, children, ...props }: ToneBadgeProps) {
     return (
         <Badge
             variant="outline"
             className={cn(
-                'font-semibold',
-                statusStyles[status] ?? statusStyles.draft,
+                'text-[0.65rem] font-semibold tracking-wide uppercase',
+                TONE_STYLES[tone],
                 className,
             )}
+            {...props}
         >
-            {statusLabel(status)}
+            {children}
         </Badge>
     );
 }
 
-/**
- * Colors every `App\Enums\TransitionAction` value using the exact same
- * info/success/warning/destructive family `statusStyles` above (and
- * StatusDistributionBar's STATUS_FILL) already use — never a new palette.
- * `submitted`/`resubmitted` share info (entering or re-entering the review
- * queue, same family as the "In Review" status); `approved`/`advanced`/
- * `completed` share success (all three are positive progress toward, or
- * arrival at, the terminal Approved state); `returned` is warning;
- * `rejected` is destructive. An unrecognized action falls back to a neutral
- * chip rather than guessing a color.
- */
-const actionStyles: Record<string, string> = {
-    submitted: 'border-transparent bg-info text-background',
-    resubmitted: 'border-transparent bg-info text-background',
-    approved: 'border-transparent bg-success text-background',
-    advanced: 'border-transparent bg-success text-background',
-    completed: 'border-transparent bg-success text-background',
-    returned: 'border-transparent bg-warning text-background',
-    rejected: 'border-transparent bg-destructive text-white',
-};
-
-const DEFAULT_ACTION_STYLE =
-    'border-transparent bg-muted text-muted-foreground';
-
-type ActionBadgeProps = {
-    action: string;
-    className?: string;
-    /** "outline" is the small uppercase tinted chip the dashboard feed uses; "solid" is the default. */
-    appearance?: 'solid' | 'outline';
-};
-
-/**
- * Tinted outline chips for the dashboard feed. The text uses the semantic
- * "-foreground" token so it stays readable on its own tint in both themes.
- */
-const outlineActionStyles: Record<string, string> = {
-    submitted: 'border-info/40 bg-info/10 text-info-foreground',
-    resubmitted: 'border-info/40 bg-info/10 text-info-foreground',
-    approved: 'border-success/40 bg-success/10 text-success-foreground',
-    returned: 'border-warning/40 bg-warning/10 text-warning-foreground',
-    rejected: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
-};
-
-/**
- * Solid-chip badge for a document-transition action (e.g. "Approved",
- * "Returned") — the action-verb sibling of `StatusBadge`, sharing its exact
- * recipe (solid fill, `text-background`/`text-white`) so both
- * badge types read as the same visual language.
- */
-export function ActionBadge({ action, className, appearance = 'solid' }: ActionBadgeProps) {
-    if (appearance === 'outline') {
-        return (
-            <Badge
-                variant="outline"
-                className={cn(
-                    'text-[0.65rem] font-semibold tracking-wide uppercase',
-                    outlineActionStyles[action] ?? 'text-muted-foreground',
-                    className,
-                )}
-            >
-                {statusLabel(action)}
-            </Badge>
-        );
-    }
-
-    return (
-        <Badge
-            variant="outline"
-            className={cn(
-                'font-semibold',
-                actionStyles[action] ?? DEFAULT_ACTION_STYLE,
-                className,
-            )}
-        >
-            {statusLabel(action)}
-        </Badge>
-    );
-}
-
-/**
- * Colors an App\Enums\OrganizationStatus value, sharing statusStyles'
- * info/success/warning/muted family. Active reads success (in good
- * standing); NeedsRenewal reads warning (action needed, but not urgent —
- * distinct from a document actually returned for revision); PendingReview
- * reads info (something is moving, same family as a document In Review);
- * Inactive reads the neutral muted chip, same treatment as Draft.
- */
-const organizationStatusStyles: Record<string, string> = {
-    active: 'border-transparent bg-success text-background',
-    needs_renewal: 'border-transparent bg-warning text-background',
-    pending_review: 'border-transparent bg-info text-background',
-    inactive: 'border-transparent bg-muted text-muted-foreground',
-};
-
-type OrganizationStatusBadgeProps = {
+type DomainBadgeProps = {
     status: string;
     className?: string;
 };
 
-/**
- * The org-status sibling of StatusBadge/ActionBadge — same solid-chip
- * recipe, different palette key, since an organization's derived status
- * (App\Organizations\OrganizationStatusResolver) is a distinct vocabulary
- * from a document's status even though both use the word "status".
- */
-export function OrganizationStatusBadge({
+function DomainBadge({
+    domain,
     status,
     className,
-}: OrganizationStatusBadgeProps) {
+}: DomainBadgeProps & { domain: StatusDomain }) {
     return (
-        <Badge
-            variant="outline"
-            className={cn(
-                'font-semibold',
-                organizationStatusStyles[status] ?? DEFAULT_ACTION_STYLE,
-                className,
-            )}
-        >
-            {statusLabel(status)}
-        </Badge>
+        <ToneBadge tone={toneFor(domain, status)} className={className}>
+            {labelFor(domain, status)}
+        </ToneBadge>
     );
+}
+
+/** A document's status: draft, in review, returned, approved, rejected. */
+export function StatusBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="document" status={status} className={className} />;
+}
+
+/** A document-transition action: submitted, approved, returned, and so on. */
+export function ActionBadge({
+    action,
+    className,
+}: {
+    action: string;
+    className?: string;
+}) {
+    return <DomainBadge domain="action" status={action} className={className} />;
+}
+
+/** An organization's derived status: active, pending review, needs renewal, inactive. */
+export function OrganizationStatusBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="organization" status={status} className={className} />;
+}
+
+/** A join request or officer change request: pending, approved, declined. */
+export function RequestStatusBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="request" status={status} className={className} />;
+}
+
+/** An account's verification state: pending verification, verified, not approved. */
+export function AccountStatusBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="account" status={status} className={className} />;
+}
+
+/** A renewal state, or `due` for the organization "renewal due" flag. */
+export function RenewalBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="renewal" status={status} className={className} />;
+}
+
+/** A requirements checklist state: done, in review, missing, not due, info. */
+export function RequirementBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="requirement" status={status} className={className} />;
+}
+
+/** A venue booking: confirmed or tentative. */
+export function VenueStatusBadge({ status, className }: DomainBadgeProps) {
+    return <DomainBadge domain="venue" status={status} className={className} />;
+}
+
+/** A short flag: resubmitted, urgent, flagged for revision, deactivated. */
+export function FlagBadge({ flag, className }: { flag: string; className?: string }) {
+    return <DomainBadge domain="flag" status={flag} className={className} />;
 }

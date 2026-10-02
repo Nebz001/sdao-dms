@@ -93,7 +93,7 @@ describe('OldestInReviewCard', () => {
     it('drops the In Review badge and the ago text', () => {
         render(<OldestInReviewCard documents={documents} viewAllHref="/admin/stuck-documents" />);
 
-        expect(screen.queryByText('In Review')).toBeNull();
+        expect(screen.queryByText(/^in review$/i)).toBeNull();
         expect(screen.queryByText(/ago/)).toBeNull();
     });
 });
