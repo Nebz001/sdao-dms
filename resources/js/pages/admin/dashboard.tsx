@@ -1,10 +1,12 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Deferred, Head, Link, usePage } from '@inertiajs/react';
 import { ChevronRight, CircleCheck, History, TriangleAlert } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import ProposalFunnelCard from '@/components/proposal-funnel-chart';
 import type { FunnelVariant } from '@/components/proposal-funnel-chart';
 import { RelativeTime } from '@/components/relative-time';
+import ReturnAnalyticsRow, { ReturnAnalyticsSkeleton } from '@/components/return-analytics-row';
+import type { ReturnAnalytics } from '@/components/return-analytics-row';
 import StatTile from '@/components/stat-tile';
 import { ActionBadge, StatusBadge } from '@/components/status-badge';
 import StatusDistributionCard from '@/components/status-distribution-card';
@@ -77,6 +79,7 @@ type Props = {
     waitingSplit: WaitingSplit;
     statusDistribution: StatusCount[];
     proposalFunnel: FunnelVariant[];
+    returnAnalytics?: ReturnAnalytics;
     recentActivity: ActivityEntry[];
     oldestInReview: AgingDocument[];
     orgCompliance: { pending: OrgWithPending[]; notRenewed: OrgNotRenewed[] };
@@ -129,6 +132,7 @@ export default function AdminDashboard({
     waitingSplit,
     statusDistribution,
     proposalFunnel,
+    returnAnalytics,
     recentActivity,
     oldestInReview,
     orgCompliance,
@@ -199,6 +203,10 @@ export default function AdminDashboard({
                     <StatusDistributionCard data={statusDistribution} />
                     <ProposalFunnelCard funnels={proposalFunnel} />
                 </div>
+
+                <Deferred data="returnAnalytics" fallback={<ReturnAnalyticsSkeleton />}>
+                    {returnAnalytics ? <ReturnAnalyticsRow data={returnAnalytics} /> : <ReturnAnalyticsSkeleton />}
+                </Deferred>
 
                 <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                     <Card>

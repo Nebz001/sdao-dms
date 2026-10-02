@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Dashboard\AdminAttentionData;
 use App\Dashboard\ProposalFunnelData;
+use App\Dashboard\ReturnAnalytics;
 use App\Enums\DocumentStatus;
 use App\Enums\OrganizationStatus;
 use App\Http\Controllers\Controller;
@@ -49,7 +50,7 @@ class AdminDashboardController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
-    public function index(OrganizationStatusResolver $statusResolver, AdminAttentionData $attention, ProposalFunnelData $funnel): Response
+    public function index(OrganizationStatusResolver $statusResolver, AdminAttentionData $attention, ProposalFunnelData $funnel, ReturnAnalytics $returnAnalytics): Response
     {
         // Not sent as a page prop anymore — it's now a globally shared prop
         // (HandleInertiaRequests::share()) driving the persistent navbar
@@ -61,6 +62,9 @@ class AdminDashboardController extends Controller
         return Inertia::render('admin/dashboard', [
             'statusDistribution' => $this->statusDistribution($yearStart, $yearEnd),
             'proposalFunnel' => $funnel->forAcademicYear($yearStart, $yearEnd),
+            // Retrospective scans of a year of transitions: deferred so the
+            // operational half of the page renders first.
+            'returnAnalytics' => Inertia::defer(fn () => $returnAnalytics->forAcademicYear($yearStart, $yearEnd), 'analytics'),
             'recentActivity' => $this->recentActivity(),
             'oldestInReview' => $this->oldestInReview(),
             'orgCompliance' => $this->orgCompliance($statusResolver, $period),

@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Dashboard\AdminAttentionData;
 use App\Dashboard\DocumentDisplayTitle;
 use App\Dashboard\InReviewSnapshot;
+use App\Dashboard\ReturnAnalytics;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -19,6 +20,7 @@ use App\Models\OrganizationRegistrationDetail;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
@@ -504,4 +506,164 @@ test('the archive can be limited to documents created in the current academic ye
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.archive.index'))
         ->assertInertia(fn ($page) => $page->has('documents.data', 2)->where('filters.academic_year', null));
+});
+
+/**
+ * A document returned by SDAO with the given flagged sections: submitted,
+ * then returned through the real engine so the transition carries the flags.
+ *
+ * @param  array<int, string>  $flags
+ */
+function attentionReturnedRegistration(Organization $org, ApprovalEngine $engine, User $submitter, User $sdao, array $flags): Document
+{
+    $doc = attentionRegistration($org, $engine, $submitter);
+    $engine->returnForRevision($doc, $sdao, 'Please fix', $flags);
+
+    return $doc->refresh();
+}
+
+/** @return array{reasons: array<string, mixed>, rates: array<string, mixed>} */
+function attentionAnalytics(): array
+{
+    [$start, $end] = CurrentPeriod::get()->academicYearRange();
+
+    return app(ReturnAnalytics::class)->forAcademicYear($start, $end);
+}
+
+test('return reasons say not enough data below the minimum sample', function () {
+    foreach (range(1, 3) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['organization_details']);
+    }
+
+    $reasons = attentionAnalytics()['reasons'];
+
+    expect($reasons['sample'])->toBe(3)
+        ->and($reasons['enough'])->toBeFalse()
+        ->and($reasons['rows'])->toBe([]);
+});
+
+test('return reasons rank sections by the share of flagged returns, labelling attachments by slot', function () {
+    foreach (range(1, 6) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['organization_details', 'letter_of_intent']);
+    }
+    foreach (range(1, 4) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['organization_details']);
+    }
+
+    $reasons = attentionAnalytics()['reasons'];
+
+    expect($reasons['sample'])->toBe(10)
+        ->and($reasons['enough'])->toBeTrue()
+        ->and($reasons['rows'])->toBe([
+            ['label' => 'Organization Details', 'count' => 10, 'percent' => 100],
+            ['label' => 'Attachment: Letter of Intent', 'count' => 6, 'percent' => 60],
+        ]);
+});
+
+test('an unknown legacy section key is humanized instead of dropped', function () {
+    foreach (range(1, 10) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['organization_details']);
+    }
+    $legacy = attentionRegistration($this->itGuild, $this->engine, $this->studentAlpha);
+    $legacy->transitions()->create([
+        'actor_id' => $this->sdaoA->id,
+        'action' => 'returned',
+        'from_status' => 'in_review',
+        'to_status' => 'returned',
+        'step_position' => 1,
+        'flagged_sections' => ['old_removed_key'],
+        'created_at' => now(),
+    ]);
+
+    $labels = collect(attentionAnalytics()['reasons']['rows'])->pluck('label');
+
+    expect($labels)->toContain('Old Removed Key');
+});
+
+test('return rate counts documents sent back at least once and hides small samples', function () {
+    foreach (range(1, 3) as $i) {
+        attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    }
+    foreach (range(1, 2) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['general']);
+    }
+    // A document returned twice still counts once.
+    $twice = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+    $this->engine->returnForRevision($twice, $this->sdaoA, 'one', ['general']);
+    $this->engine->resubmit($twice->refresh(), $this->studentAlpha);
+    $this->engine->returnForRevision($twice->refresh(), $this->sdaoA, 'two', ['general']);
+
+    $rows = collect(attentionAnalytics()['rates']['rows'])->keyBy('formType');
+
+    // 6 registrations submitted (3 untouched, 2 returned, 1 returned twice); 3 were returned.
+    expect($rows['organization_registration'])->toMatchArray(['submitted' => 6, 'returned' => 3, 'enough' => true, 'percent' => 50])
+        ->and($rows['organization_renewal'])->toMatchArray(['submitted' => 0, 'enough' => false, 'percent' => null]);
+});
+
+test('drafts are not submissions in the return rate', function () {
+    foreach (range(1, 5) as $i) {
+        Document::factory()->create([
+            'form_type' => FormType::OrganizationRegistration,
+            'organization_id' => $this->org->id,
+            'status' => DocumentStatus::Draft,
+        ]);
+    }
+
+    $row = collect(attentionAnalytics()['rates']['rows'])->firstWhere('formType', 'organization_registration');
+
+    expect($row['submitted'])->toBe(0)->and($row['enough'])->toBeFalse();
+});
+
+test('average submissions before approval is one plus resubmissions, shown only with enough approved documents', function () {
+    $docs = collect(range(1, 5))->map(fn () => attentionRegistration($this->org, $this->engine, $this->studentAlpha));
+    $docs->each->update(['status' => DocumentStatus::Approved]);
+
+    expect(attentionAnalytics()['rates']['average'])->toMatchArray(['enough' => true, 'value' => 1.0, 'sample' => 5]);
+
+    // Two of them were resubmitted once each: (3 * 1 + 2 * 2) / 5 = 1.4.
+    foreach ($docs->take(2) as $doc) {
+        $doc->transitions()->create([
+            'actor_id' => $this->studentAlpha->id,
+            'action' => 'resubmitted',
+            'from_status' => 'returned',
+            'to_status' => 'in_review',
+            'step_position' => 1,
+            'created_at' => now(),
+        ]);
+    }
+
+    expect(attentionAnalytics()['rates']['average']['value'])->toBe(1.4);
+});
+
+test('the average is withheld below five approved documents', function () {
+    attentionRegistration($this->org, $this->engine, $this->studentAlpha)->update(['status' => DocumentStatus::Approved]);
+
+    expect(attentionAnalytics()['rates']['average'])->toMatchArray(['enough' => false, 'value' => null]);
+});
+
+test('return analytics are scoped to the current academic year', function () {
+    foreach (range(1, 10) as $i) {
+        $doc = attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['general']);
+        $doc->forceFill(['created_at' => now()->subYears(3)])->save();
+    }
+
+    expect(attentionAnalytics()['reasons']['sample'])->toBe(0);
+});
+
+test('the dashboard defers return analytics to a second request', function () {
+    foreach (range(1, 10) as $i) {
+        attentionReturnedRegistration($this->org, $this->engine, $this->studentAlpha, $this->sdaoA, ['general']);
+    }
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->missing('returnAnalytics')
+            ->loadDeferredProps('analytics', fn ($reload) => $reload
+                ->where('returnAnalytics.reasons.sample', 10)
+                ->where('returnAnalytics.reasons.rows.0.label', 'General')
+                ->where('returnAnalytics.reasons.rows.0.percent', 100)
+            )
+        );
 });
