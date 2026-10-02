@@ -1,21 +1,14 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    ChevronRight,
-    CircleCheck,
-    FileText,
-    History,
-    Inbox,
-    UserCheck,
-    UserPlus,
-} from 'lucide-react';
+import { ChevronRight, CircleCheck, History, TriangleAlert } from 'lucide-react';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import ProposalFunnelChart from '@/components/proposal-funnel-chart';
 import { RelativeTime } from '@/components/relative-time';
 import StatTile from '@/components/stat-tile';
-import type { WeeklyDelta } from '@/components/stat-tile';
 import { ActionBadge, StatusBadge } from '@/components/status-badge';
 import StatusDistributionPie from '@/components/status-distribution-pie';
+import type { StuckByApprover } from '@/components/stuck-by-approver-card';
+import StuckByApproverCard from '@/components/stuck-by-approver-card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -32,16 +25,21 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
+import type { WaitingSplit } from '@/components/waiting-split-card';
+import WaitingSplitCard from '@/components/waiting-split-card';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import * as activityLog from '@/routes/admin/activity';
 
-type QuickStat = {
+type UpcomingAlert = { count: number; names: string[]; href: string };
+
+type Tile = {
+    key: string;
     label: string;
     count: number;
     href: string;
-    weekly?: WeeklyDelta;
-    urgent?: boolean;
+    hint: string;
+    hintTone: 'muted' | 'warning' | 'destructive';
 };
 
 type StatusCount = { status: string; count: number };
@@ -83,8 +81,10 @@ type OrgWithPending = {
 type OrgNotRenewed = { organizationId: number; organizationName: string };
 
 type Props = {
-    quickStats: QuickStat[];
-    weeklyVolume: { thisWeek: number; lastWeek: number; delta: number };
+    upcomingAlert: UpcomingAlert | null;
+    tiles: Tile[];
+    stuckByApprover: StuckByApprover;
+    waitingSplit: WaitingSplit;
     statusDistribution: StatusCount[];
     proposalFunnel: FunnelGroup[];
     recentActivity: ActivityEntry[];
@@ -92,47 +92,8 @@ type Props = {
     orgCompliance: { pending: OrgWithPending[]; notRenewed: OrgNotRenewed[] };
 };
 
-const QUICK_STAT_ICONS = [Inbox, FileText, UserCheck, UserPlus];
-
 /** Fixed width so every row's timestamp lands in the same column regardless of label length ("just now" vs. "15d ago"). */
 const TIMESTAMP_COLUMN_CLASS = 'w-20 shrink-0 text-right text-sm text-muted-foreground tabular-nums';
-
-type WeeklyNotice = { tone: 'up' | 'down' | 'flat'; text: string };
-
-/**
- * The weekly volume message for the notice under the header, or null when
- * both weeks are empty and there is nothing to say. Plain language, no ±
- * notation. The header sublabel itself is static.
- */
-function weeklyVolumeNotice(thisWeek: number, delta: number): WeeklyNotice | null {
-    const lastWeek = thisWeek - delta;
-
-    if (thisWeek === 0 && lastWeek === 0) {
-        return null;
-    }
-
-    if (thisWeek === 0) {
-        return {
-            tone: 'down',
-            text: `No submissions yet this week, down ${lastWeek} from last week.`,
-        };
-    }
-
-    const noun = `submission${thisWeek === 1 ? '' : 's'}`;
-
-    if (delta > 0) {
-        return { tone: 'up', text: `${thisWeek} ${noun} this week, up ${delta} from last week.` };
-    }
-
-    if (delta < 0) {
-        return {
-            tone: 'down',
-            text: `${thisWeek} ${noun} this week, down ${Math.abs(delta)} from last week.`,
-        };
-    }
-
-    return { tone: 'flat', text: `${thisWeek} ${noun} this week, same as last week.` };
-}
 
 /**
  * Solid warning/destructive chips, reusing the exact tokens Returned/
@@ -172,8 +133,10 @@ function notRenewedCountBadgeClass(count: number): string | undefined {
 }
 
 export default function AdminDashboard({
-    quickStats,
-    weeklyVolume,
+    upcomingAlert,
+    tiles,
+    stuckByApprover,
+    waitingSplit,
     statusDistribution,
     proposalFunnel,
     recentActivity,
@@ -183,7 +146,6 @@ export default function AdminDashboard({
     const { currentPeriod } = usePage().props;
     const academicYear = currentPeriod.academic_year;
     const getInitials = useInitials();
-    const weeklyNotice = weeklyVolumeNotice(weeklyVolume.thisWeek, weeklyVolume.delta);
     const statusTotal = statusDistribution.reduce((sum, s) => sum + s.count, 0);
     const proposalTotal = proposalFunnel.reduce((sum, g) => sum + g.total, 0);
 
@@ -197,22 +159,52 @@ export default function AdminDashboard({
                     subtitle="Everything happening across SDAO this academic year"
                 />
 
-                {weeklyNotice && (
-                    <PageNotice tone={weeklyNotice.tone}>{weeklyNotice.text}</PageNotice>
+                {upcomingAlert && (
+                    <PageNotice
+                        tone="down"
+                        icon={TriangleAlert}
+                        className="border-destructive/40 bg-destructive/10"
+                        action={
+                            <Link
+                                href={upcomingAlert.href}
+                                className="shrink-0 text-sm font-medium text-destructive-foreground hover:underline"
+                            >
+                                Open these {upcomingAlert.count}
+                            </Link>
+                        }
+                    >
+                        <strong className="font-semibold text-destructive-foreground">
+                            {upcomingAlert.count === 1
+                                ? '1 activity happens within 7 days and is still not approved.'
+                                : `${upcomingAlert.count} activities happen within 7 days and are still not approved.`}
+                        </strong>{' '}
+                        <span className="text-muted-foreground">
+                            {upcomingAlert.names.join(', ')}
+                        </span>
+                    </PageNotice>
                 )}
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {quickStats.map((stat, index) => (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 sm:max-lg:[&>*:last-child]:col-span-2">
+                    {tiles.map((tile) => (
                         <StatTile
-                            key={stat.label}
-                            label={stat.label}
-                            count={stat.count}
-                            href={stat.href}
-                            icon={QUICK_STAT_ICONS[index]}
-                            weekly={stat.weekly}
-                            urgent={stat.urgent}
+                            key={tile.key}
+                            label={tile.label}
+                            count={tile.count}
+                            href={tile.href}
+                            hint={tile.hint}
+                            hintTone={tile.hintTone}
+                            tone="neutral"
+                            valueClassName="text-3xl"
+                            labelClassName="lg:min-h-[2lh]"
                         />
                     ))}
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
+                    <div className="lg:col-span-2 [&>*]:h-full">
+                        <StuckByApproverCard data={stuckByApprover} />
+                    </div>
+                    <WaitingSplitCard data={waitingSplit} />
                 </div>
 
                 {/* Default grid stretch (items-stretch): both cards match

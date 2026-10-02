@@ -14,7 +14,6 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
-use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Database\Seeders\IdentitySeeder;
@@ -129,44 +128,29 @@ test('a student officer, an adviser, a dean, and a bare account all get 403 on t
     $this->actingAs($bareUser)->withoutVite()->get(route('admin.dashboard.index'))->assertForbidden();
 });
 
-test('quick stats reflect pending accounts and unassigned advisers', function () {
+test('the pending accounts tile counts unverified accounts and mentions officer change requests', function () {
     User::factory()->create(['account_status' => AccountStatus::Unverified]);
     User::factory()->create(['account_status' => AccountStatus::Unverified]);
-
-    $unassignedAdviser = User::factory()->create();
-    RoleAssignment::create([
-        'user_id' => $unassignedAdviser->id,
-        'role' => Role::Adviser->value,
-        'organization_id' => null,
-    ]);
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('quickStats.2.label', 'Pending Accounts')
-            ->where('quickStats.2.count', 2)
-            ->where('quickStats.3.label', 'Unassigned Advisers')
-            ->where('quickStats.3.count', 1)
-            // A nonzero Unassigned Advisers count is flagged urgent on the
-            // frontend (icon badge + pulse + tooltip, see stat-tile.tsx),
-            // replacing the ordinary nonzero left-border.
-            ->where('quickStats.3.urgent', true)
+            ->where('tiles.3.label', 'Pending accounts')
+            ->where('tiles.3.count', 2)
+            ->where('tiles.3.hint', 'Plus 0 officer change requests')
         );
 });
 
-test('quick stats count awaiting-review documents across the four short chains', function () {
+test('the awaiting SDAO review tile counts in-review documents at the SDAO step', function () {
     inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('quickStats.0.label', 'Awaiting Your Review')
-            ->where('quickStats.0.count', 1)
-            // No adviser assignment gap in this scenario — the urgent key
-            // must be omitted entirely, never sent as false.
-            ->missing('quickStats.3.urgent')
+            ->where('tiles.0.label', 'Awaiting SDAO review')
+            ->where('tiles.0.count', 1)
         );
 });
 
@@ -284,37 +268,6 @@ test('recent activity and oldest in-review are each capped at 5 rows, not the ol
         ->assertInertia(fn ($page) => $page
             ->has('recentActivity', 5)
             ->has('oldestInReview', 5)
-        );
-});
-
-test('quick stats carry a weekly baseline for awaiting-review and pending-accounts only', function () {
-    // This week: one short-chain submission, one newly unverified account.
-    inReviewRegistration($this->org, $this->engine, $this->studentAlpha);
-    User::factory()->create(['account_status' => AccountStatus::Unverified]);
-
-    // Last week: one more of each, backdated.
-    $lastWeekDoc = inReviewRegistration($this->itGuild, $this->engine, $this->studentAlpha);
-    $lastWeekDoc->transitions()->where('action', 'submitted')->update(['created_at' => now()->subWeek()]);
-
-    // User::created_at isn't in the model's #[Fillable(...)] list, so a
-    // plain ->update() silently drops it — force it directly instead.
-    $lastWeekUser = User::factory()->create(['account_status' => AccountStatus::Unverified]);
-    $lastWeekUser->forceFill(['created_at' => now()->subWeek()])->save();
-
-    $this->actingAs($this->sdaoA)->withoutVite()
-        ->get(route('admin.dashboard.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('quickStats.0.weekly.thisWeek', 1)
-            ->where('quickStats.0.weekly.lastWeek', 1)
-            ->where('quickStats.0.weekly.delta', 0)
-            ->where('quickStats.0.weekly.noun', 'submitted')
-            ->missing('quickStats.1.weekly')
-            ->where('quickStats.2.weekly.thisWeek', 1)
-            ->where('quickStats.2.weekly.lastWeek', 1)
-            ->where('quickStats.2.weekly.delta', 0)
-            ->where('quickStats.2.weekly.noun', 'registered')
-            ->missing('quickStats.3.weekly')
         );
 });
 

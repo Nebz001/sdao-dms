@@ -44,3 +44,16 @@ describe('PageHeader', () => {
         expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument();
     });
 });
+
+describe('PageNotice: action', () => {
+    it('renders an action beside the message', () => {
+        render(
+            <PageNotice tone="down" action={<a href="/x">Open these 3</a>}>
+                3 activities are not approved.
+            </PageNotice>,
+        );
+
+        expect(screen.getByRole('status')).toHaveTextContent('3 activities are not approved.');
+        expect(screen.getByRole('link', { name: 'Open these 3' })).toBeInTheDocument();
+    });
+});

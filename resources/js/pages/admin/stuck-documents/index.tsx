@@ -414,7 +414,7 @@ export default function StuckDocumentsIndex({
                             </Select>
                         </div>
 
-                        <div className="grid flex-1 gap-2">
+                        <div className="grid flex-1 gap-2 sm:min-w-56">
                             <Label htmlFor="stuck-search">Search</Label>
                             <Input
                                 id="stuck-search"

@@ -31,6 +31,10 @@ type PageNoticeProps = {
     tone: PageNoticeTone;
     /** Overrides the tone's default icon (e.g. an inbox for a queue count). */
     icon?: LucideIcon;
+    /** Extra classes for the Alert, e.g. a stronger tint. */
+    className?: string;
+    /** A link or button aligned to the end of the message, e.g. "Open these 3". */
+    action?: ReactNode;
     children: ReactNode;
 };
 
@@ -41,14 +45,21 @@ type PageNoticeProps = {
  * user navigated to, not an error that should interrupt a screen reader.
  * Pages render it only when there is something to say.
  */
-export default function PageNotice({ tone, icon, children }: PageNoticeProps) {
+export default function PageNotice({ tone, icon, className, action, children }: PageNoticeProps) {
     const { variant, icon: DefaultIcon } = TONES[tone];
     const Icon = icon ?? DefaultIcon ?? CircleAlert;
 
     return (
-        <Alert variant={variant} role="status">
+        <Alert variant={variant} role="status" className={className}>
             <Icon aria-hidden />
-            <AlertDescription>{children}</AlertDescription>
+            {action ? (
+                <AlertDescription className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <span>{children}</span>
+                    {action}
+                </AlertDescription>
+            ) : (
+                <AlertDescription>{children}</AlertDescription>
+            )}
         </Alert>
     );
 }

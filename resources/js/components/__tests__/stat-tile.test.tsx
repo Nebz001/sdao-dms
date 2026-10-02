@@ -131,3 +131,31 @@ describe('StatTile — urgent badge', () => {
         expect(screen.getByText('4').className).toContain('text-primary-text');
     });
 });
+
+describe('StatTile: admin dashboard tiles', () => {
+    it('renders without an icon and shows a hint', () => {
+        const { container } = render(
+            <TooltipProvider>
+                <StatTile
+                    label="Stuck with approvers"
+                    count={24}
+                    href="/admin/stuck-documents"
+                    hint="Oldest idle 11 days"
+                    hintTone="destructive"
+                />
+            </TooltipProvider>,
+        );
+
+        expect(container.querySelector('svg')).toBeNull();
+        expect(screen.getByText('Oldest idle 11 days').className).toContain('text-destructive-foreground');
+    });
+
+    it.each([
+        ['warning', 'text-warning-foreground'],
+        ['muted', 'text-muted-foreground'],
+    ] as const)('colors a %s hint with its token', (hintTone, expected) => {
+        renderTile({ hint: 'A hint', hintTone });
+
+        expect(screen.getByText('A hint').className).toContain(expected);
+    });
+});

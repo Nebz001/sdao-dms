@@ -54,11 +54,22 @@ const TONE_VALUE: Record<StatTileTone, string> = {
     destructive: 'text-destructive',
 };
 
+/**
+ * Hint colors. The warning and destructive hints use the "-foreground" text
+ * tokens, which stay readable in both themes.
+ */
+const HINT_TONE: Record<'muted' | 'warning' | 'destructive', string> = {
+    muted: 'text-muted-foreground',
+    warning: 'text-warning-foreground',
+    destructive: 'text-destructive-foreground',
+};
+
 type StatTileProps = {
     label: string;
     count: number;
     href: string;
-    icon: LucideIcon;
+    /** Omitted on the admin dashboard tiles, which carry no icon. */
+    icon?: LucideIcon;
     /** Trend vs. last week. Omit when this tile has no honest historical baseline to compare against. */
     weekly?: WeeklyDelta;
     /**
@@ -78,8 +89,14 @@ type StatTileProps = {
     tone?: StatTileTone;
     /** Shown instead of the raw `count` (e.g. "18 hrs", "2.4 days") — `count` still drives the actionable/urgent styling. */
     displayValue?: string;
-    /** A small muted caption under the value, e.g. "Waiting more than 3 days". */
+    /** A small caption under the value, e.g. "Waiting more than 3 days". */
     hint?: string;
+    /** Colors the hint by meaning. Always read as text, so the color never carries the message alone. Defaults to muted. */
+    hintTone?: 'muted' | 'warning' | 'destructive';
+    /** Extra classes for the headline number, e.g. a larger size. */
+    valueClassName?: string;
+    /** Extra classes for the label, e.g. a two-line minimum height so numbers align across a row of tiles. */
+    labelClassName?: string;
 };
 
 /**
@@ -166,6 +183,9 @@ export default function StatTile({
     tone = 'primary',
     displayValue,
     hint,
+    hintTone = 'muted',
+    valueClassName,
+    labelClassName,
 }: StatTileProps) {
     const trend = weekly ? deltaLabel(weekly.delta) : null;
     const TrendIcon = trend?.icon;
@@ -203,19 +223,20 @@ export default function StatTile({
                     className="flex items-start justify-between gap-2 rounded-sm focus-visible:focus-ring-edge"
                 >
                     <div>
-                        <p className="text-xs font-medium text-muted-foreground">
+                        <p className={cn('text-xs font-medium text-muted-foreground', labelClassName)}>
                             {label}
                         </p>
                         <p
                             className={cn(
                                 'mt-1 text-xl font-semibold tabular-nums',
                                 isActionable && TONE_VALUE[tone],
+                                valueClassName,
                             )}
                         >
                             {displayValue ?? count}
                         </p>
                         {hint && (
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p className={cn('mt-1 text-xs', HINT_TONE[hintTone])}>
                                 {hint}
                             </p>
                         )}
@@ -233,14 +254,16 @@ export default function StatTile({
                             </div>
                         )}
                     </div>
-                    <Icon
-                        className={cn(
-                            'size-5 shrink-0',
-                            isActionable
-                                ? TONE_ICON[tone]
-                                : 'text-muted-foreground',
-                        )}
-                    />
+                    {Icon && (
+                        <Icon
+                            className={cn(
+                                'size-5 shrink-0',
+                                isActionable
+                                    ? TONE_ICON[tone]
+                                    : 'text-muted-foreground',
+                            )}
+                        />
+                    )}
                 </Link>
             </CardContent>
         </Card>
