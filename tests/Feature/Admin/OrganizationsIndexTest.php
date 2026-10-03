@@ -3,8 +3,11 @@
 use App\Approval\ApprovalEngine;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
+use App\Enums\Role;
 use App\Models\DocumentTransition;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -169,7 +172,7 @@ test('the organization detail page fills its deferred sections from existing dat
                 ->has('summary.tiles.requirementsTotal')
             )
             ->loadDeferredProps('org-requirements', fn ($reload) => $reload
-                ->has('requirements', 6)
+                ->has('requirements', 5)
                 ->where('requirements.0.key', 'registration_approved')
                 ->where('requirements.0.met', false)
                 ->where('requirements.0.document', null)
@@ -182,6 +185,38 @@ test('the organization detail page fills its deferred sections from existing dat
             )
             ->loadDeferredProps('org-officers', fn ($reload) => $reload
                 ->has('officers')
+            )
+        );
+});
+
+test('the registration requirement row names the submitter and the academic year it covers', function () {
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $org, app(ApprovalEngine::class), $this->studentAlpha);
+    $doc->update(['status' => 'approved', 'submitted_by' => $this->studentAlpha->id]);
+    OrganizationRegistrationDetail::factory()->create(['document_id' => $doc->id, 'covers_academic_year' => '2026-2027']);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.show', $org))
+        ->assertInertia(fn ($page) => $page
+            ->loadDeferredProps('org-requirements', fn ($reload) => $reload
+                ->where('requirements.0.key', 'registration_approved')
+                ->where('requirements.0.detail', $this->studentAlpha->name)
+                ->where('requirements.0.detailNote', '2026-2027')
+            )
+        );
+});
+
+test('the adviser bound requirement row carries the date the adviser was bound', function () {
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $adviser = $org->adviser()->first() ?? RoleAssignment::query()->where('role', Role::Adviser)->firstOrFail();
+    $adviser->update(['organization_id' => $org->id]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.show', $org))
+        ->assertInertia(fn ($page) => $page
+            ->loadDeferredProps('org-requirements', fn ($reload) => $reload
+                ->where('requirements.1.key', 'adviser_bound')
+                ->whereNot('requirements.1.date', null)
             )
         );
 });

@@ -193,9 +193,19 @@ function StatCardsSkeleton() {
 }
 
 const COLUMNS: DataColumn<OrganizationRow>[] = [
-    { key: 'name', header: 'Organization', slot: 'title', cell: (org) => <span className="font-semibold">{org.name}</span> },
-    { key: 'school', header: 'College', className: 'max-w-64', cell: (org) => org.school ?? 'None' },
-    { key: 'program', header: 'Program', cell: (org) => org.program ?? 'None' },
+    {
+        key: 'name',
+        header: 'Organization',
+        slot: 'title',
+        className: 'min-w-64',
+        cell: (org) => (
+            <div className="flex flex-col">
+                <span className="font-semibold">{org.name}</span>
+                <span className="text-sm font-normal text-muted-foreground">{org.school ?? 'No college'}</span>
+            </div>
+        ),
+    },
+    { key: 'program', header: 'Program', className: 'min-w-48', cell: (org) => org.program ?? 'No program' },
     { key: 'requirements', header: 'Requirements', className: 'min-w-40', cell: (org) => <RequirementsCell org={org} /> },
     { key: 'status', header: 'Status', slot: 'badge', align: 'right', cell: (org) => <StatusCell org={org} /> },
     {

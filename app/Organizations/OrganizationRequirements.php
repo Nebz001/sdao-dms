@@ -31,7 +31,6 @@ final readonly class OrganizationRequirements
     public function isComplete(): bool
     {
         return $this->registrationApproved
-            && $this->coverageCurrent
             && $this->adviserBound
             && $this->hasPresident
             && $this->hasSecretary;
@@ -44,7 +43,6 @@ final readonly class OrganizationRequirements
     {
         return [
             ['key' => 'registration_approved', 'label' => 'Registration approved', 'met' => $this->registrationApproved],
-            ['key' => 'coverage_current', 'label' => 'Covered for the current academic year', 'met' => $this->coverageCurrent],
             ['key' => 'adviser_bound', 'label' => 'Adviser bound', 'met' => $this->adviserBound],
             ['key' => 'president_bound', 'label' => 'Active president', 'met' => $this->hasPresident],
             ['key' => 'secretary_bound', 'label' => 'Active secretary', 'met' => $this->hasSecretary],

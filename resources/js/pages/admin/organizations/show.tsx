@@ -12,6 +12,7 @@ import StatCard, { StatCardSkeleton, StatValue } from '@/components/review-queue
 import ThinProgress from '@/components/review-queue/thin-progress';
 import { formatDate, pluralDays } from '@/components/review-queue/types';
 import { OrganizationStatusBadge, RequirementBadge, StatusBadge } from '@/components/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,6 +46,8 @@ type RequirementRow = {
     label: string;
     met: boolean;
     detail: string | null;
+    /** Muted line under `detail`, e.g. the academic year a registration covers. */
+    detailNote: string | null;
     date: string | null;
     document: DocumentRef | null;
 };
@@ -214,7 +217,18 @@ const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
         key: 'evidence',
         header: 'Satisfied by',
         cell: (r) =>
-            r.document ? (
+            r.key === 'registration_approved' ? (
+                r.detail ? (
+                    <span className="flex flex-col">
+                        <span>{r.detail}</span>
+                        {r.detailNote && (
+                            <span className="text-xs text-muted-foreground tabular-nums">{r.detailNote}</span>
+                        )}
+                    </span>
+                ) : (
+                    DASH
+                )
+            ) : r.document ? (
                 <span className="flex flex-col">
                     <span className="font-medium">{r.document.title}</span>
                     <span className="text-xs text-muted-foreground">{r.document.type}</span>
@@ -383,8 +397,15 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
                 >
                     <PageHeader
                         title={organization.name}
-                        badge={summary ? <OrganizationStatusBadge status={summary.status} /> : undefined}
-                        subtitle={[summary?.school ?? 'None', summary?.program ?? 'None'].join(' · ')}
+                        badge={
+                            summary ? (
+                                <span className="flex flex-wrap items-center gap-2">
+                                    <OrganizationStatusBadge status={summary.status} />
+                                    {summary.program && <Badge variant="secondary">{summary.program}</Badge>}
+                                </span>
+                            ) : undefined
+                        }
+                        subtitle={summary?.school ?? null}
                     />
                 </Deferred>
             </div>

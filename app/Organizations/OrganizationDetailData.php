@@ -12,7 +12,6 @@ use App\Enums\TransitionAction;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
-use App\Renewals\SubmitOrganizationRenewal;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
@@ -32,7 +31,6 @@ class OrganizationDetailData
 {
     public function __construct(
         private readonly OrganizationStatusResolver $resolver,
-        private readonly SubmitOrganizationRenewal $renewals,
     ) {}
 
     /**
@@ -74,7 +72,6 @@ class OrganizationDetailData
         $memberships = OrganizationMembership::query()->active()->where('organization_id', $organization->id)->with('user:id,name')->get()->keyBy(fn ($m) => $m->position->value);
         $adviser = $organization->adviser()->with('user:id,name')->first();
 
-        $coverage = $this->renewals->mostRecentApprovedRecord($organization);
         $renewalForNextYear = Document::query()
             ->where('organization_id', $organization->id)
             ->where('form_type', FormType::OrganizationRenewal->value)
@@ -83,22 +80,25 @@ class OrganizationDetailData
             ->latest('id')
             ->first();
 
-        return collect($result->requirements->toArray())->map(function (array $item) use ($organization, $memberships, $adviser, $coverage, $renewalForNextYear) {
+        return collect($result->requirements->toArray())->map(function (array $item) use ($organization, $memberships, $adviser, $renewalForNextYear) {
             $document = null;
             $detail = null;
+            $detailNote = null;
             $date = null;
 
             switch ($item['key']) {
                 case 'registration_approved':
                     $document = $this->approvedRegistration($organization);
                     $date = $document ? $this->approvedAt($document) : null;
-                    break;
-                case 'coverage_current':
-                    $document = $item['met'] ? $coverage : null;
-                    $date = $document ? $this->approvedAt($document) : null;
+                    $detail = $document?->submitter?->name;
+                    $detailNote = $document?->registrationDetail?->covers_academic_year;
                     break;
                 case 'adviser_bound':
                     $detail = $adviser?->user?->name;
+                    // The adviser is bound at the moment the registration is
+                    // approved; fall back to the assignment's last change.
+                    $registration = $adviser ? $this->approvedRegistration($organization) : null;
+                    $date = $adviser ? ($registration ? $this->approvedAt($registration) : null) ?? $adviser->updated_at : null;
                     break;
                 case 'president_bound':
                 case 'secretary_bound':
@@ -118,6 +118,7 @@ class OrganizationDetailData
                 'label' => $item['label'],
                 'met' => $item['met'],
                 'detail' => $detail,
+                'detailNote' => $detailNote,
                 'date' => $date?->toIso8601String(),
                 'document' => $document ? $this->documentRef($document) : null,
             ];
@@ -289,7 +290,7 @@ class OrganizationDetailData
             ->where('organization_id', $organization->id)
             ->where('form_type', FormType::OrganizationRegistration->value)
             ->where('status', DocumentStatus::Approved->value)
-            ->with('transitions')
+            ->with(['transitions', 'submitter:id,name', 'registrationDetail'])
             ->orderBy('id')
             ->first();
     }
