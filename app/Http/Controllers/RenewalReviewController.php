@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\DocumentViewData;
 use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
@@ -40,7 +41,7 @@ class RenewalReviewController extends Controller
         ]);
     }
 
-    public function show(Document $document): Response
+    public function show(Document $document, DocumentViewData $viewData): Response
     {
         Gate::authorize('reviewView', $document);
 
@@ -87,20 +88,7 @@ class RenewalReviewController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'history' => $document->transitions->map(fn ($t) => [
-                'id' => $t->id,
-                'action' => $t->action->value,
-                'from_status' => $t->from_status?->value,
-                'to_status' => $t->to_status->value,
-                'step_position' => $t->step_position,
-                'comment' => $t->comment,
-                'flagged_sections' => $t->flagged_sections,
-                'section_comments' => $t->section_comments,
-                'field_changes' => $t->field_changes,
-                'actor' => $t->actor ? ['name' => $t->actor->name] : null,
-                'created_at' => $t->created_at,
-            ]),
-            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
+            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,

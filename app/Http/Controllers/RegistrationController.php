@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Enums\DocumentStatus;
@@ -233,7 +234,7 @@ class RegistrationController extends Controller
         return response()->json(['advisers' => $results]);
     }
 
-    public function show(Document $document): Response
+    public function show(Document $document, DocumentViewData $viewData): Response
     {
         Gate::authorize('view', $document);
 
@@ -270,20 +271,7 @@ class RegistrationController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'history' => $document->transitions->map(fn ($t) => [
-                'id' => $t->id,
-                'action' => $t->action->value,
-                'from_status' => $t->from_status?->value,
-                'to_status' => $t->to_status->value,
-                'step_position' => $t->step_position,
-                'comment' => $t->comment,
-                'flagged_sections' => $t->flagged_sections,
-                'section_comments' => $t->section_comments,
-                'field_changes' => $t->field_changes,
-                'actor' => $t->actor ? ['name' => $t->actor->name] : null,
-                'created_at' => $t->created_at,
-            ]),
-            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
+            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
         ]);
     }
 

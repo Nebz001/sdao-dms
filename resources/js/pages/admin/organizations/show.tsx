@@ -12,7 +12,7 @@ import StatCard, { StatCardSkeleton, StatValue } from '@/components/review-queue
 import ThinProgress from '@/components/review-queue/thin-progress';
 import { formatDate, pluralDays } from '@/components/review-queue/types';
 import { OrganizationStatusBadge, RequirementBadge, StatusBadge } from '@/components/status-badge';
-import { Badge } from '@/components/ui/badge';
+import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -401,7 +401,7 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
                             summary ? (
                                 <span className="flex flex-wrap items-center gap-2">
                                     <OrganizationStatusBadge status={summary.status} />
-                                    {summary.program && <Badge variant="secondary">{summary.program}</Badge>}
+                                    {summary.program && <TagBadge>{summary.program}</TagBadge>}
                                 </span>
                             ) : undefined
                         }

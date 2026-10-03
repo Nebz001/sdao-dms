@@ -221,7 +221,7 @@ class AttachmentSlots
      *
      * @return array{
      *     slots: array<int, array{key: string, label: string, required: bool, multiple: bool}>,
-     *     files: array<string, array<int, array{id: int, original_filename: string, download_url: string}>>,
+     *     files: array<string, array<int, array{id: int, original_filename: string, download_url: string, preview_url: string, size: int|null, mime_type: string}>>,
      * }
      */
     public static function presentForDocument(Document $document): array
@@ -232,6 +232,9 @@ class AttachmentSlots
                 'id' => $a->id,
                 'original_filename' => $a->original_filename,
                 'download_url' => route('attachments.download', $a),
+                'preview_url' => route('attachments.preview', $a),
+                'size' => $a->size,
+                'mime_type' => $a->mime_type,
             ])->values()->all())
             ->all();
 

@@ -1,33 +1,71 @@
+import { Check } from 'lucide-react';
 import { useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import type { ReactNode } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 export type SectionFlagDef = {
     key: string;
     label: string;
 };
 
+/**
+ * A selectable chip backed by a real checkbox, so it submits as `sections[]`
+ * through native form serialization, is reachable and toggled from the
+ * keyboard, and announces its checked state. The checkbox is visually hidden;
+ * the chip is its label.
+ */
+export function FlagChip({
+    id,
+    value,
+    checked,
+    onCheckedChange,
+    children,
+}: {
+    id: string;
+    value: string;
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
+    children: ReactNode;
+}) {
+    return (
+        <label
+            htmlFor={id}
+            className={cn(
+                'inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors',
+                'has-focus-visible:focus-ring-edge',
+                checked
+                    ? 'border-warning/40 bg-warning/10 text-warning-foreground'
+                    : 'border-input bg-background text-foreground hover:bg-accent',
+            )}
+        >
+            <input
+                id={id}
+                type="checkbox"
+                name="sections[]"
+                value={value}
+                checked={checked}
+                onChange={(e) => onCheckedChange(e.target.checked)}
+                className="sr-only"
+            />
+            {checked && <Check className="size-3.5" aria-hidden />}
+            {children}
+        </label>
+    );
+}
+
 type Props = {
     sections: SectionFlagDef[];
 };
 
 /**
- * Phase 2 item 9, extended by the section-comments redesign — one checkbox
- * per flaggable section, rendered inside the existing "Return for Revision"
- * <Form> block. Checking a box reveals an optional note specific to that
- * section; the shared comment field elsewhere in the form still covers the
- * general case, so neither a checkbox nor a note is ever required — any
- * combination, including none, is a valid return.
- *
- * Each checkbox still submits as `sections[]` — Radix's Checkbox mirrors its
- * checked state onto a real hidden <input name="sections[]" value={key}>
- * even in controlled mode (needed here to know which notes to render), so an
- * unchecked box is simply omitted from the request, matching native
- * checkbox-array semantics. A section's note submits as
- * `section_comments[key]`, which PHP parses into an associative array
- * server-side; unchecking a box un-renders its note, dropping it from the
- * next submission with no separate clear-state step needed.
+ * One selectable chip per flaggable section of this form type, rendered
+ * inside the "Return for revision" <Form>. Selecting a chip reveals an
+ * optional note specific to that section; the shared message field still
+ * covers the general case, so neither a chip nor a note is ever required.
+ * Each chip submits as `sections[]`, a note as `section_comments[key]`;
+ * deselecting a chip un-renders its note, dropping it from the next
+ * submission.
  */
 export default function SectionFlagFields({ sections }: Props) {
     const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -36,55 +74,33 @@ export default function SectionFlagFields({ sections }: Props) {
         return null;
     }
 
+    const selected = sections.filter((section) => checked[section.key]);
+
     return (
-        <div className="space-y-2">
-            <span className="text-sm font-medium">
-                Flag sections needing revision (optional)
-            </span>
-            <div className="space-y-2">
+        <fieldset className="flex flex-col gap-3">
+            <legend className="mb-2 text-sm font-medium">Which parts need fixing</legend>
+            <div className="flex flex-wrap gap-2">
                 {sections.map((section) => (
-                    <div key={section.key} className="rounded-md border p-3">
-                        <div className="flex gap-2">
-                            <Checkbox
-                                id={`section-${section.key}`}
-                                name="sections[]"
-                                value={section.key}
-                                checked={checked[section.key] ?? false}
-                                onCheckedChange={(value) =>
-                                    setChecked((prev) => ({
-                                        ...prev,
-                                        [section.key]: value === true,
-                                    }))
-                                }
-                                className="mt-0.5"
-                            />
-                            {/* This column, not a margin on the textarea, is what keeps
-                                the note inside the row: flex-1 gives it exactly the
-                                remaining width after the checkbox, so the Textarea's
-                                own `w-full` resolves against that width. `ml-*` on a
-                                `w-full` textarea would instead push it past the row's
-                                right padding — width:100% doesn't shrink to make room
-                                for a sibling's margin. */}
-                            <div className="flex-1 space-y-2">
-                                <Label
-                                    htmlFor={`section-${section.key}`}
-                                    className="font-normal"
-                                >
-                                    {section.label}
-                                </Label>
-                                {checked[section.key] && (
-                                    <Textarea
-                                        name={`section_comments[${section.key}]`}
-                                        placeholder={`Note specific to ${section.label} (optional)…`}
-                                        aria-label={`Note for ${section.label}`}
-                                        rows={2}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    <FlagChip
+                        key={section.key}
+                        id={`section-${section.key}`}
+                        value={section.key}
+                        checked={checked[section.key] ?? false}
+                        onCheckedChange={(value) => setChecked((prev) => ({ ...prev, [section.key]: value }))}
+                    >
+                        {section.label}
+                    </FlagChip>
                 ))}
             </div>
-        </div>
+            {selected.map((section) => (
+                <Textarea
+                    key={section.key}
+                    name={`section_comments[${section.key}]`}
+                    placeholder={`Note specific to ${section.label} (optional)…`}
+                    aria-label={`Note for ${section.label}`}
+                    rows={2}
+                />
+            ))}
+        </fieldset>
     );
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\DocumentViewData;
 use App\Approval\ReviewQueueData;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\FormType;
@@ -40,7 +41,7 @@ class ActivityCalendarReviewController extends Controller
         ]);
     }
 
-    public function show(Document $document, VenueConflictChecker $checker): Response
+    public function show(Document $document, VenueConflictChecker $checker, DocumentViewData $viewData): Response
     {
         Gate::authorize('reviewView', $document);
 
@@ -111,30 +112,7 @@ class ActivityCalendarReviewController extends Controller
                     'budget' => $a->budget,
                 ]),
             ] : null,
-            'history' => $document->transitions->map(fn ($t) => [
-                'id' => $t->id,
-                'action' => $t->action->value,
-                'from_status' => $t->from_status?->value,
-                'to_status' => $t->to_status->value,
-                'step_position' => $t->step_position,
-                'comment' => $t->comment,
-                // Phase 2 item 9 — Activity Calendar has no static section
-                // registry (see App\Approval\SectionFlags); raw "activity_N"
-                // keys are resolved to "Activity N+1" directly on the
-                // frontend instead of a server-side label lookup.
-                'flagged_sections' => $t->flagged_sections,
-                // field_changes IS included here, unlike section_comments
-                // above: it's captured fresh at the moment of resubmission
-                // from the rows as they existed then (App\Approval\FieldChangeSet),
-                // never read back through a stale row id, so the
-                // no-stable-identity problem that defers section_comments
-                // does not apply. Its section labels ("Activity N") are also
-                // already baked in server-side, unlike raw flagged_sections
-                // keys above.
-                'field_changes' => $t->field_changes,
-                'actor' => $t->actor ? ['name' => $t->actor->name] : null,
-                'created_at' => $t->created_at,
-            ]),
+            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'Term', 'value' => $calendar?->term->label()], ['label' => 'Academic year', 'value' => $calendar?->academic_year]]),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,
             // Group E item 1 — see RegistrationReviewController::show() for

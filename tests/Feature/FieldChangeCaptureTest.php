@@ -560,23 +560,23 @@ test('HTTP: the review show page exposes field_changes on the resubmit history e
         attachmentFiles: registrationAttachmentFiles(),
     );
 
-    // Submitted, Returned, Resubmitted → the resubmit is history index 2.
+    // Newest first: Resubmitted, Returned, Submitted → the resubmit is history index 0.
     $this->actingAs($this->sdaoA)
         ->withoutVite()
         ->get(route('review.registrations.show', $doc))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('review/registrations/show')
-            ->has('history', 3)
-            ->where('history.1.action', 'returned')
-            ->where('history.1.field_changes', null)
-            ->where('history.2.action', 'resubmitted')
-            ->where('history.2.field_changes.contact_information.label', 'Contact Information')
-            ->where('history.2.field_changes.contact_information.status', 'changed')
-            ->where('history.2.field_changes.contact_information.fields.0.key', 'contact_person')
-            ->where('history.2.field_changes.contact_information.fields.0.old', 'Old Person')
-            ->where('history.2.field_changes.contact_information.fields.0.new', 'New Person')
-            ->where('history.2.field_changes.contact_information.fields.0.changed', true)
+            ->has('view.history', 3)
+            ->where('view.history.1.action', 'returned')
+            ->where('view.history.1.field_changes', null)
+            ->where('view.history.0.action', 'resubmitted')
+            ->where('view.history.0.field_changes.contact_information.label', 'Contact Information')
+            ->where('view.history.0.field_changes.contact_information.status', 'changed')
+            ->where('view.history.0.field_changes.contact_information.fields.0.key', 'contact_person')
+            ->where('view.history.0.field_changes.contact_information.fields.0.old', 'Old Person')
+            ->where('view.history.0.field_changes.contact_information.fields.0.new', 'New Person')
+            ->where('view.history.0.field_changes.contact_information.fields.0.changed', true)
             ->etc()
         );
 });

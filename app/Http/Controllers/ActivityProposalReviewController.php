@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\ActivityProposals\Exceptions\ProposalVenueConflictException;
 use App\ActivityProposals\ReviewActivityProposal;
 use App\Approval\ApproverQueue;
+use App\Approval\DocumentViewData;
 use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverResolver;
@@ -21,6 +22,7 @@ use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use App\Models\DocumentTransition;
 use App\Models\User;
+use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
@@ -288,7 +290,7 @@ class ActivityProposalReviewController extends Controller
             ->all();
     }
 
-    public function show(Document $document, VenueConflictChecker $checker, StepApproverResolver $resolver): Response
+    public function show(Document $document, VenueConflictChecker $checker, StepApproverResolver $resolver, DocumentViewData $viewData): Response
     {
         Gate::authorize('reviewView', $document);
 
@@ -377,20 +379,7 @@ class ActivityProposalReviewController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'history' => $document->transitions->map(fn ($t) => [
-                'id' => $t->id,
-                'action' => $t->action->value,
-                'from_status' => $t->from_status?->value,
-                'to_status' => $t->to_status->value,
-                'step_position' => $t->step_position,
-                'comment' => $t->comment,
-                'flagged_sections' => $t->flagged_sections,
-                'section_comments' => $t->section_comments,
-                'field_changes' => $t->field_changes,
-                'actor' => $t->actor ? ['name' => $t->actor->name] : null,
-                'created_at' => $t->created_at,
-            ]),
-            'flaggedSectionLabels' => SectionFlags::labelsFor($document->form_type),
+            'view' => $viewData->for($document, Auth::user(), $proposal?->title ?? $document->title, [['label' => 'Organization', 'value' => $document->organization->name], ['label' => 'Term', 'value' => AcademicPeriod::forDate($document->created_at)->label()]]),
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,

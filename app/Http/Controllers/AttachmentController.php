@@ -28,6 +28,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class AttachmentController extends Controller
 {
+    /** Mime types preview() may serve inline. Matches what uploads accept: PDFs and jpg/png/webp images. */
+    private const array INLINE_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
     public function __construct(
         private readonly OrganizationMembershipService $membershipService,
     ) {}
@@ -52,6 +55,9 @@ class AttachmentController extends Controller
             'id' => $attachment->id,
             'original_filename' => $attachment->original_filename,
             'download_url' => route('attachments.download', $attachment),
+            'preview_url' => route('attachments.preview', $attachment),
+            'size' => $attachment->size,
+            'mime_type' => $attachment->mime_type,
         ], 201);
     }
 
@@ -69,6 +75,32 @@ class AttachmentController extends Controller
         Gate::authorize('view', $attachment->document);
 
         return Storage::disk($attachment->disk)->download($attachment->path, $attachment->original_filename);
+    }
+
+    /**
+     * Serves the file inline so the browser (or the in-page preview) renders
+     * it, instead of forcing a download. Same access check as download().
+     *
+     * Only types a browser renders safely are served inline — PDFs and raster
+     * images. Anything else is sent as an attachment even from here, so a
+     * stored file can never be rendered as a page on the app's origin.
+     */
+    public function preview(DocumentAttachment $attachment): StreamedResponse
+    {
+        Gate::authorize('view', $attachment->document);
+
+        $inline = in_array($attachment->mime_type, self::INLINE_MIME_TYPES, true);
+
+        return Storage::disk($attachment->disk)->response(
+            $attachment->path,
+            $attachment->original_filename,
+            [
+                'Content-Type' => $inline ? $attachment->mime_type : 'application/octet-stream',
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control' => 'private, max-age=0, must-revalidate',
+            ],
+            $inline ? 'inline' : 'attachment',
+        );
     }
 
     /**

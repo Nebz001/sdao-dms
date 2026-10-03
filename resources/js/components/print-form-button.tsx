@@ -61,7 +61,7 @@ export default function PrintFormButton({ documentId }: Props) {
     return (
         <Button variant="outline" size="sm" onClick={handleClick} disabled={pending} aria-busy={pending}>
             {pending ? <Spinner /> : <PrinterIcon />}
-            {pending ? 'Preparing…' : 'Print Form'}
+            {pending ? 'Preparing…' : 'Print form'}
         </Button>
     );
 }

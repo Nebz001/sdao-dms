@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
@@ -129,7 +130,7 @@ class ActivityCalendarController extends Controller
             ->with('flash', $flash);
     }
 
-    public function show(Document $document): Response
+    public function show(Document $document, DocumentViewData $viewData): Response
     {
         Gate::authorize('view', $document);
 
@@ -169,26 +170,7 @@ class ActivityCalendarController extends Controller
                     'budget' => $a->budget,
                 ]),
             ] : null,
-            'history' => $document->transitions->map(fn ($t) => [
-                'id' => $t->id,
-                'action' => $t->action->value,
-                'from_status' => $t->from_status?->value,
-                'to_status' => $t->to_status->value,
-                'step_position' => $t->step_position,
-                'comment' => $t->comment,
-                // Phase 2 item 9 — no static label registry for Calendar;
-                // raw "activity_N" keys resolve to "Activity N+1" on the
-                // frontend directly.
-                'flagged_sections' => $t->flagged_sections,
-                // field_changes IS included here, unlike section_comments
-                // above: it's captured fresh at the moment of resubmission
-                // from the rows as they existed then, never read back
-                // through a stale row id, so the no-stable-identity problem
-                // that defers section_comments does not apply.
-                'field_changes' => $t->field_changes,
-                'actor' => $t->actor ? ['name' => $t->actor->name] : null,
-                'created_at' => $t->created_at,
-            ]),
+            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'Term', 'value' => $calendar?->term->label()], ['label' => 'Academic year', 'value' => $calendar?->academic_year]]),
         ]);
     }
 

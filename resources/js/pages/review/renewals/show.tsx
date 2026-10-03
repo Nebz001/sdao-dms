@@ -1,384 +1,89 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import RenewalReviewController from '@/actions/App/Http/Controllers/RenewalReviewController';
 import ApprovalActionsCard from '@/components/approval-actions-card';
-import type {
-    AttachmentSlotDef,
-    ExistingAttachment,
-} from '@/components/attachment-slot-field';
-import AttachmentsCard from '@/components/attachments-card';
-import CenteredContainer from '@/components/centered-container';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import type { ConfirmActions } from '@/components/confirm-dialog';
-import { FieldChangeDiff } from '@/components/field-change-diff';
-import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
-import PrintFormButton from '@/components/print-form-button';
-import ReviewStatusNotice from '@/components/review-status-notice';
+import DocumentView from '@/components/document-view';
+import OrganizationDetails from '@/components/document-view/organization-details';
+import type { OrganizationDetail, OrganizationSummary } from '@/components/document-view/organization-details';
+import type { DocumentViewData } from '@/components/document-view/types';
 import SectionFlagFields from '@/components/section-flag-fields';
 import type { SectionFlagDef } from '@/components/section-flag-fields';
-import { StatusBadge } from '@/components/status-badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewRenewals from '@/routes/review/renewals';
-import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
-
-type Organization = {
-    id: number;
-    name: string;
-    college: string | null;
-    program: string | null;
-};
-
-type DocumentData = {
-    id: number;
-    title: string;
-    status: string;
-    current_step_position: number | null;
-    organization: Organization;
-};
-
-type DetailData = {
-    organization_type: string;
-    organization_type_label: string;
-    purpose_of_organization: string;
-    contact_person: string;
-    contact_no: string;
-    email_address: string;
-    date_organized: string;
-    adviser: { name: string } | null;
-    academic_year: string | null;
-} | null;
-
-type StepApproval = { user_id: number; name: string };
 
 type Props = {
-    document: DocumentData;
-    detail: DetailData;
+    document: {
+        id: number;
+        title: string;
+        status: string;
+        current_step_position: number | null;
+        organization: OrganizationSummary & { id: number };
+    };
+    detail: OrganizationDetail;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    history: TransitionEntry[];
-    flaggedSectionLabels: FlaggedSectionLabels;
+    view: DocumentViewData;
     sectionFlags: SectionFlagDef[];
-    currentStepApprovals: StepApproval[];
     hasApproved: boolean;
     canAct: boolean;
 };
-
-function actionLabel(action: string): string {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-/**
- * Remediation-phase fix: approvers now retain read access to a renewal
- * after it leaves In Review (rejected, approved, or returned) instead of
- * hitting a 403 — see DocumentPolicy::hasActedOn(). This explains why no
- * review actions appear, mirroring the existing "already approved, waiting"
- * note below rather than leaving the page silent once status changes.
- */
-function reviewOnlyStatusNote(status: string): string {
-    switch (status) {
-        case 'approved':
-            return 'This renewal has been approved. No further action is available.';
-        case 'rejected':
-            return 'This renewal was rejected and is now closed. The organization must submit a new renewal to proceed.';
-        case 'returned':
-            return 'This renewal was returned for revision. It will reappear here once the student resubmits.';
-        default:
-            return 'This renewal is no longer awaiting your review.';
-    }
-}
 
 export default function ReviewRenewalShow({
     document,
     detail,
     attachmentSlots,
     attachments,
-    history,
-    flaggedSectionLabels,
+    view,
     sectionFlags,
-    currentStepApprovals,
     hasApproved,
     canAct,
 }: Props) {
-    useDocumentUpdates([
-        'document',
-        'detail',
-        'attachments',
-        'history',
-        'currentStepApprovals',
-        'hasApproved',
-        'canAct',
-    ]);
-
-    const isInReview = document.status === 'in_review';
+    useDocumentUpdates(['document', 'detail', 'attachments', 'view', 'hasApproved', 'canAct']);
 
     function handleApprove({ close, stopProcessing }: ConfirmActions) {
         router.post(
             reviewRenewals.approve.url(document.id),
             {},
-            {
-                preserveScroll: true,
-                onSuccess: close,
-                onFinish: stopProcessing,
-            },
+            { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
         );
     }
 
     return (
-        <>
-            <Head title={`Review: ${document.title}`} />
-
-            <CenteredContainer maxWidth="3xl" className="space-y-6">
-                {/* Header */}
-                <PageHeader
-                    title={document.title}
-                    subtitle="Review the details and record your decision"
-                    actions={
-                        <>
-                        <StatusBadge status={document.status} />
-                        <PrintFormButton documentId={document.id} />
-                        </>
-                    }
+        <DocumentView
+            view={view}
+            documentId={document.id}
+            status={document.status}
+            noun="renewal"
+            audience="approver"
+            trail={[{ title: 'Review' }, { title: 'Renewals', href: reviewRenewals.index() }]}
+            canAct={canAct && !hasApproved}
+            hasApproved={canAct && hasApproved}
+            attachmentSlots={attachmentSlots}
+            attachments={attachments}
+            decision={
+                <ApprovalActionsCard
+                    approve={{
+                        confirmTitle: 'Approve this renewal?',
+                        confirmDescription:
+                            'This action is irreversible once the SDAO quorum is met — the renewal becomes final for this academic year.',
+                        onConfirm: handleApprove,
+                    }}
+                    return={{
+                        formProps: RenewalReviewController.return.form({ document: document.id }),
+                        placeholder: 'Explain what the student needs to revise…',
+                        flagFields: <SectionFlagFields sections={sectionFlags} />,
+                    }}
+                    reject={{
+                        formProps: RenewalReviewController.reject.form({ document: document.id }),
+                        confirmTitle: 'Reject this renewal?',
+                        confirmDescription:
+                            'This is permanent — the student cannot revive this document. They must file a brand-new renewal.',
+                    }}
                 />
-
-                {/* Dual-SDAO quorum state */}
-                {isInReview && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Quorum Status
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm">
-                            {currentStepApprovals.length === 0 ? (
-                                <p className="text-muted-foreground">
-                                    Neither SDAO member has approved yet.
-                                </p>
-                            ) : (
-                                <p>
-                                    Approved by:{' '}
-                                    {currentStepApprovals
-                                        .map((a) => a.name)
-                                        .join(', ')}
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Detail card */}
-                {detail && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Renewal Details
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-3 text-sm">
-                            {/* Field-presence parity (Phase 2 item 7 slice 2) */}
-                            <Row
-                                label="Organization Name"
-                                value={document.organization.name}
-                            />
-                            <Row
-                                label="College"
-                                value={document.organization.college ?? '—'}
-                            />
-                            {document.organization.program && (
-                                <Row
-                                    label="Program"
-                                    value={document.organization.program}
-                                />
-                            )}
-                            {detail.academic_year && (
-                                <Row
-                                    label="Academic Year"
-                                    value={detail.academic_year}
-                                />
-                            )}
-                            <Row
-                                label="Type of Organization"
-                                value={detail.organization_type_label}
-                            />
-                            <Row
-                                label="Contact Person"
-                                value={detail.contact_person}
-                            />
-                            <Row
-                                label="Contact No."
-                                value={detail.contact_no}
-                            />
-                            <Row
-                                label="Email Address"
-                                value={detail.email_address}
-                            />
-                            <Row
-                                label="Date Organized"
-                                value={detail.date_organized}
-                            />
-                            {detail.adviser && (
-                                <Row
-                                    label="Adviser"
-                                    value={detail.adviser.name}
-                                />
-                            )}
-                            <div className="grid gap-1">
-                                <span className="font-medium text-muted-foreground">
-                                    Purpose of Organization
-                                </span>
-                                <p className="whitespace-pre-wrap">
-                                    {detail.purpose_of_organization}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <AttachmentsCard slots={attachmentSlots} files={attachments} />
-
-                {/* Review actions */}
-                {canAct && !hasApproved && (
-                    <ApprovalActionsCard
-                        title="Review Actions"
-                        approve={{
-                            confirmTitle: 'Approve this renewal?',
-                            confirmDescription:
-                                'This action is irreversible once the SDAO quorum is met — the renewal becomes final for this academic year.',
-                            onConfirm: handleApprove,
-                        }}
-                        return={{
-                            formProps: RenewalReviewController.return.form({
-                                document: document.id,
-                            }),
-                            placeholder:
-                                'Explain what the student needs to revise…',
-                            flagFields: (
-                                <SectionFlagFields sections={sectionFlags} />
-                            ),
-                        }}
-                        reject={{
-                            formProps: RenewalReviewController.reject.form({
-                                document: document.id,
-                            }),
-                            confirmTitle: 'Reject this renewal?',
-                            confirmDescription:
-                                'This is permanent — the student cannot revive this document. They must file a brand-new renewal.',
-                        }}
-                    />
-                )}
-
-                {canAct && hasApproved && (
-                    <PageNotice tone="info">
-                        You have already approved this step. Waiting for the
-                        other SDAO member.
-                    </PageNotice>
-                )}
-
-                {isInReview && !canAct && (
-                    <PageNotice tone="info">
-                        This renewal has moved on to the next approver. No
-                        further action is needed from you.
-                    </PageNotice>
-                )}
-
-                {!isInReview && (
-                    <ReviewStatusNotice status={document.status}>{reviewOnlyStatusNote(document.status)}</ReviewStatusNotice>
-                )}
-
-                {/* History */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Transition History
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ol className="relative border-l border-border pl-4">
-                            {history.map((entry) => (
-                                <li key={entry.id} className="mb-4 ml-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">
-                                            {actionLabel(entry.action)}
-                                        </span>
-                                        {entry.actor && (
-                                            <span className="text-sm text-muted-foreground">
-                                                — {entry.actor.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {entry.comment && (
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            "{entry.comment}"
-                                        </p>
-                                    )}
-                                    {entry.flagged_sections &&
-                                        entry.flagged_sections.length > 0 && (
-                                            <p className="mt-1 text-xs text-warning-foreground">
-                                                Flagged:{' '}
-                                                {entry.flagged_sections
-                                                    .map(
-                                                        (key) =>
-                                                            flaggedSectionLabels[
-                                                                key
-                                                            ] ?? key,
-                                                    )
-                                                    .join(', ')}
-                                            </p>
-                                        )}
-                                    {entry.section_comments &&
-                                        Object.keys(entry.section_comments)
-                                            .length > 0 && (
-                                            <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
-                                                {Object.entries(
-                                                    entry.section_comments,
-                                                ).map(([key, note]) => (
-                                                    <li key={key}>
-                                                        <span className="font-medium">
-                                                            {flaggedSectionLabels[
-                                                                key
-                                                            ] ?? key}
-                                                            :
-                                                        </span>{' '}
-                                                        {note}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    {entry.action === 'resubmitted' &&
-                                        entry.field_changes && (
-                                            <FieldChangeDiff
-                                                changes={
-                                                    entry.field_changes
-                                                }
-                                            />
-                                        )}
-                                    <time className="text-xs text-muted-foreground">
-                                        {new Date(
-                                            entry.created_at,
-                                        ).toLocaleString()}
-                                    </time>
-                                </li>
-                            ))}
-                        </ol>
-                    </CardContent>
-                </Card>
-            </CenteredContainer>
-        </>
+            }
+        >
+            <OrganizationDetails title="Renewal details" organization={document.organization} detail={detail} />
+        </DocumentView>
     );
 }
-
-function Row({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="grid grid-cols-3 gap-2">
-            <span className="font-medium text-muted-foreground">{label}</span>
-            <span className="col-span-2">{value}</span>
-        </div>
-    );
-}
-
-ReviewRenewalShow.layout = {
-    breadcrumbs: [
-        { title: 'Review' },
-        { title: 'Renewals', href: reviewRenewals.index() },
-        { title: 'Review' },
-    ],
-};

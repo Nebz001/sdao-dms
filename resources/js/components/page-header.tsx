@@ -9,6 +9,8 @@ type PageHeaderProps = {
     subtitle: ReactNode;
     /** Sits next to the title, e.g. an organization status badge. */
     badge?: ReactNode;
+    /** A small label above the title, e.g. a document type badge. */
+    eyebrow?: ReactNode;
     /** Buttons aligned to the end of the header. */
     actions?: ReactNode;
 };
@@ -21,11 +23,13 @@ export default function PageHeader({
     title,
     subtitle,
     badge,
+    eyebrow,
     actions,
 }: PageHeaderProps) {
     return (
         <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 basis-72">
+                {eyebrow && <div className="mb-2">{eyebrow}</div>}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h1 className="text-2xl font-semibold tracking-tight text-balance">
                         {title}

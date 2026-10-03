@@ -67,6 +67,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
+    // Same access check, served inline so the document page can preview it.
+    Route::get('/attachments/{attachment}/preview', [AttachmentController::class, 'preview'])->name('attachments.preview');
 
     // Printable official forms — generic across every form type, same
     // category as attachments above. See App\Printing\PrintableForms.

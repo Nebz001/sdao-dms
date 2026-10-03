@@ -1,177 +1,50 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
-import AttachmentsCard from '@/components/attachments-card';
-import CenteredContainer from '@/components/centered-container';
-import { FieldChangeDiff } from '@/components/field-change-diff';
-import PageHeader from '@/components/page-header';
-import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge } from '@/components/status-badge';
+import DocumentView from '@/components/document-view';
+import OrganizationDetails from '@/components/document-view/organization-details';
+import type { OrganizationDetail, OrganizationSummary } from '@/components/document-view/organization-details';
+import type { DocumentViewData } from '@/components/document-view/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as renewals from '@/routes/renewals';
-import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
-
-type Organization = { id: number; name: string; college: string | null; program: string | null };
-
-type DocumentData = {
-    id: number;
-    title: string;
-    status: string;
-    current_step_position: number | null;
-    submitted_by: number | null;
-    organization: Organization;
-};
-
-type DetailData = {
-    organization_type: string;
-    organization_type_label: string;
-    purpose_of_organization: string;
-    contact_person: string;
-    contact_no: string;
-    email_address: string;
-    date_organized: string;
-    adviser: { name: string } | null;
-    academic_year: string | null;
-} | null;
 
 type Props = {
-    document: DocumentData;
-    detail: DetailData;
+    document: {
+        id: number;
+        title: string;
+        status: string;
+        current_step_position: number | null;
+        submitted_by: number | null;
+        organization: OrganizationSummary & { id: number };
+    };
+    detail: OrganizationDetail;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    history: TransitionEntry[];
-    flaggedSectionLabels: FlaggedSectionLabels;
+    view: DocumentViewData;
 };
 
-function actionLabel(action: string): string {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-export default function ShowRenewal({ document, detail, attachmentSlots, attachments, history, flaggedSectionLabels }: Props) {
-    useDocumentUpdates(['document', 'detail', 'attachments', 'history']);
-
-    const isReturned = document.status === 'returned';
+export default function ShowRenewal({ document, detail, attachmentSlots, attachments, view }: Props) {
+    useDocumentUpdates(['document', 'detail', 'attachments', 'view']);
 
     return (
-        <>
-            <Head title={document.title} />
-
-            <CenteredContainer maxWidth="3xl" className="space-y-6">
-                {/* Header */}
-                <PageHeader
-                    title={document.title}
-                    subtitle="Details, attachments and approval progress"
-                    actions={
-                        <>
-                        <StatusBadge status={document.status} />
-                        <PrintFormButton documentId={document.id} />
-                        {isReturned && (
-                            <Button asChild size="sm">
-                                <Link href={renewals.edit(document.id)}>
-                                    Edit & Resubmit
-                                </Link>
-                            </Button>
-                        )}
-                        </>
-                    }
-                />
-
-                {/* Detail card */}
-                {detail && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Renewal Details</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-3 text-sm">
-                            {/* Field-presence parity (Phase 2 item 7 slice 2) */}
-                            <Row label="Organization Name" value={document.organization.name} />
-                            <Row label="College" value={document.organization.college ?? '—'} />
-                            {document.organization.program && (
-                                <Row label="Program" value={document.organization.program} />
-                            )}
-                            {detail.academic_year && (
-                                <Row label="Academic Year" value={detail.academic_year} />
-                            )}
-                            <Row label="Type of Organization" value={detail.organization_type_label} />
-                            <Row label="Contact Person" value={detail.contact_person} />
-                            <Row label="Contact No." value={detail.contact_no} />
-                            <Row label="Email Address" value={detail.email_address} />
-                            <Row label="Date Organized" value={detail.date_organized} />
-                            {detail.adviser && (
-                                <Row label="Adviser" value={detail.adviser.name} />
-                            )}
-                            <div className="grid gap-1">
-                                <span className="font-medium text-muted-foreground">Purpose of Organization</span>
-                                <p className="whitespace-pre-wrap">{detail.purpose_of_organization}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <AttachmentsCard slots={attachmentSlots} files={attachments} />
-
-                {/* Revision history */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Revision History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ol className="relative border-l border-border pl-4">
-                            {history.map((entry) => (
-                                <li key={entry.id} className="mb-4 ml-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{actionLabel(entry.action)}</span>
-                                        {entry.actor && (
-                                            <span className="text-sm text-muted-foreground">
-                                                — {entry.actor.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {entry.comment && (
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            "{entry.comment}"
-                                        </p>
-                                    )}
-                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-warning-foreground">
-                                            Flagged: {entry.flagged_sections.map((key) => flaggedSectionLabels[key] ?? key).join(', ')}
-                                        </p>
-                                    )}
-                                    {entry.section_comments && Object.keys(entry.section_comments).length > 0 && (
-                                        <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
-                                            {Object.entries(entry.section_comments).map(([key, note]) => (
-                                                <li key={key}>
-                                                    <span className="font-medium">{flaggedSectionLabels[key] ?? key}:</span> {note}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    {entry.action === 'resubmitted' && entry.field_changes && (
-                                        <FieldChangeDiff changes={entry.field_changes} />
-                                    )}
-                                    <time className="text-xs text-muted-foreground">
-                                        {new Date(entry.created_at).toLocaleString()}
-                                    </time>
-                                </li>
-                            ))}
-                        </ol>
-                    </CardContent>
-                </Card>
-            </CenteredContainer>
-        </>
+        <DocumentView
+            view={view}
+            documentId={document.id}
+            status={document.status}
+            noun="renewal"
+            audience="student"
+            trail={[{ title: 'Renewals', href: renewals.index() }]}
+            attachmentSlots={attachmentSlots}
+            attachments={attachments}
+            actions={
+                document.status === 'returned' && (
+                    <Button asChild size="sm">
+                        <Link href={renewals.edit(document.id)}>Edit & resubmit</Link>
+                    </Button>
+                )
+            }
+        >
+            <OrganizationDetails title="Renewal details" organization={document.organization} detail={detail} />
+        </DocumentView>
     );
 }
-
-function Row({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="grid grid-cols-3 gap-2">
-            <span className="font-medium text-muted-foreground">{label}</span>
-            <span className="col-span-2">{value}</span>
-        </div>
-    );
-}
-
-ShowRenewal.layout = {
-    breadcrumbs: [{ title: 'Renewals' }, { title: 'View' }],
-};

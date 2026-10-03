@@ -93,6 +93,6 @@ test('show endpoint includes transition history with actor names', function () {
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('registrations/show')
-        ->has('history', 4) // Submitted + Approved + Approved + Completed
+        ->has('view.history', 4) // Submitted + Approved + Approved + Completed
     );
 });

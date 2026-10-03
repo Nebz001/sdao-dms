@@ -164,7 +164,7 @@ test('review show endpoint returns the report with its linked activity and histo
             ->has('document')
             ->has('report')
             ->has('report.activity.title')
-            ->has('history')
+            ->has('view.history')
         );
 });
 

@@ -1,53 +1,47 @@
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { FlagChip } from '@/components/section-flag-fields';
 
 type Props = {
     activities: { name: string }[];
 };
 
 /**
- * Phase 2 item 9 — Activity Calendar's variant of section-flag-fields.tsx.
- * Calendar has no static section registry: each currently-submitted activity
- * row is its own flaggable unit, keyed by its 0-based position ("activity_0",
- * "activity_1", …) rather than a database id, since CalendarActivity rows are
- * deleted and recreated on every resubmit (row ids aren't stable — see
- * UpdateActivityCalendar::execute()). Built from the same `calendar.activities`
- * array the review page already has loaded, not a separate fetch.
+ * Activity Calendar's variant of section-flag-fields.tsx. Calendar has no
+ * static section registry: each currently-submitted activity row is its own
+ * flaggable unit, keyed by its 0-based position ("activity_0", "activity_1",
+ * …) rather than a database id, since CalendarActivity rows are deleted and
+ * recreated on every resubmit (row ids aren't stable — see
+ * UpdateActivityCalendar::execute()). Built from the same
+ * `calendar.activities` array the review page already has loaded, not a
+ * separate fetch.
  */
 export default function CalendarSectionFlagFields({ activities }: Props) {
+    const [checked, setChecked] = useState<Record<string, boolean>>({});
+
     if (activities.length === 0) {
         return null;
     }
 
     return (
-        <div className="grid gap-2">
-            <span className="text-sm font-medium">
-                Flag activities needing revision (optional)
-            </span>
-            <div className="grid gap-2 sm:grid-cols-2">
+        <fieldset className="flex flex-col gap-3">
+            <legend className="mb-2 text-sm font-medium">Which activities need fixing</legend>
+            <div className="flex flex-wrap gap-2">
                 {activities.map((activity, index) => {
                     const key = `activity_${index}`;
 
                     return (
-                        <div
+                        <FlagChip
                             key={key}
-                            className="flex items-center gap-2 rounded-md border p-3"
+                            id={`section-${key}`}
+                            value={key}
+                            checked={checked[key] ?? false}
+                            onCheckedChange={(value) => setChecked((prev) => ({ ...prev, [key]: value }))}
                         >
-                            <Checkbox
-                                id={`section-${key}`}
-                                name="sections[]"
-                                value={key}
-                            />
-                            <Label
-                                htmlFor={`section-${key}`}
-                                className="font-normal"
-                            >
-                                Activity {index + 1}: {activity.name}
-                            </Label>
-                        </div>
+                            Activity {index + 1}: {activity.name}
+                        </FlagChip>
                     );
                 })}
             </div>
-        </div>
+        </fieldset>
     );
 }

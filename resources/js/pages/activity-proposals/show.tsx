@@ -1,78 +1,30 @@
-import { Head, Link } from '@inertiajs/react';
-import type {
-    AttachmentSlotDef,
-    ExistingAttachment,
-} from '@/components/attachment-slot-field';
-import AttachmentsCard from '@/components/attachments-card';
-import CenteredContainer from '@/components/centered-container';
-import ExpenseItemsTable from '@/components/expense-items-table';
-import { FieldChangeDiff } from '@/components/field-change-diff';
-import { Row } from '@/components/labeled-row';
-import PageHeader from '@/components/page-header';
+import { Link } from '@inertiajs/react';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
+import DocumentView from '@/components/document-view';
+import ProposalDetails from '@/components/document-view/proposal-details';
+import type { ProposalActivity, ProposalData } from '@/components/document-view/proposal-details';
+import type { DocumentViewData } from '@/components/document-view/types';
 import PageNotice from '@/components/page-notice';
-import type { PartnerOrganization } from '@/components/partner-organizations-field';
-import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge } from '@/components/status-badge';
-import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as activityProposals from '@/routes/activity-proposals';
-import type { FlaggedSectionLabels, TransitionEntry } from '@/types';
-
-type DocumentData = {
-    id: number;
-    title: string;
-    status: string;
-    current_step_position: number | null;
-    submitted_by: number | null;
-    organization: { id: number; name: string };
-};
-
-type ProposalData = {
-    id: number;
-    calendar_mode: string;
-    title: string;
-    objectives: string | null;
-    activity_description: string | null;
-    criteria_mechanics: string | null;
-    program_flow: string | null;
-    expenses: string | null;
-    expense_items: { material: string; quantity: string; unit_price: string }[] | null;
-    expense_items_total: string | null;
-    responsible_persons: string[] | null;
-    proposed_budget: string | null;
-    form_step: number;
-    activity_nature_label: string | null;
-    activity_type_label: string | null;
-    partner_organizations: PartnerOrganization[] | null;
-    target_sdg_labels: string[];
-    budget_source_label: string | null;
-} | null;
-
-type ActivityData = {
-    id: number;
-    name: string;
-    venue: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-} | null;
 
 type Props = {
-    document: DocumentData;
+    document: {
+        id: number;
+        title: string;
+        status: string;
+        current_step_position: number | null;
+        submitted_by: number | null;
+        organization: { id: number; name: string };
+    };
     proposal: ProposalData;
-    activity: ActivityData;
+    activity: ProposalActivity;
     attachmentSlots: AttachmentSlotDef[];
     attachments: Record<string, ExistingAttachment[]>;
-    history: TransitionEntry[];
-    flaggedSectionLabels: FlaggedSectionLabels;
+    view: DocumentViewData;
     flash?: { message?: string; warnings?: { conflicts: object[] }[] };
 };
-
-function actionLabel(action: string): string {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export default function ShowActivityProposal({
     document: doc,
@@ -80,339 +32,42 @@ export default function ShowActivityProposal({
     activity,
     attachmentSlots,
     attachments,
-    history,
-    flaggedSectionLabels,
+    view,
     flash,
 }: Props) {
-    useDocumentUpdates([
-        'document',
-        'proposal',
-        'activity',
-        'attachments',
-        'history',
-    ]);
-
-    const isDraft = doc.status === 'draft';
-    const isReturned = doc.status === 'returned';
+    useDocumentUpdates(['document', 'proposal', 'activity', 'attachments', 'view']);
 
     return (
-        <>
-            <Head title={doc.title} />
-
-            <CenteredContainer maxWidth="3xl" className="space-y-6">
-                {/* Header */}
-                <PageHeader
-                    title={doc.title}
-                    subtitle="Details, attachments and approval progress"
-                    actions={
-                        <>
-                        <StatusBadge status={doc.status} />
-                        <PrintFormButton documentId={doc.id} />
-                        {isDraft && (
-                            <Button asChild size="sm">
-                                <Link
-                                    href={
-                                        activityProposals.continueMethod({
-                                            document: doc.id,
-                                        }).url
-                                    }
-                                >
-                                    Continue Narrative
-                                </Link>
-                            </Button>
-                        )}
-                        {isReturned && (
-                            <Button asChild size="sm">
-                                <Link
-                                    href={
-                                        activityProposals.edit({
-                                            document: doc.id,
-                                        }).url
-                                    }
-                                >
-                                    Edit & Resubmit
-                                </Link>
-                            </Button>
-                        )}
-                        </>
-                    }
-                />
-
-                {/* Flash warnings */}
-                {flash?.warnings && flash.warnings.length > 0 && (
-                    <PageNotice
-                        tone="warning"
-                        title="Submitted, but a possible venue conflict was detected."
-                    />
-                )}
-
-                {/* Activity summary */}
-                {activity && proposal && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Activity{' '}
-                                <span className="text-xs font-normal text-muted-foreground">
-                                    (
-                                    {proposal.calendar_mode === 'on_calendar'
-                                        ? 'On Calendar'
-                                        : 'Off Calendar'}
-                                    )
-                                </span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm">
-                            <p className="font-medium">{activity.name}</p>
-                            <p className="text-muted-foreground">
-                                {activity.venue} · {activity.activity_date} ·{' '}
-                                {activity.start_time}–{activity.end_time}
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Activity Request Form fields (Phase 2 item 7 slice 4a) */}
-                {proposal && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Activity Request Form
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-3 text-sm">
-                            <Row label="Name of RSO" value={doc.organization.name} />
-                            {proposal.activity_nature_label && (
-                                <Row
-                                    label="Nature of Activity"
-                                    value={proposal.activity_nature_label}
-                                />
-                            )}
-                            {proposal.activity_type_label && (
-                                <Row
-                                    label="Type of Activity"
-                                    value={proposal.activity_type_label}
-                                />
-                            )}
-                            {proposal.partner_organizations &&
-                                proposal.partner_organizations.length > 0 && (
-                                    <div className="grid gap-1">
-                                        <span className="font-medium text-muted-foreground">
-                                            Partner
-                                            Organization(s)/School(s)/RSO
-                                        </span>
-                                        <ul className="list-disc pl-4">
-                                            {proposal.partner_organizations.map(
-                                                (org, i) => (
-                                                    <li key={i} className="flex items-center gap-2">
-                                                        {org.name}
-                                                        {org.organization_id !== null && (
-                                                            <TagBadge>Linked</TagBadge>
-                                                        )}
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                )}
-                            {proposal.target_sdg_labels.length > 0 && (
-                                <Row
-                                    label="Target SDG"
-                                    value={proposal.target_sdg_labels.join(
-                                        ', ',
-                                    )}
-                                />
-                            )}
-                            {proposal.proposed_budget && (
-                                <Row
-                                    label="Proposed Budget"
-                                    value={`₱${proposal.proposed_budget}`}
-                                />
-                            )}
-                            {proposal.budget_source_label && (
-                                <Row
-                                    label="Budget Source"
-                                    value={proposal.budget_source_label}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Narrative */}
-                {proposal && (proposal.objectives || proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow) && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Proposal Narrative
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                            {proposal.objectives && (
-                                <div>
-                                    <p className="mb-1 font-medium">
-                                        Objectives
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                        {proposal.objectives}
-                                    </p>
-                                </div>
-                            )}
-                            {(proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow) && (
-                                <div>
-                                    {proposal.activity_description && (
-                                        <>
-                                            <p className="mb-1 font-medium">
-                                                Activity Description
-                                            </p>
-                                            <p className="whitespace-pre-wrap text-muted-foreground">
-                                                {proposal.activity_description}
-                                            </p>
-                                        </>
-                                    )}
-                                    {(proposal.criteria_mechanics || proposal.program_flow) && (
-                                        <div className="mt-3 space-y-3 border-l-2 pl-4">
-                                            {proposal.criteria_mechanics && (
-                                                <div>
-                                                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                        Criteria/Mechanics
-                                                    </p>
-                                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                                        {proposal.criteria_mechanics}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {proposal.program_flow && (
-                                                <div>
-                                                    <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                        Program Flow
-                                                    </p>
-                                                    <p className="whitespace-pre-wrap text-muted-foreground">
-                                                        {proposal.program_flow}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            <ExpenseItemsTable
-                                items={proposal.expense_items}
-                                total={proposal.expense_items_total}
-                                legacyText={proposal.expenses}
-                            />
-                            {proposal.responsible_persons &&
-                                proposal.responsible_persons.length > 0 && (
-                                    <div>
-                                        <p className="mb-1 font-medium">
-                                            Responsible Person(s)
-                                        </p>
-                                        <ul className="list-disc pl-4 text-muted-foreground">
-                                            {proposal.responsible_persons.map(
-                                                (name, i) => (
-                                                    <li key={i}>{name}</li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                <AttachmentsCard slots={attachmentSlots} files={attachments} />
-
-                {/* Revision history */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Revision History
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {history.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No history yet.
-                            </p>
-                        ) : (
-                            <ol className="relative border-l border-border pl-4">
-                                {history.map((entry) => (
-                                    <li key={entry.id} className="mb-4 ml-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">
-                                                {actionLabel(entry.action)}
-                                            </span>
-                                            {entry.actor && (
-                                                <span className="text-sm text-muted-foreground">
-                                                    — {entry.actor.name}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {entry.comment && (
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                "{entry.comment}"
-                                            </p>
-                                        )}
-                                        {entry.flagged_sections &&
-                                            entry.flagged_sections.length >
-                                                0 && (
-                                                <p className="mt-1 text-xs text-warning-foreground">
-                                                    Flagged:{' '}
-                                                    {entry.flagged_sections
-                                                        .map(
-                                                            (key) =>
-                                                                flaggedSectionLabels[
-                                                                    key
-                                                                ] ?? key,
-                                                        )
-                                                        .join(', ')}
-                                                </p>
-                                            )}
-                                        {entry.section_comments &&
-                                            Object.keys(entry.section_comments)
-                                                .length > 0 && (
-                                                <ul className="mt-1 space-y-0.5 text-xs text-warning-foreground">
-                                                    {Object.entries(
-                                                        entry.section_comments,
-                                                    ).map(([key, note]) => (
-                                                        <li key={key}>
-                                                            <span className="font-medium">
-                                                                {flaggedSectionLabels[
-                                                                    key
-                                                                ] ?? key}
-                                                                :
-                                                            </span>{' '}
-                                                            {note}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        {entry.action === 'resubmitted' &&
-                                            entry.field_changes && (
-                                                <FieldChangeDiff
-                                                    changes={
-                                                        entry.field_changes
-                                                    }
-                                                />
-                                            )}
-                                        <time className="text-xs text-muted-foreground">
-                                            {new Date(
-                                                entry.created_at,
-                                            ).toLocaleString()}
-                                        </time>
-                                    </li>
-                                ))}
-                            </ol>
-                        )}
-                    </CardContent>
-                </Card>
-            </CenteredContainer>
-        </>
+        <DocumentView
+            view={view}
+            documentId={doc.id}
+            status={doc.status}
+            noun="proposal"
+            audience="student"
+            trail={[{ title: 'Activity proposals', href: '/activity-proposals' }]}
+            attachmentSlots={attachmentSlots}
+            attachments={attachments}
+            actions={
+                <>
+                    {doc.status === 'draft' && (
+                        <Button asChild size="sm">
+                            <Link href={activityProposals.continueMethod({ document: doc.id }).url}>Continue narrative</Link>
+                        </Button>
+                    )}
+                    {doc.status === 'returned' && (
+                        <Button asChild size="sm">
+                            <Link href={activityProposals.edit({ document: doc.id }).url}>Edit & resubmit</Link>
+                        </Button>
+                    )}
+                </>
+            }
+            notices={
+                flash?.warnings && flash.warnings.length > 0 ? (
+                    <PageNotice tone="warning" title="Submitted, but a possible venue conflict was detected." />
+                ) : undefined
+            }
+        >
+            <ProposalDetails organizationName={doc.organization.name} proposal={proposal} activity={activity} />
+        </DocumentView>
     );
 }
-
-ShowActivityProposal.layout = {
-    breadcrumbs: [
-        { title: 'Activity Proposals', href: '/activity-proposals' },
-        { title: 'View' },
-    ],
-};

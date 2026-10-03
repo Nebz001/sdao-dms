@@ -1,204 +1,44 @@
-import { Head, Link } from '@inertiajs/react';
-import CenteredContainer from '@/components/centered-container';
-import { FieldChangeDiff } from '@/components/field-change-diff';
-import PageHeader from '@/components/page-header';
-import PrintFormButton from '@/components/print-form-button';
-import { StatusBadge } from '@/components/status-badge';
+import { Link } from '@inertiajs/react';
+import DocumentView from '@/components/document-view';
+import CalendarDetails from '@/components/document-view/calendar-details';
+import type { CalendarData } from '@/components/document-view/calendar-details';
+import type { DocumentViewData } from '@/components/document-view/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
-import type { FieldChanges } from '@/types/document-transitions';
-
-type DocumentData = {
-    id: number;
-    title: string;
-    status: string;
-    current_step_position: number | null;
-    submitted_by: number | null;
-    organization: { id: number; name: string };
-    rso_name: string;
-    date_received: string;
-};
-
-type ActivityData = {
-    id: number;
-    name: string;
-    venue: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-    description: string | null;
-    sdg_labels: string[];
-    participant_program_assigned: string | null;
-    budget: string | null;
-};
-
-type CalendarData = {
-    academic_year: string;
-    term: string;
-    term_label: string;
-    activities: ActivityData[];
-} | null;
-
-type TransitionEntry = {
-    id: number;
-    action: string;
-    from_status: string | null;
-    to_status: string;
-    step_position: number | null;
-    comment: string | null;
-    flagged_sections: string[] | null;
-    // Unlike section_comments (omitted here — no stable row identity across
-    // a delete+recreate resubmit), field_changes IS safe: it's captured
-    // fresh from the rows as they existed at the moment of resubmission,
-    // never read back through a stale row id.
-    field_changes: FieldChanges | null;
-    actor: { name: string } | null;
-    created_at: string;
-};
 
 type Props = {
-    document: DocumentData;
+    document: {
+        id: number;
+        title: string;
+        status: string;
+        current_step_position: number | null;
+        submitted_by: number | null;
+        organization: { id: number; name: string };
+    };
     calendar: CalendarData;
-    history: TransitionEntry[];
+    view: DocumentViewData;
 };
 
-function actionLabel(action: string): string {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-/**
- * Activity Calendar has no static section registry (see App\Approval\
- * SectionFlags) — raw "activity_N" keys are resolved to "Activity N+1"
- * directly here instead of a server-side label lookup.
- */
-function calendarFlagLabel(key: string): string {
-    const match = key.match(/^activity_(\d+)$/);
-
-    return match ? `Activity ${Number(match[1]) + 1}` : key;
-}
-
-export default function ShowActivityCalendar({ document, calendar, history }: Props) {
-    useDocumentUpdates(['document', 'calendar', 'history']);
-
-    const isReturned = document.status === 'returned';
+export default function ShowActivityCalendar({ document, calendar, view }: Props) {
+    useDocumentUpdates(['document', 'calendar', 'view']);
 
     return (
-        <>
-            <Head title={document.title} />
-
-            <CenteredContainer maxWidth="3xl" className="space-y-6">
-                {/* Header */}
-                <PageHeader
-                    title={document.title}
-                    subtitle="Details, attachments and approval progress"
-                    actions={
-                        <>
-                        <StatusBadge status={document.status} />
-                        <PrintFormButton documentId={document.id} />
-                        {isReturned && (
-                            <Button asChild size="sm">
-                                <Link href={`/activity-calendars/${document.id}/edit`}>
-                                    Edit & Resubmit
-                                </Link>
-                            </Button>
-                        )}
-                        </>
-                    }
-                />
-
-                {/* RSO Name / Date Received (Phase 2 item 7 slice 1) — derived,
-                    document-level values, shown once rather than per activity row. */}
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                    <span>
-                        <span className="font-medium text-foreground">RSO Name:</span> {document.rso_name}
-                    </span>
-                    <span>
-                        <span className="font-medium text-foreground">Date Received:</span>{' '}
-                        {new Date(document.date_received).toLocaleDateString()}
-                    </span>
-                </div>
-
-                {/* Activities table */}
-                {calendar && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                {calendar.term_label} {calendar.academic_year} — Activities
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {calendar.activities.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No activities.</p>
-                            ) : (
-                                <div className="divide-y">
-                                    {calendar.activities.map((a) => (
-                                        <div key={a.id} className="py-3">
-                                            <p className="font-medium">{a.name}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {a.venue} · {a.activity_date} · {a.start_time}–{a.end_time}
-                                            </p>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {a.sdg_labels.length > 0 && (
-                                                    <>SDG: {a.sdg_labels.join(', ')} · </>
-                                                )}
-                                                {a.participant_program_assigned && (
-                                                    <>Participant/Program Assigned: {a.participant_program_assigned} · </>
-                                                )}
-                                                {a.budget && <>Budget: ₱{a.budget}</>}
-                                            </p>
-                                            {a.description && (
-                                                <p className="mt-1 text-sm">{a.description}</p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Revision history */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Revision History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ol className="relative border-l border-border pl-4">
-                            {history.map((entry) => (
-                                <li key={entry.id} className="mb-4 ml-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{actionLabel(entry.action)}</span>
-                                        {entry.actor && (
-                                            <span className="text-sm text-muted-foreground">
-                                                — {entry.actor.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {entry.comment && (
-                                        <p className="mt-1 text-sm text-muted-foreground">"{entry.comment}"</p>
-                                    )}
-                                    {entry.flagged_sections && entry.flagged_sections.length > 0 && (
-                                        <p className="mt-1 text-xs text-warning-foreground">
-                                            Flagged: {entry.flagged_sections.map(calendarFlagLabel).join(', ')}
-                                        </p>
-                                    )}
-                                    {entry.action === 'resubmitted' && entry.field_changes && (
-                                        <FieldChangeDiff changes={entry.field_changes} />
-                                    )}
-                                    <time className="text-xs text-muted-foreground">
-                                        {new Date(entry.created_at).toLocaleString()}
-                                    </time>
-                                </li>
-                            ))}
-                        </ol>
-                    </CardContent>
-                </Card>
-            </CenteredContainer>
-        </>
+        <DocumentView
+            view={view}
+            documentId={document.id}
+            status={document.status}
+            noun="activity calendar"
+            audience="student"
+            trail={[{ title: 'Activity calendars', href: '/activity-calendars' }]}
+            actions={
+                document.status === 'returned' && (
+                    <Button asChild size="sm">
+                        <Link href={`/activity-calendars/${document.id}/edit`}>Edit & resubmit</Link>
+                    </Button>
+                )
+            }
+        >
+            <CalendarDetails calendar={calendar} />
+        </DocumentView>
     );
 }
-
-ShowActivityCalendar.layout = {
-    breadcrumbs: [{ title: 'Activity Calendars' }, { title: 'View' }],
-};

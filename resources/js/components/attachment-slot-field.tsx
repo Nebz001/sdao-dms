@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { AttachmentPreviewLink } from '@/components/attachment-preview';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,11 @@ export type ExistingAttachment = {
     id: number;
     original_filename: string;
     download_url: string;
+    /** Same file, served inline for the in-page preview. */
+    preview_url: string;
+    /** Bytes. Absent on rows returned by an upload, present on a document's show data. */
+    size?: number | null;
+    mime_type?: string;
 };
 
 type Props = {
@@ -90,12 +96,7 @@ export default function AttachmentSlotField({ slot, existing = [], error, onFile
                 <ul className="space-y-1">
                     {existing.map((file) => (
                         <li key={file.id} className="text-sm">
-                            <a
-                                href={file.download_url}
-                                className="text-primary-text underline underline-offset-4"
-                            >
-                                {file.original_filename}
-                            </a>
+                            <AttachmentPreviewLink file={file} />
                         </li>
                     ))}
                 </ul>

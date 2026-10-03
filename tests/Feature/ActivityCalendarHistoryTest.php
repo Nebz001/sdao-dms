@@ -95,7 +95,7 @@ test('show endpoint returns document with history', function () {
         ->assertInertia(fn ($page) => $page
             ->component('activity-calendars/show')
             ->has('document')
-            ->has('history')
+            ->has('view.history')
             ->has('calendar')
         );
 });

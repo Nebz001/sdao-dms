@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AttachmentPreviewLink } from '@/components/attachment-preview';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -100,9 +101,7 @@ export default function ImmediateAttachmentUpload({ documentId, slot, existing =
 
             {current && (
                 <div className="flex items-center gap-3 text-sm">
-                    <a href={current.download_url} className="text-primary-text underline underline-offset-4">
-                        {current.original_filename}
-                    </a>
+                    <AttachmentPreviewLink file={current} />
                     <Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={uploading}>
                         Remove
                     </Button>

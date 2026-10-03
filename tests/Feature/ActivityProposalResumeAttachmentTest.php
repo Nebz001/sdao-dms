@@ -11,6 +11,7 @@ use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Phase 2 item 8, Mode B — Activity Proposal's one optional attachment slot
@@ -194,5 +195,58 @@ test('an uploaded resume appears on the student show page and the reviewer show 
         ->assertInertia(fn ($page) => $page
             ->component('review/activity-proposals/show')
             ->has('attachments.resume_of_resource_person', 1)
+        );
+});
+
+function uploadedResumeAttachment($test): DocumentAttachment
+{
+    $test->actingAs($test->studentAlpha)->post(route('attachments.store'), [
+        'document_id' => $test->document->id,
+        'slot_key' => 'resume_of_resource_person',
+        'file' => UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf'),
+    ]);
+
+    return $test->document->attachments()->where('slot_key', 'resume_of_resource_person')->firstOrFail();
+}
+
+test('the preview route serves a PDF inline with the exact bytes, and the download route still forces a download', function () {
+    $attachment = uploadedResumeAttachment($this);
+
+    $preview = $this->actingAs($this->studentAlpha)->get(route('attachments.preview', $attachment));
+    $preview->assertOk();
+    expect($preview->headers->get('Content-Disposition'))->toStartWith('inline');
+    expect($preview->headers->get('Content-Type'))->toBe('application/pdf');
+    expect($preview->headers->get('X-Content-Type-Options'))->toBe('nosniff');
+    expect($preview->streamedContent())->toBe(Storage::disk($attachment->disk)->get($attachment->path));
+
+    $download = $this->actingAs($this->studentAlpha)->get(route('attachments.download', $attachment));
+    $download->assertOk();
+    expect($download->headers->get('Content-Disposition'))->toStartWith('attachment');
+});
+
+test('previewing an attachment follows the same access rule as downloading it', function () {
+    $attachment = uploadedResumeAttachment($this);
+
+    $this->actingAs($this->studentBeta)->get(route('attachments.preview', $attachment))->assertForbidden();
+});
+
+test('a stored type a browser should not render inline is sent as a download even from the preview route', function () {
+    $attachment = uploadedResumeAttachment($this);
+    $attachment->update(['mime_type' => 'text/html']);
+
+    $preview = $this->actingAs($this->studentAlpha)->get(route('attachments.preview', $attachment));
+
+    expect($preview->headers->get('Content-Disposition'))->toStartWith('attachment');
+    expect($preview->headers->get('Content-Type'))->toBe('application/octet-stream');
+});
+
+test('a document page lists a preview_url beside the download_url for each file', function () {
+    $attachment = uploadedResumeAttachment($this);
+
+    $this->actingAs($this->studentAlpha)->withoutVite()
+        ->get(route('activity-proposals.show', $this->document))
+        ->assertInertia(fn ($page) => $page
+            ->where('attachments.resume_of_resource_person.0.preview_url', route('attachments.preview', $attachment))
+            ->where('attachments.resume_of_resource_person.0.download_url', route('attachments.download', $attachment))
         );
 });

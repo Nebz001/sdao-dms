@@ -146,7 +146,7 @@ test('review show endpoint returns the renewal with detail and history', functio
             ->component('review/renewals/show')
             ->has('document')
             ->has('detail')
-            ->has('history')
+            ->has('view.history')
         );
 });
 
