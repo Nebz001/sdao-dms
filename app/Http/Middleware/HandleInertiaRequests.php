@@ -7,6 +7,7 @@ use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
+use App\Support\NavCounts;
 use App\Support\NotificationPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -94,6 +95,10 @@ class HandleInertiaRequests extends Middleware
             // (`only: ['document','history','queue']`) even though that
             // poll never asks for it.
             'notifications' => fn () => $this->notificationsFor($request),
+            // Sidebar count badges. Also a closure, and fetched by name
+            // (`only: ['navCounts']`) by the sidebar's own poll, so the
+            // five-form review scan never rides along with other partial reloads.
+            'navCounts' => fn () => ($user = $request->user()) ? app(NavCounts::class)->for($user) : null,
         ];
     }
 

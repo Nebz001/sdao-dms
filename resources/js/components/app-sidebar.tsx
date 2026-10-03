@@ -1,21 +1,21 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     Archive,
     Building2,
     CalendarCog,
+    ClipboardCheck,
     CalendarDays,
     FilePlus2,
-    FileText,
     Files,
     History,
-    Inbox,
     LayoutGrid,
     UserCheck,
     UserPlus,
     Users,
     UserRoundCog,
-    UserRoundPlus,
+    TriangleAlert,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -41,6 +41,7 @@ import * as adminOfficerChangeRequests from '@/routes/admin/officer-change-reque
 import * as adminOrganizations from '@/routes/admin/organizations';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
 import * as currentPeriodSettings from '@/routes/admin/settings/period';
+import * as stuckDocuments from '@/routes/admin/stuck-documents';
 import * as calendar from '@/routes/calendar';
 import * as documentHistory from '@/routes/document-history';
 import * as officers from '@/routes/officers';
@@ -56,7 +57,8 @@ import * as reviewJoinRequests from '@/routes/review/join-requests';
 import * as reviewRegistrations from '@/routes/review/registrations';
 import * as reviewRenewals from '@/routes/review/renewals';
 import * as reviewReports from '@/routes/review/reports';
-import type { NavItem, RoleAssignment } from '@/types';
+import type { NavEntry, NavItem, NavSection, RoleAssignment } from '@/types';
+import { isNavGroup } from '@/types/navigation';
 
 /** Roles that take part in the activity-proposal approval chain (CLAUDE.md #8). */
 const PROPOSAL_APPROVER_ROLES = new Set([
@@ -69,6 +71,9 @@ const PROPOSAL_APPROVER_ROLES = new Set([
     'academic_director',
     'executive_director',
 ]);
+
+/** How often the sidebar refreshes its count badges. */
+const NAV_COUNTS_POLL_MS = 15_000;
 
 export function AppSidebar() {
     const page = usePage();
@@ -100,115 +105,141 @@ export function AppSidebar() {
         !reviewsProposals &&
         (auth?.canProposeOrganization ?? false);
 
-    const sections: { label: string; items: NavItem[] }[] = [
+    const counts = page.props.navCounts;
+    const review = counts?.review;
+    const documents = counts?.documents;
+
+    // Platform: the same for everyone, plus Stuck Documents for SDAO.
+    const platformItems: NavItem[] = [
         {
-            label: 'Platform',
-            items: [
-                {
-                    title: 'Dashboard',
-                    href: dashboard(),
-                    icon: LayoutGrid,
-                    // SDAO members are sent to the admin dashboard from /dashboard.
-                    alsoActiveOn: [adminDashboard.index.url()],
-                },
-                {
-                    title: 'Venue Calendar',
-                    href: calendar.index(),
-                    icon: CalendarDays,
-                },
-            ],
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+            // SDAO members are sent to the admin dashboard from /dashboard.
+            alsoActiveOn: [adminDashboard.index.url()],
+        },
+        {
+            title: 'Venue Calendar',
+            href: calendar.index(),
+            icon: CalendarDays,
         },
     ];
 
-    if (isStudentOfficer) {
-        sections.push({
-            label: 'Submit',
-            items: [
-                {
-                    title: 'Submit Registration',
-                    href: registrations.create(),
-                    icon: FilePlus2,
-                },
-                {
-                    title: 'Submit Renewal',
-                    href: renewals.create(),
-                    icon: FilePlus2,
-                },
-                {
-                    title: 'Submit Activity Calendar',
-                    href: activityCalendars.create(),
-                    icon: FilePlus2,
-                },
-                {
-                    title: 'Submit Activity Proposal',
-                    href: activityProposals.create(),
-                    icon: FilePlus2,
-                },
-                {
-                    title: 'Submit Report',
-                    href: reports.create(),
-                    icon: FilePlus2,
-                },
-            ],
+    if (isSdao) {
+        platformItems.push({
+            title: 'Stuck Documents',
+            href: stuckDocuments.index(),
+            icon: TriangleAlert,
+            badge: counts?.stuck ?? 0,
+            badgeTone: 'alert',
         });
+    }
 
-        sections.push({
-            label: 'My Documents',
-            items: [
-                {
-                    title: 'My Organization',
-                    href: myOrganization.mine(),
-                    icon: Building2,
-                },
-                {
-                    title: 'My Registrations',
-                    href: registrations.index(),
-                    icon: Files,
-                },
-                { title: 'My Renewals', href: renewals.index(), icon: Files },
-                {
-                    title: 'My Calendars',
-                    href: activityCalendars.index(),
-                    icon: Files,
-                },
-                {
-                    title: 'My Proposals',
-                    href: activityProposals.index(),
-                    icon: Files,
-                },
-                { title: 'My Reports', href: reports.index(), icon: Files },
-                {
-                    title: 'Document History',
-                    href: documentHistory.index(),
-                    icon: History,
-                },
-                {
-                    title: 'Request Officer Change',
-                    href: officerChange.create(),
-                    icon: UserRoundCog,
-                },
-            ],
-        });
+    // Workspace: collapsible groups first, then plain single rows.
+    const workspaceEntries: NavEntry[] = [];
+    const workspaceRows: NavItem[] = [];
+
+    if (isStudentOfficer) {
+        workspaceEntries.push(
+            {
+                title: 'Submit',
+                icon: FilePlus2,
+                items: [
+                    {
+                        title: 'Registration',
+                        href: registrations.create(),
+                    },
+                    { title: 'Renewal', href: renewals.create() },
+                    {
+                        title: 'Activity Calendar',
+                        href: activityCalendars.create(),
+                    },
+                    {
+                        title: 'Activity Proposal',
+                        href: activityProposals.create(),
+                    },
+                    { title: 'Report', href: reports.create() },
+                ],
+            },
+            {
+                title: 'My Documents',
+                icon: Files,
+                items: [
+                    {
+                        title: 'Registrations',
+                        href: registrations.index(),
+                        badge: documents?.registrations ?? 0,
+                    },
+                    {
+                        title: 'Renewals',
+                        href: renewals.index(),
+                        badge: documents?.renewals ?? 0,
+                    },
+                    {
+                        title: 'Calendars',
+                        href: activityCalendars.index(),
+                        badge: documents?.calendars ?? 0,
+                    },
+                    {
+                        title: 'Proposals',
+                        href: activityProposals.index(),
+                        badge: documents?.proposals ?? 0,
+                    },
+                    {
+                        title: 'Reports',
+                        href: reports.index(),
+                        badge: documents?.reports ?? 0,
+                    },
+                    {
+                        title: 'Document History',
+                        href: documentHistory.index(),
+                        badge: documents?.history ?? 0,
+                    },
+                ],
+            },
+        );
+
+        workspaceRows.push(
+            {
+                title: 'My Organization',
+                href: myOrganization.mine(),
+                icon: Building2,
+            },
+            {
+                title: 'Request Officer Change',
+                href: officerChange.create(),
+                icon: UserRoundCog,
+            },
+        );
     } else if (canFoundOrganization) {
-        sections.push({
-            label: 'Submit',
-            items: [
-                {
-                    title: 'Submit Registration',
-                    href: registrations.create(),
-                    icon: FilePlus2,
-                },
-                {
-                    title: 'My Registrations',
-                    href: registrations.index(),
-                    icon: Files,
-                },
-                {
-                    title: 'Join an Organization',
-                    href: organizationsJoin.create(),
-                    icon: UserPlus,
-                },
-            ],
+        workspaceEntries.push(
+            {
+                title: 'Submit',
+                icon: FilePlus2,
+                items: [
+                    {
+                        title: 'Registration',
+                        href: registrations.create(),
+                    },
+                ],
+            },
+            {
+                title: 'My Documents',
+                icon: Files,
+                items: [
+                    {
+                        title: 'Registrations',
+                        href: registrations.index(),
+                        badge: documents?.registrations ?? 0,
+                    },
+                ],
+            },
+        );
+
+        workspaceRows.push({
+            title: 'Join an Organization',
+            href: organizationsJoin.create(),
+            icon: UserPlus,
         });
     }
 
@@ -217,33 +248,33 @@ export function AppSidebar() {
     if (isSdao) {
         reviewItems.push(
             {
-                title: 'Review Registrations',
+                title: 'Registrations',
                 href: reviewRegistrations.index(),
-                icon: FileText,
+                badge: review?.registrations ?? 0,
             },
             {
-                title: 'Review Renewals',
+                title: 'Renewals',
                 href: reviewRenewals.index(),
-                icon: FileText,
+                badge: review?.renewals ?? 0,
             },
             {
-                title: 'Review Calendars',
+                title: 'Calendars',
                 href: reviewActivityCalendars.index(),
-                icon: FileText,
+                badge: review?.calendars ?? 0,
             },
             {
-                title: 'Review Reports',
+                title: 'Reports',
                 href: reviewReports.index(),
-                icon: FileText,
+                badge: review?.reports ?? 0,
             },
         );
     }
 
     if (reviewsProposals) {
         reviewItems.push({
-            title: 'Review Proposals',
+            title: 'Proposals',
             href: reviewActivityProposals.index(),
-            icon: Inbox,
+            badge: review?.proposals ?? 0,
         });
     }
 
@@ -253,23 +284,44 @@ export function AppSidebar() {
     // gates on isStudentOfficer too, not just adviserRole.
     if (adviserRole?.organization_id || isStudentOfficer) {
         reviewItems.push({
-            title: 'Review Join Requests',
+            title: 'Join Requests',
             href: reviewJoinRequests.index(),
-            icon: UserRoundPlus,
         });
     }
 
     if (reviewItems.length > 0) {
-        sections.push({
-            label: 'Review',
+        workspaceEntries.unshift({
+            title: 'Review',
+            icon: ClipboardCheck,
             items: reviewItems,
         });
     }
 
-    const manageItems: NavItem[] = [];
+    if (isSdao) {
+        workspaceEntries.push({
+            title: 'Accounts',
+            icon: UserCheck,
+            items: [
+                {
+                    title: 'Pending Accounts',
+                    href: pendingAccounts.index(),
+                    badge: counts?.accounts.pending ?? 0,
+                },
+                {
+                    title: 'Provision Approvers',
+                    href: approvers.index(),
+                },
+                {
+                    title: 'Officer Change Requests',
+                    href: adminOfficerChangeRequests.index(),
+                    badge: counts?.accounts.officerChanges ?? 0,
+                },
+            ],
+        });
+    }
 
     if (adviserRole?.organization_id) {
-        manageItems.push({
+        workspaceRows.push({
             title: 'Manage Officers',
             href: officers.index({ organization: adviserRole.organization_id }),
             icon: Users,
@@ -277,26 +329,11 @@ export function AppSidebar() {
     }
 
     if (isSdao) {
-        manageItems.push(
+        workspaceRows.push(
             {
                 title: 'Organizations',
                 href: adminOrganizations.index(),
                 icon: Building2,
-            },
-            {
-                title: 'Provision Approvers',
-                href: approvers.index(),
-                icon: UserPlus,
-            },
-            {
-                title: 'Pending Accounts',
-                href: pendingAccounts.index(),
-                icon: UserCheck,
-            },
-            {
-                title: 'Officer Change Requests',
-                href: adminOfficerChangeRequests.index(),
-                icon: UserRoundCog,
             },
             {
                 title: 'Document Archive',
@@ -316,24 +353,61 @@ export function AppSidebar() {
         );
     }
 
-    if (manageItems.length > 0) {
-        sections.push({
-            label: 'Manage',
-            items: manageItems,
-        });
+    const sections: NavSection[] = [
+        { label: 'Platform', entries: platformItems },
+    ];
+
+    const workspace = [...workspaceEntries, ...workspaceRows];
+
+    if (workspace.length > 0) {
+        sections.push({ label: 'Workspace', entries: workspace });
     }
+
+    // Badges go stale on their own (another approver acts, a student files),
+    // so the sidebar refreshes just its counts. A closure prop on the server,
+    // so nothing else is recomputed. Skipped for a hidden tab.
+    const hasBadges = sections.some((section) =>
+        section.entries.some((entry) =>
+            isNavGroup(entry)
+                ? entry.items.some((item) => item.badge !== undefined)
+                : entry.badge !== undefined,
+        ),
+    );
+
+    useEffect(() => {
+        if (!hasBadges) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                router.reload({ only: ['navCounts'], async: true });
+            }
+        }, NAV_COUNTS_POLL_MS);
+
+        return () => clearInterval(interval);
+    }, [hasBadges]);
 
     // One selected item across all sections, resolved from the current path.
     const activeItem = resolveActiveNavItem(
-        sections.flatMap((section) => section.items),
+        sections.flatMap((section) =>
+            section.entries.flatMap((entry) =>
+                isNavGroup(entry) ? entry.items : [entry],
+            ),
+        ),
         page.url,
     );
-    const sectionsWithActive = sections.map((section) => ({
+    const withActive = (item: NavItem): NavItem => ({
+        ...item,
+        isActive: item === activeItem,
+    });
+    const sectionsWithActive: NavSection[] = sections.map((section) => ({
         ...section,
-        items: section.items.map((item) => ({
-            ...item,
-            isActive: item === activeItem,
-        })),
+        entries: section.entries.map((entry) =>
+            isNavGroup(entry)
+                ? { ...entry, items: entry.items.map(withActive) }
+                : withActive(entry),
+        ),
     }));
 
     return (
@@ -347,7 +421,9 @@ export function AppSidebar() {
                         <SidebarMenuButton size="lg" className="h-auto" asChild>
                             <Link href={dashboard()} prefetch>
                                 {auth?.organization ? (
-                                    <OrgBranding organization={auth.organization} />
+                                    <OrgBranding
+                                        organization={auth.organization}
+                                    />
                                 ) : (
                                     <AppLogo />
                                 )}
@@ -362,7 +438,8 @@ export function AppSidebar() {
                     <NavMain
                         key={section.label}
                         label={section.label}
-                        items={section.items}
+                        entries={section.entries}
+                        userId={auth?.user?.id ?? 'guest'}
                     />
                 ))}
             </SidebarContent>

@@ -1,5 +1,6 @@
 import type { Auth } from '@/types/auth';
 import type { NotificationsProp } from '@/types/notifications';
+import type { NavCounts } from '@/types/navigation';
 import type { FlashToast } from '@/types/ui';
 
 declare module 'react' {
@@ -30,6 +31,8 @@ declare module '@inertiajs/core' {
             };
             /** null for guests. See HandleInertiaRequests::share() — a closure prop, only queried when requested. */
             notifications: NotificationsProp;
+            /** Sidebar count badges; null for guests. A closure prop, fetched by the sidebar's own poll. See App\Support\NavCounts. */
+            navCounts: NavCounts | null;
             [key: string]: unknown;
         };
     }
