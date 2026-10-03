@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Reports\SubmitAfterActivityReport;
 use App\Reports\UpdateAfterActivityReport;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -126,7 +127,7 @@ class AfterActivityReportController extends Controller
         );
 
         return redirect()->route('reports.show', $document)
-            ->with('flash', ['message' => 'After-activity report submitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Report submitted', 'SDAO will review it. You will be notified of the decision.'));
     }
 
     public function show(Document $document, DocumentViewData $viewData): Response
@@ -233,6 +234,6 @@ class AfterActivityReportController extends Controller
         );
 
         return redirect()->route('reports.show', $document)
-            ->with('flash', ['message' => 'Report resubmitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Report resubmitted', 'SDAO has your changes and will review them again.'));
     }
 }

@@ -12,6 +12,7 @@ use App\Renewals\OpenRenewalSeason;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,7 +56,7 @@ class CurrentPeriodController extends Controller
 
         $notifiedCount = $openRenewalSeason->execute($previous, $new);
 
-        $message = "Current period updated to {$new->label()}. Documents already submitted or approved are unchanged.";
+        $message = "The period is now {$new->label()}. Documents already submitted or approved are unchanged.";
 
         if ($notifiedCount > 0) {
             $message .= " Renewal season opened — {$notifiedCount} organization(s) notified that renewal is now due.";
@@ -63,7 +64,7 @@ class CurrentPeriodController extends Controller
             $message .= ' Renewal season opened — no organizations are currently due.';
         }
 
-        return redirect()->route('admin.settings.period.edit')->with('flash', ['message' => $message]);
+        return redirect()->route('admin.settings.period.edit')->with('flash', FlashToast::make('Current period updated', $message));
     }
 
     /**

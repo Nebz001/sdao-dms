@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Card, CardContent } from '@/components/ui/card';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/components/ui/toaster';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 

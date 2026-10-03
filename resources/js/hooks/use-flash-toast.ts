@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 
 export function useFlashToast(): void {
     const flash = usePage().props.flash;
@@ -25,14 +25,18 @@ export function useFlashToast(): void {
             return;
         }
 
-        const key = `${data.type}:${data.message}`;
+        const key = `${data.type}:${data.title}:${data.message}`;
 
         if (shownKeyRef.current === key) {
             return;
         }
 
         shownKeyRef.current = key;
-        toast[data.type](data.message);
+        notify[data.type]({
+            title: data.title,
+            message: data.message,
+            actions: data.actions,
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.type, data?.message]);
+    }, [data?.type, data?.title, data?.message]);
 }

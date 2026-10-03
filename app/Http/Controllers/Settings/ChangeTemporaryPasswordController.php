@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ChangeTemporaryPasswordRequest;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -46,6 +47,6 @@ class ChangeTemporaryPasswordController extends Controller
         $user->revokeAllApiTokens();
 
         return to_route('dashboard')
-            ->with('flash', ['message' => 'Password changed. You can now use the app.']);
+            ->with('flash', FlashToast::make('Password changed', 'You can now use the app.'));
     }
 }

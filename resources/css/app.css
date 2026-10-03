@@ -320,3 +320,13 @@
         transform: translateY(0);
     }
 }
+
+/* Toast auto-close countdown (see components/ui/toaster.tsx). */
+@keyframes toast-progress {
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
+}

@@ -3,6 +3,7 @@
 use App\Enums\AccountStatus;
 use App\Identity\Admin\RejectAccount;
 use App\Identity\Admin\VerifyAccount;
+use App\Models\OrganizationMembership;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\MembershipSeeder;
@@ -75,7 +76,8 @@ test('an SDAO member can verify an account end-to-end via HTTP', function () {
 
     $response
         ->assertRedirect(route('admin.pending-accounts.index'))
-        ->assertSessionHas('flash', ['message' => "{$account->name}'s account has been verified."]);
+        ->assertSessionHas('flash.title', 'Account verified')
+        ->assertSessionHas('flash.actions.0.label', 'Undo');
     expect($account->fresh()->account_status)->toBe(AccountStatus::Verified);
 });
 
@@ -86,7 +88,8 @@ test('an SDAO member can reject an account end-to-end via HTTP', function () {
 
     $response
         ->assertRedirect(route('admin.pending-accounts.index'))
-        ->assertSessionHas('flash', ['message' => "{$account->name}'s account has been rejected."]);
+        ->assertSessionHas('flash.title', 'Account rejected')
+        ->assertSessionHas('flash.actions.0.label', 'Undo');
     expect($account->fresh()->account_status)->toBe(AccountStatus::Rejected);
 });
 
@@ -114,4 +117,53 @@ test('a non-SDAO authenticated user gets 403 on every pending-accounts route', f
     $this->actingAs($this->adviser)->get(route('admin.pending-accounts.index'))->assertForbidden();
     $this->actingAs($this->adviser)->post(route('admin.pending-accounts.verify', $account))->assertForbidden();
     $this->actingAs($this->adviser)->post(route('admin.pending-accounts.reject', $account))->assertForbidden();
+});
+
+// ── Undo link on the Verify / Reject toast ────────────────────────────────
+
+test('the undo link on a verify toast puts the account back in the pending queue', function () {
+    $account = User::factory()->unverifiedAccount()->create();
+
+    $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.verify', $account))
+        ->assertSessionHas('flash.actions.0', [
+            'label' => 'Undo',
+            'href' => route('admin.pending-accounts.revert', $account),
+            'method' => 'post',
+        ]);
+
+    $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.revert', $account))
+        ->assertRedirect(route('admin.pending-accounts.index'))
+        ->assertSessionHas('flash.title', 'Review undone');
+
+    expect($account->fresh()->account_status)->toBe(AccountStatus::Unverified);
+});
+
+test('the undo link on a reject toast puts the account back in the pending queue', function () {
+    $account = User::factory()->unverifiedAccount()->create();
+
+    $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.reject', $account));
+    $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.revert', $account));
+
+    expect($account->fresh()->account_status)->toBe(AccountStatus::Unverified);
+});
+
+test('a review cannot be undone once the account is bound to an organization', function () {
+    $account = User::factory()->unverifiedAccount()->create();
+    app(VerifyAccount::class)->execute($this->sdaoA, $account);
+    OrganizationMembership::factory()->create(['user_id' => $account->id]);
+
+    $this->actingAs($this->sdaoA)->post(route('admin.pending-accounts.revert', $account))
+        ->assertSessionHas('flash.type', 'error');
+
+    expect($account->fresh()->account_status)->toBe(AccountStatus::Verified);
+});
+
+test('only an SDAO member can undo an account review', function () {
+    $account = User::factory()->unverifiedAccount()->create();
+    app(RejectAccount::class)->execute($this->sdaoA, $account);
+
+    $this->actingAs($this->adviser)->post(route('admin.pending-accounts.revert', $account))
+        ->assertForbidden();
+
+    expect($account->fresh()->account_status)->toBe(AccountStatus::Rejected);
 });

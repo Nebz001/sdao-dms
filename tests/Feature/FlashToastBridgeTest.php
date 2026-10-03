@@ -54,7 +54,7 @@ test('an SDAO approval shares a normalized success toast on the redirected page'
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'success')
-            ->where('flash.toast.message', 'Approval recorded.')
+            ->where('flash.toast.title', 'Approval recorded')
         );
 });
 
@@ -72,7 +72,7 @@ test('a rejection shares a normalized toast and the flash does not leak to the n
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'success')
-            ->where('flash.toast.message', 'Registration rejected.')
+            ->where('flash.toast.title', 'Registration rejected')
         );
 
     // Session flash is one-request-only — a second, unrelated visit must not
@@ -98,7 +98,7 @@ test('a return-for-revision shares a normalized toast on the redirected page', f
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'success')
-            ->where('flash.toast.message', 'Document returned for revision.')
+            ->where('flash.toast.title', 'Returned for revision')
         );
 });
 
@@ -133,7 +133,7 @@ test('the quorum-completing approval shares a success toast on the queue page', 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'success')
-            ->where('flash.toast.message', 'Registration approved.')
+            ->where('flash.toast.title', 'Registration approved')
         );
 });
 
@@ -178,6 +178,6 @@ test('a partial reload landing between the redirect and its target does not cons
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'success')
-            ->where('flash.toast.message', 'Registration rejected.')
+            ->where('flash.toast.title', 'Registration rejected')
         );
 });

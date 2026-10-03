@@ -67,7 +67,7 @@ test('mark all as read clears every unread notification for the user and flashes
     $this->actingAs($this->account)
         ->patch(route('notifications.read-all'))
         ->assertRedirect()
-        ->assertSessionHas('flash.message', 'All notifications marked as read.');
+        ->assertSessionHas('flash.title', 'Notifications cleared');
 
     expect($this->account->unreadNotifications()->count())->toBe(0);
 });

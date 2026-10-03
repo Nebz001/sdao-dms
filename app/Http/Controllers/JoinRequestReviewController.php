@@ -10,6 +10,7 @@ use App\Models\OrganizationJoinRequest;
 use App\Models\OrganizationMembership;
 use App\Organizations\ApproveJoinRequest;
 use App\Organizations\DeclineJoinRequest;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -68,7 +69,7 @@ class JoinRequestReviewController extends Controller
         $action->execute(Auth::user(), $joinRequest, $position);
 
         return redirect()->route('review.join-requests.index')
-            ->with('flash', ['message' => "{$studentName} added as {$position->label()}."]);
+            ->with('flash', FlashToast::make('Officer added', "{$studentName} is now {$position->label()}."));
     }
 
     public function decline(OrganizationJoinRequest $joinRequest, DeclineJoinRequestRequest $request, DeclineJoinRequest $action): RedirectResponse
@@ -80,7 +81,7 @@ class JoinRequestReviewController extends Controller
         $action->execute(Auth::user(), $joinRequest, $request->string('comment')->toString() ?: null);
 
         return redirect()->route('review.join-requests.index')
-            ->with('flash', ['message' => "{$studentName}'s request was declined."]);
+            ->with('flash', FlashToast::make('Request declined', "The request from {$studentName} was declined."));
     }
 
     /**

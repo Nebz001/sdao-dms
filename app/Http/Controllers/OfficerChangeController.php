@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\OrganizationMembershipService;
 use App\Organizations\RequestOfficerChange;
+use App\Support\FlashToast;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -119,6 +120,6 @@ class OfficerChangeController extends Controller
         );
 
         return redirect()->route('organizations.officer-change.create')
-            ->with('flash', ['message' => 'Request sent — an SDAO admin will review it.']);
+            ->with('flash', FlashToast::make('Request sent', 'An SDAO admin will review the officer change.'));
     }
 }

@@ -91,7 +91,7 @@ test('password can be updated', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertSessionHas('flash', ['message' => 'Password changed.'])
+        ->assertSessionHas('flash.title', 'Password changed')
         ->assertRedirect(route('security.edit'));
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();

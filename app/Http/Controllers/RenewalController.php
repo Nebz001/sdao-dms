@@ -14,6 +14,7 @@ use App\Models\OrganizationMembership;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Renewals\UpdateOrganizationRenewal;
 use App\Support\CurrentPeriod;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -141,7 +142,7 @@ class RenewalController extends Controller
         );
 
         return redirect()->route('renewals.show', $document)
-            ->with('flash', ['message' => 'Renewal submitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Renewal submitted', 'SDAO will review it. You will be notified of the decision.'));
     }
 
     public function show(Document $document, DocumentViewData $viewData): Response
@@ -241,6 +242,6 @@ class RenewalController extends Controller
         );
 
         return redirect()->route('renewals.show', $document)
-            ->with('flash', ['message' => 'Renewal resubmitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Renewal resubmitted', 'SDAO has your changes and will review them again.'));
     }
 }

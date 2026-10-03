@@ -1,8 +1,8 @@
 import { PrinterIcon } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { notify } from '@/lib/toast';
 import { print } from '@/routes/documents';
 
 type Props = {
@@ -32,7 +32,11 @@ export default function PrintFormButton({ documentId }: Props) {
 
             if (!response.ok) {
                 tab?.close();
-                toast.error('Could not generate the printable form. Please try again.');
+                notify.error({
+                    title: 'Printable form unavailable',
+                    message:
+                        'The form could not be generated. Try Print again in a moment.',
+                });
 
                 return;
             }
@@ -52,14 +56,24 @@ export default function PrintFormButton({ documentId }: Props) {
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } catch {
             tab?.close();
-            toast.error('Could not generate the printable form. Please try again.');
+            notify.error({
+                title: 'Printable form unavailable',
+                message:
+                    'The form could not be generated. Check your connection and try Print again.',
+            });
         } finally {
             setPending(false);
         }
     }
 
     return (
-        <Button variant="outline" size="sm" onClick={handleClick} disabled={pending} aria-busy={pending}>
+        <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClick}
+            disabled={pending}
+            aria-busy={pending}
+        >
             {pending ? <Spinner /> : <PrinterIcon />}
             {pending ? 'Preparing…' : 'Print form'}
         </Button>

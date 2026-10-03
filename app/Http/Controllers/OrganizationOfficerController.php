@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\OrganizationMembershipService;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -75,7 +76,7 @@ class OrganizationOfficerController extends Controller
         );
 
         return redirect()->route('officers.index', $organization)
-            ->with('flash', ['message' => "{$student->name} bound as {$position->label()}."]);
+            ->with('flash', FlashToast::make('Officer added', "{$student->name} is now {$position->label()}."));
     }
 
     public function destroy(Organization $organization, OrganizationMembership $membership, OrganizationMembershipService $membershipService): RedirectResponse
@@ -88,6 +89,6 @@ class OrganizationOfficerController extends Controller
         $membershipService->close($membership);
 
         return redirect()->route('officers.index', $organization)
-            ->with('flash', ['message' => 'Officer deactivated.']);
+            ->with('flash', FlashToast::make('Officer deactivated', 'Their membership is closed and kept in the document history.'));
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Identity\EmailVerification\EmailVerificationCodeService;
 use App\Models\EmailVerificationCode;
 use App\Registrations\WithdrawInFlightRegistrations;
+use App\Support\FlashToast;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class ProfileController extends Controller
         $user->save();
 
         if ($emailUnchanged) {
-            return to_route('profile.edit')->with('flash', ['message' => __('Profile updated.')]);
+            return to_route('profile.edit')->with('flash', FlashToast::make('Profile updated', 'Your changes are saved.'));
         }
 
         $codes->issue(email: $data['email'], purpose: self::EMAIL_CHANGE_PURPOSE, userId: $user->id);
@@ -55,7 +56,7 @@ class ProfileController extends Controller
         $request->session()->put('pending_profile_email', $data['email']);
 
         return to_route('profile.verify-email')
-            ->with('flash', ['message' => "Name updated. We've sent a verification code to {$data['email']}."]);
+            ->with('flash', FlashToast::make('Name updated', "We sent a verification code to {$data['email']} to confirm your new address."));
     }
 
     /**
@@ -99,7 +100,7 @@ class ProfileController extends Controller
 
         $request->session()->forget('pending_profile_email');
 
-        return to_route('profile.edit')->with('flash', ['message' => __('Email address updated.')]);
+        return to_route('profile.edit')->with('flash', FlashToast::make('Email updated', 'Your new address is verified and used for sign in and notifications.'));
     }
 
     public function verifyEmailResend(Request $request, EmailVerificationCodeService $codes): RedirectResponse
@@ -119,7 +120,7 @@ class ProfileController extends Controller
 
         $codes->issue($email, self::EMAIL_CHANGE_PURPOSE, userId: $previous?->user_id ?? $request->user()->id);
 
-        return to_route('profile.verify-email')->with('flash', ['message' => "We've sent a new code to {$email}."]);
+        return to_route('profile.verify-email')->with('flash', FlashToast::make('New code sent', "We sent a fresh verification code to {$email}.", 'info'));
     }
 
     /**
@@ -151,6 +152,6 @@ class ProfileController extends Controller
     private function redirectToEditWithoutPendingChange(): RedirectResponse
     {
         return to_route('profile.edit')
-            ->with('flash', ['message' => 'Start the email change again to receive a new code.']);
+            ->with('flash', FlashToast::warning('Code expired', 'Start the email change again to receive a new code.'));
     }
 }

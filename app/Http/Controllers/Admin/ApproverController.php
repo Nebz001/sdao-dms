@@ -12,6 +12,7 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use App\Support\FlashToast;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection as SupportCollection;
@@ -116,7 +117,7 @@ class ApproverController extends Controller
             deactivateReplaced: $request->boolean('deactivate_replaced', true),
         );
 
-        $message = 'Approver created. Their one time password has been emailed to them.';
+        $message = 'Their one time password was emailed to them.';
 
         if ($replaced !== null) {
             $message .= $request->boolean('deactivate_replaced', true)
@@ -124,13 +125,10 @@ class ApproverController extends Controller
                 : " {$replaced->name} no longer has the SDAO role.";
         }
 
-        $flash = ['message' => $message];
+        $flash = FlashToast::make('Approver created', $message);
 
         if ($action->welcomeEmailFailed) {
-            $flash = [
-                'type' => 'error',
-                'message' => 'Approver created, but the email could not be sent. Ask them to use Forgot password on the login page.',
-            ];
+            $flash = FlashToast::error('Approver created, email not sent', 'Ask them to use Forgot password on the login page.');
         }
 
         return redirect()->route('admin.approvers.index')->with('flash', $flash);

@@ -11,6 +11,7 @@ use App\Enums\FormType;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -113,11 +114,11 @@ class RenewalReviewController extends Controller
             // step anymore, so DocumentPolicy::review() would 403 a redirect
             // back to .show. Send the approver to the queue instead.
             return redirect()->route('review.renewals.index')
-                ->with('flash', ['message' => 'Renewal approved.']);
+                ->with('flash', FlashToast::make('Renewal approved', 'The organization is covered for the renewed academic year.', actions: [FlashToast::link('View organization', route('admin.organizations.show', $document->organization_id))]));
         }
 
         return redirect()->route('review.renewals.show', $document)
-            ->with('flash', ['message' => 'Approval recorded.']);
+            ->with('flash', FlashToast::make('Approval recorded', 'Your approval is saved. The document moves on once every required approver at this step has approved.'));
     }
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
@@ -134,7 +135,7 @@ class RenewalReviewController extends Controller
         }
 
         return redirect()->route('review.renewals.index')
-            ->with('flash', ['message' => 'Renewal rejected.']);
+            ->with('flash', FlashToast::make('Renewal rejected', 'The renewal is closed. The organization must file a new one.'));
     }
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
@@ -154,6 +155,6 @@ class RenewalReviewController extends Controller
         }
 
         return redirect()->route('review.renewals.show', $document)
-            ->with('flash', ['message' => 'Document returned for revision.']);
+            ->with('flash', FlashToast::make('Returned for revision', 'The submitter was notified. It returns to you once they resubmit.'));
     }
 }

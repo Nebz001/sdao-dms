@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Identity\EmailVerification\EmailVerificationCodeService;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
+use App\Support\FlashToast;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,7 +70,7 @@ class RegistrationController extends Controller
         $request->session()->put('pending_registration_email', $data['email']);
 
         return to_route('register.verify')
-            ->with('flash', ['message' => "We've sent a verification code to {$data['email']}."]);
+            ->with('flash', FlashToast::make('Check your email', "We sent a verification code to {$data['email']}.", 'info'));
     }
 
     public function verify(Request $request): RedirectResponse|Response
@@ -126,10 +127,10 @@ class RegistrationController extends Controller
 
         if ($intendedPath === 'join_existing') {
             return to_route('organizations.join.create')
-                ->with('flash', ['message' => 'Account created — now find your organization.']);
+                ->with('flash', FlashToast::make('Account created', 'Next, find your organization so its adviser can add you as an officer.'));
         }
 
-        return to_route('dashboard')->with('flash', ['message' => 'Account created — welcome!']);
+        return to_route('dashboard')->with('flash', FlashToast::make('Account created', 'Welcome. SDAO still needs to verify your account before you can submit documents.'));
     }
 
     public function resend(Request $request, EmailVerificationCodeService $codes): RedirectResponse
@@ -153,12 +154,12 @@ class RegistrationController extends Controller
 
         $codes->issue($email, self::PURPOSE, $previous->payload, $previous->user_id);
 
-        return to_route('register.verify')->with('flash', ['message' => "We've sent a new code to {$email}."]);
+        return to_route('register.verify')->with('flash', FlashToast::make('New code sent', "We sent a fresh verification code to {$email}.", 'info'));
     }
 
     private function redirectToStartOver(): RedirectResponse
     {
         return to_route('register')
-            ->with('flash', ['message' => 'Start your registration again to receive a new code.']);
+            ->with('flash', FlashToast::warning('Code expired', 'Start your registration again to receive a new code.'));
     }
 }

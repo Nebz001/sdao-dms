@@ -7,6 +7,7 @@ use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Models\Document;
 use App\Models\User;
+use App\Support\FlashToast;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -83,19 +84,13 @@ trait HandlesReviewActions
             ]);
 
             return redirect()->route($queueRoute)
-                ->with('flash', [
-                    'type' => 'error',
-                    'message' => 'This document could not be processed — its next approver could not be determined. SDAO has been notified.',
-                ]);
+                ->with('flash', FlashToast::error('Document could not be processed', 'Its next approver could not be determined. SDAO has been notified.'));
         }
     }
 
     private function staleReviewAction(string $queueRoute): RedirectResponse
     {
         return redirect()->route($queueRoute)
-            ->with('flash', [
-                'type' => 'warning',
-                'message' => 'That document was already finalized by another approver.',
-            ]);
+            ->with('flash', FlashToast::warning('Already finalized', 'Another approver finalized this document first. No action is needed.'));
     }
 }

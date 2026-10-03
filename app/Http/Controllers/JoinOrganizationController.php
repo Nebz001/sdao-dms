@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Models\OrganizationJoinRequest;
 use App\Organizations\OrganizationMembershipService;
 use App\Organizations\RequestToJoinOrganization;
+use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,6 @@ class JoinOrganizationController extends Controller
         $action->execute(Auth::user(), $organization);
 
         return redirect()->route('dashboard')
-            ->with('flash', ['message' => "Request sent — {$organization->name}'s adviser will review it."]);
+            ->with('flash', FlashToast::make('Request sent', "{$organization->name}'s adviser will review it."));
     }
 }

@@ -16,6 +16,7 @@ use App\Http\Requests\Calendar\UpdateActivityCalendarRequest;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Support\CurrentPeriod;
+use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -120,7 +121,7 @@ class ActivityCalendarController extends Controller
             activities: $request->input('activities'),
         );
 
-        $flash = ['message' => 'Activity calendar submitted for SDAO review.'];
+        $flash = FlashToast::make('Activity calendar submitted', 'SDAO will review each activity. You will be notified of the decision.');
 
         if ($result['warnings'] !== []) {
             $flash['warnings'] = $result['warnings'];
@@ -224,7 +225,7 @@ class ActivityCalendarController extends Controller
             activities: $request->input('activities'),
         );
 
-        $flash = ['message' => 'Activity calendar resubmitted for SDAO review.'];
+        $flash = FlashToast::make('Activity calendar resubmitted', 'SDAO has your changes and will review them again.');
 
         if ($result['warnings'] !== []) {
             $flash['warnings'] = $result['warnings'];

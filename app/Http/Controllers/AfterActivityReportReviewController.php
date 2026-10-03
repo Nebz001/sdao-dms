@@ -11,6 +11,7 @@ use App\Enums\FormType;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -119,11 +120,11 @@ class AfterActivityReportReviewController extends Controller
             // step anymore, so DocumentPolicy::review() would 403 a redirect
             // back to .show. Send the approver to the queue instead.
             return redirect()->route('review.reports.index')
-                ->with('flash', ['message' => 'Report approved.']);
+                ->with('flash', FlashToast::make('Report approved', 'The after-activity report is final and on record.'));
         }
 
         return redirect()->route('review.reports.show', $document)
-            ->with('flash', ['message' => 'Approval recorded.']);
+            ->with('flash', FlashToast::make('Approval recorded', 'Your approval is saved. The document moves on once every required approver at this step has approved.'));
     }
 
     public function reject(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
@@ -140,7 +141,7 @@ class AfterActivityReportReviewController extends Controller
         }
 
         return redirect()->route('review.reports.index')
-            ->with('flash', ['message' => 'Report rejected.']);
+            ->with('flash', FlashToast::make('Report rejected', 'The report is closed. The organization must file a new one.'));
     }
 
     public function return(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
@@ -160,6 +161,6 @@ class AfterActivityReportReviewController extends Controller
         }
 
         return redirect()->route('review.reports.show', $document)
-            ->with('flash', ['message' => 'Document returned for revision.']);
+            ->with('flash', FlashToast::make('Returned for revision', 'The submitter was notified. It returns to you once they resubmit.'));
     }
 }

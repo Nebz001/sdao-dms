@@ -232,6 +232,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pending-accounts', [PendingAccountController::class, 'index'])->name('pending-accounts.index');
         Route::post('/pending-accounts/{account}/verify', [PendingAccountController::class, 'verify'])->name('pending-accounts.verify');
         Route::post('/pending-accounts/{account}/reject', [PendingAccountController::class, 'reject'])->name('pending-accounts.reject');
+        Route::post('/pending-accounts/{account}/revert', [PendingAccountController::class, 'revert'])->name('pending-accounts.revert');
 
         // SDAO admin — finalizes officer change requests filed by a current
         // president/secretary (App\Organizations\RequestOfficerChange). The

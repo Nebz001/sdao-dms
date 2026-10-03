@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\FlashToast;
 use App\Support\NotificationPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,6 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
-        return back()->with('flash', ['message' => 'All notifications marked as read.']);
+        return back()->with('flash', FlashToast::make('Notifications cleared', 'Every notification is marked as read.'));
     }
 }

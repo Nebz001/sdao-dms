@@ -110,7 +110,7 @@ test('changing the password clears the flag, keeps the user logged in and shows 
         ])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('dashboard'))
-        ->assertSessionHas('flash', ['message' => 'Password changed. You can now use the app.']);
+        ->assertSessionHas('flash.title', 'Password changed');
 
     $this->flagged->refresh();
 

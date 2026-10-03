@@ -115,7 +115,7 @@ test('HTTP: the adviser\'s own step-1 approve is caught, logged, and flashed as 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('flash.toast.type', 'error')
-            ->where('flash.toast.message', 'This document could not be processed — its next approver could not be determined. SDAO has been notified.')
+            ->where('flash.toast.title', 'Document could not be processed')
         );
 
     Log::shouldHaveReceived('error')

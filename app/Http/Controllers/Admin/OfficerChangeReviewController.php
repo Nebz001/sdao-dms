@@ -8,6 +8,7 @@ use App\Models\OfficerChangeRequest;
 use App\Models\OrganizationMembership;
 use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -65,7 +66,7 @@ class OfficerChangeReviewController extends Controller
         $action->execute(Auth::user(), $officerChangeRequest);
 
         return redirect()->route('admin.officer-change-requests.index')
-            ->with('flash', ['message' => "{$nomineeName} is now {$positionLabel}."]);
+            ->with('flash', FlashToast::make('Officer change approved', "{$nomineeName} is now {$positionLabel}."));
     }
 
     public function decline(OfficerChangeRequest $officerChangeRequest, DeclineOfficerChangeRequest $request, DeclineOfficerChange $action): RedirectResponse
@@ -75,6 +76,6 @@ class OfficerChangeReviewController extends Controller
         $action->execute(Auth::user(), $officerChangeRequest, $request->string('comment')->toString() ?: null);
 
         return redirect()->route('admin.officer-change-requests.index')
-            ->with('flash', ['message' => "Request naming {$nomineeName} was declined."]);
+            ->with('flash', FlashToast::make('Request declined', "The request naming {$nomineeName} was declined."));
     }
 }

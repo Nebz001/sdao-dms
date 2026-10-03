@@ -1,10 +1,10 @@
 import { createInertiaApp, router } from '@inertiajs/react';
-import { toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { notify } from '@/lib/toast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'SDAO-DMS';
 
@@ -22,8 +22,8 @@ router.on('httpException', (event) => {
         const message =
             typeof data === 'object' && data !== null && typeof data.message === 'string'
                 ? data.message
-                : 'Your files are too large. Please reduce file sizes and try again.';
-        toast.error(message);
+                : 'Your files are too large. Reduce their sizes and try again.';
+        notify.error({ title: 'Files too large', message });
     }
 });
 

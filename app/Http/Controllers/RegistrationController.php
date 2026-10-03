@@ -19,6 +19,7 @@ use App\Models\School;
 use App\Models\User;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Registrations\UpdateOrganizationRegistration;
+use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -184,7 +185,7 @@ class RegistrationController extends Controller
         );
 
         return redirect()->route('registrations.show', $document)
-            ->with('flash', ['message' => 'Registration submitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Registration submitted', 'SDAO will review it. You will be notified of the decision.'));
     }
 
     /**
@@ -333,6 +334,6 @@ class RegistrationController extends Controller
         );
 
         return redirect()->route('registrations.show', $document)
-            ->with('flash', ['message' => 'Registration resubmitted for SDAO review.']);
+            ->with('flash', FlashToast::make('Registration resubmitted', 'SDAO has your changes and will review them again.'));
     }
 }

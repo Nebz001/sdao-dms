@@ -211,7 +211,7 @@ test('an SDAO member can update the current period via the settings screen', fun
         ->assertRedirect(route('admin.settings.period.edit'))
         ->assertSessionHas('flash', fn ($flash) => str_starts_with(
             $flash['message'],
-            "Current period updated to {$newLabel}. Documents already submitted or approved are unchanged.",
+            "The period is now {$newLabel}. Documents already submitted or approved are unchanged.",
         ) && ! str_contains($flash['message'], 'Renewal season opened'));
 
     expect(CurrentPeriod::get()->term)->toBe(Term::SecondTerm);

@@ -172,11 +172,11 @@ test('the deactivate and reactivate endpoints flash a confirmation', function ()
     $this->actingAs($this->sdaoA)
         ->post(route('admin.accounts.deactivate', $this->retired), ['reason' => 'Test'])
         ->assertSessionHasNoErrors()
-        ->assertSessionHas('flash.message', fn (string $m) => str_contains($m, 'deactivated'));
+        ->assertSessionHas('flash.title', fn (string $m) => $m === 'Account deactivated');
 
     $this->actingAs($this->sdaoA)
         ->post(route('admin.accounts.reactivate', $this->retired))
-        ->assertSessionHas('flash.message', fn (string $m) => str_contains($m, 'reactivated'));
+        ->assertSessionHas('flash.title', fn (string $m) => $m === 'Account reactivated');
 });
 
 test('the account endpoints are admin only', function () {

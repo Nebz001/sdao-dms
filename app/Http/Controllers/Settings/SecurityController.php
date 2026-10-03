@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -58,6 +59,6 @@ class SecurityController extends Controller
         $user->endOtherSessions($request->session()->getId());
         $user->revokeAllApiTokens();
 
-        return back()->with('flash', ['message' => __('Password changed.')]);
+        return back()->with('flash', FlashToast::make('Password changed', 'Use your new password the next time you sign in.'));
     }
 }

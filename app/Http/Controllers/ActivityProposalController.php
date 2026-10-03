@@ -30,6 +30,7 @@ use App\Models\OrganizationMembership;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
+use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -153,7 +154,7 @@ class ActivityProposalController extends Controller
         );
 
         return redirect()->route('activity-proposals.continue', $document)
-            ->with('flash', ['message' => 'Draft saved — continue with the proposal narrative.']);
+            ->with('flash', FlashToast::make('Draft saved', 'Your request form is saved. Continue with the proposal narrative to submit it for review.'));
     }
 
     /**
@@ -508,7 +509,7 @@ class ActivityProposalController extends Controller
             responsiblePersons: $request->array('responsible_persons'),
         );
 
-        $flash = ['message' => 'Proposal submitted for review.'];
+        $flash = FlashToast::make('Proposal submitted', 'It is now with your adviser. You will be notified at each step.');
 
         if ($result['warnings'] !== []) {
             $flash['warnings'] = $result['warnings'];
@@ -532,7 +533,7 @@ class ActivityProposalController extends Controller
             attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::ActivityProposal, step: 1),
         );
 
-        $flash = ['message' => 'Proposal resubmitted for review.'];
+        $flash = FlashToast::make('Proposal resubmitted', 'It returns to the approver who asked for the changes.');
 
         if ($result['warnings'] !== []) {
             $flash['warnings'] = $result['warnings'];

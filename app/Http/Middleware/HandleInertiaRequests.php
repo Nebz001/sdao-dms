@@ -65,13 +65,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
-            // Normalizes the uniform ['message' => ..., 'warnings' => ...] shape
-            // that every controller already flashes into a toast-ready prop, so
-            // no controller needs to change to emit a { type, message } pair.
+            // Normalizes the uniform ['title', 'message', 'actions',
+            // 'warnings'] shape (built with App\Support\FlashToast) into a
+            // toast-ready prop.
             'flash' => $flash ? [
                 'toast' => [
                     'type' => $flash['type'] ?? 'success',
+                    'title' => $flash['title'] ?? self::fallbackTitle($flash['type'] ?? 'success'),
                     'message' => $flash['message'] ?? '',
+                    'actions' => $flash['actions'] ?? [],
                 ],
                 'warnings' => $flash['warnings'] ?? null,
                 'message' => $flash['message'] ?? null,
@@ -93,6 +95,16 @@ class HandleInertiaRequests extends Middleware
             // poll never asks for it.
             'notifications' => fn () => $this->notificationsFor($request),
         ];
+    }
+
+    private static function fallbackTitle(string $type): string
+    {
+        return match ($type) {
+            'error' => 'Something went wrong',
+            'warning' => 'Heads up',
+            'info' => 'For your information',
+            default => 'Done',
+        };
     }
 
     /**

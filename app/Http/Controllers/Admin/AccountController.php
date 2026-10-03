@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Identity\Admin\DeactivateAccount;
 use App\Identity\Admin\ReactivateAccount;
 use App\Models\User;
+use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,13 +47,21 @@ class AccountController extends Controller
 
         $action->execute(Auth::user(), $account, $request->input('reason'));
 
-        return back()->with('flash', ['message' => "{$account->name} has been deactivated and signed out everywhere."]);
+        return back()->with('flash', FlashToast::make(
+            'Account deactivated',
+            "{$account->name} was signed out everywhere and can no longer log in.",
+            actions: [FlashToast::undo(route('admin.accounts.reactivate', $account))],
+        ));
     }
 
     public function reactivate(User $account, ReactivateAccount $action): RedirectResponse
     {
         $action->execute(Auth::user(), $account);
 
-        return back()->with('flash', ['message' => "{$account->name} has been reactivated and can log in again."]);
+        return back()->with('flash', FlashToast::make(
+            'Account reactivated',
+            "{$account->name} can log in again. Earlier sessions stay signed out.",
+            actions: [FlashToast::undo(route('admin.accounts.deactivate', $account))],
+        ));
     }
 }

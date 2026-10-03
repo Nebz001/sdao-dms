@@ -24,7 +24,7 @@ test('the name can be updated immediately when the email is unchanged', function
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertSessionHas('flash', ['message' => 'Profile updated.'])
+        ->assertSessionHas('flash.title', 'Profile updated')
         ->assertRedirect(route('profile.edit'));
 
     expect($user->refresh()->name)->toBe('Test User');

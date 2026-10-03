@@ -3,7 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import IdleTimeoutDialog from '@/components/idle-timeout-dialog';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/components/ui/toaster';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({

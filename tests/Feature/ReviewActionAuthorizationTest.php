@@ -319,7 +319,7 @@ test('HTTP: the losing SDAO member gets a friendly redirect (not a 403) approvin
         ->get(route('review.registrations.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('flash.toast.message', 'That document was already finalized by another approver.')
+            ->where('flash.toast.title', 'Already finalized')
         );
 
     // And confirm it wasn't silently re-processed.
@@ -357,7 +357,7 @@ test('HTTP: re-returning an already-Returned proposal gives a friendly redirect,
         ->get(route('review.activity-proposals.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('flash.toast.message', 'That document was already finalized by another approver.')
+            ->where('flash.toast.title', 'Already finalized')
         );
 
     expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
