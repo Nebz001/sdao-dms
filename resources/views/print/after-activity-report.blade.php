@@ -2,23 +2,10 @@
 
 @section('content')
 
-    <table class="letterhead">
-        <colgroup>
-            <col style="width: 11%">
-            <col style="width: 89%">
-        </colgroup>
-        <tr>
-            <td class="logo-cell">
-                @if ($logo_path)
-                    <img src="{{ $logo_path }}" alt="NU Lipa">
-                @endif
-            </td>
-            <td>
-                <div class="org-line" style="text-transform:none; font-size: 11pt;">After Activity Report</div>
-                <div class="org-line" style="text-transform:none">{{ $name_of_event }}</div>
-            </td>
-        </tr>
-    </table>
+    <x-print.document-logo />
+
+    <div class="org-line" style="text-transform:none; font-size: 11pt;">After Activity Report</div>
+    <div class="org-line" style="text-transform:none; margin-bottom: 4pt;">{{ $name_of_event }}</div>
 
     <table class="bordered-table section">
         <colgroup>
@@ -76,5 +63,7 @@
 
     <div class="h2">Attachment</div>
     <div>Attendance Sheet: {{ $has_attendance_sheet ? 'Attached.' : '' }}</div>
+
+    <x-print.document-footer-note />
 
 @endsection

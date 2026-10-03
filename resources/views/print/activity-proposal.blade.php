@@ -6,6 +6,8 @@
          Page 1 — Student Organization Activity Request Form
          ============================================================ --}}
 
+    <x-print.document-logo />
+
     <table class="bordered-table section">
         <colgroup>
             <col>
@@ -282,5 +284,7 @@
             </tr>
         @endif
     </table>
+
+    <x-print.document-footer-note />
 
 @endsection

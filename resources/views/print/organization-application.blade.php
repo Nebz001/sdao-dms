@@ -228,4 +228,6 @@
         </tr>
     </table>
 
+    <x-print.document-footer-note />
+
 @endsection

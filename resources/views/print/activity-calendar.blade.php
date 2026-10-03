@@ -2,35 +2,37 @@
 
 @section('content')
 
+    <x-print.document-logo />
+
     <table class="bordered-table section">
         <colgroup><col></colgroup>
         <tr><td class="bar" style="font-size: 10pt; text-align: center;">{{ $title }}</td></tr>
     </table>
 
-    <table class="bordered-table section">
+    <table class="bordered-table section" style="word-wrap: break-word;">
         <colgroup>
-            <col style="width: 12%">
+            <col style="width: 11%">
             <col style="width: 8%">
-            <col style="width: 18%">
+            <col style="width: 17%">
             <col style="width: 14%">
-            <col style="width: 12%">
-            <col style="width: 14%">
+            <col style="width: 11%">
+            <col style="width: 17%">
             <col style="width: 8%">
             <col style="width: 6%">
             <col style="width: 8%">
         </colgroup>
         <tr>
-            <td class="label-col">RSO NAME</td>
-            <td class="label-col">DATE</td>
-            <td class="label-col">ACTIVITY NAME</td>
-            <td class="label-col">SDG</td>
-            <td class="label-col">VENUE</td>
-            <td class="label-col">PARTICIPANT/PROGRAM ASSIGNED</td>
-            <td class="label-col">BUDGET</td>
-            <td class="label-col">STATUS</td>
+            <td class="label-col" style="width: 11%">RSO NAME</td>
+            <td class="label-col" style="width: 8%">DATE</td>
+            <td class="label-col" style="width: 17%">ACTIVITY NAME</td>
+            <td class="label-col" style="width: 14%">SDG</td>
+            <td class="label-col" style="width: 11%">VENUE</td>
+            <td class="label-col" style="width: 17%">PARTICIPANT/PROGRAM ASSIGNED</td>
+            <td class="label-col" style="width: 8%">BUDGET</td>
+            <td class="label-col" style="width: 6%">STATUS</td>
             {{-- Kept misspelled verbatim to match the source spreadsheet —
                  see ActivityCalendarForm's class docblock. --}}
-            <td class="label-col">DATE RECIEVED</td>
+            <td class="label-col" style="width: 8%">DATE RECIEVED</td>
         </tr>
         @foreach ($rows as $row)
             <tr>
@@ -46,5 +48,7 @@
             </tr>
         @endforeach
     </table>
+
+    <x-print.document-footer-note />
 
 @endsection

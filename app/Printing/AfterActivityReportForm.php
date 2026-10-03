@@ -74,7 +74,6 @@ class AfterActivityReportForm implements PrintableForm
         $activity = $proposal->calendarActivity;
 
         return [
-            'logo_path' => $this->logoPath(),
             'name_of_event' => $proposal->title,
             'date_and_time_of_event' => $this->eventDateAndTime($activity),
             'activity_chairs' => implode(', ', $report->activity_chairs ?? []),
@@ -93,23 +92,6 @@ class AfterActivityReportForm implements PrintableForm
             'has_evaluation_form' => $document->attachments->contains('slot_key', 'evaluation_form'),
             'has_attendance_sheet' => $document->attachments->contains('slot_key', 'attendance_sheet'),
         ];
-    }
-
-    /**
-     * Same fixed whitelist/fallback as OrganizationApplicationForm::logoPath()
-     * — this template's header also carries the NU Lipa letterhead.
-     */
-    private function logoPath(): ?string
-    {
-        foreach (['print/nu-lipa-logo.svg', 'print/nu-lipa-logo.jpg'] as $relative) {
-            $path = public_path($relative);
-
-            if (is_file($path)) {
-                return $path;
-            }
-        }
-
-        return null;
     }
 
     private function eventDateAndTime(?CalendarActivity $activity): ?string
