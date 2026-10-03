@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
+import AccountName from '@/components/account-name';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -209,7 +210,7 @@ export function RecentDecisionsTable({
         },
         { key: 'result', header: 'Result', slot: 'badge', cell: (r) => <ResultPill result={r.result} /> },
         { key: 'decided', header: 'Decided on', className: 'tabular-nums', cell: (r) => formatDate(r.decided_at) },
-        ...(showDecidedBy ? [{ key: 'by', header: 'Decided by', cell: (r: RecentDecision) => r.decided_by ?? '—' }] : []),
+        ...(showDecidedBy ? [{ key: 'by', header: 'Decided by', cell: (r: RecentDecision) => (r.decided_by ? <AccountName name={r.decided_by} nameClassName="font-normal" /> : '—') }] : []),
         {
             key: 'actions',
             header: 'Actions',

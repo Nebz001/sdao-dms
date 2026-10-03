@@ -16,8 +16,8 @@ export default function StatCard({
 }: {
     icon: LucideIcon;
     title: string;
-    /** "alert" is the warm red tint used when something is overdue. */
-    tone?: 'default' | 'alert';
+    /** "alert" is the warm red tint used when something is overdue; "warning" is the amber tint for the item that needs action. */
+    tone?: 'default' | 'alert' | 'warning';
     /** Tighter padding and gaps for plain fact tiles (no charts). */
     compact?: boolean;
     /** Right-aligned content in the card header, e.g. an overdue pill. */
@@ -31,6 +31,7 @@ export default function StatCard({
                 'shadow-none',
                 compact ? 'gap-3 py-4' : 'gap-4 py-5',
                 tone === 'alert' && 'border-destructive/40 bg-destructive/10',
+                tone === 'warning' && 'border-warning/40 bg-warning/10',
                 className,
             )}
         >
@@ -40,13 +41,23 @@ export default function StatCard({
                         'flex size-8 shrink-0 items-center justify-center rounded-md [&_svg]:size-4',
                         tone === 'alert'
                             ? 'bg-destructive/15 text-destructive-foreground'
-                            : 'bg-primary/10 text-primary-text',
+                            : tone === 'warning'
+                              ? 'bg-warning/15 text-warning-foreground'
+                              : 'bg-primary/10 text-primary-text',
                     )}
                     aria-hidden
                 >
                     <Icon />
                 </span>
-                <CardTitle className="text-sm font-medium text-foreground/90">{title}</CardTitle>
+                <CardTitle
+                    className={cn(
+                        'text-sm font-medium text-foreground/90',
+                        tone === 'alert' && 'text-destructive-foreground',
+                        tone === 'warning' && 'text-warning-foreground',
+                    )}
+                >
+                    {title}
+                </CardTitle>
                 {headerAside && <div className="ml-auto">{headerAside}</div>}
             </CardHeader>
             <CardContent className={cn('flex flex-1 flex-col px-5', compact ? 'gap-1.5' : 'gap-4')}>{children}</CardContent>

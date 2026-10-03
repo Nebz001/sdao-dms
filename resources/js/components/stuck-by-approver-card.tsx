@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { CircleCheck } from 'lucide-react';
+import AccountName from '@/components/account-name';
 import IdleBadge from '@/components/idle-badge';
 import type { IdleTier } from '@/components/idle-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,7 +97,7 @@ export default function StuckByApproverCard({ data }: { data: StuckByApprover })
                                             className="block text-sm font-semibold hover:underline break-words"
                                             title={row.name}
                                         >
-                                            {row.name}
+                                            <AccountName name={row.name} nameClassName="text-sm" />
                                         </Link>
                                         <p
                                             className="text-xs text-muted-foreground break-words"

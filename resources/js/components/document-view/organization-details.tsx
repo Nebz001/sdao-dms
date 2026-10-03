@@ -1,3 +1,4 @@
+import AccountName from '@/components/account-name';
 import { DetailField, DetailSection, DetailText, DetailsCard } from './details';
 import { formatLongDate, formatPhone } from './format';
 
@@ -49,7 +50,9 @@ export default function OrganizationDetails({
                     <DetailField label="Academic year">{detail.academic_year}</DetailField>
                 )}
                 <DetailField label="Date organized">{formatLongDate(detail?.date_organized)}</DetailField>
-                <DetailField label="Adviser">{detail?.adviser?.name}</DetailField>
+                <DetailField label="Adviser">
+                    {detail?.adviser?.name ? <AccountName name={detail.adviser.name} nameClassName="font-normal" /> : null}
+                </DetailField>
             </DetailSection>
             <DetailSection label="Contact">
                 <DetailField label="Contact person">{detail?.contact_person}</DetailField>

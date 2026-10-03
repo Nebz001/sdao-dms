@@ -43,7 +43,7 @@ class RevertAccountReview
             ]);
         }
 
-        $account->update(['account_status' => AccountStatus::Unverified]);
+        $account->update(['account_status' => AccountStatus::Unverified, 'account_reviewed_at' => null]);
 
         return $account;
     }

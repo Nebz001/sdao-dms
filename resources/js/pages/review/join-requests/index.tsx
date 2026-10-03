@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { UserRoundPlus } from 'lucide-react';
 import { useState } from 'react';
 import JoinRequestReviewController from '@/actions/App/Http/Controllers/JoinRequestReviewController';
+import AccountName from '@/components/account-name';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
@@ -126,7 +127,7 @@ function JoinRequestRow({
     return (
         <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-                <p className="sm:truncate max-sm:break-words font-medium">{request.student.name}</p>
+                <AccountName name={request.student.name} nameClassName="font-medium" />
                 <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                     {request.student.email}
                 </p>

@@ -1,14 +1,8 @@
 import { ToneBadge } from '@/components/status-badge';
-import type { Tone } from '@/lib/status-tones';
 import { cn } from '@/lib/utils';
 import { pluralDays } from './types';
 import type { WaitTier } from './types';
-
-const TIER_TONE: Record<WaitTier, Tone> = {
-    overdue: 'destructive',
-    aging: 'warning',
-    fresh: 'neutral',
-};
+import { TIER_TONE } from './wait-tier';
 
 /** How long a document has waited: red 8+ days, amber 3 to 7, grey 0 to 2. */
 export default function WaitPill({

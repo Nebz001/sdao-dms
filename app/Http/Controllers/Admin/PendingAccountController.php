@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\AccountStatus;
+use App\Dashboard\PendingAccountStats;
 use App\Http\Controllers\Controller;
 use App\Identity\Admin\RejectAccount;
 use App\Identity\Admin\RevertAccountReview;
 use App\Identity\Admin\VerifyAccount;
 use App\Models\User;
+use App\Support\CurrentPeriod;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -17,21 +18,19 @@ use Inertia\Response;
 
 class PendingAccountController extends Controller
 {
-    public function index(): Response
+    public function index(PendingAccountStats $stats): Response
     {
-        $accounts = User::query()
-            ->where('account_status', AccountStatus::Unverified->value)
-            ->orderBy('created_at')
-            ->get(['id', 'name', 'email', 'id_number', 'created_at'])
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'id_number' => $u->id_number,
-                'created_at' => $u->created_at,
-            ]);
+        $queue = $stats->queue();
 
-        return Inertia::render('admin/pending-accounts/index', ['accounts' => $accounts]);
+        return Inertia::render('admin/pending-accounts/index', [
+            'accounts' => $queue,
+            'buckets' => $stats->buckets($queue),
+            // First of an oldest-first list; null when nothing is pending.
+            'oldest' => $queue->first(),
+            // Term-scoped aggregates scan every self-registration, so they
+            // load after the queue and its cards have rendered.
+            'termActivity' => Inertia::defer(fn () => $stats->termActivity(CurrentPeriod::get())),
+        ]);
     }
 
     public function verify(User $account, VerifyAccount $action): RedirectResponse

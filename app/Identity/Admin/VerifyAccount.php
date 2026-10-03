@@ -8,6 +8,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\AccountVerifiedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -34,7 +35,7 @@ class VerifyAccount
             ]);
         }
 
-        $account->update(['account_status' => AccountStatus::Verified]);
+        $account->update(['account_status' => AccountStatus::Verified, 'account_reviewed_at' => Date::now()]);
 
         try {
             $account->notify(new AccountVerifiedNotification);

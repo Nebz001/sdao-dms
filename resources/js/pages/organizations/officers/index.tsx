@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import {  useState } from 'react';
 import type {FormEvent} from 'react';
 import OrganizationOfficerController from '@/actions/App/Http/Controllers/OrganizationOfficerController';
+import AccountName from '@/components/account-name';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
@@ -65,7 +66,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
 
     function deactivate(membershipId: number, { close, stopProcessing }: ConfirmActions) {
         setDeactivateError(null);
-        router.delete(officers.destroy(organization.id, membershipId), {
+        router.delete(officers.destroy({ organization: organization.id, membership: membershipId }), {
             preserveScroll: true,
             onSuccess: close,
             onError: () =>
@@ -123,7 +124,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                     className="flex items-center justify-between gap-4 py-3"
                                 >
                                     <div className="min-w-0">
-                                        <p className="sm:truncate max-sm:break-words font-medium">{m.user.name}</p>
+                                        <AccountName name={m.user.name} nameClassName="font-medium" />
                                         <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                             {m.user.email} · {m.position_label} · {m.academic_year}
                                         </p>

@@ -1,4 +1,5 @@
 import { Check, X } from 'lucide-react';
+import AccountName from '@/components/account-name';
 import { ToneBadge } from '@/components/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -51,7 +52,7 @@ export default function FlowCard({ flow }: { flow: FlowNode[] }) {
                     {flow.map((node, index) => {
                         const date = formatLongDate(node.date);
                         const reached = node.state !== 'upcoming';
-                        const detail = node.actors.length > 0 ? node.actors.join(', ') : null;
+                        const hasActors = node.actors.length > 0;
 
                         return (
                             <li key={node.key} className="relative flex gap-3 pb-5 last:pb-0">
@@ -66,9 +67,19 @@ export default function FlowCard({ flow }: { flow: FlowNode[] }) {
                                     <p className={cn('font-semibold', !reached && 'font-medium text-muted-foreground')}>
                                         {node.name}
                                     </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {detail ?? (node.state === 'upcoming' ? 'Not yet reached' : 'No one assigned yet')}
-                                    </p>
+                                    {hasActors ? (
+                                        <ul className="flex flex-col gap-1.5">
+                                            {node.actors.map((actor) => (
+                                                <li key={actor}>
+                                                    <AccountName name={actor} nameClassName="text-sm font-normal text-muted-foreground" />
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            {node.state === 'upcoming' ? 'Not yet reached' : 'No one assigned yet'}
+                                        </p>
+                                    )}
                                     {date && <p className="text-xs text-muted-foreground">{date}</p>}
                                     {node.isYou && (
                                         <ToneBadge tone="info" className="mt-1 self-start">

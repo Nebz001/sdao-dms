@@ -1,6 +1,6 @@
 import type { Auth } from '@/types/auth';
-import type { NotificationsProp } from '@/types/notifications';
 import type { NavCounts } from '@/types/navigation';
+import type { NotificationsProp } from '@/types/notifications';
 import type { FlashToast } from '@/types/ui';
 
 declare module 'react' {

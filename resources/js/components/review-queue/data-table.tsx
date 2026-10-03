@@ -30,12 +30,15 @@ export default function DataTable<T>({
     columns,
     rowKey,
     rowClassName,
+    rowId,
     roomy = false,
 }: {
     rows: T[];
     columns: DataColumn<T>[];
     rowKey: (row: T) => string | number;
     rowClassName?: (row: T) => string | undefined;
+    /** Marks each row (data-row-id) so a link elsewhere on the page can scroll to and focus it. */
+    rowId?: (row: T) => string | number;
     /** Taller table rows, for tables with two-line cells. */
     roomy?: boolean;
 }) {
@@ -59,7 +62,12 @@ export default function DataTable<T>({
                     </TableHeader>
                     <TableBody className={cn(roomy && '[&_td]:py-4')}>
                         {rows.map((row) => (
-                            <TableRow key={rowKey(row)} className={rowClassName?.(row)}>
+                            <TableRow
+                                key={rowKey(row)}
+                                data-row-id={rowId?.(row)}
+                                tabIndex={rowId ? -1 : undefined}
+                                className={cn(rowClassName?.(row), rowId && 'outline-none')}
+                            >
                                 {columns.map((c) => (
                                     <TableCell
                                         key={c.key}
@@ -78,7 +86,9 @@ export default function DataTable<T>({
                 {rows.map((row) => (
                     <li
                         key={rowKey(row)}
-                        className={cn('flex flex-col gap-3 rounded-lg border p-4', rowClassName?.(row))}
+                        data-row-id={rowId?.(row)}
+                        tabIndex={rowId ? -1 : undefined}
+                        className={cn('flex flex-col gap-3 rounded-lg border p-4', rowId && 'outline-none', rowClassName?.(row))}
                     >
                         {(titleColumn || badgeColumn) && (
                             <div className="flex items-start justify-between gap-3">

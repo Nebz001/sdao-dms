@@ -32,13 +32,14 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $password
  * @property bool $must_change_password
  * @property string|null $remember_token
+ * @property Carbon|null $account_reviewed_at
  * @property Carbon|null $deactivated_at
  * @property string|null $deactivated_reason
  * @property int|null $deactivated_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'must_change_password', 'account_status', 'email_verified_at', 'id_number'])]
+#[Fillable(['name', 'email', 'password', 'must_change_password', 'account_status', 'account_reviewed_at', 'email_verified_at', 'id_number'])]
 #[Hidden(['password', 'remember_token', 'id_number'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
@@ -204,6 +205,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'deactivated_at' => 'datetime',
+            'account_reviewed_at' => 'datetime',
         ];
     }
 }

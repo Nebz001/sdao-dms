@@ -8,6 +8,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\AccountRejectedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -34,7 +35,7 @@ class RejectAccount
             ]);
         }
 
-        $account->update(['account_status' => AccountStatus::Rejected]);
+        $account->update(['account_status' => AccountStatus::Rejected, 'account_reviewed_at' => Date::now()]);
 
         try {
             $account->notify(new AccountRejectedNotification);

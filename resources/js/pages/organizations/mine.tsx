@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Building2, Check, UserCircle, Users, X } from 'lucide-react';
+import AccountName from '@/components/account-name';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { OrganizationStatusBadge } from '@/components/status-badge';
@@ -187,9 +188,7 @@ export default function MyOrganization({
                                 </Empty>
                             ) : (
                                 <div>
-                                    <p className="sm:truncate max-sm:break-words font-medium">
-                                        {adviser.name}
-                                    </p>
+                                    <AccountName name={adviser.name} nameClassName="font-medium" />
                                     <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                         {adviser.email}
                                     </p>

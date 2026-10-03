@@ -2,6 +2,7 @@ import { Form, Head, Link, router } from '@inertiajs/react';
 import { SearchIcon, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Admin/AccountController';
+import AccountName from '@/components/account-name';
 import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
@@ -48,7 +49,7 @@ function AccountRow({ account, onChanged }: { account: AccountEntry; onChanged?:
         <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className={deactivated ? 'min-w-0 opacity-70' : 'min-w-0'}>
                 <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate font-medium">{account.name}</p>
+                    <AccountName name={account.name} nameClassName="font-medium" />
                     {deactivated && <FlagBadge flag="deactivated" />}
                 </div>
                 <p className="truncate text-sm text-muted-foreground">{account.email}</p>
