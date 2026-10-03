@@ -136,14 +136,18 @@ test('oldest pending review is the longest-waiting in-review registration, with 
         );
 });
 
-test('the organization detail page is SDAO-only and 404s on an unknown organization', function () {
+test('the organization detail page is SDAO-only and renders a not-found state on an unknown organization', function () {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
 
     $this->actingAs($this->studentAlpha)->withoutVite()->get(route('admin.organizations.show', $org))->assertForbidden();
     $this->actingAs($this->adviserOne)->withoutVite()->get(route('admin.organizations.show', $org))->assertForbidden();
 
-    $this->actingAs($this->sdaoA)->withoutVite()->get('/admin/organizations/999999')->assertNotFound();
-    $this->actingAs($this->sdaoA)->withoutVite()->get('/admin/organizations/not-a-number')->assertNotFound();
+    foreach (['999999', 'not-a-number'] as $id) {
+        $this->actingAs($this->sdaoA)->withoutVite()
+            ->get('/admin/organizations/'.$id)
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page->component('admin/organizations/show')->where('organization', null));
+    }
 });
 
 test('the organization detail page fills its deferred sections from existing data', function () {

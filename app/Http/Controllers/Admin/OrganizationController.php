@@ -17,6 +17,7 @@ use App\Organizations\OrganizationStatusResolver;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -129,15 +130,27 @@ class OrganizationController extends Controller
      * One organization's standing, requirements, documents and officers. The
      * name renders immediately; every section is deferred so each shows its
      * own skeleton. Same `can:access-admin` gate as the list (route group).
+     *
+     * An id that matches nothing (or is not a number) renders the same page in
+     * its not-found state with a 404 status, so the user keeps the app layout
+     * and a link back to the list.
      */
-    public function show(Organization $organization, OrganizationDetailData $detail): Response
+    public function show(Request $request, string $organization, OrganizationDetailData $detail): Response|HttpResponse
     {
+        $found = ctype_digit($organization) ? Organization::query()->find((int) $organization) : null;
+
+        if ($found === null) {
+            return Inertia::render('admin/organizations/show', ['organization' => null])
+                ->toResponse($request)
+                ->setStatusCode(404);
+        }
+
         return Inertia::render('admin/organizations/show', [
-            'organization' => ['id' => $organization->id, 'name' => $organization->name],
-            'summary' => Inertia::defer(fn () => $detail->summary($organization), 'org-summary'),
-            'requirements' => Inertia::defer(fn () => $detail->requirements($organization), 'org-requirements'),
-            'documents' => Inertia::defer(fn () => $detail->documents($organization), 'org-documents'),
-            'officers' => Inertia::defer(fn () => $detail->officers($organization), 'org-officers'),
+            'organization' => ['id' => $found->id, 'name' => $found->name],
+            'summary' => Inertia::defer(fn () => $detail->summary($found), 'org-summary'),
+            'requirements' => Inertia::defer(fn () => $detail->requirements($found), 'org-requirements'),
+            'documents' => Inertia::defer(fn () => $detail->documents($found), 'org-documents'),
+            'officers' => Inertia::defer(fn () => $detail->officers($found), 'org-officers'),
         ]);
     }
 

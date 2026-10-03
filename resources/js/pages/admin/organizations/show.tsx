@@ -1,7 +1,8 @@
 import { Deferred, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, FileText, ListChecks, RefreshCw, Users } from 'lucide-react';
+import { ArrowLeft, Building2, FileText, ListChecks, RefreshCw, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import ErrorBoundary from '@/components/error-boundary';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
@@ -63,7 +64,8 @@ type DocumentRow = {
 type Officer = { id: number; position: string; name: string; id_number: string | null; since: string | null };
 
 type Props = {
-    organization: { id: number; name: string };
+    /** Null when the id matches no organization (the response is a 404). */
+    organization: { id: number; name: string } | null;
     /** Each section is deferred and shows its own skeleton until it lands. */
     summary?: Summary;
     requirements?: RequirementRow[];
@@ -76,25 +78,41 @@ const DASH = '—';
 
 function StatusBanner({ banner }: { banner: Banner }) {
     if (banner.type === 'pending') {
-        const inReview = banner.documentStatus === 'in_review';
+        const days = banner.waitingDays;
+        const since = days === 0 ? 'since today' : `for ${pluralDays(days)}`;
+        const copy: Record<string, { title: string; detail: string; action: string | null }> = {
+            in_review: {
+                title: `A ${banner.kind} is waiting for SDAO review.`,
+                detail: `It has been waiting ${since}.`,
+                action: 'Open in review queue',
+            },
+            returned: {
+                title: `A ${banner.kind} was returned for revision.`,
+                detail: `It has been with the students ${since}.`,
+                action: `Open ${banner.kind}`,
+            },
+            draft: {
+                title: `A ${banner.kind} has been started but not submitted.`,
+                detail: 'Nothing is waiting on SDAO yet.',
+                action: null,
+            },
+        };
+        const { title, detail, action } = copy[banner.documentStatus] ?? copy.in_review;
 
         return (
             <PageNotice
-                tone={banner.tier === 'overdue' ? 'warning' : 'info'}
-                title={
-                    inReview
-                        ? `A ${banner.kind} is waiting for SDAO review.`
-                        : `A ${banner.kind} was returned for revision.`
-                }
+                tone={banner.documentStatus === 'in_review' && banner.tier === 'overdue' ? 'warning' : 'info'}
+                title={title}
                 action={
-                    banner.href && (
+                    banner.href &&
+                    action && (
                         <Button asChild size="sm">
-                            <Link href={banner.href}>{inReview ? 'Open in review queue' : `Open ${banner.kind}`}</Link>
+                            <Link href={banner.href}>{action}</Link>
                         </Button>
                     )
                 }
             >
-                {inReview ? 'It has been waiting' : 'It has been with the students for'} {pluralDays(banner.waitingDays).toLowerCase()}.
+                {detail}
             </PageNotice>
         );
     }
@@ -106,7 +124,8 @@ function StatusBanner({ banner }: { banner: Banner }) {
                 {banner.window.open
                     ? `The renewal window is open and closes ${banner.window.label}.`
                     : `The next renewal window opens ${banner.window.label}.`}
-                {banner.outstanding.length > 0 && ` Still outstanding: ${banner.outstanding.join(', ').toLowerCase()}.`}
+                {(banner.outstanding ?? []).length > 0 &&
+                    ` Still outstanding: ${(banner.outstanding ?? []).join(', ').toLowerCase()}.`}
             </PageNotice>
         );
     }
@@ -241,7 +260,7 @@ const DOCUMENT_COLUMNS: DataColumn<DocumentRow>[] = [
     { key: 'title', header: 'Document', slot: 'title', cell: (d) => <span className="font-semibold">{d.title}</span> },
     { key: 'status', header: 'Status', slot: 'badge', cell: (d) => <StatusBadge status={d.status} /> },
     { key: 'type', header: 'Type', cell: (d) => d.type },
-    { key: 'period', header: 'Term', cell: (d) => d.period.label },
+    { key: 'period', header: 'Term', cell: (d) => d.period?.label ?? DASH },
     { key: 'submitted', header: 'Submitted', className: 'tabular-nums', cell: (d) => formatDate(d.submitted_at) },
     {
         key: 'actions',
@@ -254,19 +273,21 @@ const DOCUMENT_COLUMNS: DataColumn<DocumentRow>[] = [
 
 function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
     const [period, setPeriod] = useState(ALL_PERIODS);
+    const allRows = useMemo(() => data.rows ?? [], [data.rows]);
+    const periods = data.periods ?? [];
     const rows = useMemo(
-        () => (period === ALL_PERIODS ? data.rows : data.rows.filter((d) => d.period.key === period)),
-        [data.rows, period],
+        () => (period === ALL_PERIODS ? allRows : allRows.filter((d) => d.period?.key === period)),
+        [allRows, period],
     );
 
-    const filter = data.periods.length > 1 && (
+    const filter = periods.length > 1 && (
         <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger aria-label="Filter by term" size="sm" className="w-48">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value={ALL_PERIODS}>All terms</SelectItem>
-                {data.periods.map((p) => (
+                {periods.map((p) => (
                     <SelectItem key={p.key} value={p.key}>
                         {p.label}
                     </SelectItem>
@@ -276,12 +297,12 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
     );
 
     return (
-        <SectionCard title="Submitted documents" count={data.rows.length} aside={filter || undefined}>
+        <SectionCard title="Submitted documents" count={allRows.length} aside={filter || undefined}>
             {rows.length === 0 ? (
                 <EmptySection
-                    title={data.rows.length === 0 ? 'No documents submitted yet' : 'No documents in this term'}
+                    title={allRows.length === 0 ? 'No documents submitted yet' : 'No documents in this term'}
                     description={
-                        data.rows.length === 0
+                        allRows.length === 0
                             ? 'Registrations, calendars, proposals and reports appear here once the organization submits them.'
                             : 'Choose another term to see its documents.'
                     }
@@ -315,65 +336,104 @@ function OfficersSection({ rows }: { rows: Officer[] }) {
     );
 }
 
-export default function OrganizationShow({ organization, summary, requirements, documents, officers }: Props) {
+function NotFound() {
+    return (
+        <Empty>
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <Building2 />
+                </EmptyMedia>
+                <EmptyTitle>Organization not found</EmptyTitle>
+                <EmptyDescription>
+                    No organization has this id. It may have been removed, or the link may be wrong.
+                </EmptyDescription>
+            </EmptyHeader>
+            <Button asChild size="sm">
+                <Link href={organizations.index().url}>
+                    <ArrowLeft data-icon="inline-start" />
+                    Back to organizations
+                </Link>
+            </Button>
+        </Empty>
+    );
+}
+
+type LoadedProps = Omit<Props, 'organization'> & { organization: NonNullable<Props['organization']> };
+
+/** Every section is its own Deferred: skeleton while loading, content once it lands. */
+function OrganizationDetail({ organization, summary, requirements, documents, officers }: LoadedProps) {
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+                <Button asChild variant="ghost" size="sm" className="self-start">
+                    <Link href={organizations.index().url}>
+                        <ArrowLeft data-icon="inline-start" />
+                        Back to organizations
+                    </Link>
+                </Button>
+                <Deferred
+                    data="summary"
+                    fallback={
+                        <PageHeader
+                            title={organization.name}
+                            badge={<Skeleton className="h-5 w-24" />}
+                            subtitle={<Skeleton className="h-4 w-64" />}
+                        />
+                    }
+                >
+                    <PageHeader
+                        title={organization.name}
+                        badge={summary ? <OrganizationStatusBadge status={summary.status} /> : undefined}
+                        subtitle={[summary?.school ?? 'None', summary?.program ?? 'None'].join(' · ')}
+                    />
+                </Deferred>
+            </div>
+
+            <Deferred data="summary" fallback={<Skeleton className="h-14 w-full rounded-lg" />}>
+                {summary?.banner ? <StatusBanner banner={summary.banner} /> : null}
+            </Deferred>
+
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Deferred data="summary" fallback={<TilesSkeleton />}>
+                    {summary?.tiles ? <Tiles tiles={summary.tiles} /> : null}
+                </Deferred>
+            </div>
+
+            <Deferred data="requirements" fallback={<SectionSkeleton title="Requirements" />}>
+                <RequirementsSection rows={requirements ?? []} />
+            </Deferred>
+
+            <Deferred data="documents" fallback={<SectionSkeleton title="Submitted documents" />}>
+                <DocumentsSection data={documents ?? { rows: [], periods: [] }} />
+            </Deferred>
+
+            <Deferred data="officers" fallback={<SectionSkeleton title="Officers" />}>
+                <OfficersSection rows={officers ?? []} />
+            </Deferred>
+        </div>
+    );
+}
+
+export default function OrganizationShow(props: Props) {
+    const name = props.organization?.name;
+
     useEffect(() => {
         setLayoutProps({
             breadcrumbs: [
                 { title: 'Admin' },
                 { title: 'Organizations', href: organizations.index() },
-                { title: organization.name },
+                { title: name ?? 'Not found' },
             ],
         });
-    }, [organization.name]);
+    }, [name]);
 
     return (
         <>
-            <Head title={organization.name} />
+            <Head title={name ?? 'Organization not found'} />
 
-            <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-3">
-                    <Button asChild variant="ghost" size="sm" className="self-start">
-                        <Link href={organizations.index().url}>
-                            <ArrowLeft data-icon="inline-start" />
-                            Back to organizations
-                        </Link>
-                    </Button>
-                    <Deferred
-                        data="summary"
-                        fallback={<PageHeader title={organization.name} badge={<Skeleton className="h-5 w-24" />} subtitle={<Skeleton className="h-4 w-64" />} />}
-                    >
-                        {summary && (
-                            <PageHeader
-                                title={organization.name}
-                                badge={<OrganizationStatusBadge status={summary.status} />}
-                                subtitle={[summary.school ?? 'No college', summary.program ?? 'No program'].join(' · ')}
-                            />
-                        )}
-                    </Deferred>
-                </div>
-
-                <Deferred data="summary" fallback={null}>
-                    {summary?.banner && <StatusBanner banner={summary.banner} />}
-                </Deferred>
-
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <Deferred data="summary" fallback={<TilesSkeleton />}>
-                        {summary && <Tiles tiles={summary.tiles} />}
-                    </Deferred>
-                </div>
-
-                <Deferred data="requirements" fallback={<SectionSkeleton title="Requirements" />}>
-                    {requirements && <RequirementsSection rows={requirements} />}
-                </Deferred>
-
-                <Deferred data="documents" fallback={<SectionSkeleton title="Submitted documents" />}>
-                    {documents && <DocumentsSection data={documents} />}
-                </Deferred>
-
-                <Deferred data="officers" fallback={<SectionSkeleton title="Officers" />}>
-                    {officers && <OfficersSection rows={officers} />}
-                </Deferred>
-            </div>
+            <ErrorBoundary backHref={organizations.index().url} backLabel="Back to organizations">
+                {props.organization ? <OrganizationDetail {...props} organization={props.organization} /> : <NotFound />}
+            </ErrorBoundary>
         </>
     );
 }

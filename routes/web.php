@@ -257,7 +257,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // (App\Organizations\OrganizationStatusResolver) and requirements
         // checklist.
         Route::get('/organizations', [AdminOrganizationController::class, 'index'])->name('organizations.index');
-        Route::get('/organizations/{organization}', [AdminOrganizationController::class, 'show'])->whereNumber('organization')->name('organizations.show');
+        Route::get('/organizations/{organization}', [AdminOrganizationController::class, 'show'])->name('organizations.show');
 
         // SDAO admin: every open document (with an approver or returned to
         // its organization). Reached only from dashboard links, never the
