@@ -10,6 +10,7 @@ export default function StatCard({
     title,
     tone = 'default',
     compact = false,
+    headerAside,
     children,
     className,
 }: {
@@ -19,6 +20,8 @@ export default function StatCard({
     tone?: 'default' | 'alert';
     /** Tighter padding and gaps for plain fact tiles (no charts). */
     compact?: boolean;
+    /** Right-aligned content in the card header, e.g. an overdue pill. */
+    headerAside?: ReactNode;
     children: ReactNode;
     className?: string;
 }) {
@@ -44,6 +47,7 @@ export default function StatCard({
                     <Icon />
                 </span>
                 <CardTitle className="text-sm font-medium text-foreground/90">{title}</CardTitle>
+                {headerAside && <div className="ml-auto">{headerAside}</div>}
             </CardHeader>
             <CardContent className={cn('flex flex-1 flex-col px-5', compact ? 'gap-1.5' : 'gap-4')}>{children}</CardContent>
         </Card>

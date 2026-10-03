@@ -30,11 +30,14 @@ export default function DataTable<T>({
     columns,
     rowKey,
     rowClassName,
+    roomy = false,
 }: {
     rows: T[];
     columns: DataColumn<T>[];
     rowKey: (row: T) => string | number;
     rowClassName?: (row: T) => string | undefined;
+    /** Taller table rows, for tables with two-line cells. */
+    roomy?: boolean;
 }) {
     const titleColumn = columns.find((c) => c.slot === 'title');
     const badgeColumn = columns.find((c) => c.slot === 'badge');
@@ -54,7 +57,7 @@ export default function DataTable<T>({
                             ))}
                         </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className={cn(roomy && '[&_td]:py-4')}>
                         {rows.map((row) => (
                             <TableRow key={rowKey(row)} className={rowClassName?.(row)}>
                                 {columns.map((c) => (

@@ -5,14 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import DataTable, { RowViewButton } from './data-table';
+import type { DataColumn } from './data-table';
 import ResultPill from './result-pill';
 import { formatDate } from './types';
 import type { QueueRow, RecentDecision, ReviewQueueConfig } from './types';
 import WaitPill from './wait-pill';
-
-const HEAD = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
 
 /** Card with a title (and optional count badge) on the left and a quiet label on the right. */
 export function SectionCard({
@@ -40,6 +38,26 @@ export function SectionCard({
     );
 }
 
+/** An organization name, optionally with its college in muted text underneath. */
+function OrganizationCell({
+    name,
+    college,
+    showCollege,
+    strong,
+}: {
+    name: string;
+    college?: string | null;
+    showCollege: boolean;
+    strong: boolean;
+}) {
+    return (
+        <div className="flex flex-col">
+            <span className={strong ? 'font-medium' : undefined}>{name}</span>
+            {showCollege && <span className="text-sm text-muted-foreground">{college ?? 'No college'}</span>}
+        </div>
+    );
+}
+
 export function PendingTable({
     rows,
     extraColumnLabel,
@@ -49,6 +67,7 @@ export function PendingTable({
     showActivity = false,
     showStep = false,
     flagOverdue = false,
+    showCollege = false,
 }: {
     rows: QueueRow[];
     /** Omit when the queue has no page-specific column (activity proposals show the step instead). */
@@ -56,13 +75,76 @@ export function PendingTable({
     config: ReviewQueueConfig;
     title?: string;
     emptyTitle?: string;
-    /** Leads with the document title, bold, with the organization as its own column. */
+    /** Leads with the document title, in medium weight, with the organization as its own column. */
     showActivity?: boolean;
     /** Adds the Current step column: "Step 2 of 4" over the step name. */
     showStep?: boolean;
     /** Waiting pill reads "9 days, overdue" for overdue rows. */
     flagOverdue?: boolean;
+    /** Shows each row's college (the row's `extra`) under the organization name. */
+    showCollege?: boolean;
 }) {
+    const columns: DataColumn<QueueRow>[] = [
+        ...(showActivity
+            ? [{ key: 'title', header: 'Activity', slot: 'title' as const, cell: (r: QueueRow) => <span className="font-medium">{r.title}</span> }]
+            : []),
+        {
+            key: 'organization',
+            header: 'Organization',
+            slot: showActivity ? undefined : 'title',
+            cell: (r) => (
+                <OrganizationCell
+                    name={r.organization.name}
+                    college={r.extra}
+                    showCollege={showCollege}
+                    strong={!showActivity}
+                />
+            ),
+        },
+        ...(extraColumnLabel
+            ? [{ key: 'extra', header: extraColumnLabel, cell: (r: QueueRow) => r.extra ?? 'None' }]
+            : []),
+        { key: 'submitted', header: 'Submitted', className: 'tabular-nums', cell: (r) => formatDate(r.submitted_at) },
+        ...(showStep
+            ? [
+                  {
+                      key: 'step',
+                      header: 'Current step',
+                      cell: (r: QueueRow) =>
+                          r.step ? (
+                              <div className="flex flex-col">
+                                  <span>
+                                      Step {r.step.position} of {r.step.total}
+                                  </span>
+                                  <span className="text-sm text-muted-foreground">{r.step.name}</span>
+                              </div>
+                          ) : (
+                              <span className="text-muted-foreground">—</span>
+                          ),
+                  },
+              ]
+            : []),
+        {
+            key: 'waiting',
+            header: 'Waiting',
+            slot: 'badge',
+            cell: (r) => <WaitPill days={r.waiting_days} tier={r.tier} flagOverdue={flagOverdue} />,
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            slot: 'action',
+            align: 'right',
+            cell: (r) => (
+                <Button asChild size="sm">
+                    <Link href={r.href ?? config.showRoute(r.id)}>
+                        Review<span className="sr-only"> {showActivity ? r.title : r.organization.name}</span>
+                    </Link>
+                </Button>
+            ),
+        },
+    ];
+
     return (
         <SectionCard title={title} count={rows.length} aside="Oldest first">
             {rows.length === 0 ? (
@@ -76,59 +158,7 @@ export function PendingTable({
                     </EmptyHeader>
                 </Empty>
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {showActivity && <TableHead className={HEAD}>Activity</TableHead>}
-                            <TableHead className={HEAD}>Organization</TableHead>
-                            {extraColumnLabel && <TableHead className={HEAD}>{extraColumnLabel}</TableHead>}
-                            <TableHead className={HEAD}>Submitted</TableHead>
-                            {showStep && <TableHead className={HEAD}>Current step</TableHead>}
-                            <TableHead className={HEAD}>Waiting</TableHead>
-                            <TableHead>
-                                <span className="sr-only">Actions</span>
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {rows.map((row) => (
-                            <TableRow key={row.id}>
-                                {showActivity && <TableCell className="font-semibold whitespace-normal">{row.title}</TableCell>}
-                                <TableCell className={cn('whitespace-normal', !showActivity && 'font-medium')}>
-                                    {row.organization.name}
-                                </TableCell>
-                                {extraColumnLabel && (
-                                    <TableCell className="whitespace-normal">{row.extra ?? 'None'}</TableCell>
-                                )}
-                                <TableCell className="tabular-nums">{formatDate(row.submitted_at)}</TableCell>
-                                {showStep && (
-                                    <TableCell>
-                                        {row.step ? (
-                                            <div className="flex flex-col">
-                                                <span>
-                                                    Step {row.step.position} of {row.step.total}
-                                                </span>
-                                                <span className="text-sm text-muted-foreground">{row.step.name}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground">—</span>
-                                        )}
-                                    </TableCell>
-                                )}
-                                <TableCell>
-                                    <WaitPill days={row.waiting_days} tier={row.tier} flagOverdue={flagOverdue} />
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button asChild size="sm">
-                                        <Link href={config.showRoute(row.id)}>
-                                            Review<span className="sr-only"> {showActivity ? row.title : row.organization.name}</span>
-                                        </Link>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} roomy={showActivity} />
             )}
         </SectionCard>
     );
@@ -141,6 +171,7 @@ export function RecentDecisionsTable({
     emptyText = 'No decisions in the last 30 days.',
     showActivity = false,
     showDecidedBy = true,
+    showCollege = false,
 }: {
     rows: RecentDecision[];
     title?: string;
@@ -149,7 +180,45 @@ export function RecentDecisionsTable({
     /** Leads with the document title; rows must carry `title`. */
     showActivity?: boolean;
     showDecidedBy?: boolean;
+    /** Shows each row's college under the organization name. */
+    showCollege?: boolean;
 }) {
+    const columns: DataColumn<RecentDecision>[] = [
+        ...(showActivity
+            ? [
+                  {
+                      key: 'title',
+                      header: 'Activity',
+                      slot: 'title' as const,
+                      cell: (r: RecentDecision) => <span className="font-medium">{r.title}</span>,
+                  },
+              ]
+            : []),
+        {
+            key: 'organization',
+            header: 'Organization',
+            slot: showActivity ? undefined : 'title',
+            cell: (r) => (
+                <OrganizationCell
+                    name={r.organization}
+                    college={r.college}
+                    showCollege={showCollege}
+                    strong={!showActivity}
+                />
+            ),
+        },
+        { key: 'result', header: 'Result', slot: 'badge', cell: (r) => <ResultPill result={r.result} /> },
+        { key: 'decided', header: 'Decided on', className: 'tabular-nums', cell: (r) => formatDate(r.decided_at) },
+        ...(showDecidedBy ? [{ key: 'by', header: 'Decided by', cell: (r: RecentDecision) => r.decided_by ?? '—' }] : []),
+        {
+            key: 'actions',
+            header: 'Actions',
+            slot: 'action',
+            align: 'right',
+            cell: (r) => <RowViewButton href={r.href} label={showActivity ? (r.title ?? r.organization) : r.organization} />,
+        },
+    ];
+
     return (
         <SectionCard title={title} aside={aside}>
             {rows.length === 0 ? (
@@ -167,44 +236,7 @@ export function RecentDecisionsTable({
                     <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
                 )
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {showActivity && <TableHead className={HEAD}>Activity</TableHead>}
-                            <TableHead className={HEAD}>Organization</TableHead>
-                            <TableHead className={HEAD}>Result</TableHead>
-                            <TableHead className={HEAD}>Decided on</TableHead>
-                            {showDecidedBy && <TableHead className={HEAD}>Decided by</TableHead>}
-                            <TableHead>
-                                <span className="sr-only">Actions</span>
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {rows.map((row) => (
-                            <TableRow key={row.id}>
-                                {showActivity && <TableCell className="font-semibold whitespace-normal">{row.title}</TableCell>}
-                                <TableCell className={cn('whitespace-normal', !showActivity && 'font-medium')}>
-                                    {row.organization}
-                                </TableCell>
-                                <TableCell>
-                                    <ResultPill result={row.result} />
-                                </TableCell>
-                                <TableCell className="tabular-nums">{formatDate(row.decided_at)}</TableCell>
-                                {showDecidedBy && (
-                                    <TableCell className="whitespace-normal">{row.decided_by ?? '—'}</TableCell>
-                                )}
-                                <TableCell className="text-right">
-                                    <Button asChild size="sm" variant="secondary">
-                                        <Link href={row.href}>
-                                            View<span className="sr-only"> {showActivity ? row.title : row.organization}</span>
-                                        </Link>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} roomy={showActivity} />
             )}
         </SectionCard>
     );

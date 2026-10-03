@@ -32,6 +32,7 @@ type Filter = 'overdue' | 'approved' | 'returned' | 'decided' | null;
  */
 type TabRow = Pick<QueueRow, 'id' | 'title' | 'organization'> &
     Partial<QueueRow> & {
+        college?: string | null;
         decision: { action: RecentDecision['result']; decided_at: string } | null;
     };
 
@@ -94,6 +95,7 @@ export default function ReviewActivityProposalsIndex({
         id: row.id,
         title: row.title,
         organization: row.organization.name,
+        college: row.college ?? null,
         result: row.decision?.action ?? 'approved',
         decided_at: row.decision?.decided_at ?? '',
         decided_by: null,
@@ -107,11 +109,12 @@ export default function ReviewActivityProposalsIndex({
             <div className="flex flex-col gap-6">
                 <PageHeader title={config.title} subtitle={config.subtitle} />
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.3fr_1.3fr_1fr_1fr]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <WaitingCard
                         rows={pending}
                         title="Waiting on you"
                         overdueLabel={(n) => `${n} overdue`}
+                        pillInHeader
                     />
                     <OldestCard rows={pending} config={config} headline="title" />
                     <Deferred
@@ -167,6 +170,7 @@ export default function ReviewActivityProposalsIndex({
                         emptyText="You haven't made any matching decisions this academic year."
                         showActivity
                         showDecidedBy={false}
+                        showCollege
                     />
                 ) : (
                     <>
@@ -186,6 +190,7 @@ export default function ReviewActivityProposalsIndex({
                             showActivity
                             showStep
                             flagOverdue
+                            showCollege
                         />
 
                         <Deferred data="recent" fallback={<RecentDecisionsSkeleton />}>
@@ -193,6 +198,7 @@ export default function ReviewActivityProposalsIndex({
                                 rows={recent ?? []}
                                 showActivity
                                 showDecidedBy={false}
+                        showCollege
                             />
                         </Deferred>
                     </>

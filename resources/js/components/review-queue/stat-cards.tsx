@@ -17,24 +17,30 @@ export function WaitingCard({
     title = 'Waiting for review',
     overdueLabel = (n) => `${n} over 7 days`,
     bucketLabels,
+    pillInHeader = false,
 }: {
     rows: QueueRow[];
     title?: string;
+    /** Puts the overdue pill in the card header instead of beside the count. */
+    pillInHeader?: boolean;
     /** Text of the red pill; queues with their own SLA word it differently. */
     overdueLabel?: (overdue: number) => string;
     bucketLabels?: [string, string, string];
 }) {
     const overdue = rows.filter((r) => r.tier === 'overdue').length;
 
+    const pill =
+        overdue > 0 ? (
+            <ToneBadge tone="destructive" className="text-xs tracking-normal tabular-nums normal-case">
+                {overdueLabel(overdue)}
+            </ToneBadge>
+        ) : null;
+
     return (
-        <StatCard icon={Inbox} title={title}>
+        <StatCard icon={Inbox} title={title} headerAside={pillInHeader ? pill : undefined}>
             <div className="flex items-center justify-between gap-3">
                 <StatValue>{rows.length}</StatValue>
-                {overdue > 0 && (
-                    <ToneBadge tone="destructive" className="text-xs tracking-normal tabular-nums normal-case">
-                        {overdueLabel(overdue)}
-                    </ToneBadge>
-                )}
+                {!pillInHeader && pill}
             </div>
             <AgingBar rows={rows} labels={bucketLabels} />
         </StatCard>
@@ -104,7 +110,7 @@ export function OldestCard({
                         <WaitPill
                             days={oldest.waiting_days}
                             tier={oldest.tier}
-                            suffix="waiting"
+                            suffix={byTitle ? undefined : 'waiting'}
                             flagOverdue={byTitle}
                         />
                         <Link
@@ -149,20 +155,24 @@ export function SubmittedCard({ stats }: { stats: QueueStats['submitted'] }) {
 }
 
 export function DecidedCard({ stats }: { stats: QueueStats['decided'] }) {
+    // Only the outcomes that actually happened get a segment and a legend row.
+    const segments = [
+        { label: 'Approved', count: stats.approved, className: 'bg-success' },
+        { label: 'Returned', count: stats.returned, className: 'bg-warning' },
+        { label: 'Rejected', count: stats.rejected, className: 'bg-destructive' },
+    ].filter((s) => s.count > 0);
+
     return (
         <StatCard icon={CircleCheck} title="Decided this term">
             <StatValue>{stats.total}</StatValue>
-            <SegmentedBar
-                ariaLabel={`Decided this term: ${stats.approved} approved, ${stats.returned} returned, ${stats.rejected} rejected`}
-                segments={[
-                    { label: 'Approved', count: stats.approved, className: 'bg-success' },
-                    { label: 'Returned', count: stats.returned, className: 'bg-warning' },
-                    // Rejection is terminal and rare; only listed when it happened.
-                    ...(stats.rejected > 0
-                        ? [{ label: 'Rejected', count: stats.rejected, className: 'bg-destructive' }]
-                        : []),
-                ]}
-            />
+            {segments.length > 0 ? (
+                <SegmentedBar
+                    ariaLabel={`Decided this term: ${segments.map((s) => `${s.count} ${s.label.toLowerCase()}`).join(', ')}`}
+                    segments={segments}
+                />
+            ) : (
+                <p className="flex h-10 items-end text-sm text-muted-foreground">No decisions yet this term.</p>
+            )}
         </StatCard>
     );
 }

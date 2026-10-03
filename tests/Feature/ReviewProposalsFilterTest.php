@@ -128,6 +128,8 @@ test('?filter=approved and ?filter=returned switch to this approver\'s own decis
             ->has('queue', 1)
             ->where('queue.0.id', $approved->id)
             ->where('queue.0.decision.action', 'approved')
+            ->where('queue.0.college', $this->org->school?->name)
+            ->where('queue.0.title', 'Test Activity')
             // The document's REAL current status (now at the program chair's
             // step), not the hardcoded "in_review" the live queue always used.
             ->where('queue.0.status', 'in_review')
@@ -218,13 +220,18 @@ test('the queue exposes step info, SLA tiers, tab counts and deferred stats for 
             ->where('pending.0.waiting_days', 9)
             ->where('pending.0.step.position', 1)
             ->where('pending.0.step.name', 'Adviser review')
+            ->where('pending.0.extra', $this->org->school?->name)
+            ->where('pending.0.title', 'Test Activity')
+            ->where('queue.0.title', 'Test Activity')
+            ->where('queue.0.extra', $this->org->school?->name)
             ->where('tabCounts', ['pending' => 1, 'overdue' => 1, 'approved' => 1, 'returned' => 0])
             ->loadDeferredProps('queue-insights', fn ($reload) => $reload
                 ->where('stats.decided.approved', 1)
                 ->where('stats.decided.total', 1)
                 ->has('recent', 1)
-                ->where('recent.0.title', $approved->title)
                 ->where('recent.0.result', 'approved')
+                ->where('recent.0.college', $this->org->school?->name)
+                ->where('recent.0.title', 'Test Activity')
             )
         );
 });

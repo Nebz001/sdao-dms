@@ -300,7 +300,7 @@ export default function OrganizationsIndex({
                     subtitle="Every organization, its standing, and what it still needs."
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <Deferred data="stats" fallback={<StatCardsSkeleton />}>
                         {stats && <StatCards stats={stats} />}
                     </Deferred>

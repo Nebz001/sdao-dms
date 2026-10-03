@@ -41,7 +41,7 @@ export default function ReviewQueuePage({
             <div className="flex flex-col gap-6">
                 <PageHeader title={config.title} subtitle={config.subtitle} />
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[1.3fr_1.3fr_1fr_1fr]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <WaitingCard rows={queue} />
                     <OldestCard rows={queue} config={config} />
                     <Deferred

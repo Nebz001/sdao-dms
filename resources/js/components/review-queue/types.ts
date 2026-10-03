@@ -28,6 +28,8 @@ export type RecentDecision = {
     organization: string;
     /** Set where the document has its own name (activity proposals). */
     title?: string;
+    /** The organization's college, when the page shows it as a sub-line. */
+    college?: string | null;
     result: 'approved' | 'returned' | 'rejected';
     decided_at: string;
     decided_by: string | null;

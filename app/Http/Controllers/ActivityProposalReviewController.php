@@ -117,14 +117,26 @@ class ActivityProposalReviewController extends Controller
 
         return [
             'id' => $d->id,
-            'title' => $d->title,
+            'title' => $this->activityName($d),
             'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
             'current_step_position' => $d->current_step_position,
             'submitted_at' => $since->toIso8601String(),
             'waiting_days' => $days,
             'tier' => ReviewQueueData::tierFor($days),
             'step' => $this->stepInfo($d),
+            'extra' => $d->organization->school?->name,
         ];
+    }
+
+    /**
+     * The activity's own name (activity_proposals.title), not the decorated
+     * "Activity Proposal — Name (Org)" document title, which repeats what the
+     * page and its Organization column already say. The document title is only
+     * a fallback for a proposal row that is missing.
+     */
+    private function activityName(Document $document): string
+    {
+        return $document->activityProposal?->title ?? $document->title;
     }
 
     /**
@@ -202,15 +214,16 @@ class ActivityProposalReviewController extends Controller
             ->whereIn('action', [TransitionAction::Approved->value, TransitionAction::Returned->value, TransitionAction::Rejected->value])
             ->where('created_at', '>=', now()->subDays(30))
             ->whereHas('document', fn ($q) => $q->where('form_type', FormType::ActivityProposal->value))
-            ->with('document.organization')
+            ->with(['document.organization.school', 'document.activityProposal'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(10)
             ->get()
             ->map(fn (DocumentTransition $t) => [
                 'id' => $t->id,
-                'title' => $t->document->title,
+                'title' => $this->activityName($t->document),
                 'organization' => $t->document->organization->name,
+                'college' => $t->document->organization->school?->name,
                 'result' => $t->action->value,
                 'decided_at' => $t->created_at->toIso8601String(),
                 'decided_by' => null,
@@ -250,7 +263,7 @@ class ActivityProposalReviewController extends Controller
             ->where('created_at', '>=', $yearStart)
             ->where('created_at', '<', $yearEnd)
             ->whereHas('document', fn ($q) => $q->where('form_type', FormType::ActivityProposal->value))
-            ->with(['document.organization', 'document.activityProposal'])
+            ->with(['document.organization.school', 'document.activityProposal'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
@@ -259,11 +272,12 @@ class ActivityProposalReviewController extends Controller
 
                 return [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    'title' => $this->activityName($d),
                     'status' => $d->status->value,
                     'current_step_position' => $d->current_step_position,
                     'calendar_mode' => $d->activityProposal?->calendar_mode->value,
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
+                    'college' => $d->organization->school?->name,
                     'created_at' => $d->created_at,
                     'waiting_since' => null,
                     'wait_tier' => null,
