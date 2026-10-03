@@ -1,61 +1,58 @@
-import { Head, Link } from '@inertiajs/react';
-import { Inbox } from 'lucide-react';
+import { Deferred, Head, Link } from '@inertiajs/react';
 import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
-import QueueStatStrip from '@/components/queue-stat-strip';
-import { ActionBadge, StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '@/components/ui/empty';
+    PendingTable,
+    RecentDecisionsSkeleton,
+    RecentDecisionsTable,
+} from '@/components/review-queue/queue-tables';
+import {
+    DecidedCard,
+    DecidedCardSkeleton,
+    OldestCard,
+    SubmittedCard,
+    SubmittedCardSkeleton,
+    WaitingCard,
+} from '@/components/review-queue/stat-cards';
+import type {
+    QueueRow,
+    QueueStats,
+    RecentDecision,
+    ReviewQueueConfig,
+} from '@/components/review-queue/types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
-import { proposalQueueNotice } from '@/lib/proposal-queue-notice';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
-
-type QueueItem = {
-    id: number;
-    title: string;
-    status: string;
-    current_step_position: number | null;
-    calendar_mode: string | null;
-    organization: { id: number; name: string };
-    created_at: string;
-    waiting_since: string | null;
-    wait_tier: 'normal' | 'warning' | 'overdue' | null;
-    decision: { action: string; decided_at: string } | null;
-};
 
 type Filter = 'overdue' | 'approved' | 'returned' | 'decided' | null;
 
+/**
+ * Live tabs carry full queue rows with `decision: null`; history tabs carry
+ * only id, title, organization and `decision`.
+ */
+type TabRow = Pick<QueueRow, 'id' | 'title' | 'organization'> &
+    Partial<QueueRow> & {
+        decision: { action: RecentDecision['result']; decided_at: string } | null;
+    };
+
 type Props = {
-    queue: QueueItem[];
+    queue: TabRow[];
     filter: Filter;
     filterLabel: string | null;
     academicYear: string;
+    /** Every proposal waiting on this approver, whichever tab is open. */
+    pending: QueueRow[];
+    tabCounts: { pending: number; overdue: number; approved: number; returned: number };
+    /** Deferred: undefined until the second request lands. */
+    stats?: QueueStats;
+    recent?: RecentDecision[];
 };
 
-function modeLabel(mode: string | null): string {
-    if (mode === 'on_calendar') {
-        return 'On Calendar';
-    }
-
-    if (mode === 'off_calendar') {
-        return 'Off Calendar';
-    }
-
-    return '';
-}
-
-const FILTER_TABS: Array<{ value: Filter; label: string }> = [
-    { value: null, label: 'Pending' },
-    { value: 'overdue', label: 'Overdue' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'returned', label: 'Returned' },
+const FILTER_TABS: Array<{ value: Filter; label: string; count?: keyof Props['tabCounts'] }> = [
+    { value: null, label: 'Pending', count: 'pending' },
+    { value: 'overdue', label: 'Overdue', count: 'overdue' },
+    { value: 'approved', label: 'Approved', count: 'approved' },
+    { value: 'returned', label: 'Returned', count: 'returned' },
     { value: 'decided', label: 'All decisions' },
 ];
 
@@ -65,47 +62,77 @@ function tabHref(value: Filter): string {
         : reviewActivityProposals.index({ query: { filter: value } }).url;
 }
 
+function showRoute(id: number): string {
+    return reviewActivityProposals.show({ document: id }).url;
+}
+
+const config: ReviewQueueConfig = {
+    headTitle: 'Review Activity Proposals',
+    title: 'Activity Proposals Review Queue',
+    subtitle: 'Activity proposals routed to your step',
+    noun: 'proposal',
+    typeLabel: 'Activity proposal',
+    emptyDescription: 'Proposals will show up here once they reach a step routed to your role.',
+    showRoute,
+};
+
 export default function ReviewActivityProposalsIndex({
     queue,
     filter,
     filterLabel,
     academicYear,
+    pending,
+    tabCounts,
+    stats,
+    recent,
 }: Props) {
-    useDocumentUpdates(['queue']);
+    useDocumentUpdates(['queue', 'pending', 'tabCounts', 'stats', 'recent']);
 
-    const notice = proposalQueueNotice(filter, academicYear, queue.length);
     const isHistory = filter !== null && filter !== 'overdue';
 
-    const oldest =
-        !isHistory && queue.length > 0
-            ? new Date(
-                  Math.min(
-                      ...queue.map((d) => new Date(d.created_at).getTime()),
-                  ),
-              ).toLocaleDateString()
-            : '—';
+    const decisions: RecentDecision[] = queue.map((row) => ({
+        id: row.id,
+        title: row.title,
+        organization: row.organization.name,
+        result: row.decision?.action ?? 'approved',
+        decided_at: row.decision?.decided_at ?? '',
+        decided_by: null,
+        href: showRoute(row.id),
+    }));
 
     return (
         <>
-            <Head title="Review Activity Proposals" />
+            <Head title={config.headTitle} />
 
-            <div className="space-y-6">
-                <PageHeader title="Activity Proposals — Review Queue" subtitle="Activity proposals routed to your step" />
+            <div className="flex flex-col gap-6">
+                <PageHeader title={config.title} subtitle={config.subtitle} />
 
-                {notice && (
-                    <PageNotice
-                        tone={notice.tone}
-                        icon={notice.tone === 'info' ? Inbox : undefined}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.3fr_1.3fr_1fr_1fr]">
+                    <WaitingCard
+                        rows={pending}
+                        title="Waiting on you"
+                        overdueLabel={(n) => `${n} overdue`}
+                    />
+                    <OldestCard rows={pending} config={config} headline="title" />
+                    <Deferred
+                        data="stats"
+                        fallback={
+                            <>
+                                <SubmittedCardSkeleton />
+                                <DecidedCardSkeleton />
+                            </>
+                        }
                     >
-                        {notice.text}
-                    </PageNotice>
-                )}
+                        {stats && (
+                            <>
+                                <SubmittedCard stats={stats.submitted} />
+                                <DecidedCard stats={stats.decided} />
+                            </>
+                        )}
+                    </Deferred>
+                </div>
 
-                <div
-                    className="flex flex-wrap gap-1.5"
-                    role="tablist"
-                    aria-label="Filter proposals"
-                >
+                <nav aria-label="Filter proposals" className="flex flex-wrap gap-1.5">
                     {FILTER_TABS.map((tab) => {
                         const active = tab.value === filter;
 
@@ -121,123 +148,55 @@ export default function ReviewActivityProposalsIndex({
                                     aria-current={active ? 'page' : undefined}
                                 >
                                     {tab.label}
+                                    {tab.count && (
+                                        <Badge variant="outline" className="tabular-nums">
+                                            {tabCounts[tab.count]}
+                                        </Badge>
+                                    )}
                                 </Link>
                             </Button>
                         );
                     })}
-                </div>
+                </nav>
 
-                <QueueStatStrip
-                    stats={
-                        isHistory
-                            ? [
-                                  {
-                                      label: 'Decisions',
-                                      value: String(queue.length),
-                                      count: queue.length,
-                                  },
-                              ]
-                            : [
-                                  {
-                                      label: 'Pending',
-                                      value: String(queue.length),
-                                      count: queue.length,
-                                  },
-                                  { label: 'Oldest waiting', value: oldest },
-                              ]
-                    }
-                />
+                {isHistory ? (
+                    <RecentDecisionsTable
+                        rows={decisions}
+                        title={filterLabel ?? 'Decisions'}
+                        aside={academicYear}
+                        emptyText="You haven't made any matching decisions this academic year."
+                        showActivity
+                        showDecidedBy={false}
+                    />
+                ) : (
+                    <>
+                        <PendingTable
+                            rows={queue as QueueRow[]}
+                            config={{
+                                ...config,
+                                emptyDescription:
+                                    filter === 'overdue'
+                                        ? 'No proposal has waited 8 or more days on you.'
+                                        : config.emptyDescription,
+                            }}
+                            title={filter === 'overdue' ? 'Overdue' : 'Pending your action'}
+                            emptyTitle={
+                                filter === 'overdue' ? 'Nothing overdue' : 'Nothing waiting on you'
+                            }
+                            showActivity
+                            showStep
+                            flagOverdue
+                        />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            {isHistory
-                                ? (filterLabel ?? 'Decisions')
-                                : 'Pending Your Action'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent
-                        className={queue.length > 0 ? 'divide-y' : undefined}
-                    >
-                        {queue.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <Inbox />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {isHistory
-                                            ? 'No decisions to show'
-                                            : 'Nothing waiting on you'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {isHistory
-                                            ? `You haven't made any matching decisions this academic year.`
-                                            : 'Proposals will show up here once they reach a step routed to your role.'}
-                                    </EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            queue.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="flex items-center justify-between gap-4 py-3"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="sm:truncate max-sm:break-words font-medium">
-                                            {item.title}
-                                        </p>
-                                        <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                            {item.organization.name}
-                                            {item.calendar_mode &&
-                                                ` · ${modeLabel(item.calendar_mode)}`}
-                                            {item.current_step_position !=
-                                                null &&
-                                                ` · Step ${item.current_step_position}`}
-                                        </p>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-2">
-                                        {item.decision ? (
-                                            <>
-                                                <ActionBadge
-                                                    action={
-                                                        item.decision.action
-                                                    }
-                                                />
-                                                <StatusBadge
-                                                    status={item.status}
-                                                />
-                                            </>
-                                        ) : (
-                                            <StatusBadge status="in_review" />
-                                        )}
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            variant={
-                                                item.decision
-                                                    ? 'outline'
-                                                    : 'default'
-                                            }
-                                        >
-                                            <Link
-                                                href={
-                                                    reviewActivityProposals.show(
-                                                        { document: item.id },
-                                                    ).url
-                                                }
-                                            >
-                                                {item.decision
-                                                    ? 'View'
-                                                    : 'Review'}
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </CardContent>
-                </Card>
+                        <Deferred data="recent" fallback={<RecentDecisionsSkeleton />}>
+                            <RecentDecisionsTable
+                                rows={recent ?? []}
+                                showActivity
+                                showDecidedBy={false}
+                            />
+                        </Deferred>
+                    </>
+                )}
             </div>
         </>
     );

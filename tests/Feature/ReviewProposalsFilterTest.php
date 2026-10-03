@@ -95,10 +95,10 @@ test('no filter returns the live queue, unchanged', function () {
 test('?filter=overdue narrows the live queue to documents waiting past the threshold', function () {
     $now = now();
 
-    $this->travelTo($now->copy()->subDays(5));
+    $this->travelTo($now->copy()->subDays(9));
     $overdue = reviewFilterOnCalendarProposal($this->org, $this->studentAlpha);
 
-    $this->travelTo($now->copy()->subDay());
+    $this->travelTo($now->copy()->subDays(5));
     $recent = reviewFilterOnCalendarProposal($this->org, $this->studentAlpha);
 
     $this->travelTo($now);
@@ -195,5 +195,36 @@ test('history filters are isolated between approvers', function () {
         ->assertInertia(fn ($page) => $page
             ->has('queue', 1)
             ->where('queue.0.id', $theirs->id)
+        );
+});
+
+test('the queue exposes step info, SLA tiers, tab counts and deferred stats for the stat cards', function () {
+    $now = now();
+
+    $this->travelTo($now->copy()->subDays(9));
+    $overdue = reviewFilterOnCalendarProposal($this->org, $this->studentAlpha);
+    $this->travelTo($now);
+
+    $approved = reviewFilterOnCalendarProposal($this->org, $this->studentAlpha);
+    $this->engine->approve($approved, $this->adviserOne);
+
+    $this->actingAs($this->adviserOne)->withoutVite()
+        ->get(route('review.activity-proposals.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('pending', 1)
+            ->where('pending.0.id', $overdue->id)
+            ->where('pending.0.tier', 'overdue')
+            ->where('pending.0.waiting_days', 9)
+            ->where('pending.0.step.position', 1)
+            ->where('pending.0.step.name', 'Adviser review')
+            ->where('tabCounts', ['pending' => 1, 'overdue' => 1, 'approved' => 1, 'returned' => 0])
+            ->loadDeferredProps('queue-insights', fn ($reload) => $reload
+                ->where('stats.decided.approved', 1)
+                ->where('stats.decided.total', 1)
+                ->has('recent', 1)
+                ->where('recent.0.title', $approved->title)
+                ->where('recent.0.result', 'approved')
+            )
         );
 });

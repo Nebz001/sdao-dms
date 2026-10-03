@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\ActivityProposals\Exceptions\ProposalVenueConflictException;
 use App\ActivityProposals\ReviewActivityProposal;
 use App\Approval\ApproverQueue;
+use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverResolver;
 use App\Attachments\AttachmentSlots;
@@ -12,7 +13,9 @@ use App\Calendar\VenueConflictChecker;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\ReviewQueueFilter;
+use App\Enums\Role;
 use App\Enums\Sdg;
+use App\Enums\TransitionAction;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
@@ -22,6 +25,7 @@ use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -45,22 +49,21 @@ class ActivityProposalReviewController extends Controller
         $filter = ReviewQueueFilter::tryFrom((string) $request->query('filter', ''));
         $user = Auth::user();
 
+        // Always loaded: the stat cards and tab counts describe the live
+        // queue whichever tab is showing.
+        $pending = $queue->pendingFor($user, FormType::ActivityProposal, ['activityProposal']);
+
         if ($filter?->isHistory()) {
             $rows = $this->historyRows($user, $filter);
         } else {
-            $documents = $queue->pendingFor($user, FormType::ActivityProposal, ['activityProposal']);
-
-            if ($filter === ReviewQueueFilter::Overdue) {
-                $documents = $documents->filter(ApproverQueue::isOverdue(...))->values();
-            }
+            $documents = $filter === ReviewQueueFilter::Overdue
+                ? $pending->filter(self::isOverdue(...))->values()
+                : $pending;
 
             $rows = $documents->map(fn (Document $d) => [
-                'id' => $d->id,
-                'title' => $d->title,
+                ...$this->pendingRow($d),
                 'status' => $d->status->value,
-                'current_step_position' => $d->current_step_position,
                 'calendar_mode' => $d->activityProposal?->calendar_mode->value,
-                'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
                 'waiting_since' => ApproverQueue::waitingSince($d),
                 'wait_tier' => ApproverQueue::waitTier($d),
@@ -68,12 +71,152 @@ class ActivityProposalReviewController extends Controller
             ])->values()->all();
         }
 
+        [$yearStart, $yearEnd] = CurrentPeriod::get()->academicYearRange();
+        $yearDecisions = $this->decisionsBetween($user, $yearStart, $yearEnd)->pluck('action')->countBy(fn ($a) => $a->value);
+        $approvedCount = $yearDecisions[TransitionAction::Approved->value] ?? 0;
+        $returnedCount = $yearDecisions[TransitionAction::Returned->value] ?? 0;
+
         return Inertia::render('review/activity-proposals/index', [
             'queue' => $rows,
             'filter' => $filter?->value,
             'filterLabel' => $filter?->label(),
             'academicYear' => CurrentPeriod::get()->academicYear,
+            'pending' => $pending->map(fn (Document $d) => $this->pendingRow($d))->values()->all(),
+            'tabCounts' => [
+                'pending' => $pending->count(),
+                'overdue' => $pending->filter(self::isOverdue(...))->count(),
+                'approved' => $approvedCount,
+                'returned' => $returnedCount,
+            ],
+            // Deferred: the page shows skeletons until these land.
+            'stats' => Inertia::defer(fn () => $this->termStats($user), 'queue-insights'),
+            'recent' => Inertia::defer(fn () => $this->recentDecisions($user), 'queue-insights'),
         ]);
+    }
+
+    /**
+     * Overdue on this page means the shared 8+ day tier, the same rule as the
+     * other review queues (not ApproverQueue's 3-day dashboard threshold).
+     */
+    private static function isOverdue(Document $d): bool
+    {
+        return ReviewQueueData::tierFor((int) ApproverQueue::waitingSince($d)->diffInDays(now(), true)) === 'overdue';
+    }
+
+    /**
+     * A live-queue row in the shared review-queue shape (QueueRow): the same
+     * ApproverQueue clock and thresholds drive the wait figures, mapped onto
+     * the shared fresh/aging/overdue tiers.
+     *
+     * @return array{id: int, title: string, organization: array{id: int, name: string}, current_step_position: int|null, submitted_at: string, waiting_days: int, tier: string, step: array{position: int, total: int, name: string}|null}
+     */
+    private function pendingRow(Document $d): array
+    {
+        $since = ApproverQueue::waitingSince($d);
+        $days = (int) $since->diffInDays(now(), true);
+
+        return [
+            'id' => $d->id,
+            'title' => $d->title,
+            'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
+            'current_step_position' => $d->current_step_position,
+            'submitted_at' => $since->toIso8601String(),
+            'waiting_days' => $days,
+            'tier' => ReviewQueueData::tierFor($days),
+            'step' => $this->stepInfo($d),
+        ];
+    }
+
+    /**
+     * @return array{position: int, total: int, name: string}|null
+     */
+    private function stepInfo(Document $d): ?array
+    {
+        $steps = $d->workflowTemplate?->steps;
+        $step = $steps?->firstWhere('position', $d->current_step_position);
+
+        if ($step === null) {
+            return null;
+        }
+
+        return [
+            'position' => $step->position,
+            'total' => $steps->count(),
+            'name' => $step->role === Role::SdaoMember ? 'SDAO review' : $step->role->label().' review',
+        ];
+    }
+
+    /**
+     * This approver's own Approved/Returned/Rejected transitions on activity
+     * proposals in [from, to).
+     *
+     * @return Collection<int, DocumentTransition>
+     */
+    private function decisionsBetween(User $user, CarbonInterface $from, CarbonInterface $to): Collection
+    {
+        return DocumentTransition::query()
+            ->where('actor_id', $user->id)
+            ->whereIn('action', [TransitionAction::Approved->value, TransitionAction::Returned->value, TransitionAction::Rejected->value])
+            ->where('created_at', '>=', $from)
+            ->where('created_at', '<', $to)
+            ->whereHas('document', fn ($q) => $q->where('form_type', FormType::ActivityProposal->value))
+            ->get();
+    }
+
+    /**
+     * Submissions across the term, plus this approver's own decisions in it.
+     *
+     * @return array{submitted: array<string, mixed>, decided: array{approved: int, returned: int, rejected: int, total: int}}
+     */
+    private function termStats(User $user): array
+    {
+        $submitted = (new ReviewQueueData(FormType::ActivityProposal, 'review.activity-proposals.show', fn (Document $d) => null))
+            ->stats($user)['submitted'];
+
+        [$termStart, $termEnd] = CurrentPeriod::get()->termRange();
+        $counts = $this->decisionsBetween($user, $termStart, $termEnd)->countBy(fn (DocumentTransition $t) => $t->action->value);
+        $approved = $counts[TransitionAction::Approved->value] ?? 0;
+        $returned = $counts[TransitionAction::Returned->value] ?? 0;
+        $rejected = $counts[TransitionAction::Rejected->value] ?? 0;
+
+        return [
+            'submitted' => $submitted,
+            'decided' => [
+                'approved' => $approved,
+                'returned' => $returned,
+                'rejected' => $rejected,
+                'total' => $approved + $returned + $rejected,
+            ],
+        ];
+    }
+
+    /**
+     * This approver's decisions from the last 30 days, newest first.
+     *
+     * @return array<int, array{id: int, title: string, organization: string, result: string, decided_at: string, decided_by: null, href: string}>
+     */
+    private function recentDecisions(User $user): array
+    {
+        return DocumentTransition::query()
+            ->where('actor_id', $user->id)
+            ->whereIn('action', [TransitionAction::Approved->value, TransitionAction::Returned->value, TransitionAction::Rejected->value])
+            ->where('created_at', '>=', now()->subDays(30))
+            ->whereHas('document', fn ($q) => $q->where('form_type', FormType::ActivityProposal->value))
+            ->with('document.organization')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (DocumentTransition $t) => [
+                'id' => $t->id,
+                'title' => $t->document->title,
+                'organization' => $t->document->organization->name,
+                'result' => $t->action->value,
+                'decided_at' => $t->created_at->toIso8601String(),
+                'decided_by' => null,
+                'href' => route('review.activity-proposals.show', $t->document_id),
+            ])
+            ->all();
     }
 
     /**

@@ -12,25 +12,47 @@ import WaitPill from './wait-pill';
 
 const DASH = '—';
 
-export function WaitingCard({ rows }: { rows: QueueRow[] }) {
+export function WaitingCard({
+    rows,
+    title = 'Waiting for review',
+    overdueLabel = (n) => `${n} over 7 days`,
+    bucketLabels,
+}: {
+    rows: QueueRow[];
+    title?: string;
+    /** Text of the red pill; queues with their own SLA word it differently. */
+    overdueLabel?: (overdue: number) => string;
+    bucketLabels?: [string, string, string];
+}) {
     const overdue = rows.filter((r) => r.tier === 'overdue').length;
 
     return (
-        <StatCard icon={Inbox} title="Waiting for review">
+        <StatCard icon={Inbox} title={title}>
             <div className="flex items-center justify-between gap-3">
                 <StatValue>{rows.length}</StatValue>
                 {overdue > 0 && (
                     <ToneBadge tone="destructive" className="text-xs tracking-normal tabular-nums normal-case">
-                        {overdue} over 7 days
+                        {overdueLabel(overdue)}
                     </ToneBadge>
                 )}
             </div>
-            <AgingBar rows={rows} />
+            <AgingBar rows={rows} labels={bucketLabels} />
         </StatCard>
     );
 }
 
-export function OldestCard({ rows, config }: { rows: QueueRow[]; config: ReviewQueueConfig }) {
+export function OldestCard({
+    rows,
+    config,
+    headline = 'organization',
+}: {
+    rows: QueueRow[];
+    config: ReviewQueueConfig;
+    /** "title" leads with the document title and details the organization and route step (activity proposals). */
+    headline?: 'organization' | 'title';
+}) {
+    const byTitle = headline === 'title';
+    const heading = byTitle ? (rows[0]?.title ?? '') : (rows[0]?.organization.name ?? '');
     const oldest = rows[0];
     const overdue = oldest !== undefined && oldest.tier === 'overdue';
 
@@ -38,17 +60,41 @@ export function OldestCard({ rows, config }: { rows: QueueRow[]; config: ReviewQ
         <StatCard icon={Clock} title="Oldest waiting" tone={overdue ? 'alert' : 'default'}>
             {oldest ? (
                 <>
-                    <p className="truncate text-xl leading-none font-semibold" title={oldest.organization.name}>
-                        {oldest.organization.name}
+                    <p className="truncate text-xl leading-none font-semibold" title={heading}>
+                        {heading}
                     </p>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
-                        <dt className="text-muted-foreground">Type</dt>
-                        <dd className="font-medium">{config.typeLabel}</dd>
+                        {byTitle ? (
+                            <>
+                                <dt className="text-muted-foreground">Organization</dt>
+                                <dd className="truncate font-medium" title={oldest.organization.name}>
+                                    {oldest.organization.name}
+                                </dd>
+                            </>
+                        ) : (
+                            <>
+                                <dt className="text-muted-foreground">Type</dt>
+                                <dd className="font-medium">{config.typeLabel}</dd>
+                            </>
+                        )}
                         <dt className="text-muted-foreground">Submitted</dt>
                         <dd className="font-medium tabular-nums">{formatDate(oldest.submitted_at)}</dd>
+                        {oldest.step && (
+                            <>
+                                <dt className="text-muted-foreground">Step</dt>
+                                <dd className="font-medium">
+                                    {oldest.step.position} of {oldest.step.total}, {oldest.step.name}
+                                </dd>
+                            </>
+                        )}
                     </dl>
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                        <WaitPill days={oldest.waiting_days} tier={oldest.tier} suffix="waiting" />
+                        <WaitPill
+                            days={oldest.waiting_days}
+                            tier={oldest.tier}
+                            suffix="waiting"
+                            flagOverdue={byTitle}
+                        />
                         <Link
                             href={config.showRoute(oldest.id)}
                             className={cn(

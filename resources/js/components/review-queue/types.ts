@@ -11,6 +11,8 @@ export type QueueRow = {
     tier: WaitTier;
     /** The page-specific column value (college, period, activity). */
     extra: string | null;
+    /** Multi-step chains only (activity proposals): where the document sits in its route. */
+    step?: { position: number; total: number; name: string } | null;
 };
 
 export type QueueStats = {
@@ -21,6 +23,8 @@ export type QueueStats = {
 export type RecentDecision = {
     id: number;
     organization: string;
+    /** Set where the document has its own name (activity proposals). */
+    title?: string;
     result: 'approved' | 'returned' | 'rejected';
     decided_at: string;
     decided_by: string | null;

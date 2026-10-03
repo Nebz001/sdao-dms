@@ -15,11 +15,14 @@ export default function WaitPill({
     days,
     tier,
     suffix,
+    flagOverdue = false,
     className,
 }: {
     days: number;
     tier: WaitTier;
     suffix?: string;
+    /** Reads "9 days, overdue" when the tier is overdue. */
+    flagOverdue?: boolean;
     className?: string;
 }) {
     return (
@@ -29,6 +32,7 @@ export default function WaitPill({
         >
             {pluralDays(days)}
             {suffix ? ` ${suffix}` : ''}
+            {flagOverdue && tier === 'overdue' ? ', overdue' : ''}
         </ToneBadge>
     );
 }
