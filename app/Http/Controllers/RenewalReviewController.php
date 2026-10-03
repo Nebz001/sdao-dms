@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
-use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
@@ -22,31 +22,21 @@ class RenewalReviewController extends Controller
 
     public function index(): Response
     {
-        $documents = Document::query()
-            ->with('organization')
-            ->where('form_type', FormType::OrganizationRenewal->value)
-            ->where('status', DocumentStatus::InReview->value)
-            ->orderBy('created_at')
-            ->get()
-            // Authorization boundary: only documents the actor is currently
-            // the approver for (DocumentPolicy::review(), derived from the
-            // workflow template's configured steps — never hardcode "SDAO"
-            // here, per invariant #1). Without this, any authenticated,
-            // email-verified user could enumerate every organization's
-            // in-review documents (security gap fix).
-            ->filter(fn (Document $d) => Gate::allows('review', $d))
-            ->values()
-            ->map(fn (Document $d) => [
-                'id' => $d->id,
-                'title' => $d->title,
-                'status' => $d->status->value,
-                'current_step_position' => $d->current_step_position,
-                'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
-                'created_at' => $d->created_at,
-            ]);
+        $queue = new ReviewQueueData(
+            FormType::OrganizationRenewal,
+            'review.renewals.show',
+            fn (Document $d) => $d->organization->school?->name ?? 'None',
+            ['organization.school'],
+        );
 
+        // Stats and recent decisions are deferred (skeletons on the page);
+        // the pending rows stay immediate. Authorization lives in
+        // ReviewQueueData (review / reviewView abilities).
         return Inertia::render('review/renewals/index', [
-            'queue' => $documents,
+            'queue' => $queue->queue(),
+            'extraColumnLabel' => 'College',
+            'stats' => Inertia::defer(fn () => $queue->stats(Auth::user()), 'queue-insights'),
+            'recent' => Inertia::defer(fn () => $queue->recent(Auth::user()), 'queue-insights'),
         ]);
     }
 
