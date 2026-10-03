@@ -2,11 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Approval\ReviewQueueData;
 use App\Dashboard\AdminAttentionData;
+use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
+use App\Enums\Term;
+use App\Enums\TransitionAction;
 use App\Http\Controllers\Controller;
+use App\Models\Document;
 use App\Models\Organization;
+use App\Organizations\OrganizationDetailData;
 use App\Organizations\OrganizationStatusResolver;
+use App\Support\AcademicPeriod;
+use App\Support\CurrentPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -39,23 +48,24 @@ class OrganizationController extends Controller
         // organizations with no adviser bound. Any other value is ignored.
         $withoutAdviser = $request->string('adviser')->toString() === 'none';
 
-        $organizations = Organization::query()
+        // The stat cards describe every organization, so status is resolved
+        // for all of them once; search / adviser narrow only the rows.
+        $all = Organization::query()
             ->with(['school:id,name', 'program:id,name'])
+            ->orderBy('name')
+            ->get();
+
+        $statuses = $statusResolver->forMany($all);
+
+        $matchingIds = Organization::query()
             ->when($withoutAdviser, fn ($query) => $query->whereIn(
                 'id',
                 $attention->approvedOrganizationsWithoutAdviser()->pluck('id'),
             ))
             ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->get();
+            ->pluck('id');
 
-        $statuses = $statusResolver->forMany($organizations);
-
-        // Reflects the search filter but NOT the status filter, so the stats
-        // strip always shows what selecting each status would yield — same
-        // trick as RegistrationController/DocumentArchiveController, applied
-        // in PHP here since status is derived rather than a DB column.
-        $counts = $statuses->countBy(fn ($result) => $result->status->value);
+        $organizations = $all->whereIn('id', $matchingIds)->values();
 
         $filtered = $organizations
             ->when($status, fn (Collection $orgs) => $orgs->filter(
@@ -109,13 +119,136 @@ class OrganizationController extends Controller
             'statuses' => collect(OrganizationStatus::cases())
                 ->map(fn (OrganizationStatus $s) => ['value' => $s->value])
                 ->values(),
-            'stats' => [
-                'total' => $organizations->count(),
-                'active' => (int) ($counts[OrganizationStatus::Active->value] ?? 0),
-                'needsRenewal' => (int) ($counts[OrganizationStatus::NeedsRenewal->value] ?? 0),
-                'pendingReview' => (int) ($counts[OrganizationStatus::PendingReview->value] ?? 0),
-                'inactive' => (int) ($counts[OrganizationStatus::Inactive->value] ?? 0),
-            ],
+            // Deferred: the page shows skeleton cards until this lands. Always
+            // covers every organization, regardless of the filters above.
+            'stats' => Inertia::defer(fn () => $this->stats($all, $statuses), 'org-stats'),
         ]);
+    }
+
+    /**
+     * One organization's standing, requirements, documents and officers. The
+     * name renders immediately; every section is deferred so each shows its
+     * own skeleton. Same `can:access-admin` gate as the list (route group).
+     */
+    public function show(Organization $organization, OrganizationDetailData $detail): Response
+    {
+        return Inertia::render('admin/organizations/show', [
+            'organization' => ['id' => $organization->id, 'name' => $organization->name],
+            'summary' => Inertia::defer(fn () => $detail->summary($organization), 'org-summary'),
+            'requirements' => Inertia::defer(fn () => $detail->requirements($organization), 'org-requirements'),
+            'documents' => Inertia::defer(fn () => $detail->documents($organization), 'org-documents'),
+            'officers' => Inertia::defer(fn () => $detail->officers($organization), 'org-officers'),
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Organization>  $all
+     * @param  Collection<int, OrganizationStatusResult>  $statuses  keyed by organization id
+     * @return array<string, mixed>
+     */
+    private function stats(Collection $all, Collection $statuses): array
+    {
+        $counts = $statuses->countBy(fn ($result) => $result->status->value);
+
+        $progress = $all->map(function (Organization $org) use ($statuses) {
+            $requirements = $statuses->get($org->id)->requirements->toArray();
+
+            return [
+                'name' => $org->name,
+                'met' => collect($requirements)->where('met', true)->count(),
+                'total' => count($requirements),
+            ];
+        });
+
+        $incomplete = $progress->reject(fn (array $p) => $p['total'] > 0 && $p['met'] >= $p['total']);
+
+        // Ties go to the first by name, since $all is already name-ordered.
+        $furthestBehind = $incomplete->sortBy(fn (array $p) => $p['total'] > 0 ? $p['met'] / $p['total'] : 0)->first();
+
+        return [
+            'total' => $all->count(),
+            'active' => (int) ($counts[OrganizationStatus::Active->value] ?? 0),
+            'needsRenewal' => (int) ($counts[OrganizationStatus::NeedsRenewal->value] ?? 0),
+            'pendingReview' => (int) ($counts[OrganizationStatus::PendingReview->value] ?? 0),
+            'inactive' => (int) ($counts[OrganizationStatus::Inactive->value] ?? 0),
+            'missingRequirements' => $incomplete->count(),
+            'furthestBehind' => $furthestBehind,
+            'oldestPending' => $this->oldestPending($statuses),
+            'renewalDue' => $statuses->filter(fn ($result) => $result->renewalDue)->count(),
+            'renewalWindow' => $this->renewalWindow(),
+        ];
+    }
+
+    /**
+     * The longest-waiting registration or renewal that is actually sitting in
+     * SDAO's queue (InReview, not Returned or Draft), among organizations
+     * resolving PendingReview, in the shared review-queue row shape. "Waiting"
+     * runs from the latest submitted/resubmitted transition, as in
+     * ReviewQueueData.
+     *
+     * @param  Collection<int, OrganizationStatusResult>  $statuses
+     * @return array<string, mixed>|null
+     */
+    private function oldestPending(Collection $statuses): ?array
+    {
+        $pendingIds = $statuses->filter(fn ($r) => $r->status === OrganizationStatus::PendingReview)->keys();
+
+        $oldest = Document::query()
+            ->with(['organization.school:id,name', 'transitions'])
+            ->whereIn('organization_id', $pendingIds)
+            ->whereIn('form_type', [FormType::OrganizationRegistration->value, FormType::OrganizationRenewal->value])
+            ->where('status', DocumentStatus::InReview->value)
+            ->get()
+            ->map(fn (Document $d) => [
+                'document' => $d,
+                'since' => $d->transitions
+                    ->whereIn('action', [TransitionAction::Submitted, TransitionAction::Resubmitted])
+                    ->last()?->created_at ?? $d->created_at,
+            ])
+            ->sortBy(fn (array $e) => $e['since']->getTimestamp())
+            ->first();
+
+        if ($oldest === null) {
+            return null;
+        }
+
+        /** @var Document $document */
+        $document = $oldest['document'];
+        $days = (int) $oldest['since']->diffInDays(now(), true);
+        $isRenewal = $document->form_type === FormType::OrganizationRenewal;
+
+        return [
+            'id' => $document->id,
+            'title' => $document->title,
+            'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
+            'submitted_at' => $oldest['since']->toIso8601String(),
+            'waiting_days' => $days,
+            'tier' => ReviewQueueData::tierFor($days),
+            'extra' => $document->organization->school?->name ?? 'None',
+            'noun' => $isRenewal ? 'renewal' : 'registration',
+            'href' => route($isRenewal ? 'review.renewals.show' : 'review.registrations.show', $document->id),
+        ];
+    }
+
+    /**
+     * Renewal season is 3rd term (AcademicPeriod::isRenewalSeason()); the
+     * months come from the term calendar in AcademicPeriod (still marked
+     * PROVISIONAL there). There are no per-organization due dates.
+     *
+     * @return array{open: bool, closes: string|null, nextOpens: string}
+     */
+    private function renewalWindow(): array
+    {
+        $period = CurrentPeriod::get();
+        $open = $period->isRenewalSeason();
+
+        // The next 3rd term: this academic year's if it has not started, else the following year's.
+        $nextYear = $open ? $period->nextAcademicYear() : $period->academicYear;
+
+        return [
+            'open' => $open,
+            'closes' => $open ? $period->termRange()[1]->subDay()->format('F Y') : null,
+            'nextOpens' => (new AcademicPeriod($nextYear, Term::ThirdTerm))->termRange()[0]->format('F Y'),
+        ];
     }
 }

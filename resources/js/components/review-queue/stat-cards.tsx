@@ -45,9 +45,16 @@ export function OldestCard({
     rows,
     config,
     headline = 'organization',
+    title = 'Oldest waiting',
+    detail = 'type',
+    emptyText = 'Nothing is waiting for review.',
 }: {
     rows: QueueRow[];
     config: ReviewQueueConfig;
+    title?: string;
+    /** "college" swaps the Type row for the row's `extra` value, labelled College. */
+    detail?: 'type' | 'college';
+    emptyText?: string;
     /** "title" leads with the document title and details the organization and route step (activity proposals). */
     headline?: 'organization' | 'title';
 }) {
@@ -57,7 +64,7 @@ export function OldestCard({
     const overdue = oldest !== undefined && oldest.tier === 'overdue';
 
     return (
-        <StatCard icon={Clock} title="Oldest waiting" tone={overdue ? 'alert' : 'default'}>
+        <StatCard icon={Clock} title={title} tone={overdue ? 'alert' : 'default'}>
             {oldest ? (
                 <>
                     <p className="truncate text-xl leading-none font-semibold" title={heading}>
@@ -70,6 +77,11 @@ export function OldestCard({
                                 <dd className="truncate font-medium" title={oldest.organization.name}>
                                     {oldest.organization.name}
                                 </dd>
+                            </>
+                        ) : detail === 'college' ? (
+                            <>
+                                <dt className="text-muted-foreground">College</dt>
+                                <dd className="font-medium whitespace-normal">{oldest.extra ?? 'None'}</dd>
                             </>
                         ) : (
                             <>
@@ -96,13 +108,13 @@ export function OldestCard({
                             flagOverdue={byTitle}
                         />
                         <Link
-                            href={config.showRoute(oldest.id)}
+                            href={oldest.href ?? config.showRoute(oldest.id)}
                             className={cn(
                                 'inline-flex items-center gap-1.5 text-sm font-medium hover:underline',
                                 overdue ? 'text-destructive-foreground' : 'text-primary-text',
                             )}
                         >
-                            Review {config.noun}
+                            Review {oldest.noun ?? config.noun}
                             <ArrowRight className="size-3.5" aria-hidden />
                         </Link>
                     </div>
@@ -110,7 +122,7 @@ export function OldestCard({
             ) : (
                 <>
                     <p className="text-xl leading-none font-semibold text-muted-foreground">{DASH}</p>
-                    <p className="text-sm text-muted-foreground">Nothing is waiting for review.</p>
+                    <p className="text-sm text-muted-foreground">{emptyText}</p>
                 </>
             )}
         </StatCard>

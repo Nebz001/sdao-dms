@@ -23,7 +23,7 @@ export function SectionCard({
 }: {
     title: string;
     count?: number;
-    aside: string;
+    aside?: React.ReactNode;
     children: React.ReactNode;
 }) {
     return (
@@ -33,7 +33,7 @@ export function SectionCard({
                     {title}
                     {count !== undefined && <Badge variant="secondary">{count}</Badge>}
                 </CardTitle>
-                <span className="text-sm text-muted-foreground">{aside}</span>
+                {aside && <div className="text-sm text-muted-foreground">{aside}</div>}
             </CardHeader>
             <CardContent>{children}</CardContent>
         </Card>

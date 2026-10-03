@@ -9,6 +9,7 @@ export default function StatCard({
     icon: Icon,
     title,
     tone = 'default',
+    compact = false,
     children,
     className,
 }: {
@@ -16,13 +17,16 @@ export default function StatCard({
     title: string;
     /** "alert" is the warm red tint used when something is overdue. */
     tone?: 'default' | 'alert';
+    /** Tighter padding and gaps for plain fact tiles (no charts). */
+    compact?: boolean;
     children: ReactNode;
     className?: string;
 }) {
     return (
         <Card
             className={cn(
-                'gap-4 py-5 shadow-none',
+                'shadow-none',
+                compact ? 'gap-3 py-4' : 'gap-4 py-5',
                 tone === 'alert' && 'border-destructive/40 bg-destructive/10',
                 className,
             )}
@@ -41,23 +45,33 @@ export default function StatCard({
                 </span>
                 <CardTitle className="text-sm font-medium text-foreground/90">{title}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-4 px-5">{children}</CardContent>
+            <CardContent className={cn('flex flex-1 flex-col px-5', compact ? 'gap-1.5' : 'gap-4')}>{children}</CardContent>
         </Card>
     );
 }
 
 /** The big number every stat card leads with. */
-export function StatValue({ children }: { children: ReactNode }) {
-    return <p className="text-4xl leading-none font-semibold tabular-nums">{children}</p>;
+export function StatValue({ children, size = 'default' }: { children: ReactNode; size?: 'default' | 'sm' }) {
+    return (
+        <p className={cn('leading-none font-semibold tabular-nums', size === 'sm' ? 'text-2xl' : 'text-4xl')}>{children}</p>
+    );
 }
 
 /** Same card shape while a deferred figure loads. */
-export function StatCardSkeleton({ title, icon }: { title: string; icon: LucideIcon }) {
+export function StatCardSkeleton({
+    title,
+    icon,
+    compact = false,
+}: {
+    title: string;
+    icon: LucideIcon;
+    compact?: boolean;
+}) {
     return (
-        <StatCard icon={icon} title={title}>
-            <div aria-busy="true" className="flex flex-col gap-4">
-                <Skeleton className="h-9 w-16" />
-                <Skeleton className="h-10 w-full" />
+        <StatCard icon={icon} title={title} compact={compact}>
+            <div aria-busy="true" className={compact ? 'flex flex-col gap-2' : 'flex flex-col gap-4'}>
+                <Skeleton className={compact ? 'h-7 w-16' : 'h-9 w-16'} />
+                {!compact && <Skeleton className="h-10 w-full" />}
                 <Skeleton className="h-4 w-24" />
             </div>
         </StatCard>

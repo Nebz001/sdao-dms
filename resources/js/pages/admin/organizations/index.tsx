@@ -1,11 +1,18 @@
-import { Head, router } from '@inertiajs/react';
-import { Building2 } from 'lucide-react';
+import { Deferred, Head, router } from '@inertiajs/react';
+import { Building2, Clock, ListChecks, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
-import QueueStatStrip from '@/components/queue-stat-strip';
+import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
+import type { DataColumn } from '@/components/review-queue/data-table';
+import { SectionCard } from '@/components/review-queue/queue-tables';
+import SegmentedBar from '@/components/review-queue/segmented-bar';
+import StatCard, { StatCardSkeleton, StatValue } from '@/components/review-queue/stat-card';
+import { OldestCard } from '@/components/review-queue/stat-cards';
+import ThinProgress from '@/components/review-queue/thin-progress';
+import type { QueueRow, ReviewQueueConfig } from '@/components/review-queue/types';
 import { OrganizationStatusBadge, RenewalBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Empty,
     EmptyDescription,
@@ -25,6 +32,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { statusLabel } from '@/lib/utils';
 import * as organizations from '@/routes/admin/organizations';
+import * as reviewRegistrations from '@/routes/review/registrations';
 
 type StatusOption = { value: string };
 
@@ -37,6 +45,32 @@ type OrganizationRow = {
     renewalDue: boolean;
     requirementsMet: number;
     requirementsTotal: number;
+};
+
+type OrganizationStats = {
+    total: number;
+    active: number;
+    needsRenewal: number;
+    pendingReview: number;
+    inactive: number;
+    missingRequirements: number;
+    furthestBehind: { name: string; met: number; total: number } | null;
+    /** The longest-waiting registration or renewal in SDAO's queue, if any. */
+    oldestPending: QueueRow | null;
+    /** Organizations that can file a renewal right now (3rd term only). */
+    renewalDue: number;
+    renewalWindow: { open: boolean; closes: string | null; nextOpens: string };
+};
+
+/** Row links and wording come from each row; these are the registration defaults. */
+const oldestPendingConfig: ReviewQueueConfig = {
+    headTitle: '',
+    title: '',
+    subtitle: '',
+    noun: 'registration',
+    typeLabel: 'Registration',
+    emptyDescription: '',
+    showRoute: (id) => reviewRegistrations.show(id).url,
 };
 
 type Props = {
@@ -56,16 +90,122 @@ type Props = {
         search: string;
     };
     statuses: StatusOption[];
-    stats: {
-        total: number;
-        active: number;
-        needsRenewal: number;
-        pendingReview: number;
-        inactive: number;
-    };
+    /** Deferred, and always across every organization: ignores the filters. */
+    stats?: OrganizationStats;
 };
 
 const ALL_STATUSES = 'all';
+
+/** Green when complete or nearly, amber part-way; zero has no fill to color. */
+function requirementsFill(met: number, total: number): string {
+    return total > 0 && met / total >= 0.6 ? 'bg-success' : 'bg-warning';
+}
+
+function RequirementsCell({ org }: { org: OrganizationRow }) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <span className="text-sm tabular-nums">
+                {org.requirementsMet} of {org.requirementsTotal} met
+            </span>
+            <ThinProgress
+                value={org.requirementsMet}
+                max={org.requirementsTotal}
+                label={`${org.name} requirements met`}
+                fillClassName={requirementsFill(org.requirementsMet, org.requirementsTotal)}
+            />
+        </div>
+    );
+}
+
+function StatusCell({ org }: { org: OrganizationRow }) {
+    return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+            {org.renewalDue && <RenewalBadge status="due" />}
+            <OrganizationStatusBadge status={org.status} />
+        </div>
+    );
+}
+
+function StatCards({ stats }: { stats: OrganizationStats }) {
+    const { furthestBehind, renewalWindow } = stats;
+
+    return (
+        <>
+            <StatCard icon={Building2} title="Total organizations">
+                <StatValue>{stats.total}</StatValue>
+                <SegmentedBar
+                    ariaLabel={`Organizations by status: ${stats.active} active, ${stats.pendingReview} pending, ${stats.needsRenewal} renewal, ${stats.inactive} inactive`}
+                    segments={[
+                        { label: 'Active', count: stats.active, className: 'bg-success' },
+                        { label: 'Pending', count: stats.pendingReview, className: 'bg-info' },
+                        { label: 'Renewal', count: stats.needsRenewal, className: 'bg-warning' },
+                        { label: 'Inactive', count: stats.inactive, className: 'bg-muted-foreground' },
+                    ]}
+                />
+            </StatCard>
+            <OldestCard
+                rows={stats.oldestPending ? [stats.oldestPending] : []}
+                config={oldestPendingConfig}
+                title="Oldest pending review"
+                detail="college"
+                emptyText="No organization is waiting for review"
+            />
+            <StatCard icon={ListChecks} title="Missing requirements">
+                <div className="flex items-baseline gap-2">
+                    <StatValue>{stats.missingRequirements}</StatValue>
+                    <span className="text-sm text-muted-foreground tabular-nums">of {stats.total}</span>
+                </div>
+                <p className="mt-auto text-sm text-muted-foreground">
+                    {furthestBehind ? (
+                        <>
+                            <strong className="font-semibold text-foreground">{furthestBehind.name}</strong> is
+                            furthest behind at{' '}
+                            <span className="tabular-nums">
+                                {furthestBehind.met} of {furthestBehind.total}
+                            </span>
+                        </>
+                    ) : (
+                        'Every organization has met all requirements.'
+                    )}
+                </p>
+            </StatCard>
+            <StatCard icon={RefreshCw} title="Next renewal">
+                <StatValue>{stats.renewalDue}</StatValue>
+                <p className="mt-auto text-sm text-muted-foreground">
+                    {stats.renewalDue > 0 && renewalWindow.closes
+                        ? `Renewal window runs through ${renewalWindow.closes}`
+                        : `No org is due for renewal. Next renewal window opens ${renewalWindow.nextOpens}`}
+                </p>
+            </StatCard>
+        </>
+    );
+}
+
+function StatCardsSkeleton() {
+    return (
+        <>
+            <StatCardSkeleton icon={Building2} title="Total organizations" />
+            <StatCardSkeleton icon={Clock} title="Oldest pending review" />
+            <StatCardSkeleton icon={ListChecks} title="Missing requirements" />
+            <StatCardSkeleton icon={RefreshCw} title="Next renewal" />
+        </>
+    );
+}
+
+const COLUMNS: DataColumn<OrganizationRow>[] = [
+    { key: 'name', header: 'Organization', slot: 'title', cell: (org) => <span className="font-semibold">{org.name}</span> },
+    { key: 'school', header: 'College', className: 'max-w-64', cell: (org) => org.school ?? 'None' },
+    { key: 'program', header: 'Program', cell: (org) => org.program ?? 'None' },
+    { key: 'requirements', header: 'Requirements', className: 'min-w-40', cell: (org) => <RequirementsCell org={org} /> },
+    { key: 'status', header: 'Status', slot: 'badge', align: 'right', cell: (org) => <StatusCell org={org} /> },
+    {
+        key: 'actions',
+        header: 'Actions',
+        slot: 'action',
+        align: 'right',
+        cell: (org) => <RowViewButton href={organizations.show(org.id).url} label={org.name} />,
+    },
+];
 
 export default function OrganizationsIndex({
     organizations: items,
@@ -85,7 +225,7 @@ export default function OrganizationsIndex({
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['organizations', 'filters', 'stats'],
+            only: ['organizations', 'filters'],
             onFinish: () => setLoading(false),
         });
     }
@@ -144,7 +284,7 @@ export default function OrganizationsIndex({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['organizations', 'filters', 'stats'],
+                only: ['organizations', 'filters'],
                 onFinish: () => setLoading(false),
             },
         );
@@ -154,56 +294,30 @@ export default function OrganizationsIndex({
         <>
             <Head title="Organizations" />
 
-            <div className="space-y-6">
-                <PageHeader title="Organizations" subtitle="Every organization, its derived standing, and what it still needs." />
-
-                <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'Total',
-                            value: String(stats.total),
-                        },
-                        {
-                            label: 'Active',
-                            value: String(stats.active),
-                        },
-                        {
-                            label: 'Needs Renewal',
-                            value: String(stats.needsRenewal),
-                            count: stats.needsRenewal,
-                        },
-                        {
-                            label: 'Pending Review',
-                            value: String(stats.pendingReview),
-                            count: stats.pendingReview,
-                        },
-                        {
-                            label: 'Inactive',
-                            value: String(stats.inactive),
-                        },
-                    ]}
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Organizations"
+                    subtitle="Every organization, its standing, and what it still needs."
                 />
 
-                <Card>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+                    <Deferred data="stats" fallback={<StatCardsSkeleton />}>
+                        {stats && <StatCards stats={stats} />}
+                    </Deferred>
+                </div>
+
+                <Card className="shadow-none">
                     <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-                        <div className="grid gap-2">
+                        <div className="flex flex-col gap-2">
                             <Label htmlFor="organizations-status">Status</Label>
                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger
-                                    id="organizations-status"
-                                    className="w-full sm:w-44"
-                                >
+                                <SelectTrigger id="organizations-status" className="w-full sm:w-44">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_STATUSES}>
-                                        All statuses
-                                    </SelectItem>
+                                    <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
                                     {statuses.map((s) => (
-                                        <SelectItem
-                                            key={s.value}
-                                            value={s.value}
-                                        >
+                                        <SelectItem key={s.value} value={s.value}>
                                             {statusLabel(s.value)}
                                         </SelectItem>
                                     ))}
@@ -211,7 +325,7 @@ export default function OrganizationsIndex({
                             </Select>
                         </div>
 
-                        <div className="grid flex-1 gap-2">
+                        <div className="flex flex-1 flex-col gap-2">
                             <Label htmlFor="organizations-search">Search</Label>
                             <Input
                                 id="organizations-search"
@@ -222,95 +336,55 @@ export default function OrganizationsIndex({
                         </div>
 
                         {hasFilters && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={clearFilters}
-                            >
+                            <Button type="button" variant="ghost" onClick={clearFilters}>
                                 Clear filters
                             </Button>
                         )}
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Organizations
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Skeleton key={i} className="h-14 w-full" />
-                                ))}
-                            </div>
-                        ) : items.data.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <Building2 />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters
-                                            ? 'No organizations match these filters'
-                                            : 'No organizations yet'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different status or search term.'
-                                            : 'Organizations appear here once a registration is submitted.'}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                        >
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            <div className="divide-y">
-                                {items.data.map((org) => (
-                                    <div
-                                        key={org.id}
-                                        className="flex items-center justify-between gap-4 py-3"
+                <SectionCard title="Organizations">
+                    {loading ? (
+                        <div aria-busy="true" className="flex flex-col gap-3">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full" />
+                            ))}
+                        </div>
+                    ) : items.data.length === 0 ? (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Building2 />
+                                </EmptyMedia>
+                                <EmptyTitle>
+                                    {hasFilters
+                                        ? 'No organizations match these filters'
+                                        : 'No organizations yet'}
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    {hasFilters
+                                        ? 'Clear the filters to see every organization.'
+                                        : 'Organizations appear here once a registration is submitted.'}
+                                </EmptyDescription>
+                                {hasFilters && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={clearFilters}
                                     >
-                                        <div className="min-w-0">
-                                            <p className="sm:truncate max-sm:break-words font-medium">
-                                                {org.name}
-                                            </p>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {[org.school, org.program]
-                                                    .filter(Boolean)
-                                                    .join(' · ') ||
-                                                    'No college'}
-                                                {' · '}
-                                                {org.requirementsMet} of{' '}
-                                                {org.requirementsTotal}{' '}
-                                                requirements met
-                                            </p>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            {org.renewalDue && <RenewalBadge status="due" />}
-                                            <OrganizationStatusBadge
-                                                status={org.status}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        Clear filters
+                                    </Button>
+                                )}
+                            </EmptyHeader>
+                        </Empty>
+                    ) : (
+                        <DataTable rows={items.data} columns={COLUMNS} rowKey={(org) => org.id} />
+                    )}
+                </SectionCard>
 
                 {!loading && items.data.length > 0 && (
-                    <Card>
+                    <Card className="shadow-none">
                         <CardContent className="flex items-center justify-between gap-4">
                             <p className="text-sm text-muted-foreground">
                                 Showing {items.meta.from}–{items.meta.to} of{' '}

@@ -61,4 +61,19 @@ enum FormType: string
             self::AfterActivityReport => 'reports.edit',
         };
     }
+
+    /**
+     * Route name of this form type's approver-facing "show" page, which also
+     * serves as the read-only record once a document is terminal.
+     */
+    public function reviewShowRouteName(): string
+    {
+        return match ($this) {
+            self::OrganizationRegistration => 'review.registrations.show',
+            self::OrganizationRenewal => 'review.renewals.show',
+            self::ActivityCalendar => 'review.activity-calendars.show',
+            self::ActivityProposal => 'review.activity-proposals.show',
+            self::AfterActivityReport => 'review.reports.show',
+        };
+    }
 }

@@ -6,7 +6,7 @@ type PageHeaderProps = {
      * Always a fixed string, identical for every user and every state. Data
      * driven messages belong in a PageNotice under the header instead.
      */
-    subtitle: string;
+    subtitle: ReactNode;
     /** Sits next to the title, e.g. an organization status badge. */
     badge?: ReactNode;
     /** Buttons aligned to the end of the header. */
@@ -32,7 +32,7 @@ export default function PageHeader({
                     </h1>
                     {badge}
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+                <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
             </div>
             {actions && (
                 <div className="flex flex-wrap items-center gap-2">{actions}</div>

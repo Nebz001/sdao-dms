@@ -1,6 +1,9 @@
 <?php
 
+use App\Approval\ApprovalEngine;
+use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
+use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
@@ -91,11 +94,90 @@ test('the name search filter narrows the list', function () {
         );
 });
 
-test('the stats strip reflects the search filter but not the status filter', function () {
+test('the stat cards cover every organization, whatever the status or search filter', function () {
+    $total = Organization::query()->count();
+
     $this->actingAs($this->sdaoA)->withoutVite()
-        ->get(route('admin.organizations.index', ['status' => OrganizationStatus::Active->value]))
+        ->get(route('admin.organizations.index', ['status' => OrganizationStatus::Active->value, 'search' => 'Computing Society']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('stats.total', Organization::query()->count())
+            ->where('organizations.meta.total', 0)
+            ->loadDeferredProps('org-stats', fn ($reload) => $reload
+                ->where('stats.total', $total)
+                ->where('stats.inactive', $total)
+                ->where('stats.missingRequirements', $total)
+                ->has('stats.furthestBehind.name')
+                ->where('stats.oldestPending', null)
+                ->where('stats.renewalDue', 0)
+                ->has('stats.renewalWindow.nextOpens')
+            )
+        );
+});
+
+test('oldest pending review is the longest-waiting in-review registration, with its review link', function () {
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $org, app(ApprovalEngine::class), $student);
+    DocumentTransition::where('document_id', $doc->id)->update(['created_at' => now()->subDays(9)]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->loadDeferredProps('org-stats', fn ($reload) => $reload
+                ->where('stats.pendingReview', 1)
+                ->where('stats.oldestPending.id', $doc->id)
+                ->where('stats.oldestPending.organization.name', 'Computing Society')
+                ->where('stats.oldestPending.waiting_days', 9)
+                ->where('stats.oldestPending.tier', 'overdue')
+                ->where('stats.oldestPending.noun', 'registration')
+                ->where('stats.oldestPending.href', route('review.registrations.show', $doc))
+            )
+        );
+});
+
+test('the organization detail page is SDAO-only and 404s on an unknown organization', function () {
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+
+    $this->actingAs($this->studentAlpha)->withoutVite()->get(route('admin.organizations.show', $org))->assertForbidden();
+    $this->actingAs($this->adviserOne)->withoutVite()->get(route('admin.organizations.show', $org))->assertForbidden();
+
+    $this->actingAs($this->sdaoA)->withoutVite()->get('/admin/organizations/999999')->assertNotFound();
+    $this->actingAs($this->sdaoA)->withoutVite()->get('/admin/organizations/not-a-number')->assertNotFound();
+});
+
+test('the organization detail page fills its deferred sections from existing data', function () {
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $doc = shortChainInReviewDoc(FormType::OrganizationRegistration, $org, app(ApprovalEngine::class), $this->studentAlpha);
+    DocumentTransition::where('document_id', $doc->id)->update(['created_at' => now()->subDays(3)]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.show', $org))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/organizations/show')
+            ->where('organization.name', 'Computing Society')
+            ->loadDeferredProps('org-summary', fn ($reload) => $reload
+                ->where('summary.status', 'pending_review')
+                ->where('summary.banner.type', 'pending')
+                ->where('summary.banner.waitingDays', 3)
+                ->where('summary.banner.href', route('review.registrations.show', $doc))
+                ->has('summary.tiles.requirementsTotal')
+            )
+            ->loadDeferredProps('org-requirements', fn ($reload) => $reload
+                ->has('requirements', 6)
+                ->where('requirements.0.key', 'registration_approved')
+                ->where('requirements.0.met', false)
+                ->where('requirements.0.document', null)
+            )
+            ->loadDeferredProps('org-documents', fn ($reload) => $reload
+                ->has('documents.rows', 1)
+                ->where('documents.rows.0.id', $doc->id)
+                ->where('documents.rows.0.status', 'in_review')
+                ->has('documents.periods', 1)
+            )
+            ->loadDeferredProps('org-officers', fn ($reload) => $reload
+                ->has('officers')
+            )
         );
 });

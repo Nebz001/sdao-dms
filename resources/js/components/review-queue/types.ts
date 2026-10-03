@@ -12,6 +12,9 @@ export type QueueRow = {
     /** The page-specific column value (college, period, activity). */
     extra: string | null;
     /** Multi-step chains only (activity proposals): where the document sits in its route. */
+    /** Overrides for rows whose review screen differs from the page default (a renewal in the registrations list). */
+    href?: string;
+    noun?: string;
     step?: { position: number; total: number; name: string } | null;
 };
 
