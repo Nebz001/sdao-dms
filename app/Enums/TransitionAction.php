@@ -34,4 +34,19 @@ enum TransitionAction: string
      * way — Approved/Rejected are the only two terminal statuses.
      */
     case Withdrawn = 'withdrawn';
+
+    /**
+     * The actions only an APPROVER performs (a decision on a document), as
+     * opposed to the student-side Submitted/Resubmitted or the system's
+     * Withdrawn. DocumentPolicy::hasActedOn() keys read access off these:
+     * the student-side transitions also carry an actor_id, and treating
+     * them as "has acted on it" would hand a removed officer permanent read
+     * access to everything they ever filed.
+     *
+     * @return list<self>
+     */
+    public static function approverActions(): array
+    {
+        return [self::Approved, self::Advanced, self::Returned, self::Rejected, self::Completed];
+    }
 }

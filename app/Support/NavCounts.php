@@ -10,7 +10,6 @@ use App\Enums\FormType;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\OfficerChangeRequest;
-use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
@@ -91,13 +90,8 @@ class NavCounts
      */
     private function ownDocuments(User $user): array
     {
-        $organizationIds = OrganizationMembership::query()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->pluck('organization_id');
-
         $byForm = Document::query()
-            ->where(fn ($q) => $q->whereIn('organization_id', $organizationIds)->orWhere('submitted_by', $user->id))
+            ->visibleToOfficer($user)
             ->selectRaw('form_type, count(*) as aggregate')
             ->groupBy('form_type')
             ->pluck('aggregate', 'form_type');

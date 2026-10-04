@@ -16,9 +16,8 @@ class UpdateProposalDraft
 
     /**
      * Auto-save step-2 narrative fields without entering the approval chain.
-     * Only callable by an active officer of the org (or the submitter, for
-     * the founding-registration edge case — see canActOnDocument()) while
-     * the document is Draft.
+     * Only callable by an active officer of the org (see canActOnDocument())
+     * while the document is Draft.
      *
      * @param  array<string, mixed>  $data
      *

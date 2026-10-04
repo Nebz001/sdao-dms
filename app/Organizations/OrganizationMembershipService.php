@@ -2,6 +2,7 @@
 
 namespace App\Organizations;
 
+use App\Enums\FormType;
 use App\Enums\OfficerPosition;
 use App\Models\Document;
 use App\Models\Organization;
@@ -91,21 +92,41 @@ class OrganizationMembershipService
 
     /**
      * Can this user act on (view/edit/resubmit) this document as an officer
-     * of its org? True for any active officer (President OR Secretary — the
-     * only two OfficerPosition cases, so "active membership" already IS
-     * "president or secretary") of the document's organization, OR the
-     * document's original submitter.
+     * of its org? True for any active, verified officer (President OR
+     * Secretary — the only two OfficerPosition cases, so "active membership"
+     * already IS "president or secretary") of the document's organization.
      *
-     * The submitted_by clause is NOT redundant with membership: a founding
-     * student proposing a brand-new organization has no OrganizationMembership
-     * row yet on their own pending registration (that binding only happens at
-     * SDAO approval — see ApproveOrganizationRegistration) — see
-     * DocumentPolicy::view()'s docblock for the same edge case.
+     * The ONLY other grant is the founding exception: the original submitter
+     * of an OrganizationRegistration while the org has no active officers at
+     * all. A founding student proposing a brand-new organization has no
+     * OrganizationMembership row yet on their own pending registration (that
+     * binding only happens at SDAO approval — see
+     * ApproveOrganizationRegistration), so membership alone would lock them
+     * out of their own proposal. Every other form type is filed by an active
+     * officer, and once an org has officers a removed officer's authorship
+     * grants nothing — the roster, not authorship, decides who may act.
      */
     public function canActOnDocument(User $user, Document $document): bool
     {
-        return $document->submitted_by === $user->id
-            || $this->activeMembershipFor($user, $document->organization) !== null;
+        if ($this->activeMembershipFor($user, $document->organization) !== null) {
+            return true;
+        }
+
+        return $document->form_type === FormType::OrganizationRegistration
+            && $document->submitted_by === $user->id
+            && ! $this->hasActiveOfficers($document->organization);
+    }
+
+    /**
+     * Whether the org has any active president/secretary at all — the
+     * "founding" test behind canActOnDocument()'s submitter exception.
+     */
+    public function hasActiveOfficers(Organization $organization): bool
+    {
+        return OrganizationMembership::query()
+            ->where('organization_id', $organization->id)
+            ->active()
+            ->exists();
     }
 
     /**
