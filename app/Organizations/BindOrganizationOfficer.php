@@ -34,6 +34,7 @@ class BindOrganizationOfficer
     public function __construct(
         private readonly RoleDirectory $roleDirectory,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly EligibleOfficerCandidates $candidates,
     ) {}
 
     /**
@@ -63,6 +64,15 @@ class BindOrganizationOfficer
         if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
             throw ValidationException::withMessages([
                 'user_id' => 'This student is already an active officer of a different organization.',
+            ]);
+        }
+
+        // The same eligibility the picker uses (approver-role accounts, an
+        // in-flight registration elsewhere) — re-checked here so a forged
+        // request can't bind someone the picker would never have offered.
+        if (! $this->candidates->matches($organization, $student)) {
+            throw ValidationException::withMessages([
+                'user_id' => 'This student is not eligible to be bound as an officer right now.',
             ]);
         }
 

@@ -111,7 +111,7 @@ test('a bare, unbound account does not appear in a DIFFERENT org\'s officer sear
     );
 });
 
-test('officer turnover correctly goes stale: the outgoing officer loses nav access and disappears from the picker', function () {
+test('officer turnover correctly goes stale: the outgoing officer loses nav access (and becomes an ordinary eligible student again)', function () {
     $studentA = User::factory()->create(['name' => 'Outgoing President', 'email' => 'outgoing@example.test']);
     $studentB = User::factory()->create(['name' => 'Incoming President', 'email' => 'incoming@example.test']);
 
@@ -151,11 +151,13 @@ test('officer turnover correctly goes stale: the outgoing officer loses nav acce
         ->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page->where('auth.isActiveOfficer', false));
 
-    // 2. A no longer appears in the adviser's officer-binding picker.
+    // 2. A is a FORMER officer now, which is not a bar: they reappear in the
+    //    adviser's picker as an ordinary eligible student (re-nomination is
+    //    covered in FormerOfficerRenominationTest).
     $this->actingAs($this->adviser)
         ->withoutVite()
         ->get(route('officers.index', $this->org).'?search=outgoing@example.test')
-        ->assertInertia(fn ($page) => $page->has('students', 0));
+        ->assertInertia(fn ($page) => $page->has('students', 1));
 
     // B, the incoming president, has full nav access and is (still) findable.
     $this->actingAs($studentB)

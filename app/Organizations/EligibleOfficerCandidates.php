@@ -23,23 +23,28 @@ use Illuminate\Database\Eloquent\Builder;
 class EligibleOfficerCandidates
 {
     /**
-     * Candidates the adviser can bind: never an account holding an approver
-     * role (RoleAssignment is the only thing that knows an account is an
-     * adviser/chair/dean/etc. — OrganizationMembership has no concept of
-     * it), must be SDAO-Verified (BindOrganizationOfficer rejects an
-     * unverified/rejected student anyway — filtered here too so nobody sees
-     * an un-bindable candidate), AND either a bare account (no
-     * OrganizationMembership row at all — the shape a self-registered
-     * student has) OR an account currently ACTIVE in THIS org. Using
-     * is_active (not mere row existence) means a former officer whose
-     * membership was deactivated on turnover is correctly excluded, not
-     * perpetually "known."
+     * Candidates who can be bound as an officer of THIS org: never an
+     * account holding an approver role (RoleAssignment is the only thing that
+     * knows an account is an adviser/chair/dean/etc. — OrganizationMembership
+     * has no concept of it), and must be SDAO-Verified.
      *
-     * One organization per student (Phase 2 item 4): also hides anyone with
-     * an in-flight (Draft/InReview/Returned) registration for a DIFFERENT
-     * org — they'd immediately trip BindOrganizationOfficer's/
-     * SubmitOrganizationRegistration's guards anyway, so nobody sees an
-     * un-bindable candidate in a picker.
+     * The membership rule is the one-organization-per-student rule, nothing
+     * more: a student is eligible unless they are an ACTIVE officer of a
+     * DIFFERENT organization. So a bare account, a sitting officer of this
+     * org (a seat swap), and a FORMER officer — of this org or any other,
+     * whose memberships are all closed — are all eligible. Closed rows are
+     * history, never a bar: the picker agrees with hasActiveMembershipElsewhere(),
+     * which is what the bind and finalize actions enforce, and with the join-
+     * request path, which already lets a former officer back in.
+     *
+     * Also hides anyone with an in-flight (Draft/InReview/Returned)
+     * registration for a DIFFERENT org — they'd immediately trip the
+     * one-org-per-student guards anyway, so nobody sees an un-bindable
+     * candidate in a picker.
+     *
+     * This is the single source of eligibility: query() feeds both pickers,
+     * and matches() is what BindOrganizationOfficer, RequestOfficerChange and
+     * ApproveOfficerChange all re-check server-side.
      *
      * @return Builder<User>
      */
@@ -58,13 +63,10 @@ class EligibleOfficerCandidates
         return User::query()
             ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
             ->where('account_status', AccountStatus::Verified->value)
-            ->where(function ($query) use ($organization) {
-                $query->whereDoesntHave('organizationMemberships')
-                    ->orWhereHas('organizationMemberships', fn ($q) => $q
-                        ->where('organization_id', $organization->id)
-                        ->active()
-                    );
-            })
+            ->whereDoesntHave('organizationMemberships', fn ($q) => $q
+                ->where('organization_id', '!=', $organization->id)
+                ->active()
+            )
             ->whereNotIn('id', $inFlightElsewhereUserIds)
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
