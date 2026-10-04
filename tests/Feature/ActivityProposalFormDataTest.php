@@ -7,12 +7,14 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\ProposalVariant;
+use App\Enums\Role;
 use App\Enums\Sdg;
 use App\Models\ActivityCalendar;
 use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Printing\ActivityProposalForm;
 use Database\Seeders\IdentitySeeder;
@@ -476,8 +478,13 @@ test('an org with no bound adviser degrades the Adviser signature to blank, not 
 });
 
 test('the print route responds successfully for a document whose adviser cannot be resolved, rather than 500ing', function () {
-    $orphanOrg = Organization::factory()->create();
-    $doc = activityProposalPrintDocument($orphanOrg, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
+    // A real officer of a real org whose adviser role has gone missing —
+    // Alpha is President of Computing Society, so access is by membership.
+    RoleAssignment::query()
+        ->where('role', Role::Adviser->value)
+        ->where('organization_id', $this->org->id)
+        ->delete();
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
 
     $this->actingAs($this->studentAlpha)
         ->get(route('documents.print', $doc))

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Approval\StepApproverResolver;
 use App\Enums\DocumentStatus;
+use App\Enums\TransitionAction;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\DocumentStepApproval;
@@ -43,10 +44,10 @@ class DocumentPolicy
 
     /**
      * Can the user view this document? Either an officer who can act on it
-     * (the document's own submitter — a founding student has no membership
-     * yet on their own pending proposal, Phase 2 item 5 — or any active
-     * officer of the document's own organization, i.e. the president or
-     * secretary; see OrganizationMembershipService::canActOnDocument()),
+     * (any active officer of the document's own organization — the
+     * president or secretary — or, for a founding registration only, its
+     * submitter while the org has no officers yet, Phase 2 item 5; see
+     * OrganizationMembershipService::canActOnDocument()),
      * an approver whose current step in this document's chain is active right
      * now (`review()`), an approver who has already legitimately acted on it
      * (`hasActedOn()`), or an approver for any step this document's chain has
@@ -135,9 +136,10 @@ class DocumentPolicy
 
     /**
      * Can the user edit this document? Only when Returned, and only an
-     * officer who can act on it — the original submitter or any active
-     * officer (president/secretary — equal partners, per CLAUDE.md) of the
-     * document's organization. See OrganizationMembershipService::canActOnDocument().
+     * officer who can act on it — any active officer (president/secretary —
+     * equal partners, per CLAUDE.md) of the document's organization, or a
+     * founding registration's submitter while the org has no officers yet.
+     * See OrganizationMembershipService::canActOnDocument().
      */
     public function edit(User $user, Document $document): bool
     {
@@ -251,21 +253,30 @@ class DocumentPolicy
     }
 
     /**
-     * Has this user ever legitimately acted on this document — approved,
-     * rejected, or returned it? Both underlying rows are only ever written
-     * by ApprovalEngine AFTER guardIsApprover() passes, so this can never
-     * grant access to someone who wasn't a real approver at the time.
+     * Has this user ever legitimately acted on this document AS AN APPROVER
+     * — approved, advanced, returned, rejected or completed it? Both
+     * underlying rows are only ever written by ApprovalEngine AFTER
+     * guardIsApprover() passes, so this can never grant access to someone
+     * who wasn't a real approver at the time.
+     *
+     * Student-side transitions (Submitted, Resubmitted) and the system's
+     * Withdrawn also record an actor_id, but they are NOT approver actions:
+     * counting them let a removed officer keep reading everything they had
+     * personally filed. An officer's read access follows the roster
+     * (canActOnDocument()), exactly like their write access.
      */
     private function hasActedOn(User $user, Document $document): bool
     {
         if ($document->relationLoaded('transitions') && $document->relationLoaded('stepApprovals')) {
-            return $document->transitions->contains('actor_id', $user->id)
+            return $document->transitions->contains(fn (DocumentTransition $t) => $t->actor_id === $user->id
+                && in_array($t->action, TransitionAction::approverActions(), true))
                 || $document->stepApprovals->contains('user_id', $user->id);
         }
 
         return DocumentTransition::query()
             ->where('document_id', $document->id)
             ->where('actor_id', $user->id)
+            ->whereIn('action', array_map(fn (TransitionAction $a) => $a->value, TransitionAction::approverActions()))
             ->exists()
             || DocumentStepApproval::query()
                 ->where('document_id', $document->id)

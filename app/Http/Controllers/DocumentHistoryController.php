@@ -41,10 +41,11 @@ use Inertia\Response;
  * pins the equivalence instead (every returned row also passes
  * Gate::allows('view')), catching any future drift at test time.
  *
- * The submitted_by leg isn't redundant: a founding student has no
- * OrganizationMembership row yet on their own pending registration (Phase 2
- * item 5) — binding happens only at SDAO approval — exactly the case
- * RegistrationController::index() already carries this same clause for.
+ * The submitted_by leg isn't redundant, but it is narrow: only a founding
+ * registration whose org has no active officers yet (Phase 2 item 5 — the
+ * student has no OrganizationMembership row until SDAO approval), exactly
+ * canActOnDocument()'s founding exception. RegistrationController::index()
+ * carries the same clause.
  */
 class DocumentHistoryController extends Controller
 {
@@ -53,11 +54,6 @@ class DocumentHistoryController extends Controller
     public function index(Request $request): Response
     {
         $user = Auth::user();
-
-        $organizationIds = OrganizationMembership::query()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->pluck('organization_id');
 
         // Unrecognized filter values are treated as "no filter" rather than
         // trusted into the query — same defensive pattern as
@@ -69,10 +65,7 @@ class DocumentHistoryController extends Controller
         $search = $request->string('search')->trim()->toString();
 
         $base = Document::query()
-            ->where(function ($query) use ($organizationIds, $user) {
-                $query->whereIn('organization_id', $organizationIds)
-                    ->orWhere('submitted_by', $user->id);
-            })
+            ->visibleToOfficer($user)
             ->when($formType, fn ($query, $value) => $query->where('form_type', $value))
             // Title only — a single-organization page has no second name to
             // search on, unlike the org-spanning archive and activity log.

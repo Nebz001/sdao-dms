@@ -45,6 +45,31 @@ class Document extends Model
     }
 
     /**
+     * The documents an officer may see in their own lists and nav counts: every
+     * document of an organization they are an ACTIVE officer of, plus — only
+     * for the founding case — the registration they personally submitted while
+     * that org has no active officers yet. This is the list-side twin of
+     * OrganizationMembershipService::canActOnDocument(); keep the two in
+     * lockstep (DocumentHistoryTest pins that every listed row passes the
+     * view gate). A removed officer's authorship grants nothing.
+     *
+     * @param  Builder<Document>  $query
+     */
+    public function scopeVisibleToOfficer(Builder $query, User $user): void
+    {
+        $activeOrganizationIds = OrganizationMembership::query()
+            ->where('is_active', true)
+            ->select('organization_id');
+
+        $query->where(fn (Builder $q) => $q
+            ->whereIn('organization_id', (clone $activeOrganizationIds)->where('user_id', $user->id))
+            ->orWhere(fn (Builder $founding) => $founding
+                ->where('form_type', FormType::OrganizationRegistration->value)
+                ->where('submitted_by', $user->id)
+                ->whereNotIn('organization_id', $activeOrganizationIds)));
+    }
+
+    /**
      * Still moving through the chain — see DocumentStatus::isInFlight() for
      * why Rejected is deliberately excluded.
      *

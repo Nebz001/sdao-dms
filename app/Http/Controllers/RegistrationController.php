@@ -13,7 +13,6 @@ use App\Http\Requests\Registrations\StoreRegistrationRequest;
 use App\Http\Requests\Registrations\UpdateRegistrationRequest;
 use App\Models\Document;
 use App\Models\Organization;
-use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
@@ -56,11 +55,6 @@ class RegistrationController extends Controller
     {
         $user = Auth::user();
 
-        $organizationIds = OrganizationMembership::query()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->pluck('organization_id');
-
         // Unrecognized filter values are treated as "no filter" rather than
         // trusted into the query — same defensive pattern as
         // DocumentHistoryController::index().
@@ -69,10 +63,7 @@ class RegistrationController extends Controller
 
         $base = Document::query()
             ->where('form_type', FormType::OrganizationRegistration->value)
-            ->where(function ($query) use ($organizationIds, $user) {
-                $query->whereIn('organization_id', $organizationIds)
-                    ->orWhere('submitted_by', $user->id);
-            })
+            ->visibleToOfficer($user)
             // Title only — it already embeds the org name (see
             // SubmitOrganizationRegistration::execute()), so this covers
             // org-name search too without a second predicate.
