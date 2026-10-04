@@ -231,10 +231,11 @@ class OrganizationMembershipService
      *
      * The callback MUST re-read and re-check every guard itself: anything
      * validated before the lock was taken may have been changed by whoever held
-     * it first. As a last line of defence, if the partial unique index on the
-     * seat (or on a pending request) still fires, the loser gets a plain
-     * "someone else just changed this" validation error instead of a 500; the
-     * transaction has already rolled back, so nothing is half-applied.
+     * it first. As a last line of defence, if a partial unique index (on the
+     * seat, on a student's single active seat, or on a pending request) still
+     * fires, the loser gets a plain "someone else just changed this" validation
+     * error instead of a 500; the transaction has already rolled back, so
+     * nothing is half-applied.
      *
      * @template T
      *
