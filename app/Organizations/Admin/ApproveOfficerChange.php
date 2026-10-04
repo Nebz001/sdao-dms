@@ -3,6 +3,7 @@
 namespace App\Organizations\Admin;
 
 use App\Enums\OfficerChangeRequestStatus;
+use App\Enums\OfficerSeatEndReason;
 use App\Enums\Role;
 use App\Models\OfficerChangeRequest;
 use App\Models\OrganizationMembership;
@@ -10,6 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\OfficerChangeApprovedNotification;
 use App\Organizations\EligibleOfficerCandidates;
+use App\Organizations\OfficerSeatNotifier;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -37,6 +39,7 @@ class ApproveOfficerChange
     public function __construct(
         private readonly OrganizationMembershipService $membershipService,
         private readonly EligibleOfficerCandidates $candidates,
+        private readonly OfficerSeatNotifier $seatNotifier,
     ) {}
 
     /**
@@ -52,7 +55,9 @@ class ApproveOfficerChange
         $organization = $changeRequest->organization;
         $nominee = $changeRequest->nominee;
 
-        $membership = $this->membershipService->runSeatChange($organization, $nominee, 'officer_change_request', function () use ($changeRequest, $organization, $nominee, $actor) {
+        $outgoingHolderIds = [];
+
+        $membership = $this->membershipService->runSeatChange($organization, $nominee, 'officer_change_request', function () use ($changeRequest, $organization, $nominee, $actor, &$outgoingHolderIds) {
             // Everything below runs under the org + nominee lock, against
             // FRESH state. The request is re-read under its own row lock, so
             // two admins approving at once (or an approve racing a decline)
@@ -120,6 +125,9 @@ class ApproveOfficerChange
             // incoming term's started_at keeps them exactly aligned.
             $now = now();
 
+            // Who is about to lose the seat — read BEFORE closing, to tell them after commit.
+            $outgoingHolderIds = $this->membershipService->activeHolderIds($organization, $position);
+
             // 1. Close the freshly-resolved live holder(s) of the seat —
             //    never trusting outgoing_user_id, which is a submit-time
             //    snapshot only.
@@ -156,8 +164,17 @@ class ApproveOfficerChange
             return $membership;
         });
 
+        // The replaced officer(s) are told their seat ended. The requester gets
+        // the "approved" notice only when they are NOT one of them — a requester
+        // who asked to replace themselves is already told by the seat-ended
+        // notice, and two messages about one event is noise.
+        $outgoingHolderIds = array_diff($outgoingHolderIds, [$nominee->id]);
+        $this->seatNotifier->ended($outgoingHolderIds, $organization, $changeRequest->position, OfficerSeatEndReason::Replaced);
+
         try {
-            $changeRequest->requester->notify(new OfficerChangeApprovedNotification($changeRequest));
+            if (! in_array($changeRequest->requested_by, $outgoingHolderIds, true)) {
+                $changeRequest->requester->notify(new OfficerChangeApprovedNotification($changeRequest));
+            }
             $nominee->notify(new OfficerChangeApprovedNotification($changeRequest));
         } catch (\Throwable $e) {
             Log::error('Officer-change-approved notification failed to dispatch', [

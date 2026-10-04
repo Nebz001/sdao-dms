@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OfficerPosition;
+use App\Enums\OfficerSeatEndReason;
 use App\Http\Requests\Organizations\BindOfficerRequest;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\EligibleOfficerCandidates;
+use App\Organizations\OfficerSeatNotifier;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
@@ -79,14 +81,22 @@ class OrganizationOfficerController extends Controller
             ->with('flash', FlashToast::make('Officer added', "{$student->name} is now {$position->label()}."));
     }
 
-    public function destroy(Organization $organization, OrganizationMembership $membership, OrganizationMembershipService $membershipService): RedirectResponse
+    public function destroy(Organization $organization, OrganizationMembership $membership, OrganizationMembershipService $membershipService, OfficerSeatNotifier $seatNotifier): RedirectResponse
     {
         Gate::authorize('manageOfficers', $organization);
         abort_unless($membership->organization_id === $organization->id, 404);
 
+        $wasActive = $membership->is_active;
+
         // close() is a no-op on an already-inactive row — re-deactivating
         // one must never overwrite its real recorded ended_at with today's.
         $membershipService->close($membership);
+
+        // Only a seat that actually just ended is announced — re-deactivating
+        // an already-closed row must not send a second notice.
+        if ($wasActive) {
+            $seatNotifier->ended([$membership->user_id], $organization, $membership->position, OfficerSeatEndReason::Deactivated);
+        }
 
         return redirect()->route('officers.index', $organization)
             ->with('flash', FlashToast::make('Officer deactivated', 'Their membership is closed and kept in the document history.'));

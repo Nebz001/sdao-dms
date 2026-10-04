@@ -3,6 +3,7 @@
 namespace App\Organizations;
 
 use App\Enums\OfficerPosition;
+use App\Enums\OfficerSeatEndReason;
 use App\Identity\RoleDirectory;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
@@ -34,6 +35,7 @@ class BindOrganizationOfficer
         private readonly RoleDirectory $roleDirectory,
         private readonly OrganizationMembershipService $membershipService,
         private readonly EligibleOfficerCandidates $candidates,
+        private readonly OfficerSeatNotifier $seatNotifier,
     ) {}
 
     /**
@@ -51,7 +53,9 @@ class BindOrganizationOfficer
             throw new AuthorizationException('Only the org\'s adviser may bind officers.');
         }
 
-        return $this->membershipService->runSeatChange($organization, $student, 'user_id', function () use ($organization, $student, $position, $academicYear) {
+        $outgoingHolderIds = [];
+
+        $membership = $this->membershipService->runSeatChange($organization, $student, 'user_id', function () use ($organization, $student, $position, $academicYear, &$outgoingHolderIds) {
             // Every guard below runs UNDER the org + student lock, against
             // fresh state: a concurrent bind may have changed either since
             // the picker was rendered or the request was validated.
@@ -86,6 +90,9 @@ class BindOrganizationOfficer
             // exactly equal, with no gap and no overlap.
             $now = now();
 
+            // Who is about to lose the seat — read BEFORE closing, to tell them after commit.
+            $outgoingHolderIds = $this->membershipService->activeHolderIds($organization, $position);
+
             // Turnover: deactivate any existing active holder of this position.
             $this->membershipService->closeActiveHolders($organization, $position, $now);
 
@@ -110,5 +117,18 @@ class BindOrganizationOfficer
 
             return $membership;
         });
+
+        // After commit, best-effort: the replaced officer(s) learn their seat
+        // ended, and the student learns they were bound. A student re-bound
+        // into the very seat they already held is not "replaced".
+        $this->seatNotifier->ended(
+            array_diff($outgoingHolderIds, [$student->id]),
+            $organization,
+            $position,
+            OfficerSeatEndReason::Replaced,
+        );
+        $this->seatNotifier->granted($student, $organization, $position);
+
+        return $membership;
     }
 }

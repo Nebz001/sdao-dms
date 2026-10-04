@@ -5,6 +5,7 @@ namespace App\Organizations\Admin;
 use App\Enums\OfficerChangeRequestStatus;
 use App\Enums\Role;
 use App\Models\OfficerChangeRequest;
+use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\OfficerChangeDeclinedNotification;
@@ -51,6 +52,20 @@ class DeclineOfficerChange
                 'decision_comment' => $comment,
             ]);
         });
+
+        // Only an officer who still holds a seat here is told: the notice names
+        // the nominee and carries SDAO's reason, which is the organization's
+        // business, not a removed officer's (a legacy request whose filer has
+        // since left can still be declined — it just isn't announced to them).
+        $requesterStillOfficer = OrganizationMembership::query()
+            ->where('organization_id', $changeRequest->organization_id)
+            ->where('user_id', $changeRequest->requested_by)
+            ->active()
+            ->exists();
+
+        if (! $requesterStillOfficer) {
+            return $changeRequest;
+        }
 
         try {
             $changeRequest->requester->notify(new OfficerChangeDeclinedNotification($changeRequest));

@@ -171,6 +171,22 @@ class OrganizationMembershipService
     }
 
     /**
+     * The users currently holding a seat — read before closing it, so the
+     * outgoing officers can be told once the change has committed.
+     *
+     * @return array<int, int>
+     */
+    public function activeHolderIds(Organization $organization, OfficerPosition $position): array
+    {
+        return OrganizationMembership::query()
+            ->where('organization_id', $organization->id)
+            ->where('position', $position->value)
+            ->where('is_active', true)
+            ->pluck('user_id')
+            ->all();
+    }
+
+    /**
      * Closes every currently-active holder of a seat, stamping `ended_at` —
      * the single chokepoint for turnover so `is_active` and `ended_at`
      * always change together. Deliberately a no-op when there is no active

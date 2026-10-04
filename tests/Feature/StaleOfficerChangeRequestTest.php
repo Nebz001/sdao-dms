@@ -6,6 +6,9 @@ use App\Models\OfficerChangeRequest;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
+use App\Notifications\OfficerChangeApprovedNotification;
+use App\Notifications\OfficerChangeDeclinedNotification;
+use App\Notifications\OfficerChangeRequestedNotification;
 use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
 use App\Organizations\BindOrganizationOfficer;
@@ -82,13 +85,19 @@ test('a withdrawn request vanishes from the SDAO queue, cannot be decided, and f
     expect(fileRequest($newPresident, OfficerPosition::Secretary)->status)->toBe(OfficerChangeRequestStatus::Pending);
 });
 
-test('nobody is notified when a request is withdrawn', function () {
-    fileRequest($this->president, OfficerPosition::Secretary);
+test('nothing is sent about the withdrawn request itself — no approved/declined notice to anyone', function () {
+    $request = fileRequest($this->president, OfficerPosition::Secretary);
     Notification::fake(); // forget the "requested" notification to SDAO
 
+    // The bind itself tells the replaced president their seat ended (see
+    // OfficerSeatNotificationsTest); the withdrawal adds nothing on top.
     app(BindOrganizationOfficer::class)->execute($this->adviser, $this->org, verifiedNominee(), OfficerPosition::President);
 
-    Notification::assertNothingSent();
+    Notification::assertNotSentTo($this->president, OfficerChangeDeclinedNotification::class);
+    Notification::assertNotSentTo($this->president, OfficerChangeApprovedNotification::class);
+    Notification::assertNotSentTo($request->nominee, OfficerChangeApprovedNotification::class);
+    Notification::assertNotSentTo($request->nominee, OfficerChangeDeclinedNotification::class);
+    Notification::assertNotSentTo($this->sdao, OfficerChangeRequestedNotification::class);
 });
 
 test('an officer who is only moved to the other seat keeps their pending request', function () {

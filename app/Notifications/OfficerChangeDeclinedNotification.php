@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 /**
  * Fired to the requesting officer the moment an SDAO admin declines their
@@ -62,7 +63,12 @@ class OfficerChangeDeclinedNotification extends Notification implements ShouldQu
         return [
             'kind' => 'officer_change_declined',
             'title' => "Officer change declined — {$this->changeRequest->organization->name}",
-            'body' => 'Your officer change request was not approved this time.',
+            // SDAO's reason, when they gave one — the in-app notice is often
+            // the only place a requester looks. Capped for the bell; the mail
+            // carries it in full.
+            'body' => $this->changeRequest->decision_comment
+                ? 'Not approved this time. Reason: '.Str::limit(preg_replace('/\s+/', ' ', trim($this->changeRequest->decision_comment)), 160)
+                : 'Your officer change request was not approved this time.',
             'url' => route('organizations.mine', absolute: false),
             'document_id' => null,
             'form_type' => null,

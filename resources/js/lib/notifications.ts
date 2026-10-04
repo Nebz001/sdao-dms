@@ -39,10 +39,13 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
         case 'account_verified':
         case 'approver_provisioned':
         case 'join_request_approved':
+        case 'officer_seat_granted':
             return { Icon: UserCheck, iconClassName: 'text-success', chipClassName: 'bg-success/15' };
         case 'account_rejected':
         case 'join_request_declined':
             return { Icon: Ban, iconClassName: 'text-destructive', chipClassName: 'bg-destructive/15' };
+        case 'officer_seat_ended':
+            return { Icon: Ban, iconClassName: 'text-warning', chipClassName: 'bg-warning/15' };
         case 'join_request_received':
             return { Icon: UserPlus, iconClassName: 'text-info', chipClassName: 'bg-info/15' };
         case 'renewal_window_opened':

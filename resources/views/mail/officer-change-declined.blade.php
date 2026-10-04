@@ -7,7 +7,9 @@ to **{{ $nomineeName }}** was not approved this time.
 @if ($comment)
 **Reason given:**
 
-> {{ $comment }}
+@foreach (preg_split('/\R/', trim($comment)) as $line)
+> {{ $line }}
+@endforeach
 @endif
 
 You may file a new request once you've sorted it out.
