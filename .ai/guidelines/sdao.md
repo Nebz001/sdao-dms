@@ -413,6 +413,7 @@ approximate these.
 - **Run dev server:** `composer run dev` (runs Vite + PHP server together)
 - **Format PHP:** `vendor/bin/pint --dirty --format agent`
 - **Lint JS:** `npm run lint`
+- **Page component tests** live in `resources/js/components/__tests__/`, never inside `resources/js/pages/`: the Inertia vite plugin globs `./pages/**/*.tsx` with no test exclusion, so a test file there is bundled as a page chunk and is resolvable as a page name.
 - Never commit secrets or `.env` files.
 
 ## Build order (vertical slices — see PLAN.md)
