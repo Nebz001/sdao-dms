@@ -3,8 +3,10 @@
 namespace App\Organizations;
 
 use App\Enums\FormType;
+use App\Enums\OfficerChangeRequestStatus;
 use App\Enums\OfficerPosition;
 use App\Models\Document;
+use App\Models\OfficerChangeRequest;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
@@ -196,6 +198,39 @@ class OrganizationMembershipService
         }
 
         $membership->update(['is_active' => false, 'ended_at' => $at ?? now()]);
+
+        $this->withdrawOrphanedChangeRequests($membership->organization_id);
+    }
+
+    /**
+     * A pending officer change request cannot outlive its requester's
+     * authority: any pending request in this org whose filer no longer holds an
+     * active seat in it is closed as Withdrawn, so SDAO is never asked to
+     * approve something on behalf of someone who can no longer act, and nobody
+     * is notified about a request they can no longer see.
+     *
+     * Call it AFTER a seat change has fully settled (seat closed and, for a
+     * turnover, the incoming seat created) — never between the two, or an
+     * officer who is merely being moved to the other seat would look orphaned.
+     * Idempotent, and a no-op when nothing is orphaned.
+     *
+     * @return int how many requests were withdrawn
+     */
+    public function withdrawOrphanedChangeRequests(int $organizationId): int
+    {
+        return OfficerChangeRequest::query()
+            ->where('organization_id', $organizationId)
+            ->pending()
+            ->whereNotIn('requested_by', OrganizationMembership::query()
+                ->where('organization_id', $organizationId)
+                ->active()
+                ->select('user_id'))
+            ->update([
+                'status' => OfficerChangeRequestStatus::Withdrawn->value,
+                'decided_at' => now(),
+                'decision_comment' => 'Withdrawn automatically: the officer who filed this request no longer holds a seat in this organization.',
+                'updated_at' => now(),
+            ]);
     }
 
     /**

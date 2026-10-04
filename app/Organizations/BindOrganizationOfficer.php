@@ -96,7 +96,7 @@ class BindOrganizationOfficer
             // OrganizationMembershipService::closeOtherActiveSeats).
             $this->membershipService->closeOtherActiveSeats($organization, $student, $position, $now);
 
-            return OrganizationMembership::create([
+            $membership = OrganizationMembership::create([
                 'user_id' => $student->id,
                 'organization_id' => $organization->id,
                 'position' => $position->value,
@@ -104,6 +104,11 @@ class BindOrganizationOfficer
                 'is_active' => true,
                 'started_at' => $now,
             ]);
+
+            // Settled: a requester who just lost their seat has no authority left.
+            $this->membershipService->withdrawOrphanedChangeRequests($organization->id);
+
+            return $membership;
         });
     }
 }

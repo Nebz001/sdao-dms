@@ -69,6 +69,21 @@ class ApproveOfficerChange
                 ]);
             }
 
+            // A request is only as good as its filer: if they no longer hold a
+            // seat here (legacy rows from before such requests were withdrawn
+            // automatically) there is nobody left to act for.
+            $requesterStillOfficer = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('user_id', $changeRequest->requested_by)
+                ->active()
+                ->exists();
+
+            if (! $requesterStillOfficer) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'The officer who filed this request no longer holds a seat in this organization — decline it instead.',
+                ]);
+            }
+
             if (! $nominee->isVerifiedAccount()) {
                 throw ValidationException::withMessages([
                     'officer_change_request' => 'This student\'s account is no longer SDAO-verified.',
@@ -133,6 +148,10 @@ class ApproveOfficerChange
                 'decided_by' => $actor->id,
                 'decided_at' => $now,
             ]);
+
+            // The outgoing holder may be the very officer who filed this (or
+            // another) request — close any that just lost their authority.
+            $this->membershipService->withdrawOrphanedChangeRequests($organization->id);
 
             return $membership;
         });

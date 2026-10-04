@@ -67,6 +67,7 @@ const TABLE: Record<StatusDomain, Record<string, Entry>> = {
         pending: { tone: 'info', label: 'Pending' },
         approved: { tone: 'success', label: 'Approved' },
         declined: { tone: 'destructive', label: 'Declined' },
+        withdrawn: { tone: 'neutral', label: 'Withdrawn' },
     },
     // App\Enums\RenewalEligibility, plus the organization "renewal due" flag
     renewal: {
