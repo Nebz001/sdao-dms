@@ -6,6 +6,7 @@ use App\Enums\JoinRequestStatus;
 use App\Models\OrganizationJoinRequest;
 use App\Models\User;
 use App\Notifications\JoinRequestDeclinedNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -21,18 +22,31 @@ class DeclineJoinRequest
      */
     public function execute(User $actor, OrganizationJoinRequest $joinRequest, ?string $comment = null): OrganizationJoinRequest
     {
-        if ($joinRequest->status !== JoinRequestStatus::Pending) {
-            throw ValidationException::withMessages([
-                'join_request' => 'This request has already been decided.',
-            ]);
-        }
+        // Re-read under a row lock so a decline racing an approve (or the
+        // automatic withdrawal) can't overwrite a decision that just landed.
+        DB::transaction(function () use ($joinRequest, $actor, $comment) {
+            OrganizationJoinRequest::query()->whereKey($joinRequest->id)->lockForUpdate()->first();
+            $joinRequest->refresh();
 
-        $joinRequest->update([
-            'status' => JoinRequestStatus::Declined,
-            'decided_by' => $actor->id,
-            'decided_at' => now(),
-            'decision_comment' => $comment,
-        ]);
+            if ($joinRequest->status === JoinRequestStatus::Withdrawn) {
+                throw ValidationException::withMessages([
+                    'join_request' => 'This request was closed automatically because the student has since become an officer. Nothing to decline.',
+                ]);
+            }
+
+            if ($joinRequest->status !== JoinRequestStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'join_request' => 'This request has already been decided.',
+                ]);
+            }
+
+            $joinRequest->update([
+                'status' => JoinRequestStatus::Declined,
+                'decided_by' => $actor->id,
+                'decided_at' => now(),
+                'decision_comment' => $comment,
+            ]);
+        });
 
         try {
             $joinRequest->user->notify(new JoinRequestDeclinedNotification($joinRequest));

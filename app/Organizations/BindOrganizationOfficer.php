@@ -54,8 +54,9 @@ class BindOrganizationOfficer
         }
 
         $outgoingHolderIds = [];
+        $withdrawnJoinRequests = collect();
 
-        $membership = $this->membershipService->runSeatChange($organization, $student, 'user_id', function () use ($organization, $student, $position, $academicYear, &$outgoingHolderIds) {
+        $membership = $this->membershipService->runSeatChange($organization, $student, 'user_id', function () use ($organization, $student, $position, $academicYear, &$outgoingHolderIds, &$withdrawnJoinRequests) {
             // Every guard below runs UNDER the org + student lock, against
             // fresh state: a concurrent bind may have changed either since
             // the picker was rendered or the request was validated.
@@ -115,6 +116,9 @@ class BindOrganizationOfficer
             // Settled: a requester who just lost their seat has no authority left.
             $this->membershipService->withdrawOrphanedChangeRequests($organization->id);
 
+            // ...and a student who just gained a seat can't still be asking for one.
+            $withdrawnJoinRequests = $this->membershipService->withdrawPendingJoinRequestsFor($student, $organization);
+
             return $membership;
         });
 
@@ -128,6 +132,7 @@ class BindOrganizationOfficer
             OfficerSeatEndReason::Replaced,
         );
         $this->seatNotifier->granted($student, $organization, $position);
+        $this->seatNotifier->joinRequestsWithdrawn($student, $withdrawnJoinRequests, $organization);
 
         return $membership;
     }

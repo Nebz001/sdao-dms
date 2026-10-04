@@ -8,6 +8,7 @@ export type NotificationKind =
     | 'join_request_received'
     | 'join_request_approved'
     | 'join_request_declined'
+    | 'join_request_withdrawn'
     | 'officer_seat_granted'
     | 'officer_seat_ended'
     | 'renewal_window_opened';

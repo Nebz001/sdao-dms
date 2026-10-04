@@ -3,11 +3,13 @@
 namespace App\Organizations;
 
 use App\Enums\FormType;
+use App\Enums\JoinRequestStatus;
 use App\Enums\OfficerChangeRequestStatus;
 use App\Enums\OfficerPosition;
 use App\Models\Document;
 use App\Models\OfficerChangeRequest;
 use App\Models\Organization;
+use App\Models\OrganizationJoinRequest;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -168,6 +170,40 @@ class OrganizationMembershipService
             ->with('user')
             ->first()
             ?->user;
+    }
+
+    /**
+     * A student who has just gained an officer seat (by ANY route) has no
+     * business with a join request still pending: approving it later would try
+     * to give them a second seat. Closes every pending join request they have as
+     * Withdrawn, recording why (never naming another organization to the
+     * reviewers of this one), and returns them so the caller can tell the
+     * student AFTER commit.
+     *
+     * Call it inside the seat-change transaction, once the new seat exists.
+     * Idempotent; a no-op when the student has nothing pending.
+     *
+     * @return Collection<int, OrganizationJoinRequest>
+     */
+    public function withdrawPendingJoinRequestsFor(User $student, Organization $gainedIn): Collection
+    {
+        $withdrawn = OrganizationJoinRequest::query()
+            ->with('organization')
+            ->where('user_id', $student->id)
+            ->pending()
+            ->get();
+
+        foreach ($withdrawn as $joinRequest) {
+            $joinRequest->update([
+                'status' => JoinRequestStatus::Withdrawn,
+                'decided_at' => now(),
+                'decision_comment' => $joinRequest->organization_id === $gainedIn->id
+                    ? 'Withdrawn automatically: the student became an officer of this organization by another route.'
+                    : 'Withdrawn automatically: the student became an officer of another organization.',
+            ]);
+        }
+
+        return $withdrawn;
     }
 
     /**

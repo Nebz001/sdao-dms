@@ -5,7 +5,9 @@ namespace App\Organizations;
 use App\Enums\OfficerPosition;
 use App\Enums\OfficerSeatEndReason;
 use App\Models\Organization;
+use App\Models\OrganizationJoinRequest;
 use App\Models\User;
+use App\Notifications\JoinRequestWithdrawnNotification;
 use App\Notifications\OfficerSeatEndedNotification;
 use App\Notifications\OfficerSeatGrantedNotification;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +32,31 @@ class OfficerSeatNotifier
                 'organization_id' => $organization->id,
                 'exception' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Tells a student their pending join request(s) were closed because they
+     * just became an officer — only for requests to a DIFFERENT organization
+     * than the one that bound them (see JoinRequestWithdrawnNotification).
+     *
+     * @param  iterable<int, OrganizationJoinRequest>  $withdrawn
+     */
+    public function joinRequestsWithdrawn(User $student, iterable $withdrawn, Organization $gainedIn): void
+    {
+        foreach ($withdrawn as $joinRequest) {
+            if ($joinRequest->organization_id === $gainedIn->id) {
+                continue;
+            }
+
+            try {
+                $student->notify(new JoinRequestWithdrawnNotification($joinRequest));
+            } catch (\Throwable $e) {
+                Log::error('Join-request-withdrawn notification failed to dispatch', [
+                    'join_request_id' => $joinRequest->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

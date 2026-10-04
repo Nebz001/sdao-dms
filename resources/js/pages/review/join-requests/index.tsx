@@ -7,8 +7,15 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import QueueStatStrip from '@/components/queue-stat-strip';
+import { RequestStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import {
     Empty,
@@ -38,20 +45,31 @@ type JoinRequestQueueItem = {
     open_positions: string[];
 };
 
+type ClosedJoinRequest = {
+    id: number;
+    student: { id: number; name: string; email: string };
+    organization: { id: number; name: string };
+    closed_at: string;
+    reason: string | null;
+};
+
 type Props = {
     queue: JoinRequestQueueItem[];
+    closed: ClosedJoinRequest[];
     positions: PositionOption[];
 };
 
-export default function JoinRequestsIndex({ queue, positions }: Props) {
+export default function JoinRequestsIndex({ queue, closed, positions }: Props) {
     // 5s poll, same convention as every other review queue — a decision
     // made from another tab/reviewer shouldn't leave a stale row on screen.
-    useDocumentUpdates(['queue']);
+    useDocumentUpdates(['queue', 'closed']);
 
     const oldest =
         queue.length > 0
             ? new Date(
-                  Math.min(...queue.map((r) => new Date(r.created_at).getTime())),
+                  Math.min(
+                      ...queue.map((r) => new Date(r.created_at).getTime()),
+                  ),
               ).toLocaleDateString()
             : '—';
 
@@ -60,7 +78,10 @@ export default function JoinRequestsIndex({ queue, positions }: Props) {
             <Head title="Join Requests" />
 
             <div className="space-y-6">
-                <PageHeader title="Join Requests" subtitle="Students asking to join your organization. Approving binds them as an officer immediately; declining is permanent — they&apos;d need to file a new request." />
+                <PageHeader
+                    title="Join Requests"
+                    subtitle="Students asking to join your organization. Approving binds them as an officer immediately; declining is permanent — they'd need to file a new request."
+                />
 
                 <QueueStatStrip
                     stats={[
@@ -106,6 +127,55 @@ export default function JoinRequestsIndex({ queue, positions }: Props) {
                         )}
                     </CardContent>
                 </Card>
+
+                {closed.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                Closed automatically
+                            </CardTitle>
+                            <CardDescription>
+                                These no longer need a decision: the student
+                                became an officer another way. Shown for 14
+                                days.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="divide-y">
+                                {closed.map((request) => (
+                                    <div
+                                        key={request.id}
+                                        className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                                    >
+                                        <div className="min-w-0">
+                                            <AccountName
+                                                name={request.student.name}
+                                                nameClassName="font-medium"
+                                            />
+                                            <p className="text-sm text-muted-foreground max-sm:break-words">
+                                                Asked to join{' '}
+                                                <span className="font-medium text-foreground">
+                                                    {request.organization.name}
+                                                </span>
+                                            </p>
+                                            {request.reason && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {request.reason}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                                            <RequestStatusBadge status="withdrawn" />
+                                            {new Date(
+                                                request.closed_at,
+                                            ).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </>
     );
@@ -118,20 +188,21 @@ function JoinRequestRow({
     request: JoinRequestQueueItem;
     positions: PositionOption[];
 }) {
-    const [position, setPosition] = useState(
-        request.open_positions[0] ?? '',
-    );
+    const [position, setPosition] = useState(request.open_positions[0] ?? '');
     const noOpenPositions = request.open_positions.length === 0;
     const positionLabel = positions.find((p) => p.value === position)?.label;
 
     return (
         <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-                <AccountName name={request.student.name} nameClassName="font-medium" />
-                <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
+                <AccountName
+                    name={request.student.name}
+                    nameClassName="font-medium"
+                />
+                <p className="text-sm text-muted-foreground max-sm:break-words sm:truncate">
                     {request.student.email}
                 </p>
-                <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground max-sm:break-words sm:truncate">
                     Wants to join{' '}
                     <span className="font-medium text-foreground">
                         {request.organization.name}
@@ -250,7 +321,9 @@ function JoinRequestRow({
                         >
                             {({ processing, errors }) => (
                                 <>
-                                    <Label htmlFor={`decline-comment-${request.id}`}>
+                                    <Label
+                                        htmlFor={`decline-comment-${request.id}`}
+                                    >
                                         Reason (optional)
                                     </Label>
                                     <Textarea

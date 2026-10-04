@@ -56,8 +56,9 @@ class ApproveOfficerChange
         $nominee = $changeRequest->nominee;
 
         $outgoingHolderIds = [];
+        $withdrawnJoinRequests = collect();
 
-        $membership = $this->membershipService->runSeatChange($organization, $nominee, 'officer_change_request', function () use ($changeRequest, $organization, $nominee, $actor, &$outgoingHolderIds) {
+        $membership = $this->membershipService->runSeatChange($organization, $nominee, 'officer_change_request', function () use ($changeRequest, $organization, $nominee, $actor, &$outgoingHolderIds, &$withdrawnJoinRequests) {
             // Everything below runs under the org + nominee lock, against
             // FRESH state. The request is re-read under its own row lock, so
             // two admins approving at once (or an approve racing a decline)
@@ -161,6 +162,9 @@ class ApproveOfficerChange
             // another) request — close any that just lost their authority.
             $this->membershipService->withdrawOrphanedChangeRequests($organization->id);
 
+            // The nominee just gained a seat: they can't still be asking to join one.
+            $withdrawnJoinRequests = $this->membershipService->withdrawPendingJoinRequestsFor($nominee, $organization);
+
             return $membership;
         });
 
@@ -170,6 +174,7 @@ class ApproveOfficerChange
         // notice, and two messages about one event is noise.
         $outgoingHolderIds = array_diff($outgoingHolderIds, [$nominee->id]);
         $this->seatNotifier->ended($outgoingHolderIds, $organization, $changeRequest->position, OfficerSeatEndReason::Replaced);
+        $this->seatNotifier->joinRequestsWithdrawn($nominee, $withdrawnJoinRequests, $organization);
 
         try {
             if (! in_array($changeRequest->requested_by, $outgoingHolderIds, true)) {

@@ -49,6 +49,12 @@ class ApproveJoinRequest
             $joinRequest->refresh();
             $student->refresh();
 
+            if ($joinRequest->status === JoinRequestStatus::Withdrawn) {
+                throw ValidationException::withMessages([
+                    'join_request' => "This request was closed automatically because {$student->name} has since become an officer. Nothing to approve.",
+                ]);
+            }
+
             if ($joinRequest->status !== JoinRequestStatus::Pending) {
                 throw ValidationException::withMessages([
                     'join_request' => 'This request has already been decided.',
@@ -61,7 +67,25 @@ class ApproveJoinRequest
                 ]);
             }
 
-            if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
+            // A student who already holds a seat — in THIS organization or any
+            // other — can't be given another. (Joining must never be a route to
+            // holding both seats of one org: the check below used to exclude this
+            // organization, which is exactly how that slipped through.) Normally
+            // such a request has already been withdrawn automatically; this
+            // catches any that predate that or slip past it.
+            $ownSeat = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('user_id', $student->id)
+                ->active()
+                ->first();
+
+            if ($ownSeat !== null) {
+                throw ValidationException::withMessages([
+                    'join_request' => "{$student->name} is already {$ownSeat->position->label()} of this organization, so this request can't be approved. Decline it instead.",
+                ]);
+            }
+
+            if ($this->membershipService->hasActiveMembershipElsewhere($student)) {
                 throw ValidationException::withMessages([
                     'join_request' => 'This student is already an active officer of a different organization.',
                 ]);

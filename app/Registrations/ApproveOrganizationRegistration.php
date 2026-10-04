@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Organizations\OfficerSeatNotifier;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,7 @@ class ApproveOrganizationRegistration
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly OfficerSeatNotifier $seatNotifier,
     ) {}
 
     /**
@@ -87,7 +89,9 @@ class ApproveOrganizationRegistration
         // same moment lock different orgs but the SAME student, so the second
         // waits, then sees the first's President seat and is refused below.
         // Approval and binding also now commit or roll back together.
-        $this->membershipService->runSeatChange($document->organization, $founder, 'approve', function () use ($document, $actor, $founder, $adviserAssignment) {
+        $withdrawnJoinRequests = collect();
+
+        $this->membershipService->runSeatChange($document->organization, $founder, 'approve', function () use ($document, $actor, $founder, $adviserAssignment, &$withdrawnJoinRequests) {
             // Fresh state, under the lock: the founder may have become an
             // active officer elsewhere since this was submitted.
             if ($this->membershipService->hasActiveMembershipElsewhere($founder, $document->organization)) {
@@ -116,6 +120,10 @@ class ApproveOrganizationRegistration
                     'started_at' => now(),
                 ]);
 
+                // A founder who had also asked to join some organization can't
+                // still be asking now that they hold a seat.
+                $withdrawnJoinRequests = $this->membershipService->withdrawPendingJoinRequestsFor($founder, $document->organization);
+
                 // Stamped at APPROVE time (not submit time), unlike a renewal —
                 // this records when the org actually became active, not when the
                 // form happened to be filed. A registration approved during 3rd
@@ -128,8 +136,11 @@ class ApproveOrganizationRegistration
                     'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
                 ]);
             }
-
         });
+
+        // After commit, best-effort: tell the founder any join request they had
+        // open was closed now that they hold a seat.
+        $this->seatNotifier->joinRequestsWithdrawn($founder, $withdrawnJoinRequests, $document->organization);
 
         return $document;
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\JoinRequestStatus;
 use App\Enums\OfficerPosition;
 use App\Http\Requests\Organizations\ApproveJoinRequestRequest;
 use App\Http\Requests\Organizations\DeclineJoinRequestRequest;
@@ -29,6 +30,9 @@ use Inertia\Response;
  */
 class JoinRequestReviewController extends Controller
 {
+    /** How long an automatically closed request stays listed under "Closed automatically". */
+    private const int CLOSED_WINDOW_DAYS = 14;
+
     public function index(): Response
     {
         $requests = OrganizationJoinRequest::query()
@@ -50,8 +54,28 @@ class JoinRequestReviewController extends Controller
                 'open_positions' => $this->openPositionsFor($r->organization),
             ]);
 
+        // Requests the system closed on its own (the student became an officer
+        // by another route) in the last two weeks — shown so a row that leaves
+        // the queue never just vanishes without explanation.
+        $closed = OrganizationJoinRequest::query()
+            ->with(['user', 'organization'])
+            ->where('status', JoinRequestStatus::Withdrawn->value)
+            ->where('decided_at', '>=', now()->subDays(self::CLOSED_WINDOW_DAYS))
+            ->orderByDesc('decided_at')
+            ->get()
+            ->filter(fn (OrganizationJoinRequest $r) => Gate::allows('manageJoinRequests', $r->organization))
+            ->values()
+            ->map(fn (OrganizationJoinRequest $r) => [
+                'id' => $r->id,
+                'student' => ['id' => $r->user->id, 'name' => $r->user->name, 'email' => $r->user->email],
+                'organization' => ['id' => $r->organization->id, 'name' => $r->organization->name],
+                'closed_at' => $r->decided_at,
+                'reason' => $r->decision_comment,
+            ]);
+
         return Inertia::render('review/join-requests/index', [
             'queue' => $requests,
+            'closed' => $closed,
             'positions' => collect(OfficerPosition::cases())->map(fn ($p) => [
                 'value' => $p->value,
                 'label' => $p->label(),
