@@ -9,7 +9,6 @@ use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Notifications\JoinRequestApprovedNotification;
 use App\Support\AcademicYear;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -39,42 +38,49 @@ class ApproveJoinRequest
      */
     public function execute(User $actor, OrganizationJoinRequest $joinRequest, OfficerPosition $position): OrganizationMembership
     {
-        if ($joinRequest->status !== JoinRequestStatus::Pending) {
-            throw ValidationException::withMessages([
-                'join_request' => 'This request has already been decided.',
-            ]);
-        }
-
         $student = $joinRequest->user;
         $organization = $joinRequest->organization;
 
-        if (! $student->isVerifiedAccount()) {
-            throw ValidationException::withMessages([
-                'join_request' => 'This student\'s account has not been SDAO-verified yet.',
-            ]);
-        }
+        $membership = $this->membershipService->runSeatChange($organization, $student, 'join_request', function () use ($actor, $joinRequest, $student, $organization, $position) {
+            // Re-read everything under the org + student lock: a concurrent
+            // approve of the same request, or a bind into the same seat, may
+            // have landed since the page was rendered.
+            OrganizationJoinRequest::query()->whereKey($joinRequest->id)->lockForUpdate()->first();
+            $joinRequest->refresh();
+            $student->refresh();
 
-        if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
-            throw ValidationException::withMessages([
-                'join_request' => 'This student is already an active officer of a different organization.',
-            ]);
-        }
+            if ($joinRequest->status !== JoinRequestStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'join_request' => 'This request has already been decided.',
+                ]);
+            }
 
-        $positionFilled = OrganizationMembership::query()
-            ->where('organization_id', $organization->id)
-            ->where('position', $position->value)
-            ->where('is_active', true)
-            ->exists();
+            if (! $student->isVerifiedAccount()) {
+                throw ValidationException::withMessages([
+                    'join_request' => 'This student\'s account has not been SDAO-verified yet.',
+                ]);
+            }
 
-        if ($positionFilled) {
-            throw ValidationException::withMessages([
-                'join_request' => "{$position->label()} is already filled for this organization. Deactivate the current holder via Manage Officers, have the org file an officer change request, or approve this join request as a different position.",
-            ]);
-        }
+            if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
+                throw ValidationException::withMessages([
+                    'join_request' => 'This student is already an active officer of a different organization.',
+                ]);
+            }
 
-        $now = now();
+            $positionFilled = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('position', $position->value)
+                ->where('is_active', true)
+                ->exists();
 
-        $membership = DB::transaction(function () use ($actor, $joinRequest, $student, $organization, $position, $now) {
+            if ($positionFilled) {
+                throw ValidationException::withMessages([
+                    'join_request' => "{$position->label()} is already filled for this organization. Deactivate the current holder via Manage Officers, have the org file an officer change request, or approve this join request as a different position.",
+                ]);
+            }
+
+            $now = now();
+
             $membership = OrganizationMembership::create([
                 'user_id' => $student->id,
                 'organization_id' => $organization->id,

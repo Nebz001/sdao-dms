@@ -434,6 +434,9 @@ activity proposal → remaining short-chain forms → real email/password auth
 
 - Use plan mode for any non-trivial feature; get the plan approved before edits.
 - Keep commits small and scoped to one slice/feature.
+- Never run `git checkout -- .`, `git restore .`, `git clean`, or
+  `git reset --hard`: they destroy uncommitted work with no recovery. To
+  discard a change, name the single file and look at its diff first.
 - After a slice, review the diff in a fresh subagent against PLAN.md before
   considering it done. Validate with tests, not just "it runs."
 - When something here turns out wrong or incomplete, update this file.

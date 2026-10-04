@@ -9,6 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\OfficerChangeDeclinedNotification;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -30,18 +31,26 @@ class DeclineOfficerChange
             throw new AuthorizationException('Only an SDAO member may finalize an officer change request.');
         }
 
-        if ($changeRequest->status !== OfficerChangeRequestStatus::Pending) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'This request has already been decided.',
-            ]);
-        }
+        // Re-read under a row lock so a decline racing an approve (or a
+        // second decline) can't pass the "still pending" check on a stale copy
+        // and overwrite a decision that was just made.
+        DB::transaction(function () use ($changeRequest, $actor, $comment) {
+            OfficerChangeRequest::query()->whereKey($changeRequest->id)->lockForUpdate()->first();
+            $changeRequest->refresh();
 
-        $changeRequest->update([
-            'status' => OfficerChangeRequestStatus::Declined,
-            'decided_by' => $actor->id,
-            'decided_at' => now(),
-            'decision_comment' => $comment,
-        ]);
+            if ($changeRequest->status !== OfficerChangeRequestStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'This request has already been decided.',
+                ]);
+            }
+
+            $changeRequest->update([
+                'status' => OfficerChangeRequestStatus::Declined,
+                'decided_by' => $actor->id,
+                'decided_at' => now(),
+                'decision_comment' => $comment,
+            ]);
+        });
 
         try {
             $changeRequest->requester->notify(new OfficerChangeDeclinedNotification($changeRequest));

@@ -9,7 +9,6 @@ use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,37 +51,41 @@ class BindOrganizationOfficer
             throw new AuthorizationException('Only the org\'s adviser may bind officers.');
         }
 
-        if (! $student->isVerifiedAccount()) {
-            throw ValidationException::withMessages([
-                'user_id' => 'This student\'s account has not been SDAO-verified yet.',
-            ]);
-        }
+        return $this->membershipService->runSeatChange($organization, $student, 'user_id', function () use ($organization, $student, $position, $academicYear) {
+            // Every guard below runs UNDER the org + student lock, against
+            // fresh state: a concurrent bind may have changed either since
+            // the picker was rendered or the request was validated.
+            $student->refresh();
 
-        // One organization per student (Phase 2 item 4): a student already
-        // actively bound elsewhere cannot be bound here too, whether this is
-        // a founding bind or officer turnover.
-        if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
-            throw ValidationException::withMessages([
-                'user_id' => 'This student is already an active officer of a different organization.',
-            ]);
-        }
+            if (! $student->isVerifiedAccount()) {
+                throw ValidationException::withMessages([
+                    'user_id' => 'This student\'s account has not been SDAO-verified yet.',
+                ]);
+            }
 
-        // The same eligibility the picker uses (approver-role accounts, an
-        // in-flight registration elsewhere) — re-checked here so a forged
-        // request can't bind someone the picker would never have offered.
-        if (! $this->candidates->matches($organization, $student)) {
-            throw ValidationException::withMessages([
-                'user_id' => 'This student is not eligible to be bound as an officer right now.',
-            ]);
-        }
+            // One organization per student (Phase 2 item 4): a student already
+            // actively bound elsewhere cannot be bound here too, whether this
+            // is a founding bind or officer turnover.
+            if ($this->membershipService->hasActiveMembershipElsewhere($student, $organization)) {
+                throw ValidationException::withMessages([
+                    'user_id' => 'This student is already an active officer of a different organization.',
+                ]);
+            }
 
-        // Hoisted once — sharing one instant between the outgoing term's
-        // ended_at and the incoming term's started_at keeps the two exactly
-        // equal, with no gap and no overlap (two now() calls would land
-        // microseconds apart).
-        $now = now();
+            // The same eligibility the picker uses (approver-role accounts, an
+            // in-flight registration elsewhere) — re-checked here so a forged
+            // request can't bind someone the picker would never have offered.
+            if (! $this->candidates->matches($organization, $student)) {
+                throw ValidationException::withMessages([
+                    'user_id' => 'This student is not eligible to be bound as an officer right now.',
+                ]);
+            }
 
-        return DB::transaction(function () use ($organization, $student, $position, $academicYear, $now) {
+            // Hoisted once — sharing one instant between the outgoing term's
+            // ended_at and the incoming term's started_at keeps the two
+            // exactly equal, with no gap and no overlap.
+            $now = now();
+
             // Turnover: deactivate any existing active holder of this position.
             $this->membershipService->closeActiveHolders($organization, $position, $now);
 

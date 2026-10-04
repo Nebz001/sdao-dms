@@ -9,7 +9,11 @@ use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Single source for "can this student submit for this org." Every form-type
@@ -211,5 +215,50 @@ class OrganizationMembershipService
             ->where('position', '!=', $keeping->value)
             ->where('is_active', true)
             ->update(['is_active' => false, 'ended_at' => $at ?? now()]);
+    }
+
+    /**
+     * Runs a seat change (bind / finalize / join-approve / file a request) as
+     * ONE serialized unit per organization, so two actors changing the same
+     * seat at the same time can never interleave.
+     *
+     * Inside a transaction it takes a row lock on the organization (every seat
+     * change for that org queues behind it) and, when a student is involved,
+     * on that student (so the same student can't be bound into two orgs at
+     * once — there is no DB constraint for that rule). Lock order is always
+     * org then student, and only one org is ever locked, so two changes can't
+     * deadlock each other; a rare database deadlock is retried.
+     *
+     * The callback MUST re-read and re-check every guard itself: anything
+     * validated before the lock was taken may have been changed by whoever held
+     * it first. As a last line of defence, if the partial unique index on the
+     * seat (or on a pending request) still fires, the loser gets a plain
+     * "someone else just changed this" validation error instead of a 500; the
+     * transaction has already rolled back, so nothing is half-applied.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $callback
+     * @return T
+     *
+     * @throws ValidationException
+     */
+    public function runSeatChange(Organization $organization, ?User $student, string $errorKey, Closure $callback): mixed
+    {
+        try {
+            return DB::transaction(function () use ($organization, $student, $callback) {
+                Organization::query()->whereKey($organization->id)->lockForUpdate()->first();
+
+                if ($student !== null) {
+                    User::query()->whereKey($student->id)->lockForUpdate()->first();
+                }
+
+                return $callback();
+            }, attempts: 3);
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Someone else just changed this seat. Refresh the page to see the current officers, then try again.',
+            ]);
+        }
     }
 }

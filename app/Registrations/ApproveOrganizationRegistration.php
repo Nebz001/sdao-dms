@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Organizations\OrganizationMembershipService;
 use App\Support\CurrentPeriod;
 use Illuminate\Validation\ValidationException;
 
@@ -27,7 +28,10 @@ use Illuminate\Validation\ValidationException;
  */
 class ApproveOrganizationRegistration
 {
-    public function __construct(private readonly ApprovalEngine $engine) {}
+    public function __construct(
+        private readonly ApprovalEngine $engine,
+        private readonly OrganizationMembershipService $membershipService,
+    ) {}
 
     /**
      * @throws ValidationException if the chosen adviser is no longer
@@ -75,38 +79,57 @@ class ApproveOrganizationRegistration
             ]);
         }
 
-        $this->engine->approve($document, $actor);
-        $document->refresh();
+        $founder = User::query()->findOrFail($document->submitted_by);
 
-        // Only bind once the SDAO quorum is actually satisfied (both
-        // members) — the first of two approvals does not yet flip status to
-        // Approved, and binding must not happen prematurely.
-        if ($document->status === DocumentStatus::Approved) {
-            $adviserAssignment?->update(['organization_id' => $document->organization_id]);
+        // One serialized unit, locked on the ORG and on the FOUNDING STUDENT.
+        // Two registrations by the same student (only possible via a double-
+        // submit race — see SubmitOrganizationRegistration) approved at the
+        // same moment lock different orgs but the SAME student, so the second
+        // waits, then sees the first's President seat and is refused below.
+        // Approval and binding also now commit or roll back together.
+        $this->membershipService->runSeatChange($document->organization, $founder, 'approve', function () use ($document, $actor, $founder, $adviserAssignment) {
+            // Fresh state, under the lock: the founder may have become an
+            // active officer elsewhere since this was submitted.
+            if ($this->membershipService->hasActiveMembershipElsewhere($founder, $document->organization)) {
+                throw ValidationException::withMessages([
+                    'approve' => 'Cannot approve: the founding student is now an active officer of a different organization. Reject this registration instead.',
+                ]);
+            }
 
-            $period = CurrentPeriod::get();
+            $this->engine->approve($document, $actor);
+            $document->refresh();
 
-            OrganizationMembership::create([
-                'user_id' => $document->submitted_by,
-                'organization_id' => $document->organization_id,
-                'position' => OfficerPosition::President->value,
-                'academic_year' => $period->academicYear,
-                'is_active' => true,
-                'started_at' => now(),
-            ]);
+            // Only bind once the SDAO quorum is actually satisfied (both
+            // members) — the first of two approvals does not yet flip status to
+            // Approved, and binding must not happen prematurely.
+            if ($document->status === DocumentStatus::Approved) {
+                $adviserAssignment?->update(['organization_id' => $document->organization_id]);
 
-            // Stamped at APPROVE time (not submit time), unlike a renewal —
-            // this records when the org actually became active, not when the
-            // form happened to be filed. A registration approved during 3rd
-            // term (renewal season) gets grace: it covers both the current
-            // year AND next year, so the org isn't asked to renew days after
-            // being founded — see SubmitOrganizationRenewal::eligibilityFor().
-            $document->registrationDetail->update([
-                'academic_year' => $period->academicYear,
-                'term' => $period->term->value,
-                'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
-            ]);
-        }
+                $period = CurrentPeriod::get();
+
+                OrganizationMembership::create([
+                    'user_id' => $document->submitted_by,
+                    'organization_id' => $document->organization_id,
+                    'position' => OfficerPosition::President->value,
+                    'academic_year' => $period->academicYear,
+                    'is_active' => true,
+                    'started_at' => now(),
+                ]);
+
+                // Stamped at APPROVE time (not submit time), unlike a renewal —
+                // this records when the org actually became active, not when the
+                // form happened to be filed. A registration approved during 3rd
+                // term (renewal season) gets grace: it covers both the current
+                // year AND next year, so the org isn't asked to renew days after
+                // being founded — see SubmitOrganizationRenewal::eligibilityFor().
+                $document->registrationDetail->update([
+                    'academic_year' => $period->academicYear,
+                    'term' => $period->term->value,
+                    'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
+                ]);
+            }
+
+        });
 
         return $document;
     }

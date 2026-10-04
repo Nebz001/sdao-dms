@@ -13,7 +13,6 @@ use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicYear;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -50,53 +49,62 @@ class ApproveOfficerChange
             throw new AuthorizationException('Only an SDAO member may finalize an officer change request.');
         }
 
-        if ($changeRequest->status !== OfficerChangeRequestStatus::Pending) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'This request has already been decided.',
-            ]);
-        }
-
         $organization = $changeRequest->organization;
-        $position = $changeRequest->position;
         $nominee = $changeRequest->nominee;
 
-        if (! $nominee->isVerifiedAccount()) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'This student\'s account is no longer SDAO-verified.',
-            ]);
-        }
+        $membership = $this->membershipService->runSeatChange($organization, $nominee, 'officer_change_request', function () use ($changeRequest, $organization, $nominee, $actor) {
+            // Everything below runs under the org + nominee lock, against
+            // FRESH state. The request is re-read under its own row lock, so
+            // two admins approving at once (or an approve racing a decline)
+            // can't both pass the "still pending" check on stale copies.
+            OfficerChangeRequest::query()->whereKey($changeRequest->id)->lockForUpdate()->first();
+            $changeRequest->refresh();
+            $nominee->refresh();
 
-        if ($this->membershipService->hasActiveMembershipElsewhere($nominee, $organization)) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'This student is now an active officer of a different organization.',
-            ]);
-        }
+            $position = $changeRequest->position;
 
-        if (! $this->candidates->matches($organization, $nominee)) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'This student is no longer eligible to be bound as an officer.',
-            ]);
-        }
+            if ($changeRequest->status !== OfficerChangeRequestStatus::Pending) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'This request has already been decided.',
+                ]);
+            }
 
-        $alreadyHoldsPosition = OrganizationMembership::query()
-            ->where('organization_id', $organization->id)
-            ->where('position', $position->value)
-            ->where('user_id', $nominee->id)
-            ->where('is_active', true)
-            ->exists();
+            if (! $nominee->isVerifiedAccount()) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'This student\'s account is no longer SDAO-verified.',
+                ]);
+            }
 
-        if ($alreadyHoldsPosition) {
-            throw ValidationException::withMessages([
-                'officer_change_request' => 'They already hold this position — decline this request instead.',
-            ]);
-        }
+            if ($this->membershipService->hasActiveMembershipElsewhere($nominee, $organization)) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'This student is now an active officer of a different organization.',
+                ]);
+            }
 
-        // Hoisted once — sharing one instant between the outgoing term's
-        // ended_at, any auto-closed dual-seat term's ended_at, and the
-        // incoming term's started_at keeps them exactly aligned.
-        $now = now();
+            if (! $this->candidates->matches($organization, $nominee)) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'This student is no longer eligible to be bound as an officer.',
+                ]);
+            }
 
-        $membership = DB::transaction(function () use ($organization, $position, $nominee, $changeRequest, $actor, $now) {
+            $alreadyHoldsPosition = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('position', $position->value)
+                ->where('user_id', $nominee->id)
+                ->where('is_active', true)
+                ->exists();
+
+            if ($alreadyHoldsPosition) {
+                throw ValidationException::withMessages([
+                    'officer_change_request' => 'They already hold this position — decline this request instead.',
+                ]);
+            }
+
+            // Hoisted once — sharing one instant between the outgoing term's
+            // ended_at, any auto-closed dual-seat term's ended_at, and the
+            // incoming term's started_at keeps them exactly aligned.
+            $now = now();
+
             // 1. Close the freshly-resolved live holder(s) of the seat —
             //    never trusting outgoing_user_id, which is a submit-time
             //    snapshot only.

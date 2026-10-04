@@ -50,64 +50,72 @@ class RequestOfficerChange
 
         $organization = $actorMembership->organization;
 
-        $hasPendingRequest = OfficerChangeRequest::query()
-            ->where('organization_id', $organization->id)
-            ->where('position', $position->value)
-            ->pending()
-            ->exists();
+        // Under the org lock: "one pending request per seat" is checked and the
+        // row created as one unit, so two officers filing at the same moment
+        // can't both slip past the pending check.
+        $changeRequest = $this->membershipService->runSeatChange($organization, $nominee, 'position', function () use ($actor, $organization, $position, $nominee, $reason) {
+            $nominee->refresh();
 
-        if ($hasPendingRequest) {
-            throw ValidationException::withMessages([
-                'position' => 'There is already a pending change request for this position.',
+            $hasPendingRequest = OfficerChangeRequest::query()
+                ->where('organization_id', $organization->id)
+                ->where('position', $position->value)
+                ->pending()
+                ->exists();
+
+            if ($hasPendingRequest) {
+                throw ValidationException::withMessages([
+                    'position' => 'There is already a pending change request for this position.',
+                ]);
+            }
+
+            if (! $nominee->isVerifiedAccount()) {
+                throw ValidationException::withMessages([
+                    'nominee_id' => 'This student\'s account has not been SDAO-verified yet.',
+                ]);
+            }
+
+            if ($this->membershipService->hasActiveMembershipElsewhere($nominee, $organization)) {
+                throw ValidationException::withMessages([
+                    'nominee_id' => 'This student is already an active officer of a different organization.',
+                ]);
+            }
+
+            $alreadyHoldsPosition = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('position', $position->value)
+                ->where('user_id', $nominee->id)
+                ->where('is_active', true)
+                ->exists();
+
+            if ($alreadyHoldsPosition) {
+                throw ValidationException::withMessages([
+                    'nominee_id' => 'They already hold this position.',
+                ]);
+            }
+
+            if (! $this->candidates->matches($organization, $nominee)) {
+                throw ValidationException::withMessages([
+                    'nominee_id' => 'This student is not eligible to be bound as an officer right now.',
+                ]);
+            }
+
+            $outgoingUserId = OrganizationMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('position', $position->value)
+                ->where('is_active', true)
+                ->value('user_id');
+
+            return OfficerChangeRequest::create([
+                'organization_id' => $organization->id,
+                'requested_by' => $actor->id,
+                'position' => $position->value,
+                'nominee_id' => $nominee->id,
+                'outgoing_user_id' => $outgoingUserId,
+                'reason' => $reason,
+                'status' => OfficerChangeRequestStatus::Pending,
             ]);
-        }
 
-        if (! $nominee->isVerifiedAccount()) {
-            throw ValidationException::withMessages([
-                'nominee_id' => 'This student\'s account has not been SDAO-verified yet.',
-            ]);
-        }
-
-        if ($this->membershipService->hasActiveMembershipElsewhere($nominee, $organization)) {
-            throw ValidationException::withMessages([
-                'nominee_id' => 'This student is already an active officer of a different organization.',
-            ]);
-        }
-
-        $alreadyHoldsPosition = OrganizationMembership::query()
-            ->where('organization_id', $organization->id)
-            ->where('position', $position->value)
-            ->where('user_id', $nominee->id)
-            ->where('is_active', true)
-            ->exists();
-
-        if ($alreadyHoldsPosition) {
-            throw ValidationException::withMessages([
-                'nominee_id' => 'They already hold this position.',
-            ]);
-        }
-
-        if (! $this->candidates->matches($organization, $nominee)) {
-            throw ValidationException::withMessages([
-                'nominee_id' => 'This student is not eligible to be bound as an officer right now.',
-            ]);
-        }
-
-        $outgoingUserId = OrganizationMembership::query()
-            ->where('organization_id', $organization->id)
-            ->where('position', $position->value)
-            ->where('is_active', true)
-            ->value('user_id');
-
-        $changeRequest = OfficerChangeRequest::create([
-            'organization_id' => $organization->id,
-            'requested_by' => $actor->id,
-            'position' => $position->value,
-            'nominee_id' => $nominee->id,
-            'outgoing_user_id' => $outgoingUserId,
-            'reason' => $reason,
-            'status' => OfficerChangeRequestStatus::Pending,
-        ]);
+        });
 
         $this->notifySdao($changeRequest);
 

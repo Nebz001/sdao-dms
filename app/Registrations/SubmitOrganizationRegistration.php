@@ -80,31 +80,7 @@ class SubmitOrganizationRegistration
             ]);
         }
 
-        // One organization per student (Phase 2 item 4): a founding student
-        // has no membership yet, so the membership-based guard alone can't
-        // catch a second, simultaneous proposal — this in-flight-document
-        // check is now the PRIMARY defense against that.
-        if ($this->membershipService->hasActiveMembershipElsewhere($actor)) {
-            throw ValidationException::withMessages([
-                'organization' => 'You are already an active officer of an organization.',
-            ]);
-        }
-
-        $hasInFlightProposal = Document::query()
-            ->where('submitted_by', $actor->id)
-            ->where('form_type', FormType::OrganizationRegistration->value)
-            ->whereIn('status', [
-                DocumentStatus::Draft->value,
-                DocumentStatus::InReview->value,
-                DocumentStatus::Returned->value,
-            ])
-            ->exists();
-
-        if ($hasInFlightProposal) {
-            throw ValidationException::withMessages([
-                'organization' => 'You already have an in-progress organization registration.',
-            ]);
-        }
+        $this->guardOneOrganizationPerStudent($actor);
 
         // The chosen adviser must be a real, admin-provisioned adviser
         // account — never free text, never a new account created here.
@@ -126,6 +102,9 @@ class SubmitOrganizationRegistration
             $purposeOfOrganization, $contactPerson, $contactNo, $emailAddress,
             $dateOrganized, $academicYear, $attachmentFiles
         ) {
+            User::query()->whereKey($actor->id)->lockForUpdate()->first();
+            $this->guardOneOrganizationPerStudent($actor);
+
             // Pending state (Phase 2 item 5): the org exists from submission
             // onward, but is not "real" until Approved — no adviser
             // RoleAssignment or founding OrganizationMembership exists yet.
@@ -167,5 +146,39 @@ class SubmitOrganizationRegistration
 
             return $document;
         });
+    }
+
+    /**
+     * One organization per student (Phase 2 item 4): no active officer seat
+     * elsewhere and no registration already in flight. Run once up front for a
+     * fast, friendly failure, and AGAIN inside the submit transaction under a
+     * lock on the student's row, which is the authoritative check — without
+     * the lock two simultaneous submissions both pass it.
+     *
+     * @throws ValidationException
+     */
+    private function guardOneOrganizationPerStudent(User $actor): void
+    {
+        if ($this->membershipService->hasActiveMembershipElsewhere($actor)) {
+            throw ValidationException::withMessages([
+                'organization' => 'You are already an active officer of an organization.',
+            ]);
+        }
+
+        $hasInFlightProposal = Document::query()
+            ->where('submitted_by', $actor->id)
+            ->where('form_type', FormType::OrganizationRegistration->value)
+            ->whereIn('status', [
+                DocumentStatus::Draft->value,
+                DocumentStatus::InReview->value,
+                DocumentStatus::Returned->value,
+            ])
+            ->exists();
+
+        if ($hasInFlightProposal) {
+            throw ValidationException::withMessages([
+                'organization' => 'You already have an in-progress organization registration.',
+            ]);
+        }
     }
 }
