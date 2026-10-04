@@ -61,6 +61,7 @@ class EligibleOfficerCandidates
             ->pluck('submitted_by');
 
         return User::query()
+            ->active()
             ->whereDoesntHave('roleAssignments', fn ($q) => $q->where('role', '!=', Role::Student->value))
             ->where('account_status', AccountStatus::Verified->value)
             ->whereDoesntHave('organizationMemberships', fn ($q) => $q

@@ -207,6 +207,55 @@ class OrganizationMembershipService
     }
 
     /**
+     * Closes every pending officer change request that NAMES this student as the
+     * nominee, as Withdrawn — for when their account is being deactivated, so
+     * SDAO never has to spot and hand-decline a request that can no longer be
+     * approved. The recorded reason deliberately says nothing about WHY: only
+     * that the nominee can no longer be considered. Call it inside the same
+     * transaction as the deactivation.
+     *
+     * @return Collection<int, OfficerChangeRequest> the withdrawn requests (requester and organization loaded), so the caller can tell the requesters after commit
+     */
+    public function withdrawPendingChangeRequestsNaming(User $nominee): Collection
+    {
+        $withdrawn = OfficerChangeRequest::query()
+            ->with(['requester', 'organization', 'nominee'])
+            ->where('nominee_id', $nominee->id)
+            ->pending()
+            ->get();
+
+        foreach ($withdrawn as $changeRequest) {
+            $changeRequest->update([
+                'status' => OfficerChangeRequestStatus::Withdrawn,
+                'decided_at' => now(),
+                'decision_comment' => 'Withdrawn automatically: the nominee can no longer be considered for this seat.',
+            ]);
+        }
+
+        return $withdrawn;
+    }
+
+    /**
+     * Closes every pending join request a student has as Withdrawn, with the
+     * given reason — for when the student's ACCOUNT is being deactivated, so no
+     * reviewer is left deciding a request on behalf of someone who can't sign
+     * in. (withdrawPendingJoinRequestsFor is the "they just got a seat" twin.)
+     * Call it inside the same transaction as the deactivation.
+     */
+    public function withdrawAllPendingJoinRequestsBy(User $student, string $reason): int
+    {
+        return OrganizationJoinRequest::query()
+            ->where('user_id', $student->id)
+            ->pending()
+            ->update([
+                'status' => JoinRequestStatus::Withdrawn->value,
+                'decided_at' => now(),
+                'decision_comment' => $reason,
+                'updated_at' => now(),
+            ]);
+    }
+
+    /**
      * The users currently holding a seat — read before closing it, so the
      * outgoing officers can be told once the change has committed.
      *

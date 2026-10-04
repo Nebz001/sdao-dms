@@ -136,8 +136,8 @@ export default function JoinRequestsIndex({ queue, closed, positions }: Props) {
                             </CardTitle>
                             <CardDescription>
                                 These no longer need a decision: the student
-                                became an officer another way. Shown for 14
-                                days.
+                                became an officer another way, or their account
+                                was deactivated. Shown for 14 days.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

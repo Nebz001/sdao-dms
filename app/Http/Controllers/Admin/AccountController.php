@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Identity\Admin\DeactivateAccount;
 use App\Identity\Admin\ReactivateAccount;
+use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Support\FlashToast;
 use Illuminate\Http\JsonResponse;
@@ -45,12 +46,22 @@ class AccountController extends Controller
     {
         $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
 
+        // Read BEFORE deactivating: a student officer's seat ends with the account.
+        $seat = OrganizationMembership::query()->where('user_id', $account->id)->active()->with('organization')->first();
+
         $action->execute(Auth::user(), $account, $request->input('reason'));
+
+        // Reactivating restores the ACCOUNT only. A student's officer seat ended
+        // with it and stays ended, so say so rather than letting a bare "Undo"
+        // promise more than it does.
+        $seatNote = $seat !== null
+            ? " Their {$seat->position->label()} seat of {$seat->organization->name} ended and the adviser was told. Reactivating restores the account only, not the seat."
+            : '';
 
         return back()->with('flash', FlashToast::make(
             'Account deactivated',
-            "{$account->name} was signed out everywhere and can no longer log in.",
-            actions: [FlashToast::undo(route('admin.accounts.reactivate', $account))],
+            "{$account->name} was signed out everywhere and can no longer log in.{$seatNote}",
+            actions: [FlashToast::postAction('Reactivate account', route('admin.accounts.reactivate', $account))],
         ));
     }
 

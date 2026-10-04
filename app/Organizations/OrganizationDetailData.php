@@ -163,18 +163,26 @@ class OrganizationDetailData
     /**
      * Current officers only; past officers stay in the database as history.
      *
-     * @return list<array{id: int, position: string, name: string, id_number: string|null, since: string|null}>
+     * `user_id` and `remaining_officers` (active officers left if THIS one's
+     * account were deactivated) feed the admin page's Deactivate account
+     * dialog, which warns when the org would be left with none, or only one.
+     *
+     * @return list<array{id: int, user_id: int, position: string, name: string, id_number: string|null, since: string|null, remaining_officers: int}>
      */
     public function officers(Organization $organization): array
     {
-        return OrganizationMembership::query()
+        $memberships = OrganizationMembership::query()
             ->active()
             ->where('organization_id', $organization->id)
             ->with('user:id,name,id_number')
             ->orderBy('position')
-            ->get()
+            ->get();
+
+        return $memberships
             ->map(fn (OrganizationMembership $m) => [
                 'id' => $m->id,
+                'user_id' => $m->user_id,
+                'remaining_officers' => $memberships->count() - 1,
                 'position' => $m->position->label(),
                 'name' => $m->user->name,
                 'id_number' => $m->user->id_number,

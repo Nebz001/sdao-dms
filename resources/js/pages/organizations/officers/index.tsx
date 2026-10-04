@@ -72,7 +72,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
             onError: () =>
                 setDeactivateError({
                     membershipId,
-                    message: 'Could not deactivate this officer. Please try again.',
+                    message: 'Could not end this seat. Please try again.',
                 }),
             onFinish: stopProcessing,
         });
@@ -132,15 +132,22 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                     <ConfirmDialog
                                         trigger={
                                             <Button size="sm" variant="outline">
-                                                Deactivate
+                                                End seat
                                             </Button>
                                         }
-                                        title={`Deactivate ${m.user.name}?`}
+                                        title={`End ${m.user.name}'s ${m.position_label} seat?`}
                                         description={
                                             <>
-                                                This removes their ability to submit or act on documents for this
-                                                organization. Their history is retained, and the adviser can bind a
-                                                replacement afterward.
+                                                <span className="block">
+                                                    This ends their {m.position_label} seat only. They can no longer
+                                                    submit or act on documents for this organization, and their
+                                                    history is kept.
+                                                </span>
+                                                <span className="mt-2 block">
+                                                    Their account stays active and they can still sign in. You can
+                                                    bind a replacement afterward. Closing the whole account is done
+                                                    by SDAO, not here.
+                                                </span>
                                             </>
                                         }
                                         notice={
@@ -148,7 +155,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                                 <PageNotice tone="destructive" urgent title={deactivateError.message} />
                                             )
                                         }
-                                        confirmLabel="Deactivate"
+                                        confirmLabel="End Seat"
                                         confirmVariant="destructive"
                                         onConfirm={(actions) => deactivate(m.id, actions)}
                                     />

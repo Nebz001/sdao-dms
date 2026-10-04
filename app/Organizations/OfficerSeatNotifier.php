@@ -4,12 +4,18 @@ namespace App\Organizations;
 
 use App\Enums\OfficerPosition;
 use App\Enums\OfficerSeatEndReason;
+use App\Identity\RoleDirectory;
+use App\Models\OfficerChangeRequest;
 use App\Models\Organization;
 use App\Models\OrganizationJoinRequest;
+use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Notifications\JoinRequestWithdrawnNotification;
+use App\Notifications\OfficerAccountDeactivatedNotification;
+use App\Notifications\OfficerChangeRequestClosedNotification;
 use App\Notifications\OfficerSeatEndedNotification;
 use App\Notifications\OfficerSeatGrantedNotification;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -29,6 +35,62 @@ class OfficerSeatNotifier
         } catch (\Throwable $e) {
             Log::error('Officer-seat-granted notification failed to dispatch', [
                 'user_id' => $student->id,
+                'organization_id' => $organization->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Tells each requester that their officer change request was closed because
+     * its nominee can no longer be considered. Only a requester who STILL holds
+     * a seat in that org is told — they are waiting on an answer; anyone who has
+     * lost their seat (including the deactivated student themselves) is not.
+     *
+     * @param  iterable<int, OfficerChangeRequest>  $withdrawn
+     */
+    public function changeRequestsClosed(iterable $withdrawn): void
+    {
+        foreach ($withdrawn as $changeRequest) {
+            $stillOfficer = OrganizationMembership::query()
+                ->where('organization_id', $changeRequest->organization_id)
+                ->where('user_id', $changeRequest->requested_by)
+                ->active()
+                ->exists();
+
+            if (! $stillOfficer) {
+                continue;
+            }
+
+            try {
+                $changeRequest->requester->notify(new OfficerChangeRequestClosedNotification($changeRequest));
+            } catch (\Throwable $e) {
+                Log::error('Officer-change-request-closed notification failed to dispatch', [
+                    'officer_change_request_id' => $changeRequest->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Tells an organization's adviser that SDAO deactivated one of its officers'
+     * accounts, which ended the seat without their involvement — and how many
+     * active officers the org has left. Silent when the org has no resolvable
+     * adviser (nobody to tell).
+     */
+    public function adviserOfDeactivatedOfficer(Organization $organization, string $officerName, OfficerPosition $position, int $remainingOfficers): void
+    {
+        try {
+            $adviser = app(RoleDirectory::class)->adviserFor($organization);
+        } catch (ModelNotFoundException) {
+            return;
+        }
+
+        try {
+            $adviser->notify(new OfficerAccountDeactivatedNotification($organization, $officerName, $position, $remainingOfficers));
+        } catch (\Throwable $e) {
+            Log::error('Officer-account-deactivated notification failed to dispatch', [
                 'organization_id' => $organization->id,
                 'exception' => $e->getMessage(),
             ]);

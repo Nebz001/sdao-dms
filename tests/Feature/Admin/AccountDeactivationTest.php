@@ -111,13 +111,13 @@ test('an admin cannot deactivate themselves or an already deactivated account', 
     expect(fn () => deactivateAs($this->sdaoA, $this->retired))->toThrow(ValidationException::class);
 });
 
-test('student accounts cannot be deactivated here yet', function () {
+test('a student account can be deactivated, and its officer seat ends with it (details in StudentAccountDeactivationTest)', function () {
     $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
-    expect(fn () => deactivateAs($this->sdaoA, $student))
-        ->toThrow(ValidationException::class, 'Student accounts cannot be deactivated here yet.');
+    deactivateAs($this->sdaoA, $student);
 
-    expect($student->refresh()->isDeactivated())->toBeFalse();
+    expect($student->refresh()->isDeactivated())->toBeTrue();
+    expect($student->organizationMemberships()->active()->exists())->toBeFalse();
 });
 
 test('the sole holder of a seat cannot be deactivated until a replacement exists', function () {

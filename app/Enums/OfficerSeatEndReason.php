@@ -17,11 +17,15 @@ enum OfficerSeatEndReason: string
     /** The organization's adviser deactivated the officer from Manage Officers. */
     case Deactivated = 'deactivated';
 
+    /** SDAO deactivated the officer's whole account (not just the seat). */
+    case AccountDeactivated = 'account_deactivated';
+
     public function sentence(): string
     {
         return match ($this) {
             self::Replaced => 'The organization\'s officers were changed.',
             self::Deactivated => 'The organization\'s adviser deactivated your officer seat.',
+            self::AccountDeactivated => 'Your account was deactivated by SDAO, so your officer seat ended with it.',
         };
     }
 }

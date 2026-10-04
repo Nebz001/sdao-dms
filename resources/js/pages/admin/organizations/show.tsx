@@ -2,6 +2,7 @@ import { Deferred, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Building2, FileText, ListChecks, RefreshCw, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import DeactivateOfficerAccountDialog from '@/components/deactivate-officer-account-dialog';
 import ErrorBoundary from '@/components/error-boundary';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
@@ -64,7 +65,15 @@ type DocumentRow = {
     href: string | null;
 };
 
-type Officer = { id: number; position: string; name: string; id_number: string | null; since: string | null };
+type Officer = {
+    id: number;
+    user_id: number;
+    position: string;
+    name: string;
+    id_number: string | null;
+    since: string | null;
+    remaining_officers: number;
+};
 
 type Props = {
     /** Null when the id matches no organization (the response is a 404). */
@@ -328,14 +337,22 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
     );
 }
 
-const OFFICER_COLUMNS: DataColumn<Officer>[] = [
-    { key: 'name', header: 'Name', slot: 'title', cell: (o) => o.name },
-    { key: 'position', header: 'Position', slot: 'badge', cell: (o) => o.position },
-    { key: 'id_number', header: 'ID number', cell: (o) => o.id_number ?? DASH },
-    { key: 'since', header: 'Since', className: 'tabular-nums', cell: (o) => (o.since ? formatDate(o.since) : DASH) },
-];
+function officerColumns(organizationName: string): DataColumn<Officer>[] {
+    return [
+        { key: 'name', header: 'Name', slot: 'title', cell: (o) => o.name },
+        { key: 'position', header: 'Position', slot: 'badge', cell: (o) => o.position },
+        { key: 'id_number', header: 'ID number', cell: (o) => o.id_number ?? DASH },
+        { key: 'since', header: 'Since', className: 'tabular-nums', cell: (o) => (o.since ? formatDate(o.since) : DASH) },
+        {
+            key: 'actions',
+            header: 'Actions',
+            slot: 'action',
+            cell: (o) => <DeactivateOfficerAccountDialog officer={o} organizationName={organizationName} />,
+        },
+    ];
+}
 
-function OfficersSection({ rows }: { rows: Officer[] }) {
+function OfficersSection({ rows, organizationName }: { rows: Officer[]; organizationName: string }) {
     return (
         <SectionCard title="Officers" count={rows.length}>
             {rows.length === 0 ? (
@@ -344,7 +361,7 @@ function OfficersSection({ rows }: { rows: Officer[] }) {
                     description="The adviser binds a president and a secretary once the organization is approved."
                 />
             ) : (
-                <DataTable rows={rows} columns={OFFICER_COLUMNS} rowKey={(o) => o.id} />
+                <DataTable rows={rows} columns={officerColumns(organizationName)} rowKey={(o) => o.id} />
             )}
         </SectionCard>
     );
@@ -429,7 +446,7 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
             </Deferred>
 
             <Deferred data="officers" fallback={<SectionSkeleton title="Officers" />}>
-                <OfficersSection rows={officers ?? []} />
+                <OfficersSection rows={officers ?? []} organizationName={organization.name} />
             </Deferred>
         </div>
     );

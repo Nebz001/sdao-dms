@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Enums\OfficerPosition;
-use App\Enums\OfficerSeatEndReason;
 use App\Models\Organization;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -12,11 +11,13 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Queued to an officer whose seat just ended — replaced by a bind or an
- * approved change request, or deactivated by the adviser. ->queue() so a
- * mail-provider failure never blocks the change itself.
+ * Queued to an organization's adviser when SDAO deactivates the account of one
+ * of its officers (App\Identity\Admin\DeactivateAccount), so a seat that ended
+ * without the adviser's involvement never leaves the org short of officers
+ * unannounced. ->queue() so a mail-provider failure never blocks the
+ * deactivation itself.
  */
-class OfficerSeatEndedMail extends Mailable
+class OfficerAccountDeactivatedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -25,8 +26,9 @@ class OfficerSeatEndedMail extends Mailable
 
     public function __construct(
         public readonly Organization $organization,
+        public readonly string $officerName,
         public readonly OfficerPosition $position,
-        public readonly OfficerSeatEndReason $reason,
+        public readonly int $remainingOfficers,
     ) {}
 
     /**
@@ -40,19 +42,20 @@ class OfficerSeatEndedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Your {$this->position->label()} seat has ended — {$this->organization->name}",
+            subject: "{$this->position->label()} seat ended — {$this->organization->name}",
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.officer-seat-ended',
+            markdown: 'mail.officer-account-deactivated',
             with: [
-                'positionLabel' => $this->position->label(),
                 'organizationName' => $this->organization->name,
-                'reasonSentence' => $this->reason->sentence(),
-                'accountDeactivated' => $this->reason === OfficerSeatEndReason::AccountDeactivated,
+                'officerName' => $this->officerName,
+                'positionLabel' => $this->position->label(),
+                'remainingOfficers' => $this->remainingOfficers,
+                'officersUrl' => route('officers.index', $this->organization),
             ],
         );
     }

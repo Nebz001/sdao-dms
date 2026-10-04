@@ -62,6 +62,19 @@ final class FlashToast
     }
 
     /**
+     * A toast action that POSTs to a real endpoint under a label that says what
+     * it does — for when the generic "Undo" would be ambiguous (e.g. the
+     * deactivation toast, where the reverse restores the account but NOT the
+     * officer seat that ended with it).
+     *
+     * @return array{label: string, href: string, method: 'post'}
+     */
+    public static function postAction(string $label, string $url): array
+    {
+        return ['label' => $label, 'href' => $url, 'method' => 'post'];
+    }
+
+    /**
      * @return array{label: string, href: string, method: 'get'}
      */
     public static function link(string $label, string $url): array

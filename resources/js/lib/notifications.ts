@@ -46,6 +46,8 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
             return { Icon: Ban, iconClassName: 'text-destructive', chipClassName: 'bg-destructive/15' };
         case 'join_request_withdrawn':
             return { Icon: Ban, iconClassName: 'text-muted-foreground', chipClassName: 'bg-muted' };
+        case 'officer_change_withdrawn':
+        case 'officer_account_deactivated':
         case 'officer_seat_ended':
             return { Icon: Ban, iconClassName: 'text-warning', chipClassName: 'bg-warning/15' };
         case 'join_request_received':

@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
+use App\Models\OrganizationMembership;
 use App\Models\User;
 
 /**
@@ -28,12 +29,25 @@ class WithdrawInFlightRegistrations
 
     public function __construct(private readonly ApprovalEngine $engine) {}
 
-    public function execute(User $user): void
+    public const string DEACTIVATED_REASON = 'Withdrawn automatically: the submitting account was deactivated.';
+
+    /**
+     * @param  string|null  $reason  what the transition log records; defaults to the account-deleted wording
+     * @param  bool  $onlyWhereNoOfficers  withdraw only registrations whose organization has no active officer left —
+     *                                     the founding case, where the submitter is the ONLY person with access
+     *                                     (OrganizationMembershipService::canActOnDocument). Used when deactivating an
+     *                                     account, run after the seat is closed.
+     */
+    public function execute(User $user, ?string $reason = null, bool $onlyWhereNoOfficers = false): void
     {
         Document::query()
             ->where('form_type', FormType::OrganizationRegistration)
             ->where('submitted_by', $user->id)
             ->whereIn('status', [DocumentStatus::Draft, DocumentStatus::InReview, DocumentStatus::Returned])
-            ->each(fn (Document $document) => $this->engine->withdraw($document, self::REASON));
+            ->when($onlyWhereNoOfficers, fn ($query) => $query->whereNotIn(
+                'organization_id',
+                OrganizationMembership::query()->active()->select('organization_id'),
+            ))
+            ->each(fn (Document $document) => $this->engine->withdraw($document, $reason ?? self::REASON));
     }
 }

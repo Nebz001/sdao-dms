@@ -67,6 +67,12 @@ class ApproveJoinRequest
                 ]);
             }
 
+            if ($student->isDeactivated()) {
+                throw ValidationException::withMessages([
+                    'join_request' => "{$student->name}'s account has been deactivated, so this request can't be approved. Decline it instead.",
+                ]);
+            }
+
             // A student who already holds a seat — in THIS organization or any
             // other — can't be given another. (Joining must never be a route to
             // holding both seats of one org: the check below used to exclude this

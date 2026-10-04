@@ -99,6 +99,6 @@ class OrganizationOfficerController extends Controller
         }
 
         return redirect()->route('officers.index', $organization)
-            ->with('flash', FlashToast::make('Officer deactivated', 'Their membership is closed and kept in the document history.'));
+            ->with('flash', FlashToast::make('Officer seat ended', 'Their account is unchanged. The seat is closed and kept in the document history.'));
     }
 }

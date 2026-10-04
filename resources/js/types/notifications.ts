@@ -11,6 +11,8 @@ export type NotificationKind =
     | 'join_request_withdrawn'
     | 'officer_seat_granted'
     | 'officer_seat_ended'
+    | 'officer_account_deactivated'
+    | 'officer_change_withdrawn'
     | 'renewal_window_opened';
 
 export type NotificationItem = {
