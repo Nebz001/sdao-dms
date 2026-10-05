@@ -1,180 +1,374 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { SearchIcon, ShieldCheck } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Admin/AccountController';
 import AccountName from '@/components/account-name';
-import ConfirmDialog from '@/components/confirm-dialog';
-import InputError from '@/components/input-error';
+import CountBadge from '@/components/approver-accounts/count-badge';
+import {
+    accountsForTab,
+    groupAccounts,
+    hasActiveFilters,
+    tabCounts,
+} from '@/components/approver-accounts/filter-accounts';
+import type { AccountGroup } from '@/components/approver-accounts/filter-accounts';
+import ManageAccountDialog from '@/components/approver-accounts/manage-account-dialog';
+import {
+    ActiveApproversCard,
+    DeactivatedCard,
+    MissingAdviserCard,
+} from '@/components/approver-accounts/stat-cards';
+import {
+    DEACTIVATED_HINT,
+    DEFAULT_FILTERS,
+    ROLE_GROUPS,
+} from '@/components/approver-accounts/types';
+import type {
+    ApproverAccount,
+    ApproverStats,
+    Filters,
+    RoleGroup,
+    School,
+    StatusFilter,
+    Tab,
+} from '@/components/approver-accounts/types';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
-import { FlagBadge } from '@/components/status-badge';
-import TagBadge from '@/components/tag-badge';
+import { FlagBadge, ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DialogClose, DialogFooter } from '@/components/ui/dialog';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import * as approvers from '@/routes/admin/approvers';
 
-type RoleEntry = { role: string; label: string; scope: string };
-
-type AccountEntry = {
-    id: number;
-    name: string;
-    email: string;
-    is_self: boolean;
-    deactivated_at: string | null;
-    deactivated_reason: string | null;
-    deactivated_by: string | null;
-    roles: RoleEntry[];
-};
-
 type Props = {
-    approvers: AccountEntry[];
+    approvers: ApproverAccount[];
+    stats: ApproverStats;
+    schools: School[];
 };
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const HEAD =
+    'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+
+const TABS: { value: Tab; label: string }[] = [
+    { value: 'all', label: 'All' },
+    ...ROLE_GROUPS.map((g) => ({ value: g.key as Tab, label: g.tab })),
+    { value: 'deactivated', label: 'Deactivated' },
+];
+
+const GROUP_META: Record<
+    AccountGroup['key'],
+    { heading: string; hint: string }
+> = {
+    ...(Object.fromEntries(
+        ROLE_GROUPS.map((g) => [g.key, { heading: g.heading, hint: g.hint }]),
+    ) as Record<RoleGroup, { heading: string; hint: string }>),
+    deactivated: { heading: 'Deactivated', hint: DEACTIVATED_HINT },
+    found: {
+        heading: 'Other accounts',
+        hint: 'Found by search, no approver role',
+    },
+};
+
+function RoleBadge({ account }: { account: ApproverAccount }) {
+    return (
+        <ToneBadge
+            tone={account.role_label ? 'info' : 'neutral'}
+            className="h-auto max-w-full text-left break-words whitespace-normal"
+        >
+            {account.role_label ?? 'No role'}
+        </ToneBadge>
+    );
 }
 
-function AccountRow({ account, onChanged }: { account: AccountEntry; onChanged?: () => void }) {
-    const deactivated = account.deactivated_at !== null;
+function StatusBadge({ account }: { account: ApproverAccount }) {
+    return account.deactivated_at ? (
+        <FlagBadge flag="deactivated" />
+    ) : (
+        <ToneBadge tone="success">Active</ToneBadge>
+    );
+}
+
+function ApprovesFor({ account }: { account: ApproverAccount }) {
+    if (!account.approves_for) {
+        return <span className="text-muted-foreground">None</span>;
+    }
 
     return (
-        <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-            <div className={deactivated ? 'min-w-0 opacity-70' : 'min-w-0'}>
-                <div className="flex flex-wrap items-center gap-2">
-                    <AccountName name={account.name} nameClassName="font-medium" />
-                    {deactivated && <FlagBadge flag="deactivated" />}
-                </div>
-                <p className="truncate text-sm text-muted-foreground">{account.email}</p>
-                {deactivated && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Deactivated {formatDate(account.deactivated_at as string)} by {account.deactivated_by}.
-                        {account.deactivated_reason ? ` Reason: ${account.deactivated_reason}` : ''}
-                    </p>
-                )}
-                <div className="mt-2 flex flex-wrap gap-1">
-                    {account.roles.length === 0 ? (
-                        <TagBadge>No role</TagBadge>
-                    ) : (
-                        account.roles.map((r, i) => (
-                            <TagBadge key={i}>
-                                {r.label} · {r.scope}
-                            </TagBadge>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            <div className="shrink-0">
-                {deactivated ? (
-                    <ConfirmDialog
-                        trigger={
-                            <Button type="button" size="sm" variant="outline">
-                                Reactivate
-                            </Button>
-                        }
-                        title={`Reactivate ${account.name}?`}
-                        description="They will be able to log in again with their existing password. Sessions that were ended stay ended."
-                        confirmLabel="Reactivate"
-                        onConfirm={({ close, stopProcessing }) => {
-                            router.post(
-                                AccountController.reactivate.url(account.id),
-                                {},
-                                {
-                                    preserveScroll: true,
-                                    onSuccess: () => {
-                                        close();
-                                        onChanged?.();
-                                    },
-                                    onFinish: stopProcessing,
-                                },
-                            );
-                        }}
-                    />
-                ) : (
-                    !account.is_self && (
-                        <ConfirmDialog
-                            trigger={
-                                <Button type="button" size="sm" variant="destructive">
-                                    Deactivate
-                                </Button>
-                            }
-                            title={`Deactivate ${account.name}?`}
-                            description={
-                                <>
-                                    <span className="block">
-                                        {account.name} will be signed out everywhere, including the mobile app, and
-                                        will not be able to log in or reset their password.
-                                    </span>
-                                    <span className="mt-2 block">
-                                        Their history stays and keeps showing their name. You can reactivate them
-                                        later.
-                                    </span>
-                                </>
-                            }
-                        >
-                            {(close) => (
-                                <Form
-                                    {...AccountController.deactivate.form(account.id)}
-                                    options={{ preserveScroll: true }}
-                                    onSuccess={() => {
-                                        close();
-                                        onChanged?.();
-                                    }}
-                                >
-                                    {({ processing, errors }) => (
-                                        <>
-                                            <Label htmlFor={`deactivate-reason-${account.id}`}>Reason (optional)</Label>
-                                            <Textarea
-                                                id={`deactivate-reason-${account.id}`}
-                                                name="reason"
-                                                rows={3}
-                                                maxLength={500}
-                                                placeholder="For example, replaced as SDAO member"
-                                            />
-                                            <InputError message={errors.reason || errors.account} />
-                                            <DialogFooter className="mt-4 gap-2">
-                                                <DialogClose asChild>
-                                                    <Button type="button" variant="secondary" disabled={processing}>
-                                                        Cancel
-                                                    </Button>
-                                                </DialogClose>
-                                                <Button type="submit" variant="destructive" loading={processing}>
-                                                    Deactivate
-                                                </Button>
-                                            </DialogFooter>
-                                        </>
-                                    )}
-                                </Form>
-                            )}
-                        </ConfirmDialog>
-                    )
-                )}
-            </div>
+        <div className="flex flex-col">
+            <span>{account.approves_for.primary}</span>
+            {account.approves_for.secondary && (
+                <span className="text-sm text-muted-foreground">
+                    {account.approves_for.secondary}
+                </span>
+            )}
         </div>
     );
 }
 
+function Approver({ account }: { account: ApproverAccount }) {
+    return (
+        <div className="flex min-w-0 flex-col">
+            <AccountName name={account.name} nameClassName="font-medium" />
+            <span className="text-sm break-all text-muted-foreground">
+                {account.email}
+            </span>
+        </div>
+    );
+}
+
+function GroupHeading({
+    group,
+    count,
+}: {
+    group: AccountGroup['key'];
+    count: number;
+}) {
+    return (
+        <span className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+            {GROUP_META[group].heading}
+            <CountBadge count={count} />
+        </span>
+    );
+}
+
 /**
- * "Find an account": reaches any non student account by name or email,
- * including one that no longer holds a role and so is not on the list below
- * (for example an old test account). Same debounced fetch and stale response
- * guard as the other typeaheads.
+ * One header row, then a body per role group opened by a group header row
+ * (role, count, quiet hint). Below `md` the same groups stack as cards, so a
+ * narrow screen never scrolls sideways.
  */
-function FindAccount() {
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState<AccountEntry[]>([]);
-    const [status, setStatus] = useState<'idle' | 'searching' | 'done'>('idle');
+function AccountsTable({
+    groups,
+    onChanged,
+}: {
+    groups: AccountGroup[];
+    onChanged: () => void;
+}) {
+    return (
+        <>
+            <div className="hidden md:block">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className={HEAD}>Approver</TableHead>
+                            <TableHead className={HEAD}>Role</TableHead>
+                            <TableHead className={HEAD}>Approves for</TableHead>
+                            <TableHead className={HEAD}>Status</TableHead>
+                            <TableHead className={cn(HEAD, 'text-right')}>
+                                Action
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    {groups.map((group) => (
+                        <TableBody key={group.key}>
+                            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                <th
+                                    scope="colgroup"
+                                    colSpan={5}
+                                    className="px-2 py-3 text-left font-normal"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                        <GroupHeading
+                                            group={group.key}
+                                            count={group.accounts.length}
+                                        />
+                                        <span className="text-sm text-muted-foreground">
+                                            {GROUP_META[group.key].hint}
+                                        </span>
+                                    </div>
+                                </th>
+                            </TableRow>
+                            {group.accounts.map((account) => (
+                                <TableRow key={account.id}>
+                                    <TableCell className="whitespace-normal">
+                                        <Approver account={account} />
+                                    </TableCell>
+                                    <TableCell className="whitespace-normal">
+                                        <RoleBadge account={account} />
+                                    </TableCell>
+                                    <TableCell className="whitespace-normal">
+                                        <ApprovesFor account={account} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <StatusBadge account={account} />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <ManageAccountDialog
+                                            account={account}
+                                            onChanged={onChanged}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    ))}
+                </Table>
+            </div>
+
+            <div className="flex flex-col gap-6 md:hidden">
+                {groups.map((group) => (
+                    <section
+                        key={group.key}
+                        aria-label={GROUP_META[group.key].heading}
+                        className="flex flex-col gap-3"
+                    >
+                        <div className="flex flex-col gap-0.5">
+                            <GroupHeading
+                                group={group.key}
+                                count={group.accounts.length}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                {GROUP_META[group.key].hint}
+                            </span>
+                        </div>
+                        <ul className="flex flex-col gap-3">
+                            {group.accounts.map((account) => (
+                                <li
+                                    key={account.id}
+                                    className="flex flex-col gap-3 rounded-lg border p-4"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <Approver account={account} />
+                                        <div className="shrink-0">
+                                            <StatusBadge account={account} />
+                                        </div>
+                                    </div>
+                                    <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-1.5 text-sm">
+                                        <dt className="text-muted-foreground">
+                                            Role
+                                        </dt>
+                                        <dd className="min-w-0">
+                                            <RoleBadge account={account} />
+                                        </dd>
+                                        <dt className="text-muted-foreground">
+                                            Approves for
+                                        </dt>
+                                        <dd className="min-w-0">
+                                            <ApprovesFor account={account} />
+                                        </dd>
+                                    </dl>
+                                    <div className="[&_button]:w-full">
+                                        <ManageAccountDialog
+                                            account={account}
+                                            onChanged={onChanged}
+                                        />
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                ))}
+            </div>
+        </>
+    );
+}
+
+function FilterSelect({
+    id,
+    label,
+    value,
+    onChange,
+    disabled,
+    children,
+}: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <Select value={value} onValueChange={onChange} disabled={disabled}>
+                <SelectTrigger id={id} className="w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>{children}</SelectGroup>
+                </SelectContent>
+            </Select>
+        </div>
+    );
+}
+
+export default function AdminApproversIndex({
+    approvers: items,
+    stats,
+    schools,
+}: Props) {
+    const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+    const [found, setFound] = useState<ApproverAccount[]>([]);
+    const [searching, setSearching] = useState(false);
     const [searchFailed, setSearchFailed] = useState(false);
+    const latestSearch = useRef('');
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const latestQuery = useRef('');
+
+    const update = (patch: Partial<Filters>) =>
+        setFilters((current) => ({ ...current, ...patch }));
+
+    const counts = useMemo(() => tabCounts(items, filters), [items, filters]);
+    const visible = useMemo(
+        () => accountsForTab(items, filters, filters.tab),
+        [items, filters],
+    );
+    const listedIds = useMemo(() => new Set(items.map((a) => a.id)), [items]);
+
+    // Accounts that hold no role are not on the list; the server search reaches them.
+    // Only shown for an unnarrowed role/scope/tab, since such an account has neither.
+    const foundExtra = useMemo(
+        () =>
+            filters.tab === 'all' &&
+            filters.role === 'all' &&
+            filters.scope === 'all' &&
+            filters.status !== 'deactivated'
+                ? found.filter((a) => !listedIds.has(a.id))
+                : [],
+        [
+            found,
+            listedIds,
+            filters.tab,
+            filters.role,
+            filters.scope,
+            filters.status,
+        ],
+    );
+
+    const groups = useMemo(() => {
+        const base = groupAccounts(visible);
+
+        return foundExtra.length > 0
+            ? [...base, { key: 'found' as const, accounts: foundExtra }]
+            : base;
+    }, [visible, foundExtra]);
 
     useEffect(() => {
         return () => {
@@ -184,12 +378,15 @@ function FindAccount() {
         };
     }, []);
 
-    function search(text: string) {
-        setStatus('searching');
+    function runSearch(text: string) {
+        setSearching(true);
         setSearchFailed(false);
 
         fetch(AccountController.search.url({ query: { q: text } }), {
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
         })
             .then((res) => {
                 if (!res.ok) {
@@ -199,133 +396,276 @@ function FindAccount() {
                 return res.json();
             })
             .then((data) => {
-                if (latestQuery.current !== text) {
-                    return;
+                if (latestSearch.current === text) {
+                    setFound(data.accounts ?? []);
+                    setSearching(false);
                 }
-
-                setResults(data.accounts ?? []);
-                setStatus('done');
             })
             .catch(() => {
-                if (latestQuery.current !== text) {
-                    return;
+                if (latestSearch.current === text) {
+                    setSearchFailed(true);
+                    setSearching(false);
                 }
-
-                setSearchFailed(true);
-                setStatus('done');
             });
     }
 
-    function handleChange(text: string) {
-        setQuery(text);
-        latestQuery.current = text;
+    function handleSearch(text: string) {
+        update({ search: text });
+        const trimmed = text.trim();
+        latestSearch.current = trimmed;
 
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
 
-        if (text.trim().length < 2) {
-            setResults([]);
-            setStatus('idle');
+        if (trimmed.length < 2) {
+            setFound([]);
+            setSearching(false);
             setSearchFailed(false);
 
             return;
         }
 
-        debounceTimer.current = setTimeout(() => search(text.trim()), SEARCH_DEBOUNCE_MS);
+        debounceTimer.current = setTimeout(
+            () => runSearch(trimmed),
+            SEARCH_DEBOUNCE_MS,
+        );
     }
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">Find an account</CardTitle>
-                <CardDescription>
-                    Search by name or email to deactivate an account that no longer holds a role. Student accounts
-                    are not included.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <div className="relative">
-                    <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        value={query}
-                        onChange={(e) => handleChange(e.target.value)}
-                        placeholder="Search by name or email…"
-                        aria-label="Find an account"
-                        autoComplete="off"
-                        className="pl-9"
-                    />
-                </div>
+    function refreshSearch() {
+        if (latestSearch.current.length >= 2) {
+            runSearch(latestSearch.current);
+        }
+    }
 
-                {status === 'searching' && (
-                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Spinner className="size-3.5" /> Searching accounts…
-                    </p>
-                )}
-                {status === 'done' && searchFailed && (
-                    <PageNotice tone="destructive" urgent title="Could not search accounts just now.">
-                        Try again.
-                    </PageNotice>
-                )}
-                {status === 'done' && !searchFailed && results.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No matching accounts.</p>
-                )}
-                {results.length > 0 && (
-                    <div className="divide-y">
-                        {results.map((a) => (
-                            <AccountRow key={a.id} account={a} onChanged={() => search(latestQuery.current.trim())} />
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
+    function clearFilters() {
+        setFilters(DEFAULT_FILTERS);
+        latestSearch.current = '';
+        setFound([]);
+        setSearchFailed(false);
+    }
 
-export default function AdminApproversIndex({ approvers: items }: Props) {
+    const onDeactivatedTab = filters.tab === 'deactivated';
+
     return (
         <>
             <Head title="Approvers" />
 
-            <div className="space-y-6">
-                <PageHeader title="Approver Accounts" subtitle="Accounts for everyone who approves documents" actions={
-<Button asChild>
-                        <Link href={approvers.create().url}>Provision Approver</Link>
-                    </Button>
-} />
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Approver Accounts"
+                    subtitle="Everyone who approves documents, grouped by the role they hold."
+                    actions={
+                        <Button asChild>
+                            <Link href={approvers.create().url}>
+                                Provision approver
+                            </Link>
+                        </Button>
+                    }
+                />
 
-                <FindAccount />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
+                    <ActiveApproversCard stats={stats.active} />
+                    <MissingAdviserCard stats={stats.missingAdviser} />
+                    <DeactivatedCard stats={stats.deactivated} />
+                </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">All Approvers</CardTitle>
-                    </CardHeader>
+                <Card className="shadow-none">
                     <CardContent>
-                        {items.length === 0 ? (
+                        <form
+                            role="search"
+                            aria-label="Filter approver accounts"
+                            onSubmit={(e) => e.preventDefault()}
+                            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.4fr)]"
+                        >
+                            <FilterSelect
+                                id="filter-role"
+                                label="Role"
+                                value={filters.role}
+                                onChange={(v) =>
+                                    update({ role: v as Filters['role'] })
+                                }
+                            >
+                                <SelectItem value="all">All roles</SelectItem>
+                                {ROLE_GROUPS.map((g) => (
+                                    <SelectItem key={g.key} value={g.key}>
+                                        {g.tab}
+                                    </SelectItem>
+                                ))}
+                            </FilterSelect>
+                            <FilterSelect
+                                id="filter-scope"
+                                label="Scope"
+                                value={filters.scope}
+                                onChange={(v) => update({ scope: v })}
+                            >
+                                <SelectItem value="all">All scopes</SelectItem>
+                                <SelectItem value="global">
+                                    Whole school
+                                </SelectItem>
+                                {schools.map((s) => (
+                                    <SelectItem
+                                        key={s.id}
+                                        value={`school:${s.id}`}
+                                    >
+                                        {s.name}
+                                    </SelectItem>
+                                ))}
+                                <SelectItem value="none">No college</SelectItem>
+                                <SelectItem value="unassigned">
+                                    Not assigned yet
+                                </SelectItem>
+                            </FilterSelect>
+                            <FilterSelect
+                                id="filter-status"
+                                label="Status"
+                                value={
+                                    onDeactivatedTab
+                                        ? 'deactivated'
+                                        : filters.status
+                                }
+                                onChange={(v) =>
+                                    update({ status: v as StatusFilter })
+                                }
+                                disabled={onDeactivatedTab}
+                            >
+                                <SelectItem value="active">
+                                    Active only
+                                </SelectItem>
+                                <SelectItem value="deactivated">
+                                    Deactivated only
+                                </SelectItem>
+                                <SelectItem value="all">
+                                    All statuses
+                                </SelectItem>
+                            </FilterSelect>
+                            <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-1">
+                                <Label htmlFor="filter-search">Search</Label>
+                                <div className="relative">
+                                    <SearchIcon
+                                        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                        aria-hidden
+                                    />
+                                    <Input
+                                        id="filter-search"
+                                        type="search"
+                                        value={filters.search}
+                                        onChange={(e) =>
+                                            handleSearch(e.target.value)
+                                        }
+                                        placeholder="Name, email, or organization"
+                                        autoComplete="off"
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </div>
+                        </form>
+                        <div aria-live="polite" className="mt-3 empty:hidden">
+                            {searching && (
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Spinner className="size-3.5" /> Searching
+                                    accounts…
+                                </p>
+                            )}
+                            {!searching && searchFailed && (
+                                <PageNotice
+                                    tone="destructive"
+                                    urgent
+                                    title="Could not search accounts just now."
+                                >
+                                    Try again.
+                                </PageNotice>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div
+                    role="group"
+                    aria-label="Show accounts by role"
+                    className="flex flex-wrap gap-1.5"
+                >
+                    {TABS.map((tab) => {
+                        const active = tab.value === filters.tab;
+
+                        return (
+                            <Button
+                                key={tab.value}
+                                type="button"
+                                size="sm"
+                                variant={active ? 'secondary' : 'ghost'}
+                                aria-pressed={active}
+                                onClick={() => update({ tab: tab.value })}
+                            >
+                                {tab.label}
+                                <CountBadge
+                                    count={counts[tab.value]}
+                                    variant="outline"
+                                />
+                            </Button>
+                        );
+                    })}
+                </div>
+
+                <Card className="shadow-none">
+                    <CardContent>
+                        {groups.length === 0 ? (
                             <Empty>
                                 <EmptyHeader>
                                     <EmptyMedia variant="icon">
                                         <ShieldCheck />
                                     </EmptyMedia>
-                                    <EmptyTitle>No approvers provisioned yet</EmptyTitle>
+                                    <EmptyTitle>
+                                        {items.length === 0
+                                            ? 'No approvers provisioned yet'
+                                            : emptyTitle(filters)}
+                                    </EmptyTitle>
                                     <EmptyDescription>
-                                        Provisioned approver accounts will show up here.
+                                        {items.length === 0
+                                            ? 'Provisioned approver accounts will show up here.'
+                                            : emptyDescription(filters)}
                                     </EmptyDescription>
                                 </EmptyHeader>
+                                {items.length > 0 &&
+                                    hasActiveFilters(filters) && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={clearFilters}
+                                        >
+                                            Clear filters
+                                        </Button>
+                                    )}
                             </Empty>
                         ) : (
-                            <div className="divide-y">
-                                {items.map((a) => (
-                                    <AccountRow key={a.id} account={a} />
-                                ))}
-                            </div>
+                            <AccountsTable
+                                groups={groups}
+                                onChanged={refreshSearch}
+                            />
                         )}
                     </CardContent>
                 </Card>
             </div>
         </>
     );
+}
+
+function emptyTitle(filters: Filters): string {
+    return filters.tab === 'deactivated'
+        ? 'No deactivated accounts'
+        : 'No matching accounts';
+}
+
+function emptyDescription(filters: Filters): string {
+    if (
+        filters.tab === 'deactivated' &&
+        !hasActiveFilters({ ...filters, tab: 'all' })
+    ) {
+        return 'Accounts you deactivate are kept here for the record.';
+    }
+
+    return 'Try a different search, or clear the filters to see everyone.';
 }
 
 AdminApproversIndex.layout = {

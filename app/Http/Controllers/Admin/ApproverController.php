@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Dashboard\AdminAttentionData;
 use App\Enums\Role;
+use App\Enums\ScopeType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProvisionApproverRequest;
 use App\Identity\Admin\ProvisionApprover;
@@ -17,12 +19,29 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ApproverController extends Controller
 {
-    public function index(): Response
+    /**
+     * The role groups of the Approver Accounts table, in display order. A user
+     * holding several roles lands in the first group they qualify for. Program
+     * chairs get their own group (no other tab covers them), and principals
+     * sit with deans, since a principal is the school head in Senior High.
+     *
+     * @var array<string, array<int, Role>>
+     */
+    private const array GROUPS = [
+        'adviser' => [Role::Adviser],
+        'program_chair' => [Role::ProgramChair],
+        'dean' => [Role::Dean, Role::Principal],
+        'sdao' => [Role::SdaoMember],
+        'director' => [Role::AssistantDirectorAcademicServices, Role::AcademicDirector, Role::ExecutiveDirector],
+    ];
+
+    public function index(AdminAttentionData $attention): Response
     {
         // Role holders, plus every deactivated account: a deactivated account
         // often has no role left (the SDAO replacement removes it), but must
@@ -34,9 +53,50 @@ class ApproverController extends Controller
             ->orderBy('name')
             ->get();
 
+        $rows = $this->rows($approvers);
+
         return Inertia::render('admin/approvers/index', [
-            'approvers' => $this->rows($approvers),
+            'approvers' => $rows,
+            'stats' => $this->stats($rows, $attention),
+            'schools' => School::query()->orderBy('name')->get(['id', 'name'])
+                ->map(fn (School $s) => ['id' => $s->id, 'name' => $s->name])
+                ->values(),
         ]);
+    }
+
+    /**
+     * The three stat cards. Role counts are of ACTIVE approvers only; the
+     * missing-adviser figure reuses the dashboard tile's rule
+     * (AdminAttentionData::approvedOrganizationsWithoutAdviser), so the two
+     * can never disagree.
+     *
+     * @param  SupportCollection<int, array<string, mixed>>  $rows
+     * @return array<string, mixed>
+     */
+    public function stats(SupportCollection $rows, AdminAttentionData $attention): array
+    {
+        $active = $rows->whereNull('deactivated_at');
+        $deactivated = $rows->whereNotNull('deactivated_at');
+        $latest = $deactivated->sortByDesc('deactivated_at')->first();
+        $missing = $attention->approvedOrganizationsWithoutAdviser();
+
+        return [
+            'active' => [
+                'total' => $active->count(),
+                'byGroup' => collect(array_keys(self::GROUPS))
+                    ->mapWithKeys(fn (string $group) => [$group => $active->where('group', $group)->count()])
+                    ->all(),
+            ],
+            'missingAdviser' => [
+                'count' => $missing->count(),
+                'organizations' => $missing->map(fn (Organization $o) => ['id' => $o->id, 'name' => $o->name])->values(),
+                'href' => route('admin.organizations.index', ['adviser' => 'none']),
+            ],
+            'deactivated' => [
+                'count' => $deactivated->count(),
+                'latest' => $latest === null ? null : ['name' => $latest['name'], 'at' => $latest['deactivated_at']],
+            ],
+        ];
     }
 
     /**
@@ -52,24 +112,107 @@ class ApproverController extends Controller
             'deactivatedBy:id,name',
             'roleAssignments' => fn ($q) => $q
                 ->where('role', '!=', Role::Student->value)
-                ->with(['school', 'program', 'organization']),
+                ->with(['school', 'program.school', 'organization.school']),
         ]);
 
-        return $users->map(fn (User $u) => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'email' => $u->email,
-            'id_number' => $u->id_number,
-            'is_self' => $u->id === Auth::id(),
-            'deactivated_at' => $u->deactivated_at?->toIso8601String(),
-            'deactivated_reason' => $u->deactivated_reason,
-            'deactivated_by' => $u->deactivated_at !== null ? ($u->deactivatedBy?->name ?? 'Unknown') : null,
-            'roles' => $u->roleAssignments->map(fn (RoleAssignment $ra) => [
-                'role' => $ra->role->value,
-                'label' => $ra->role->label(),
-                'scope' => $this->scopeLabel($ra),
-            ])->values(),
-        ])->values();
+        $organizationsPerSchool = Organization::query()
+            ->selectRaw('school_id, count(*) as total')
+            ->groupBy('school_id')
+            ->pluck('total', 'school_id');
+        $organizationTotal = (int) $organizationsPerSchool->sum();
+
+        return $users->map(function (User $u) use ($organizationsPerSchool, $organizationTotal) {
+            $primary = $this->primaryAssignment($u);
+
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'id_number' => $u->id_number,
+                'is_self' => $u->id === Auth::id(),
+                'deactivated_at' => $u->deactivated_at?->toIso8601String(),
+                'deactivated_reason' => $u->deactivated_reason,
+                'deactivated_by' => $u->deactivated_at !== null ? ($u->deactivatedBy?->name ?? 'Unknown') : null,
+                'group' => $primary === null ? null : $this->groupOf($primary->role),
+                'role_label' => $primary?->role->label(),
+                'approves_for' => $primary === null ? null : $this->approvesFor($primary, $organizationsPerSchool, $organizationTotal),
+                'scope_key' => $primary === null ? null : $this->scopeKey($primary),
+                'roles' => $u->roleAssignments->map(fn (RoleAssignment $ra) => [
+                    'role' => $ra->role->value,
+                    'label' => $ra->role->label(),
+                    'scope' => $this->scopeLabel($ra),
+                ])->values(),
+            ];
+        })->values();
+    }
+
+    private function primaryAssignment(User $user): ?RoleAssignment
+    {
+        foreach (self::GROUPS as $roles) {
+            $match = $user->roleAssignments->first(fn (RoleAssignment $ra) => in_array($ra->role, $roles, true));
+
+            if ($match !== null) {
+                return $match;
+            }
+        }
+
+        return null;
+    }
+
+    private function groupOf(Role $role): ?string
+    {
+        foreach (self::GROUPS as $group => $roles) {
+            if (in_array($role, $roles, true)) {
+                return $group;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * What the account approves for: a line plus a quieter detail line. An
+     * adviser names the organization and its college; a dean or chair names
+     * the school (or program); the global roles cover every organization.
+     *
+     * @param  SupportCollection<int|string, mixed>  $organizationsPerSchool
+     * @return array{primary: string, secondary: string|null}
+     */
+    private function approvesFor(RoleAssignment $ra, SupportCollection $organizationsPerSchool, int $organizationTotal): array
+    {
+        $count = fn (int $n) => $n.' '.Str::plural('organization', $n);
+
+        return match ($ra->role->scopeType()) {
+            ScopeType::Organization => $ra->organization === null
+                ? ['primary' => 'Not assigned yet', 'secondary' => null]
+                : ['primary' => $ra->organization->name, 'secondary' => $ra->organization->school?->name ?? 'No college'],
+            ScopeType::Program => [
+                'primary' => $ra->program?->name ?? 'Unknown program',
+                'secondary' => $ra->program?->school?->name,
+            ],
+            ScopeType::School => [
+                'primary' => $ra->school?->name ?? 'Unknown school',
+                'secondary' => $count((int) ($organizationsPerSchool[$ra->school_id] ?? 0)),
+            ],
+            ScopeType::Global => ['primary' => 'Whole school', 'secondary' => $count($organizationTotal)],
+        };
+    }
+
+    /** "school:{id}", "none" (organization with no college), "unassigned" or "global", for the Scope filter. */
+    private function scopeKey(RoleAssignment $ra): string
+    {
+        $schoolId = match ($ra->role->scopeType()) {
+            ScopeType::Global => 'global',
+            ScopeType::Organization => $ra->organization === null ? null : ($ra->organization->school_id ?? 'none'),
+            ScopeType::Program => $ra->program?->school_id,
+            ScopeType::School => $ra->school_id,
+        };
+
+        return match (true) {
+            $schoolId === null => 'unassigned',
+            is_string($schoolId) => $schoolId,
+            default => "school:{$schoolId}",
+        };
     }
 
     public function create(RoleDirectory $directory): Response
