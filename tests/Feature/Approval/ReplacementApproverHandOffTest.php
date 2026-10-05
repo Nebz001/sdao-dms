@@ -11,8 +11,8 @@ use App\Models\Organization;
 use App\Models\School;
 use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Regression coverage for the reported bug: clicking an approver
@@ -42,10 +42,10 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * since both rows are inserted directly with a known id order).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
     $this->incumbentDean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();

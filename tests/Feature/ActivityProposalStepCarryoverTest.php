@@ -4,9 +4,9 @@ use App\ActivityProposals\StartProposalDraft;
 use App\Enums\ProposalCalendarMode;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Group D item 5 — step 1 → step 2 carryover.
@@ -17,7 +17,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * review controller already expose.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();

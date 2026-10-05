@@ -7,12 +7,12 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 });
 
 test('a freshly self-registered account has zero role assignments', function () {
@@ -53,7 +53,7 @@ test('a self-registered, verified user CAN propose a new organization (Phase 2 i
     // form type (renewal/calendar/proposal/report — covered in
     // AccountVerificationGateTest and elsewhere), which still require an
     // existing officer binding this bare account doesn't have.
-    $school = School::query()->firstOrFail();
+    $school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     // A Co-Curricular org at a regular school must have a program
     // (StoreRegistrationRequest, fix plan 2026_09_09_100000).
     $program = Program::where('school_id', $school->id)->firstOrFail();

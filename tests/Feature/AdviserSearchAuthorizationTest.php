@@ -8,9 +8,9 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Security gap fix: RegistrationController::adviserSearch() previously had no
@@ -31,9 +31,9 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * (fresh, or mid-resubmission after a return) still works.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });

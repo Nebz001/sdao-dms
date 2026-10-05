@@ -13,11 +13,11 @@ use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\RequestOfficerChange;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * A pending officer change request cannot outlive its requester's authority:
@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  * request is closed as Withdrawn (by the system — nobody reviewed it).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     Notification::fake();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

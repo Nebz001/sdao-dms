@@ -6,9 +6,9 @@ use App\Models\Organization;
 use App\Models\Program;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * HTTP-level coverage for the adviser typeahead's "bypass the UI" path: what
@@ -19,8 +19,8 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * a clear adviser_id validation error, never a 500.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 });
 
 test('store rejects a completely non-existent adviser_id with a clear error', function () {

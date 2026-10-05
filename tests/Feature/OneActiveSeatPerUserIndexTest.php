@@ -5,19 +5,19 @@ use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * org_memberships_one_active_seat_per_user — the database backstop for the
  * one-organization-per-student rule (a student holds at most one active seat).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

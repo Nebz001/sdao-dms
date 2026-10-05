@@ -6,7 +6,7 @@ import type { AuthOrganization } from '@/types/auth';
 function org(overrides: Partial<AuthOrganization> = {}): AuthOrganization {
     return {
         id: 1,
-        name: 'Computing Society',
+        name: 'Debate Society',
         logoUrl: null,
         school: null,
         ...overrides,
@@ -15,9 +15,9 @@ function org(overrides: Partial<AuthOrganization> = {}): AuthOrganization {
 
 describe('OrgBranding', () => {
     it('renders the organization name', () => {
-        render(<OrgBranding organization={org({ name: 'Computing Society' })} />);
+        render(<OrgBranding organization={org({ name: 'Debate Society' })} />);
 
-        expect(screen.getByText('Computing Society')).toBeInTheDocument();
+        expect(screen.getByText('Debate Society')).toBeInTheDocument();
     });
 
     it('falls back to the first two letters for a single-word org name — not the single-letter useInitials() behavior', () => {

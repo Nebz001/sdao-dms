@@ -3,25 +3,25 @@
 namespace Database\Seeders;
 
 use App\Enums\Role;
-use App\Models\Organization;
-use App\Models\Program;
 use App\Models\RoleAssignment;
-use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Seeds all users, schools, programs, organizations, and role assignments
- * needed to exercise every approval-chain variant:
- *   - Regular school: on-calendar and off-calendar (adviser → chair → dean → SDAO → 3 directors)
- *   - SHS: on-calendar and off-calendar (adviser → principal → SDAO → 3 directors)
- *   - Short chains (registration, renewal, calendar, after-activity report)
+ * The accounts a dev or demo database needs on top of the real roster
+ * (RealRosterSeeder owns every school, program, dean, chair, principal and
+ * director): the two SDAO sign-in accounts, and the unassigned adviser pool
+ * DemoDataSeeder picks from when it founds organizations.
  *
- * Every account uses the password "ict@1234" — same convention as
- * RealRosterSeeder and DemoDataSeeder. `user()` must set this explicitly:
- * leaving it to UserFactory's default silently gives these accounts the
+ * It creates no school, program, organization, student or director of its
+ * own. Everything else the test suite needs lives under tests/Fixtures, so
+ * none of it can reach a dev or demo database.
+ *
+ * Every account uses the password "ict@1234", the same convention as
+ * RealRosterSeeder and DemoDataSeeder. `user()` must set it explicitly:
+ * leaving it to UserFactory's default silently gives the account the
  * password "password" instead.
  */
 class IdentitySeeder extends Seeder
@@ -32,122 +32,20 @@ class IdentitySeeder extends Seeder
 
     public function run(): void
     {
-        // ── Global approvers ─────────────────────────────────────────────────
+        foreach ([['SDAO Member A', 'sdao-a@nu-lipa.edu.ph'], ['SDAO Member B', 'sdao-b@nu-lipa.edu.ph']] as [$name, $email]) {
+            RoleAssignment::create(['user_id' => $this->user($name, $email)->id, 'role' => Role::SdaoMember]);
+        }
 
-        $sdaoA = $this->user('SDAO Member A', 'sdao-a@nu-lipa.edu.ph');
-        $sdaoB = $this->user('SDAO Member B', 'sdao-b@nu-lipa.edu.ph');
-        $asstDirector = $this->user('Asst. Director of Academic Services', 'asst-director@nu-lipa.edu.ph');
-        $academicDirector = $this->user('Academic Director', 'academic-director@nu-lipa.edu.ph');
-        $executiveDirector = $this->user('Executive Director', 'executive-director@nu-lipa.edu.ph');
-
-        RoleAssignment::create(['user_id' => $sdaoA->id, 'role' => Role::SdaoMember]);
-        RoleAssignment::create(['user_id' => $sdaoB->id, 'role' => Role::SdaoMember]);
-
-        // Single-holder global roles use firstOrCreate rather than create()
-        // — this is the pre-Slice-6 PLACEHOLDER fixture, so if RealRosterSeeder
-        // has already (or ever will, in a different run order) assigned the
-        // real account for one of these roles, this seeder must defer to it
-        // rather than create a second, ambiguous row. See
-        // RealRosterSeeder::assignRole(), which is the authoritative side of
-        // this pair and uses updateOrCreate to always win, and
-        // RoleDirectory::resolveGlobal()'s docblock for why more than one row
-        // here is a bug.
-        RoleAssignment::firstOrCreate(
-            ['role' => Role::AssistantDirectorAcademicServices, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
-            ['user_id' => $asstDirector->id],
-        );
-        RoleAssignment::firstOrCreate(
-            ['role' => Role::AcademicDirector, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
-            ['user_id' => $academicDirector->id],
-        );
-        RoleAssignment::firstOrCreate(
-            ['role' => Role::ExecutiveDirector, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
-            ['user_id' => $executiveDirector->id],
-        );
-
-        // ── Regular school: School of Computing and IT (CCIT) ────────────────
-
-        $ccit = School::firstOrCreate(['name' => 'School of Computing and IT'], ['type' => 'regular', 'academic_rank' => 1]);
-        $dean = $this->user('Dean CCIT', 'dean-ccit@nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $dean->id, 'role' => Role::Dean, 'school_id' => $ccit->id]);
-
-        // Program: BS Computer Science
-        $bscs = Program::create(['school_id' => $ccit->id, 'name' => 'BS Computer Science']);
-        $chairCs = $this->user('Chair CS', 'chair-cs@nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $chairCs->id, 'role' => Role::ProgramChair, 'program_id' => $bscs->id]);
-
-        $adviserOne = $this->user('Adviser One', 'adviser-one@nu-lipa.edu.ph');
-        $computingSociety = Organization::create([
-            'name' => 'Computing Society',
-            'school_id' => $ccit->id,
-            'program_id' => $bscs->id,
-        ]);
-        RoleAssignment::create(['user_id' => $adviserOne->id, 'role' => Role::Adviser, 'organization_id' => $computingSociety->id]);
-
-        $studentAlpha = $this->user('Student Alpha', 'student-alpha@students.nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $studentAlpha->id, 'role' => Role::Student, 'organization_id' => $computingSociety->id]);
-
-        // Program: BS Information Technology
-        $bsit = Program::create(['school_id' => $ccit->id, 'name' => 'BS Information Technology']);
-        $chairIt = $this->user('Chair IT', 'chair-it@nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $chairIt->id, 'role' => Role::ProgramChair, 'program_id' => $bsit->id]);
-
-        $adviserTwo = $this->user('Adviser Two', 'adviser-two@nu-lipa.edu.ph');
-        $itGuild = Organization::create([
-            'name' => 'IT Guild',
-            'school_id' => $ccit->id,
-            'program_id' => $bsit->id,
-        ]);
-        RoleAssignment::create(['user_id' => $adviserTwo->id, 'role' => Role::Adviser, 'organization_id' => $itGuild->id]);
-
-        $studentBeta = $this->user('Student Beta', 'student-beta@students.nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $studentBeta->id, 'role' => Role::Student, 'organization_id' => $itGuild->id]);
-
-        // ── Empty-shell regular schools (structure present, no people yet) ───
-
-        School::firstOrCreate(['name' => 'School of Business and Accountancy'], ['type' => 'regular', 'academic_rank' => 2]);
-        School::firstOrCreate(['name' => 'School of Health Sciences'], ['type' => 'regular', 'academic_rank' => 3]);
-
-        // ── Senior High School ───────────────────────────────────────────────
-
-        $shs = School::firstOrCreate(['name' => 'Senior High School'], ['type' => 'senior_high', 'academic_rank' => 4]);
-        $principal = $this->user('Principal SHS', 'principal-shs@nu-lipa.edu.ph');
-        // Keyed on role+scope, NOT user_id — this is the placeholder
-        // fixture, so where RealRosterSeeder has already seated the real
-        // named principal for this exact school (Senior High School is the
-        // live case: both seeders resolve the same School row via
-        // firstOrCreate on name), defer to it instead of creating a second,
-        // ambiguous row. Same reasoning as the three global directors above
-        // — see RoleDirectory::resolveScoped().
-        RoleAssignment::firstOrCreate(
-            ['role' => Role::Principal, 'school_id' => $shs->id, 'program_id' => null, 'organization_id' => null],
-            ['user_id' => $principal->id],
-        );
-
-        $adviserShs = $this->user('Adviser SHS', 'adviser-shs@nu-lipa.edu.ph');
-        $shsCouncil = Organization::create([
-            'name' => 'SHS Student Council',
-            'school_id' => $shs->id,
-            'program_id' => null,
-        ]);
-        RoleAssignment::create(['user_id' => $adviserShs->id, 'role' => Role::Adviser, 'organization_id' => $shsCouncil->id]);
-
-        $studentGamma = $this->user('Student Gamma', 'student-gamma@students.nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $studentGamma->id, 'role' => Role::Student, 'organization_id' => $shsCouncil->id]);
-
-        // ── Extra-Curricular organization — no college (Phase 2 remediation
-        //    item 3) — school_id and program_id are both null. ─────────────
-
-        $adviserExtraCurricular = $this->user('Adviser Extra-Curricular', 'adviser-extracurricular@nu-lipa.edu.ph');
-        $chessClub = Organization::create([
-            'name' => 'University Chess Club',
-            'school_id' => null,
-            'program_id' => null,
-        ]);
-        RoleAssignment::create(['user_id' => $adviserExtraCurricular->id, 'role' => Role::Adviser, 'organization_id' => $chessClub->id]);
-
-        $studentEpsilon = $this->user('Student Epsilon', 'student-epsilon@students.nu-lipa.edu.ph');
-        RoleAssignment::create(['user_id' => $studentEpsilon->id, 'role' => Role::Student, 'organization_id' => $chessClub->id]);
+        // The demo adviser pool: provisioned with NO organization. They own no
+        // school, program or organization; DemoDataSeeder binds them as the
+        // advisers of the organizations it founds.
+        foreach ([
+            ['Adviser One', 'adviser-one@nu-lipa.edu.ph'],
+            ['Adviser Two', 'adviser-two@nu-lipa.edu.ph'],
+            ['Adviser SHS', 'adviser-shs@nu-lipa.edu.ph'],
+        ] as [$name, $email]) {
+            RoleAssignment::create(['user_id' => $this->user($name, $email)->id, 'role' => Role::Adviser]);
+        }
     }
 
     private function user(string $name, string $email): User

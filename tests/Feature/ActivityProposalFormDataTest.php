@@ -17,9 +17,9 @@ use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Printing\ActivityProposalForm;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Printing\ActivityProposalForm::data() — field mapping,
@@ -29,7 +29,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * not full PDF renders (a single render smoke test lives elsewhere).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->shs = Organization::where('name', 'SHS Student Council')->firstOrFail();
@@ -161,7 +161,7 @@ test('page 1 and page 2 fields map from the stored proposal and its calendar act
     expect($data['expenses'])->toBe('Venue rental');
     expect($data['has_resource_person_resume'])->toBeFalse();
     expect($data['is_shs'])->toBeFalse();
-    expect($data['school_name'])->toBe('School of Computing and IT');
+    expect($data['school_name'])->toBe('School of Architecture, Computing, and Engineering');
     expect($data['program_name'])->toBe('BS Computer Science');
     expect($data['prepared_by_president'])->toBe('Student Alpha');
 

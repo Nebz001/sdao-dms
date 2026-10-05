@@ -8,9 +8,9 @@ use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Remediation-phase regression suite for the "403 This action is
@@ -42,7 +42,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * and advanceToStep() from Approval/ReturnForRevisionTest.php.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);

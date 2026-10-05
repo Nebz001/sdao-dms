@@ -14,17 +14,17 @@ use App\Models\DocumentAttachment;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 8 — After-Activity Report's 3 required attachments: Photos
  * (multi-file), Sample Evaluation Form, Attendance Sheet.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();

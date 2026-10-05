@@ -43,7 +43,7 @@ function makeItem(overrides: Partial<NotificationItem> = {}): NotificationItem {
         id: 'abc-123',
         kind: 'approver_hand_off',
         title: 'Action needed: Sample Document',
-        body: 'Organization Registration • Computing Society',
+        body: 'Organization Registration • Debate Society',
         // Origin-relative, matching what the server now stores
         // (App\Support\DocumentUrls::pathForReviewer() /
         // HandleInertiaRequests::toRelativePath() normalize legacy rows) —

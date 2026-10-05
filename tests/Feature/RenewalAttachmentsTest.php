@@ -12,18 +12,18 @@ use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 8 — Renewal's 9 required attachments (Registration's 6 plus 3
  * more): no conditionals, submission blocked if any is missing.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();

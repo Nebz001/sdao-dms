@@ -4,9 +4,9 @@ use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * StoreProposalStepOneRequest's partner_organizations.*.organization_id rule
@@ -17,7 +17,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * id must fail exists(), not silently save a dangling reference.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
 });

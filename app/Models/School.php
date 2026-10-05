@@ -22,6 +22,9 @@ class School extends Model
     /** @use HasFactory<SchoolFactory> */
     use HasFactory;
 
+    /** What every screen shows for an organization that belongs to no college or school. Mirrors resources/js/lib/school.ts. */
+    public const string NONE_LABEL = 'No college / school';
+
     protected $casts = [
         'type' => SchoolType::class,
     ];
@@ -111,5 +114,17 @@ class School extends Model
     public function scopeAcademicRegistrationChoices(Builder $query): Builder
     {
         return $query->whereNotNull('academic_rank')->orderBy('academic_rank');
+    }
+
+    /**
+     * Every list of schools (dropdowns, filters) reads in stored rank order, so
+     * they all agree; an unranked school sorts last, then by name.
+     *
+     * @param  Builder<School>  $query
+     * @return Builder<School>
+     */
+    public function scopeInRankOrder(Builder $query): Builder
+    {
+        return $query->orderByRaw('academic_rank is null')->orderBy('academic_rank')->orderBy('name');
     }
 }

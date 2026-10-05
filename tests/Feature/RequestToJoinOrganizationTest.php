@@ -8,14 +8,14 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\JoinRequestReceivedNotification;
 use App\Organizations\RequestToJoinOrganization;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(RequestToJoinOrganization::class);
     // IT Guild has a President (Student Beta) but no Secretary — useful for
     // both this file's happy path and ReviewJoinRequestsTest's approve tests.

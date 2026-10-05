@@ -47,27 +47,27 @@ describe('PartnerOrganizationsField', () => {
     });
 
     it('picking a search result sets both the visible name and the hidden organization_id', async () => {
-        mockSearchResults([{ id: 42, name: 'Computing Society', school: 'School of Computing and IT', program: 'BS Computer Science' }]);
+        mockSearchResults([{ id: 42, name: 'Debate Society', school: 'School of Architecture, Computing, and Engineering', program: 'BS Computer Science' }]);
         const user = userEvent.setup();
         const { container } = render(<PartnerOrganizationsField errors={{}} />);
 
         await user.type(screen.getByPlaceholderText('Search organizations, or type a name…'), 'Computing');
 
-        const result = await screen.findByRole('button', { name: /Computing Society/ }, { timeout: 3000 });
+        const result = await screen.findByRole('button', { name: /Debate Society/ }, { timeout: 3000 });
         await user.click(result);
 
-        expect(screen.getByDisplayValue('Computing Society')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Debate Society')).toBeInTheDocument();
         expect(hiddenOrganizationIdInput(container).value).toBe('42');
     });
 
     it('editing an already-linked entry clears the stale organization_id — no lingering link survives a keystroke', async () => {
-        mockSearchResults([{ id: 42, name: 'Computing Society', school: null, program: null }]);
+        mockSearchResults([{ id: 42, name: 'Debate Society', school: null, program: null }]);
         const user = userEvent.setup();
         const { container } = render(<PartnerOrganizationsField errors={{}} />);
 
         const input = screen.getByPlaceholderText('Search organizations, or type a name…');
         await user.type(input, 'Computing');
-        const result = await screen.findByRole('button', { name: /Computing Society/ }, { timeout: 3000 });
+        const result = await screen.findByRole('button', { name: /Debate Society/ }, { timeout: 3000 });
         await user.click(result);
 
         expect(hiddenOrganizationIdInput(container).value).toBe('42');
@@ -77,7 +77,7 @@ describe('PartnerOrganizationsField', () => {
         await user.type(input, ' Renamed');
 
         expect(hiddenOrganizationIdInput(container).value).toBe('');
-        expect(screen.getByDisplayValue('Computing Society Renamed')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Debate Society Renamed')).toBeInTheDocument();
     });
 
     it('the "+ Add" button adds another independent row, each with its own hidden organization_id input', async () => {

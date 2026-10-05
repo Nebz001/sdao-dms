@@ -12,11 +12,11 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * RealRosterSeeder (real, admin-provisioned staff) replaces IdentitySeeder
-     * here. IdentitySeeder — along with MembershipSeeder, CalendarSeeder, and
-     * ProposalSeeder, which all depend on IdentitySeeder's placeholder
-     * students/organizations — is retained solely as the test fixture; the
-     * real roster is staff-only and seeds no students or organizations.
+     * RealRosterSeeder (real, admin-provisioned staff) is the base. The demo
+     * restore sequence adds IdentitySeeder (the SDAO sign-in accounts and the
+     * adviser pool) and then demo:reset. Test-only fixtures (placeholder
+     * schools, students, organizations) live under tests/Fixtures and are
+     * never seeded here.
      */
     public function run(): void
     {

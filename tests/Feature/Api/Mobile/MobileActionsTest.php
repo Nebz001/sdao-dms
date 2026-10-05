@@ -17,13 +17,13 @@ use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
 use App\Notifications\DocumentOutcomeNotification;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);

@@ -14,11 +14,12 @@ use App\Models\User;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fixtures\TestIdentitySeeder;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

@@ -9,17 +9,17 @@ use App\Identity\Admin\VerifyAccount;
 use App\Models\User;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Carbon;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 // 2026-10-14 is a Wednesday, inside 1st term 2026-2027 (Aug 1 to Dec 1 on the
 // provisional term calendar). The term's first Monday-start week is Jul 27.
 const STATS_NOW = '2026-10-14 12:00:00';
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     Carbon::setTestNow(STATS_NOW);
     $this->period = new AcademicPeriod('2026-2027', Term::FirstTerm);
     CurrentPeriod::set($this->period);

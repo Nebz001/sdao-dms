@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * See app/Console/Commands/FixSeededAccountPasswords.php — the one-off fix
- * for accounts IdentitySeeder/MembershipSeeder created before they were
+ * for accounts IdentitySeeder created before they were
  * patched to hash "ict@1234" explicitly. UserFactory's own default password
  * IS "password" (see UserFactory), which is exactly the bug being fixed
  * here, so every user in these tests must set a password explicitly rather
@@ -88,7 +88,7 @@ test('prompts for confirmation without --force or --dry-run, and aborts on decli
     ]);
 
     $this->artisan('accounts:fix-seeded-passwords')
-        ->expectsConfirmation('This re-hashes the password to "ict@1234" for exactly the known IdentitySeeder/MembershipSeeder placeholder accounts (matched by exact email AND name — anything else is skipped, never guessed). No other data is touched. Continue?', 'no')
+        ->expectsConfirmation('This re-hashes the password to "ict@1234" for exactly the known IdentitySeeder placeholder accounts (matched by exact email AND name — anything else is skipped, never guessed). No other data is touched. Continue?', 'no')
         ->assertSuccessful();
 
     $user = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

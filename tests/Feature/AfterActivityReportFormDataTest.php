@@ -18,9 +18,9 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Printing\AfterActivityReportForm;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Printing\AfterActivityReportForm::data(): field mapping, Date
@@ -29,7 +29,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * section exists on this template, so no SignatureBlock coverage here.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();

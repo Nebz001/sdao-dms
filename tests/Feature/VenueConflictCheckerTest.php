@@ -9,9 +9,9 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Helper: create an approved activity at the given venue/date/time.
@@ -76,7 +76,7 @@ function inReviewActivity(string $venue, string $date, string $start, string $en
 }
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->checker = app(VenueConflictChecker::class);
 });
 

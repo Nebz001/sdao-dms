@@ -2,12 +2,12 @@
 
 use App\Models\PushToken;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Auth;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });
 

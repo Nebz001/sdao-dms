@@ -17,8 +17,9 @@ use App\Renewals\SubmitOrganizationRenewal;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * App\Organizations\OrganizationStatusResolver — the single source of truth
@@ -30,7 +31,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * hasNonRejectedRenewalForExactYear() are deliberately different checks.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->resolver = app(OrganizationStatusResolver::class);
     $this->renewalAction = app(SubmitOrganizationRenewal::class);

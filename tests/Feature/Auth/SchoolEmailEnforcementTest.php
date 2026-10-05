@@ -3,11 +3,11 @@
 use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\ApproverProvisionedNotification;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Every account write path (registration, profile update, admin
@@ -58,7 +58,7 @@ test('a logged-in user cannot change their profile email to a personal address',
 
 test('SDAO can provision an approver with a personal email, stored lowercase so login can find it', function () {
     Notification::fake();
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [
@@ -77,7 +77,7 @@ test('SDAO can provision an approver with a personal email, stored lowercase so 
 });
 
 test('SDAO cannot provision an approver on a student domain, in any letter case', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [
@@ -124,7 +124,7 @@ test('a personal-email approver still cannot change to another personal address'
 });
 
 test('SDAO cannot provision an approver with a student-domain email — staff use the staff domain', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [

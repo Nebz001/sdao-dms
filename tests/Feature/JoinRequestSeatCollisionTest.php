@@ -21,11 +21,11 @@ use App\Organizations\DeclineJoinRequest;
 use App\Organizations\RequestOfficerChange;
 use App\Organizations\RequestToJoinOrganization;
 use App\Registrations\ApproveOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * A student must never end up with a second seat through a join request that
@@ -36,7 +36,7 @@ use Illuminate\Validation\ValidationException;
  *   2. ApproveJoinRequest itself refuses a student who already holds any seat.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

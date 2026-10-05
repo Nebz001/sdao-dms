@@ -17,9 +17,9 @@ use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Coverage for the shared review action (App\ActivityProposals\
@@ -30,7 +30,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * next commit is a pure delegation change.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);

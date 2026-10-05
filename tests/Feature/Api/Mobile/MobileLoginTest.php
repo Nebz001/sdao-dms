@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 });
 
 test('a verified adviser can log in and receives a token', function () {

@@ -3,11 +3,11 @@
 use App\Identity\Admin\VerifyAccount;
 use App\Models\User;
 use App\Notifications\AccountVerifiedNotification;
-use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Str;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed(IdentitySeeder::class);
+    $this->seed(TestIdentitySeeder::class);
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->account = User::factory()->unverifiedAccount()->create();
 

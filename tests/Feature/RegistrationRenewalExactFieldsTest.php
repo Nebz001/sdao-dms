@@ -16,9 +16,9 @@ use App\Models\User;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 7 slice 2 — exact field corrections for Registration/Renewal:
@@ -28,8 +28,8 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * across every rendering.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $this->program = Program::where('name', 'BS Computer Science')->firstOrFail();
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
@@ -119,7 +119,7 @@ test('registration submission stores and displays the renamed fields correctly',
             ->where('detail.contact_no', '09171234567')
             ->where('detail.email_address', 'contact@example.test')
             ->where('detail.organization_type_label', 'Co-Curricular')
-            ->where('document.organization.college', 'School of Computing and IT')
+            ->where('document.organization.college', 'School of Architecture, Computing, and Engineering')
             ->where('document.organization.program', 'BS Computer Science')
         );
 });
@@ -145,7 +145,7 @@ test('College and Program are present on every rendering, not just registration 
         ->get(route('review.registrations.show', $document))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('document.organization.college', 'School of Computing and IT')
+            ->where('document.organization.college', 'School of Architecture, Computing, and Engineering')
             ->where('document.organization.program', 'BS Computer Science')
         );
 
@@ -158,7 +158,7 @@ test('College and Program are present on every rendering, not just registration 
         ->get(route('registrations.edit', $document))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('document.organization.college', 'School of Computing and IT')
+            ->where('document.organization.college', 'School of Architecture, Computing, and Engineering')
             ->where('document.organization.program', 'BS Computer Science')
         );
 });

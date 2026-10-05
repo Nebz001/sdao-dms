@@ -15,11 +15,11 @@ use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Group C item 3 — Request Letter and Sample Post-Survey Form (new,
@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
  * same pattern as Registration/Renewal's required attachments.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->engine = app(ApprovalEngine::class);

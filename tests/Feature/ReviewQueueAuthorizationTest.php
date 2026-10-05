@@ -4,9 +4,9 @@ use App\Approval\ApprovalEngine;
 use App\Enums\FormType;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Security gap fix: RegistrationReviewController::index(),
@@ -27,7 +27,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * from SectionFlagValidationTest.php (Pest loads all Feature files up front).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();

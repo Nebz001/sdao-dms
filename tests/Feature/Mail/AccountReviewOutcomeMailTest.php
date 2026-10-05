@@ -6,11 +6,11 @@ use App\Identity\Admin\VerifyAccount;
 use App\Models\User;
 use App\Notifications\AccountRejectedNotification;
 use App\Notifications\AccountVerifiedNotification;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 // Delivery channel is now AccountVerifiedNotification/AccountRejectedNotification
 // (mail + database off one class each — see ApproverHandOffNotification's
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Notification;
 // dispatch, still intercepted correctly by Notification::fake(). Trigger
 // unchanged: VerifyAccount::execute() / RejectAccount::execute().
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     Notification::fake();

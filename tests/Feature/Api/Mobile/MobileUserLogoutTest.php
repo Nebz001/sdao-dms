@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Auth;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Sanctum's guard caches the resolved user on the guard instance, and
@@ -20,7 +20,7 @@ function forgetCachedAuthGuards(): void
 }
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 });

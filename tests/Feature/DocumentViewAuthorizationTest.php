@@ -24,9 +24,10 @@ use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
 use App\Support\CurrentPeriod;
 use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Storage;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers the IDOR gap found in the full gap audit: student-facing show()
@@ -36,7 +37,7 @@ use Illuminate\Support\Facades\Storage;
  * chain is active right now — for all five form types.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();

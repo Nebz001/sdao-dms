@@ -232,6 +232,18 @@ class AdminAttentionData
     }
 
     /**
+     * Active advisers provisioned but not yet bound to an organization (the
+     * unassigned pool), ready to be assigned.
+     */
+    public function unassignedAdviserCount(): int
+    {
+        return User::query()
+            ->active()
+            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value)->whereNull('organization_id'))
+            ->count();
+    }
+
+    /**
      * @param  Collection<int, Organization>  $organizations
      */
     private function noAdviserHint(Collection $organizations): string
@@ -244,10 +256,7 @@ class AdminAttentionData
             return $organizations->pluck('name')->implode(', ');
         }
 
-        $available = User::query()
-            ->active()
-            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value)->whereNull('organization_id'))
-            ->count();
+        $available = $this->unassignedAdviserCount();
 
         return $available.' '.Str::plural('adviser', $available).' available to assign';
     }

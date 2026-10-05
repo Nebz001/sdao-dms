@@ -3,11 +3,11 @@
 use App\Enums\Role;
 use App\Identity\MobileAccess;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     $this->mobileAccess = app(MobileAccess::class);
 });

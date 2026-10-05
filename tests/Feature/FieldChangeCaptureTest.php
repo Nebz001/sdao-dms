@@ -21,10 +21,10 @@ use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Registrations\UpdateOrganizationRegistration;
 use App\Reports\UpdateAfterActivityReport;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Field-level revision diffs — proof that a resubmission captures the
@@ -32,7 +32,7 @@ use Illuminate\Http\UploadedFile;
  * approver flagged, and nothing else. See App\Approval\FieldChangeSet.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->updateRegistration = app(UpdateOrganizationRegistration::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

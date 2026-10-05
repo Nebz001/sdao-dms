@@ -9,9 +9,9 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Closes the coverage gap flagged during the Group B item 4 investigation
@@ -29,7 +29,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * redirect with a real GET -> assert 200, not 403.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 });
@@ -51,7 +51,7 @@ function assertResubmitRedirectSucceeds(User $actor, string $updateUrl, array $p
 
 test('resubmitting a returned registration: the redirect target loads for the submitter', function () {
     $student = User::factory()->create();
-    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $program = Program::where('name', 'BS Computer Science')->firstOrFail();
     $adviser = User::factory()->create();
     RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser->value]);

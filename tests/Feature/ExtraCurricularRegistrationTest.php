@@ -7,9 +7,9 @@ use App\Models\Organization;
 use App\Models\Program;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 remediation item 3 — an Extra-Curricular organization is
@@ -26,8 +26,8 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * in ProposalVariantSelectionTest.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 });
 
 test('a registration with no college computes an Extra-Curricular organization', function () {

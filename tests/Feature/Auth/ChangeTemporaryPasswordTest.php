@@ -2,15 +2,15 @@
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     $this->flagged = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->flagged->forceFill(['password' => 'temp-password-1', 'must_change_password' => true])->save();

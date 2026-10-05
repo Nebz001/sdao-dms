@@ -4,8 +4,9 @@ use App\Models\Organization;
 use App\Models\School;
 use App\Models\User;
 use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * An Academic (Co-Curricular) organization registration may only choose a
@@ -15,7 +16,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * StoreRegistrationRequest's validation read from, so they cannot disagree.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 });
 
 test('School::academicRegistrationChoices returns exactly the 4 ranked schools in rank order', function () {
@@ -28,9 +29,9 @@ test('School::academicRegistrationChoices returns exactly the 4 ranked schools i
 
     expect($names)->toHaveCount(4);
     expect($names->all())->toBe([
-        'School of Computing and IT',
-        'School of Business and Accountancy',
-        'School of Health Sciences',
+        'School of Architecture, Computing, and Engineering',
+        'School of Accountancy, Business, and Management',
+        'School of Allied Health and Sciences',
         'Senior High School',
     ]);
 });
@@ -42,9 +43,9 @@ test('the registration page only offers the 4 ranked schools, in rank order', fu
 
     $response->assertOk()->assertInertia(fn ($page) => $page
         ->where('schools', fn ($schools) => collect($schools)->pluck('name')->all() === [
-            'School of Computing and IT',
-            'School of Business and Accountancy',
-            'School of Health Sciences',
+            'School of Architecture, Computing, and Engineering',
+            'School of Accountancy, Business, and Management',
+            'School of Allied Health and Sciences',
             'Senior High School',
         ])
     );
@@ -68,7 +69,7 @@ test('store rejects a school outside the academic allow-list, even though the ro
 
 test('store accepts a school inside the academic allow-list', function () {
     $student = User::factory()->create();
-    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $program = $school->programs()->firstOrFail();
 
     $response = $this->actingAs($student)->post(route('registrations.store'), array_merge(

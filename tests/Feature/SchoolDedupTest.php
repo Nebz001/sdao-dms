@@ -18,7 +18,7 @@ use Illuminate\Database\QueryException;
  * RealRosterSeeder already created, and a unique index makes any other path
  * structurally unable to reintroduce the duplicate.
  */
-test('IdentitySeeder reuses the school RealRosterSeeder already created instead of duplicating it', function () {
+test('seeding IdentitySeeder after RealRosterSeeder never duplicates a school', function () {
     $this->seed(WorkflowTemplateSeeder::class);
     $this->seed(RealRosterSeeder::class);
 

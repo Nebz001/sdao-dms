@@ -9,19 +9,19 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 8 — Registration's 6 required attachments: no conditionals on
  * Organization Type, submission blocked if any is missing.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 });
 
 function foundingRegistrationPayload(array $overrides = []): array
@@ -38,7 +38,7 @@ function foundingRegistrationPayload(array $overrides = []): array
 }
 
 /**
- * A real program at "School of Computing and IT" — since fix plan
+ * A real program at "School of Architecture, Computing, and Engineering" — since fix plan
  * 2026_09_09_100000 closed StoreRegistrationRequest's required_if gap, every
  * foundingRegistrationPayload() call that sets school_id for a Co-Curricular
  * org (the default organization_type) must also pass this, unless the test is

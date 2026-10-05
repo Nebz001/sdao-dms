@@ -6,10 +6,10 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\Organization;
-use Database\Seeders\IdentitySeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed(IdentitySeeder::class);
+    $this->seed(TestIdentitySeeder::class);
 
     $this->document = Document::create([
         'form_type' => FormType::ActivityProposal,

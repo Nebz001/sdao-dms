@@ -13,12 +13,12 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Auth;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->organization = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();

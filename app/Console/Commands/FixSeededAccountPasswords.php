@@ -7,8 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * One-off fix for a specific past bug: IdentitySeeder's `user()` helper (and
- * MembershipSeeder's one extra account) created these placeholder demo/staff
+ * One-off fix for a specific past bug: IdentitySeeder's `user()` helper created these placeholder demo/staff
  * accounts without an explicit password, silently falling back to
  * UserFactory's default ("password") instead of the intended "ict@1234"
  * (the convention every other seeder — RealRosterSeeder, DemoDataSeeder —
@@ -37,31 +36,20 @@ class FixSeededAccountPasswords extends Command
 {
     private const string PASSWORD = 'ict@1234';
 
-    /** @var array<string, string> email => the exact name IdentitySeeder/MembershipSeeder set */
+    /** @var array<string, string> email => the exact name IdentitySeeder set */
     private const array ACCOUNTS = [
         'sdao-a@nu-lipa.edu.ph' => 'SDAO Member A',
         'sdao-b@nu-lipa.edu.ph' => 'SDAO Member B',
-        'asst-director@nu-lipa.edu.ph' => 'Asst. Director of Academic Services',
-        'academic-director@nu-lipa.edu.ph' => 'Academic Director',
-        'executive-director@nu-lipa.edu.ph' => 'Executive Director',
-        'dean-ccit@nu-lipa.edu.ph' => 'Dean CCIT',
-        'chair-cs@nu-lipa.edu.ph' => 'Chair CS',
         'adviser-one@nu-lipa.edu.ph' => 'Adviser One',
-        'student-alpha@students.nu-lipa.edu.ph' => 'Student Alpha',
-        'chair-it@nu-lipa.edu.ph' => 'Chair IT',
         'adviser-two@nu-lipa.edu.ph' => 'Adviser Two',
-        'student-beta@students.nu-lipa.edu.ph' => 'Student Beta',
-        'principal-shs@nu-lipa.edu.ph' => 'Principal SHS',
         'adviser-shs@nu-lipa.edu.ph' => 'Adviser SHS',
-        'student-gamma@students.nu-lipa.edu.ph' => 'Student Gamma',
-        'student-delta@students.nu-lipa.edu.ph' => 'Student Delta',
     ];
 
     protected $signature = 'accounts:fix-seeded-passwords
         {--dry-run : Report what would change without writing anything}
         {--force : Skip the confirmation prompt}';
 
-    protected $description = 'One-off fix: re-hash the intended ict@1234 password for the specific IdentitySeeder/MembershipSeeder placeholder accounts seeded before that bug was fixed. Touches nothing else.';
+    protected $description = 'One-off fix: re-hash the intended ict@1234 password for the specific IdentitySeeder placeholder accounts seeded before that bug was fixed. Touches nothing else.';
 
     public function handle(): int
     {
@@ -72,7 +60,7 @@ class FixSeededAccountPasswords extends Command
         $this->newLine();
 
         if (! $isDryRun && ! $this->option('force') && ! $this->confirm(
-            'This re-hashes the password to "ict@1234" for exactly the known IdentitySeeder/MembershipSeeder '.
+            'This re-hashes the password to "ict@1234" for exactly the known IdentitySeeder '.
             'placeholder accounts (matched by exact email AND name — anything else is skipped, never guessed). '.
             'No other data is touched. Continue?'
         )) {

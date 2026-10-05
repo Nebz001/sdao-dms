@@ -6,9 +6,9 @@ use App\Enums\DocumentStatus;
 use App\Enums\ProposalCalendarMode;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 7 slice 4b — exact field corrections for the Proposal
@@ -24,7 +24,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  *     read-only instead of asking again (item 4).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail(); // president, Computing Society

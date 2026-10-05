@@ -28,20 +28,20 @@ use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\OrganizationDetailData;
 use App\Organizations\RequestOfficerChange;
 use App\Organizations\RequestToJoinOrganization;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Deactivating a STUDENT account. The officer seat ends with it, immediately
  * and atomically; nothing is refused because someone holds a seat.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     Notification::fake();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

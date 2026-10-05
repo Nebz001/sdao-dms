@@ -13,11 +13,11 @@ use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\RequestOfficerChange;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Eligibility to be (re-)bound is the one-organization-per-student rule and
@@ -26,7 +26,7 @@ use Illuminate\Validation\ValidationException;
  * pickers and re-checked server-side by the bind, request and finalize paths.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     Notification::fake();
     $this->withoutVite();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

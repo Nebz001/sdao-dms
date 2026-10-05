@@ -11,14 +11,14 @@ use App\Notifications\JoinRequestDeclinedNotification;
 use App\Organizations\ApproveJoinRequest;
 use App\Organizations\DeclineJoinRequest;
 use App\Organizations\RequestToJoinOrganization;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->requestAction = app(RequestToJoinOrganization::class);
     $this->approveAction = app(ApproveJoinRequest::class);
     $this->declineAction = app(DeclineJoinRequest::class);

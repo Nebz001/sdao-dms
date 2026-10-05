@@ -7,10 +7,10 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * HandleInertiaRequests::share() exposes `notifications` as a closure prop —
@@ -23,7 +23,7 @@ test('a guest gets a null notifications prop', function () {
 });
 
 test('an authenticated user with no notifications sees a zero unread count and empty items', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     // An SDAO member hitting /dashboard redirects to admin.dashboard.index
@@ -47,7 +47,7 @@ test('a legacy notification row with an absolute url is exposed to the client as
     // baked at write time becomes cross-origin — and therefore silently
     // unclickable via router.visit() — the moment APP_URL and the browsing
     // origin diverge.
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     DB::table('notifications')->insert([
@@ -78,7 +78,7 @@ test('a legacy notification row with an absolute url is exposed to the client as
 });
 
 test('the shared prop reflects a real hand-off notification', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
@@ -103,7 +103,7 @@ test('the shared prop reflects a real hand-off notification', function () {
 });
 
 test('the shared prop forwards a document outcome notification\'s status, for the bell\'s per-outcome icon', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
     $org = Organization::where('name', 'Computing Society')->firstOrFail();

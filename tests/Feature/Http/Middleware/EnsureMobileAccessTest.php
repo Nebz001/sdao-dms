@@ -1,12 +1,12 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Route;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     Route::middleware(['api', 'auth:sanctum', 'mobile.access'])
         ->get('/api/_test/mobile-only', fn () => response()->json(['ok' => true]));

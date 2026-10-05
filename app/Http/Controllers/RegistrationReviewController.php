@@ -13,6 +13,7 @@ use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use App\Models\RoleAssignment;
+use App\Models\School;
 use App\Registrations\ApproveOrganizationRegistration;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,7 @@ class RegistrationReviewController extends Controller
         $queue = new ReviewQueueData(
             FormType::OrganizationRegistration,
             'review.registrations.show',
-            fn (Document $d) => $d->organization->school?->name ?? 'None',
+            fn (Document $d) => $d->organization->school?->name ?? School::NONE_LABEL,
             ['organization.school'],
         );
 

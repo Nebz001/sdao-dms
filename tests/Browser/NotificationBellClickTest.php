@@ -6,9 +6,9 @@ use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\DB;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Real-click regression test for the notification bell. Two prior
@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\DB;
  * guaranteed to be a different origin, reproducing the exact failure mode).
  */
 test('clicking a notification row navigates to the correct document and closes the dropdown, for two different notification kinds', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
     $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();

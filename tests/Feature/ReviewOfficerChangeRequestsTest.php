@@ -11,12 +11,12 @@ use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\RequestOfficerChange;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Organizations\Admin\ApproveOfficerChange /
@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  * ReviewJoinRequestsTest's structure.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->requestAction = app(RequestOfficerChange::class);
     $this->approveAction = app(ApproveOfficerChange::class);
     $this->declineAction = app(DeclineOfficerChange::class);

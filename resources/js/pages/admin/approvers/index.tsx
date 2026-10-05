@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Admin/AccountController';
 import AccountName from '@/components/account-name';
-import CountBadge from '@/components/approver-accounts/count-badge';
 import {
     accountsForTab,
     groupAccounts,
@@ -17,6 +16,7 @@ import {
     ActiveApproversCard,
     DeactivatedCard,
     MissingAdviserCard,
+    UnassignedAdvisersCard,
 } from '@/components/approver-accounts/stat-cards';
 import {
     DEACTIVATED_HINT,
@@ -26,12 +26,14 @@ import {
 import type {
     ApproverAccount,
     ApproverStats,
+    InitialFilters,
     Filters,
     RoleGroup,
     School,
     StatusFilter,
     Tab,
 } from '@/components/approver-accounts/types';
+import CountBadge from '@/components/count-badge';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { FlagBadge, ToneBadge } from '@/components/status-badge';
@@ -63,6 +65,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { NO_SCHOOL_LABEL } from '@/lib/school';
 import { cn } from '@/lib/utils';
 import * as approvers from '@/routes/admin/approvers';
 
@@ -70,6 +73,8 @@ type Props = {
     approvers: ApproverAccount[];
     stats: ApproverStats;
     schools: School[];
+    /** Role and scope a link (the unassigned advisers card) preselects. */
+    initialFilters: InitialFilters;
 };
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -324,8 +329,31 @@ export default function AdminApproversIndex({
     approvers: items,
     stats,
     schools,
+    initialFilters,
 }: Props) {
-    const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+    const [filters, setFilters] = useState<Filters>(() => ({
+        ...DEFAULT_FILTERS,
+        ...(initialFilters.role && { role: initialFilters.role }),
+        ...(initialFilters.scope && { scope: initialFilters.scope }),
+    }));
+
+    // A link to this same page with a role or scope (the card) changes the
+    // props without remounting, so apply them when they change.
+    const linkedFilters = `${initialFilters.role}|${initialFilters.scope}`;
+    const [appliedFilters, setAppliedFilters] = useState(linkedFilters);
+
+    if (appliedFilters !== linkedFilters) {
+        setAppliedFilters(linkedFilters);
+        setFilters((current) => ({
+            ...current,
+            ...(initialFilters.role && {
+                role: initialFilters.role,
+                tab: 'all' as const,
+            }),
+            ...(initialFilters.scope && { scope: initialFilters.scope }),
+        }));
+    }
+
     const [found, setFound] = useState<ApproverAccount[]>([]);
     const [searching, setSearching] = useState(false);
     const [searchFailed, setSearchFailed] = useState(false);
@@ -464,8 +492,9 @@ export default function AdminApproversIndex({
                     }
                 />
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
                     <ActiveApproversCard stats={stats.active} />
+                    <UnassignedAdvisersCard stats={stats.unassignedAdvisers} />
                     <MissingAdviserCard stats={stats.missingAdviser} />
                     <DeactivatedCard stats={stats.deactivated} />
                 </div>
@@ -511,7 +540,9 @@ export default function AdminApproversIndex({
                                         {s.name}
                                     </SelectItem>
                                 ))}
-                                <SelectItem value="none">No college</SelectItem>
+                                <SelectItem value="none">
+                                    {NO_SCHOOL_LABEL}
+                                </SelectItem>
                                 <SelectItem value="unassigned">
                                     Not assigned yet
                                 </SelectItem>

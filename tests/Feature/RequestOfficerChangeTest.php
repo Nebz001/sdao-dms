@@ -10,12 +10,12 @@ use App\Notifications\OfficerChangeRequestedNotification;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\EligibleOfficerCandidates;
 use App\Organizations\RequestOfficerChange;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Organizations\RequestOfficerChange — the officer-facing,
@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  * ReviewOfficerChangeRequestsTest).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(RequestOfficerChange::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();

@@ -13,12 +13,12 @@ use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use App\Registrations\UpdateOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * The submitted_by grant in OrganizationMembershipService::canActOnDocument()
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Gate;
  * nothing once the org has officers — the roster decides who may act.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->updateAction = app(UpdateOrganizationRegistration::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

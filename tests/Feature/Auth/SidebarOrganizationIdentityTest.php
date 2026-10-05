@@ -2,11 +2,11 @@
 
 use App\Models\Organization;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * The sidebar's org-branding swap (app-sidebar.tsx) and footer school line
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
  * route.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 });
 
 test('a president of a school-bound org gets auth.organization with id, name, and school', function () {
@@ -29,7 +29,7 @@ test('a president of a school-bound org gets auth.organization with id, name, an
     $response->assertInertia(fn ($page) => $page
         ->where('auth.organization.id', $org->id)
         ->where('auth.organization.name', 'Computing Society')
-        ->where('auth.organization.school.name', 'School of Computing and IT')
+        ->where('auth.organization.school.name', 'School of Architecture, Computing, and Engineering')
         ->where('auth.isActiveOfficer', true)
     );
 });
@@ -44,7 +44,7 @@ test('a secretary of the same org gets the identical auth.organization shape —
     $response->assertInertia(fn ($page) => $page
         ->where('auth.organization.id', $org->id)
         ->where('auth.organization.name', 'Computing Society')
-        ->where('auth.organization.school.name', 'School of Computing and IT')
+        ->where('auth.organization.school.name', 'School of Architecture, Computing, and Engineering')
         ->where('auth.isActiveOfficer', true)
     );
 });

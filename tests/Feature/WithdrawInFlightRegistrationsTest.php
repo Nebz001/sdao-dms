@@ -11,10 +11,10 @@ use App\Models\School;
 use App\Models\User;
 use App\Registrations\ApproveOrganizationRegistration;
 use App\Registrations\SubmitOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /*
  * documents.submitted_by is nullOnDelete — deleting a student with a pending
@@ -26,8 +26,8 @@ use Illuminate\Validation\ValidationException;
  * approval-time guard.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 });
 
 function submitPendingRegistration(User $student): Document

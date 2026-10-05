@@ -13,7 +13,7 @@ function booking(overrides: Partial<VenueBooking>): VenueBooking {
         start_time: '09:00',
         end_time: '11:00',
         status: 'approved',
-        organization: 'IT Guild',
+        organization: 'Robotics Guild',
         document_id: 1,
         ...overrides,
     };

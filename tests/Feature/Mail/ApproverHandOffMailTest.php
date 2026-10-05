@@ -9,10 +9,10 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Invariant #9's actual delivery channel is now ApproverHandOffNotification
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Notification;
  * Mailable instance the way Mail::fake() used to hand one over.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

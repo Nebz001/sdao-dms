@@ -8,11 +8,11 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\DocumentOutcomeNotification;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 // Deliberately does NOT seed MembershipSeeder — $this->org has no active
 // officers, and $this->student is an unaffiliated User::factory() account
@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Notification;
 // the split), fired via Notification::send() from MailingSubmitterNotifier;
 // trigger unchanged, still ApprovalEngine::approve/reject/returnForRevision.
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Tests\Fixtures;
 
 use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;

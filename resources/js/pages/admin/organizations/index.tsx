@@ -6,11 +6,20 @@ import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
 import type { DataColumn } from '@/components/review-queue/data-table';
 import { SectionCard } from '@/components/review-queue/queue-tables';
 import SegmentedBar from '@/components/review-queue/segmented-bar';
-import StatCard, { StatCardSkeleton, StatValue } from '@/components/review-queue/stat-card';
+import StatCard, {
+    StatCardSkeleton,
+    StatValue,
+} from '@/components/review-queue/stat-card';
 import { OldestCard } from '@/components/review-queue/stat-cards';
 import ThinProgress from '@/components/review-queue/thin-progress';
-import type { QueueRow, ReviewQueueConfig } from '@/components/review-queue/types';
-import { OrganizationStatusBadge, RenewalBadge } from '@/components/status-badge';
+import type {
+    QueueRow,
+    ReviewQueueConfig,
+} from '@/components/review-queue/types';
+import {
+    OrganizationStatusBadge,
+    RenewalBadge,
+} from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -30,6 +39,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NO_SCHOOL_LABEL } from '@/lib/school';
 import { statusLabel } from '@/lib/utils';
 import * as organizations from '@/routes/admin/organizations';
 import * as reviewRegistrations from '@/routes/review/registrations';
@@ -111,7 +121,10 @@ function RequirementsCell({ org }: { org: OrganizationRow }) {
                 value={org.requirementsMet}
                 max={org.requirementsTotal}
                 label={`${org.name} requirements met`}
-                fillClassName={requirementsFill(org.requirementsMet, org.requirementsTotal)}
+                fillClassName={requirementsFill(
+                    org.requirementsMet,
+                    org.requirementsTotal,
+                )}
             />
         </div>
     );
@@ -136,10 +149,26 @@ function StatCards({ stats }: { stats: OrganizationStats }) {
                 <SegmentedBar
                     ariaLabel={`Organizations by status: ${stats.active} active, ${stats.pendingReview} pending, ${stats.needsRenewal} renewal, ${stats.inactive} inactive`}
                     segments={[
-                        { label: 'Active', count: stats.active, className: 'bg-success' },
-                        { label: 'Pending', count: stats.pendingReview, className: 'bg-info' },
-                        { label: 'Renewal', count: stats.needsRenewal, className: 'bg-warning' },
-                        { label: 'Inactive', count: stats.inactive, className: 'bg-muted-foreground' },
+                        {
+                            label: 'Active',
+                            count: stats.active,
+                            className: 'bg-success',
+                        },
+                        {
+                            label: 'Pending',
+                            count: stats.pendingReview,
+                            className: 'bg-info',
+                        },
+                        {
+                            label: 'Renewal',
+                            count: stats.needsRenewal,
+                            className: 'bg-warning',
+                        },
+                        {
+                            label: 'Inactive',
+                            count: stats.inactive,
+                            className: 'bg-muted-foreground',
+                        },
                     ]}
                 />
             </StatCard>
@@ -153,13 +182,17 @@ function StatCards({ stats }: { stats: OrganizationStats }) {
             <StatCard icon={ListChecks} title="Missing requirements">
                 <div className="flex items-baseline gap-2">
                     <StatValue>{stats.missingRequirements}</StatValue>
-                    <span className="text-sm text-muted-foreground tabular-nums">of {stats.total}</span>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                        of {stats.total}
+                    </span>
                 </div>
                 <p className="mt-auto text-sm text-muted-foreground">
                     {furthestBehind ? (
                         <>
-                            <strong className="font-semibold text-foreground">{furthestBehind.name}</strong> is
-                            furthest behind at{' '}
+                            <strong className="font-semibold text-foreground">
+                                {furthestBehind.name}
+                            </strong>{' '}
+                            is furthest behind at{' '}
                             <span className="tabular-nums">
                                 {furthestBehind.met} of {furthestBehind.total}
                             </span>
@@ -201,19 +234,42 @@ const COLUMNS: DataColumn<OrganizationRow>[] = [
         cell: (org) => (
             <div className="flex flex-col">
                 <span className="font-semibold">{org.name}</span>
-                <span className="text-sm font-normal text-muted-foreground">{org.school ?? 'No college'}</span>
+                <span className="text-sm font-normal text-muted-foreground">
+                    {org.school ?? NO_SCHOOL_LABEL}
+                </span>
             </div>
         ),
     },
-    { key: 'program', header: 'Program', className: 'min-w-48', cell: (org) => org.program ?? 'No program' },
-    { key: 'requirements', header: 'Requirements', className: 'min-w-40', cell: (org) => <RequirementsCell org={org} /> },
-    { key: 'status', header: 'Status', slot: 'badge', align: 'right', cell: (org) => <StatusCell org={org} /> },
+    {
+        key: 'program',
+        header: 'Program',
+        className: 'min-w-48',
+        cell: (org) => org.program ?? 'No program',
+    },
+    {
+        key: 'requirements',
+        header: 'Requirements',
+        className: 'min-w-40',
+        cell: (org) => <RequirementsCell org={org} />,
+    },
+    {
+        key: 'status',
+        header: 'Status',
+        slot: 'badge',
+        align: 'right',
+        cell: (org) => <StatusCell org={org} />,
+    },
     {
         key: 'actions',
         header: 'Action',
         slot: 'action',
         align: 'right',
-        cell: (org) => <RowViewButton href={organizations.show(org.id).url} label={org.name} />,
+        cell: (org) => (
+            <RowViewButton
+                href={organizations.show(org.id).url}
+                label={org.name}
+            />
+        ),
     },
 ];
 
@@ -321,13 +377,21 @@ export default function OrganizationsIndex({
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="organizations-status">Status</Label>
                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger id="organizations-status" className="w-full sm:w-44">
+                                <SelectTrigger
+                                    id="organizations-status"
+                                    className="w-full sm:w-44"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
+                                    <SelectItem value={ALL_STATUSES}>
+                                        All statuses
+                                    </SelectItem>
                                     {statuses.map((s) => (
-                                        <SelectItem key={s.value} value={s.value}>
+                                        <SelectItem
+                                            key={s.value}
+                                            value={s.value}
+                                        >
                                             {statusLabel(s.value)}
                                         </SelectItem>
                                     ))}
@@ -346,7 +410,11 @@ export default function OrganizationsIndex({
                         </div>
 
                         {hasFilters && (
-                            <Button type="button" variant="ghost" onClick={clearFilters}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={clearFilters}
+                            >
                                 Clear filters
                             </Button>
                         )}
@@ -389,7 +457,11 @@ export default function OrganizationsIndex({
                             </EmptyHeader>
                         </Empty>
                     ) : (
-                        <DataTable rows={items.data} columns={COLUMNS} rowKey={(org) => org.id} />
+                        <DataTable
+                            rows={items.data}
+                            columns={COLUMNS}
+                            rowKey={(org) => org.id}
+                        />
                     )}
                 </SectionCard>
 

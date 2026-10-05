@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Support\FlashToast;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -41,7 +42,7 @@ class ApproverController extends Controller
         'director' => [Role::AssistantDirectorAcademicServices, Role::AcademicDirector, Role::ExecutiveDirector],
     ];
 
-    public function index(AdminAttentionData $attention): Response
+    public function index(Request $request, AdminAttentionData $attention): Response
     {
         // Role holders, plus every deactivated account: a deactivated account
         // often has no role left (the SDAO replacement removes it), but must
@@ -58,14 +59,32 @@ class ApproverController extends Controller
         return Inertia::render('admin/approvers/index', [
             'approvers' => $rows,
             'stats' => $this->stats($rows, $attention),
-            'schools' => School::query()->orderBy('name')->get(['id', 'name'])
+            'initialFilters' => $this->initialFilters($request),
+            'schools' => School::query()->inRankOrder()->get(['id', 'name'])
                 ->map(fn (School $s) => ['id' => $s->id, 'name' => $s->name])
                 ->values(),
         ]);
     }
 
     /**
-     * The three stat cards. Role counts are of ACTIVE approvers only; the
+     * Filters a link can preselect (the "Advisers not assigned yet" card).
+     * Anything that is not a known value is ignored.
+     *
+     * @return array{role: string|null, scope: string|null}
+     */
+    private function initialFilters(Request $request): array
+    {
+        $role = $request->query('role');
+        $scope = $request->query('scope');
+
+        return [
+            'role' => is_string($role) && array_key_exists($role, self::GROUPS) ? $role : null,
+            'scope' => is_string($scope) && preg_match('/^(global|none|unassigned|school:\d+)$/', $scope) === 1 ? $scope : null,
+        ];
+    }
+
+    /**
+     * The stat cards. Role counts are of ACTIVE approvers only; the
      * missing-adviser figure reuses the dashboard tile's rule
      * (AdminAttentionData::approvedOrganizationsWithoutAdviser), so the two
      * can never disagree.
@@ -86,6 +105,10 @@ class ApproverController extends Controller
                 'byGroup' => collect(array_keys(self::GROUPS))
                     ->mapWithKeys(fn (string $group) => [$group => $active->where('group', $group)->count()])
                     ->all(),
+            ],
+            'unassignedAdvisers' => [
+                'count' => $attention->unassignedAdviserCount(),
+                'href' => route('admin.approvers.index', ['role' => 'adviser', 'scope' => 'unassigned']),
             ],
             'missingAdviser' => [
                 'count' => $missing->count(),
@@ -185,7 +208,7 @@ class ApproverController extends Controller
         return match ($ra->role->scopeType()) {
             ScopeType::Organization => $ra->organization === null
                 ? ['primary' => 'Not assigned yet', 'secondary' => null]
-                : ['primary' => $ra->organization->name, 'secondary' => $ra->organization->school?->name ?? 'No college'],
+                : ['primary' => $ra->organization->name, 'secondary' => $ra->organization->school?->name ?? School::NONE_LABEL],
             ScopeType::Program => [
                 'primary' => $ra->program?->name ?? 'Unknown program',
                 'secondary' => $ra->program?->school?->name,
@@ -231,7 +254,7 @@ class ApproverController extends Controller
                     'scope_type' => $r->scopeType()->value,
                 ])
                 ->values(),
-            'schools' => School::query()->orderBy('name')->get(['id', 'name'])
+            'schools' => School::query()->inRankOrder()->get(['id', 'name'])
                 ->map(fn (School $s) => ['id' => $s->id, 'name' => $s->name]),
             'programs' => Program::query()->orderBy('name')->get(['id', 'name', 'school_id'])
                 ->map(fn (Program $p) => ['id' => $p->id, 'name' => $p->name, 'school_id' => $p->school_id]),

@@ -37,8 +37,8 @@ const PASSWORD = 'ict@1234';
 const roles = {
   sdao: ['sdao-a@nu-lipa.edu.ph', ['/review/registrations/1', '/admin/approvers/create', '/notifications']],
   adviser: ['adviser-one@nu-lipa.edu.ph', ['/notifications']],
-  dean: ['dean-ccit@nu-lipa.edu.ph', ['/notifications']],
-  officer: ['student-alpha@students.nu-lipa.edu.ph', ['/registrations/create', '/organizations/join', '/notifications']],
+  dean: ['matiracd@nu-lipa.edu.ph', ['/notifications']],
+  officer: ['marqueze@students.nu-lipa.edu.ph', ['/registrations/create', '/organizations/join', '/notifications']],
   // Needs the full demo data (php artisan demo:reset on a throwaway database).
   president: ['torresm@students.nu-lipa.edu.ph', ['/activity-proposals/31', '/activity-calendars/create', '/renewals/create', '/organizations/officer-change', '/notifications']],
 };

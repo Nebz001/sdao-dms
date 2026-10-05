@@ -13,13 +13,13 @@ use App\Models\School;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use App\Registrations\SubmitOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->bindAction = app(BindOrganizationOfficer::class);
     $this->submitAction = app(SubmitOrganizationRegistration::class);
     $this->engine = app(ApprovalEngine::class);
@@ -30,7 +30,7 @@ beforeEach(function () {
     $this->adviserB = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail(); // IT Guild
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->sdaoB = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 
     // Already bound (via MembershipSeeder) as active President of Computing Society.
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();

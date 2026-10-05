@@ -22,9 +22,9 @@ use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\OrganizationMembershipService;
 use App\Printing\ActivityProposalForm;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * The core historical-accuracy regression the officer-history feature was
@@ -37,7 +37,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * officer turnover happening afterward.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->resubmitProposal = app(ResubmitActivityProposal::class);

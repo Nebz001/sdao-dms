@@ -64,16 +64,16 @@ test('expense items with no rows format to null', function () {
 
 test('list items shaped like {name, ...} format to their name — partner_organizations', function () {
     expect(FieldValueFormatter::format([
-        ['organization_id' => 5, 'name' => 'Computing Society'],
+        ['organization_id' => 5, 'name' => 'Debate Society'],
         ['organization_id' => null, 'name' => 'External School'],
-    ], 'list'))->toBe('Computing Society, External School');
+    ], 'list'))->toBe('Debate Society, External School');
 });
 
 test('a mixed array of plain strings and {name, ...} objects formats both correctly', function () {
     expect(FieldValueFormatter::format([
         'Plain Legacy Entry',
-        ['organization_id' => 5, 'name' => 'Computing Society'],
-    ], 'list'))->toBe('Plain Legacy Entry, Computing Society');
+        ['organization_id' => 5, 'name' => 'Debate Society'],
+    ], 'list'))->toBe('Plain Legacy Entry, Debate Society');
 });
 
 test('a {name, ...} item with a blank name is dropped, same as a blank plain string', function () {

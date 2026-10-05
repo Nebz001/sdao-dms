@@ -26,6 +26,7 @@ export type ApproverAccount = {
 
 export type ApproverStats = {
     active: { total: number; byGroup: Record<RoleGroup, number> };
+    unassignedAdvisers: { count: number; href: string };
     missingAdviser: {
         count: number;
         organizations: { id: number; name: string }[];
@@ -33,6 +34,8 @@ export type ApproverStats = {
     };
     deactivated: { count: number; latest: { name: string; at: string } | null };
 };
+
+export type InitialFilters = { role: RoleGroup | null; scope: string | null };
 
 export type School = { id: number; name: string };
 

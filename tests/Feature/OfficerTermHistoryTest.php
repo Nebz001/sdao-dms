@@ -6,11 +6,11 @@ use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\OrganizationMembershipService;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers the term-history columns added to organization_memberships
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  * three legitimate states this locks in.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->bindAction = app(BindOrganizationOfficer::class);
     $this->membershipService = app(OrganizationMembershipService::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

@@ -11,7 +11,6 @@ use App\Models\School;
 use App\Models\User;
 use App\Notifications\ApproverProvisionedNotification;
 use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -19,13 +18,15 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->action = app(ProvisionApprover::class);
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
-    $this->school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $this->school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $this->program = Program::where('name', 'BS Computer Science')->firstOrFail();
 });
 
@@ -174,7 +175,7 @@ test('provisioning a new SDAO member still ADDS a row — the multi-holder role 
 // reaching that step could be notified/authorized to whichever row won,
 // sometimes leaving the newly provisioned holder neither notified nor able
 // to open the review page at all. IdentitySeeder (seeded in beforeEach)
-// already assigned an incumbent for CCIT's Dean, BS Computer Science's
+// already assigned an incumbent for SACE's Dean, BS Computer Science's
 // Program Chair, and Computing Society's Adviser — every test below
 // provisions a REPLACEMENT for one of those and asserts the incumbent's
 // seat is retired, not merely shadowed.
@@ -251,7 +252,7 @@ test('provisioning a replacement adviser UNBINDS the previous adviser back to th
 });
 
 test('provisioning a dean for one school leaves another school\'s dean untouched', function () {
-    $otherSchool = School::where('name', 'School of Business and Accountancy')->firstOrFail();
+    $otherSchool = School::where('name', 'School of Accountancy, Business, and Management')->firstOrFail();
     $otherDean = $this->action->execute(
         actor: $this->sdaoA,
         name: 'Other School Dean',

@@ -11,9 +11,9 @@ use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Printing\OrganizationApplicationForm;
 use Carbon\Carbon;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Printing\OrganizationApplicationForm::data() — the printable
@@ -23,7 +23,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * A single render-smoke test lives in DocumentPrintRenderTest instead.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->form = app(OrganizationApplicationForm::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

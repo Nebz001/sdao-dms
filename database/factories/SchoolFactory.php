@@ -16,7 +16,7 @@ class SchoolFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->company().' School',
+            'name' => fake()->unique()->company().' School',
             'type' => 'regular',
         ];
     }

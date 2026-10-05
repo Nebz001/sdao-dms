@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
 
     $this->flagged = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->flagged->forceFill(['must_change_password' => true])->save();

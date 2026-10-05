@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Tests\Fixtures;
 
 use App\Enums\OfficerPosition;
 use App\Enums\Role;

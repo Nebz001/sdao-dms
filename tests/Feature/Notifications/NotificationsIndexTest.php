@@ -2,9 +2,9 @@
 
 use App\Models\User;
 use App\Notifications\ApproverHandOffNotification;
-use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * The full, filterable destination behind the bell dropdown's "View all
@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
  * listing's pagination/filter/order behavior, not approval mechanics.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class]);
+    $this->seed([TestIdentitySeeder::class]);
     $this->user = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 });
 

@@ -20,13 +20,13 @@ use App\Organizations\ApproveJoinRequest;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\RequestOfficerChange;
 use App\Registrations\ApproveOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Two actors changing the same seat at the same time. A real race can't be
@@ -42,7 +42,7 @@ use Illuminate\Validation\ValidationException;
  *     validation message, never a 500, and nothing may be half-applied.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     Notification::fake();
     $this->withoutVite();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

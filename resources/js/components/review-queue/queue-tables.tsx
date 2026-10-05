@@ -4,8 +4,15 @@ import AccountName from '@/components/account-name';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NO_SCHOOL_LABEL } from '@/lib/school';
 import DataTable, { RowViewButton } from './data-table';
 import type { DataColumn } from './data-table';
 import ResultPill from './result-pill';
@@ -30,9 +37,13 @@ export function SectionCard({
             <CardHeader className="flex flex-row items-center justify-between gap-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                     {title}
-                    {count !== undefined && <Badge variant="secondary">{count}</Badge>}
+                    {count !== undefined && (
+                        <Badge variant="secondary">{count}</Badge>
+                    )}
                 </CardTitle>
-                {aside && <div className="text-sm text-muted-foreground">{aside}</div>}
+                {aside && (
+                    <div className="text-sm text-muted-foreground">{aside}</div>
+                )}
             </CardHeader>
             <CardContent>{children}</CardContent>
         </Card>
@@ -54,7 +65,11 @@ function OrganizationCell({
     return (
         <div className="flex flex-col">
             <span className={strong ? 'font-medium' : undefined}>{name}</span>
-            {showCollege && <span className="text-sm text-muted-foreground">{college ?? 'No college'}</span>}
+            {showCollege && (
+                <span className="text-sm text-muted-foreground">
+                    {college ?? NO_SCHOOL_LABEL}
+                </span>
+            )}
         </div>
     );
 }
@@ -87,7 +102,16 @@ export function PendingTable({
 }) {
     const columns: DataColumn<QueueRow>[] = [
         ...(showActivity
-            ? [{ key: 'title', header: 'Activity', slot: 'title' as const, cell: (r: QueueRow) => <span className="font-medium">{r.title}</span> }]
+            ? [
+                  {
+                      key: 'title',
+                      header: 'Activity',
+                      slot: 'title' as const,
+                      cell: (r: QueueRow) => (
+                          <span className="font-medium">{r.title}</span>
+                      ),
+                  },
+              ]
             : []),
         {
             key: 'organization',
@@ -103,9 +127,20 @@ export function PendingTable({
             ),
         },
         ...(extraColumnLabel
-            ? [{ key: 'extra', header: extraColumnLabel, cell: (r: QueueRow) => r.extra ?? 'None' }]
+            ? [
+                  {
+                      key: 'extra',
+                      header: extraColumnLabel,
+                      cell: (r: QueueRow) => r.extra ?? 'None',
+                  },
+              ]
             : []),
-        { key: 'submitted', header: 'Submitted', className: 'tabular-nums', cell: (r) => formatDate(r.submitted_at) },
+        {
+            key: 'submitted',
+            header: 'Submitted',
+            className: 'tabular-nums',
+            cell: (r) => formatDate(r.submitted_at),
+        },
         ...(showStep
             ? [
                   {
@@ -117,7 +152,9 @@ export function PendingTable({
                                   <span>
                                       Step {r.step.position} of {r.step.total}
                                   </span>
-                                  <span className="text-sm text-muted-foreground">{r.step.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                      {r.step.name}
+                                  </span>
                               </div>
                           ) : (
                               <span className="text-muted-foreground">—</span>
@@ -129,7 +166,13 @@ export function PendingTable({
             key: 'waiting',
             header: 'Waiting',
             slot: 'badge',
-            cell: (r) => <WaitPill days={r.waiting_days} tier={r.tier} flagOverdue={flagOverdue} />,
+            cell: (r) => (
+                <WaitPill
+                    days={r.waiting_days}
+                    tier={r.tier}
+                    flagOverdue={flagOverdue}
+                />
+            ),
         },
         {
             key: 'actions',
@@ -139,7 +182,11 @@ export function PendingTable({
             cell: (r) => (
                 <Button asChild size="sm">
                     <Link href={r.href ?? config.showRoute(r.id)}>
-                        Review<span className="sr-only"> {showActivity ? r.title : r.organization.name}</span>
+                        Review
+                        <span className="sr-only">
+                            {' '}
+                            {showActivity ? r.title : r.organization.name}
+                        </span>
                     </Link>
                 </Button>
             ),
@@ -155,11 +202,18 @@ export function PendingTable({
                             <Inbox />
                         </EmptyMedia>
                         <EmptyTitle>{emptyTitle}</EmptyTitle>
-                        <EmptyDescription>{config.emptyDescription}</EmptyDescription>
+                        <EmptyDescription>
+                            {config.emptyDescription}
+                        </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (
-                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} roomy={showActivity} />
+                <DataTable
+                    rows={rows}
+                    columns={columns}
+                    rowKey={(r) => r.id}
+                    roomy={showActivity}
+                />
             )}
         </SectionCard>
     );
@@ -191,7 +245,9 @@ export function RecentDecisionsTable({
                       key: 'title',
                       header: 'Activity',
                       slot: 'title' as const,
-                      cell: (r: RecentDecision) => <span className="font-medium">{r.title}</span>,
+                      cell: (r: RecentDecision) => (
+                          <span className="font-medium">{r.title}</span>
+                      ),
                   },
               ]
             : []),
@@ -208,15 +264,50 @@ export function RecentDecisionsTable({
                 />
             ),
         },
-        { key: 'result', header: 'Result', slot: 'badge', cell: (r) => <ResultPill result={r.result} /> },
-        { key: 'decided', header: 'Decided on', className: 'tabular-nums', cell: (r) => formatDate(r.decided_at) },
-        ...(showDecidedBy ? [{ key: 'by', header: 'Decided by', cell: (r: RecentDecision) => (r.decided_by ? <AccountName name={r.decided_by} nameClassName="font-normal" /> : '—') }] : []),
+        {
+            key: 'result',
+            header: 'Result',
+            slot: 'badge',
+            cell: (r) => <ResultPill result={r.result} />,
+        },
+        {
+            key: 'decided',
+            header: 'Decided on',
+            className: 'tabular-nums',
+            cell: (r) => formatDate(r.decided_at),
+        },
+        ...(showDecidedBy
+            ? [
+                  {
+                      key: 'by',
+                      header: 'Decided by',
+                      cell: (r: RecentDecision) =>
+                          r.decided_by ? (
+                              <AccountName
+                                  name={r.decided_by}
+                                  nameClassName="font-normal"
+                              />
+                          ) : (
+                              '—'
+                          ),
+                  },
+              ]
+            : []),
         {
             key: 'actions',
             header: 'Action',
             slot: 'action',
             align: 'right',
-            cell: (r) => <RowViewButton href={r.href} label={showActivity ? (r.title ?? r.organization) : r.organization} />,
+            cell: (r) => (
+                <RowViewButton
+                    href={r.href}
+                    label={
+                        showActivity
+                            ? (r.title ?? r.organization)
+                            : r.organization
+                    }
+                />
+            ),
         },
     ];
 
@@ -234,10 +325,17 @@ export function RecentDecisionsTable({
                         </EmptyHeader>
                     </Empty>
                 ) : (
-                    <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                        {emptyText}
+                    </p>
                 )
             ) : (
-                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} roomy={showActivity} />
+                <DataTable
+                    rows={rows}
+                    columns={columns}
+                    rowKey={(r) => r.id}
+                    roomy={showActivity}
+                />
             )}
         </SectionCard>
     );

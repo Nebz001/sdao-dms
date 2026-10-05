@@ -5,11 +5,11 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
 use App\Models\Organization;
-use Database\Seeders\IdentitySeeder;
 use Illuminate\Support\Carbon;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed(IdentitySeeder::class);
+    $this->seed(TestIdentitySeeder::class);
     $this->org = Organization::first();
 });
 

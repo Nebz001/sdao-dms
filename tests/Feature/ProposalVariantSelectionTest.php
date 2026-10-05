@@ -16,12 +16,12 @@ use App\Models\User;
 use App\Models\WorkflowStep;
 use App\Models\WorkflowTemplate;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->resolver = app(ProposalVariantResolver::class);
     $this->startDraft = app(StartProposalDraft::class);

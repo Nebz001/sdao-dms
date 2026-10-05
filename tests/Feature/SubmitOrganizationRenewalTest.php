@@ -14,14 +14,14 @@ use App\Renewals\SubmitOrganizationRenewal;
 use App\Renewals\UpdateOrganizationRenewal;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->renewalAction = app(SubmitOrganizationRenewal::class);
     $this->updateRenewalAction = app(UpdateOrganizationRenewal::class);

@@ -16,10 +16,10 @@ use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Log;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * The originally-reported live bug (fix plan, 2026_09_09_100000): a
@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\Log;
  * user-facing error instead of a raw 404.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 });
 
 /**

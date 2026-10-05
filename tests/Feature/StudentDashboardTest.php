@@ -19,9 +19,9 @@ use App\Organizations\StudentDashboardData;
 use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
 use App\Support\CurrentPeriod;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Organizations\StudentDashboardData directly (constructing it
@@ -31,7 +31,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * HTTP wiring (DashboardTest covers that boundary).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     // A fixed, known period — deterministic regardless of the real wall
     // clock, and NOT 3rd term by default so renewal-season assertions below

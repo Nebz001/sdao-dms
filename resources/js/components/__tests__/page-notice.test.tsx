@@ -7,11 +7,11 @@ import PageNotice from '@/components/page-notice';
 describe('PageNotice', () => {
     it('is a polite status region with the message and an icon', () => {
         const { container } = render(
-            <PageNotice tone="info">Submitting for Computing Society.</PageNotice>,
+            <PageNotice tone="info">Submitting for Debate Society.</PageNotice>,
         );
 
         const notice = screen.getByRole('status');
-        expect(notice).toHaveTextContent('Submitting for Computing Society.');
+        expect(notice).toHaveTextContent('Submitting for Debate Society.');
         expect(notice.querySelector('svg')).not.toBeNull();
         expect(container.querySelector('[role="alert"]')).toBeNull();
     });

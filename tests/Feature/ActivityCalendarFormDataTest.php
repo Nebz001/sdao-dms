@@ -11,9 +11,9 @@ use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
 use App\Printing\ActivityCalendarForm;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Covers App\Printing\ActivityCalendarForm::data(): the title (academic
@@ -23,7 +23,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * org's calendar submission, not the sample's aggregate master log).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->studentAlpha = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });

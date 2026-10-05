@@ -11,9 +11,9 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Printing\ActivityProposalForm;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Group C item 2 — Budget Source becomes a closed dropdown (RSO Fund / RSO
@@ -21,7 +21,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * pattern already used for ActivityNature/ActivityType.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

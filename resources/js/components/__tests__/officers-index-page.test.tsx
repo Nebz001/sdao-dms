@@ -37,7 +37,7 @@ describe('Manage Officers page — End seat', () => {
 
         render(
             <OfficersIndex
-                organization={{ id: 7, name: 'Computing Society' }}
+                organization={{ id: 7, name: 'Debate Society' }}
                 memberships={[
                     {
                         id: 42,

@@ -1,5 +1,12 @@
 import { Deferred, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Building2, FileText, ListChecks, RefreshCw, Users } from 'lucide-react';
+import {
+    ArrowLeft,
+    Building2,
+    FileText,
+    ListChecks,
+    RefreshCw,
+    Users,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import DeactivateOfficerAccountDialog from '@/components/deactivate-officer-account-dialog';
@@ -9,22 +16,58 @@ import PageNotice from '@/components/page-notice';
 import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
 import type { DataColumn } from '@/components/review-queue/data-table';
 import { SectionCard } from '@/components/review-queue/queue-tables';
-import StatCard, { StatCardSkeleton, StatValue } from '@/components/review-queue/stat-card';
+import StatCard, {
+    StatCardSkeleton,
+    StatValue,
+} from '@/components/review-queue/stat-card';
 import ThinProgress from '@/components/review-queue/thin-progress';
 import { formatDate, pluralDays } from '@/components/review-queue/types';
-import { OrganizationStatusBadge, RequirementBadge, StatusBadge } from '@/components/status-badge';
+import {
+    OrganizationStatusBadge,
+    RequirementBadge,
+    StatusBadge,
+} from '@/components/status-badge';
 import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NO_SCHOOL_LABEL } from '@/lib/school';
 import { cn } from '@/lib/utils';
 import * as organizations from '@/routes/admin/organizations';
 
 type Banner =
-    | { type: 'pending'; kind: 'registration' | 'renewal'; documentStatus: string; waitingDays: number; tier: string; href: string | null }
-    | { type: 'needs_renewal'; coveredThrough: string | null; window: { open: boolean; label: string }; outstanding: string[] }
-    | { type: 'inactive'; reason: 'no_approved_registration' | 'no_active_officers'; since: string | null };
+    | {
+          type: 'pending';
+          kind: 'registration' | 'renewal';
+          documentStatus: string;
+          waitingDays: number;
+          tier: string;
+          href: string | null;
+      }
+    | {
+          type: 'needs_renewal';
+          coveredThrough: string | null;
+          window: { open: boolean; label: string };
+          outstanding: string[];
+      }
+    | {
+          type: 'inactive';
+          reason: 'no_approved_registration' | 'no_active_officers';
+          since: string | null;
+      };
 
 type Summary = {
     status: string;
@@ -40,7 +83,13 @@ type Summary = {
     };
 };
 
-type DocumentRef = { id: number; title: string; type: string; status: string; href: string | null };
+type DocumentRef = {
+    id: number;
+    title: string;
+    type: string;
+    status: string;
+    href: string | null;
+};
 
 type RequirementRow = {
     key: string;
@@ -92,7 +141,10 @@ function StatusBanner({ banner }: { banner: Banner }) {
     if (banner.type === 'pending') {
         const days = banner.waitingDays;
         const since = days === 0 ? 'since today' : `for ${pluralDays(days)}`;
-        const copy: Record<string, { title: string; detail: string; action: string | null }> = {
+        const copy: Record<
+            string,
+            { title: string; detail: string; action: string | null }
+        > = {
             in_review: {
                 title: `A ${banner.kind} is waiting for SDAO review.`,
                 detail: `It has been waiting ${since}.`,
@@ -109,11 +161,17 @@ function StatusBanner({ banner }: { banner: Banner }) {
                 action: null,
             },
         };
-        const { title, detail, action } = copy[banner.documentStatus] ?? copy.in_review;
+        const { title, detail, action } =
+            copy[banner.documentStatus] ?? copy.in_review;
 
         return (
             <PageNotice
-                tone={banner.documentStatus === 'in_review' && banner.tier === 'overdue' ? 'warning' : 'info'}
+                tone={
+                    banner.documentStatus === 'in_review' &&
+                    banner.tier === 'overdue'
+                        ? 'warning'
+                        : 'info'
+                }
                 title={title}
                 action={
                     banner.href &&
@@ -132,7 +190,9 @@ function StatusBanner({ banner }: { banner: Banner }) {
     if (banner.type === 'needs_renewal') {
         return (
             <PageNotice tone="warning" title="Renewal needed.">
-                {banner.coveredThrough ? `Coverage ended with ${banner.coveredThrough}. ` : ''}
+                {banner.coveredThrough
+                    ? `Coverage ended with ${banner.coveredThrough}. `
+                    : ''}
                 {banner.window.open
                     ? `The renewal window is open and closes ${banner.window.label}.`
                     : `The next renewal window opens ${banner.window.label}.`}
@@ -152,7 +212,17 @@ function StatusBanner({ banner }: { banner: Banner }) {
     );
 }
 
-function Tile({ icon, title, value, note }: { icon: typeof Users; title: string; value: ReactNode; note?: string | null }) {
+function Tile({
+    icon,
+    title,
+    value,
+    note,
+}: {
+    icon: typeof Users;
+    title: string;
+    value: ReactNode;
+    note?: string | null;
+}) {
     return (
         <StatCard icon={icon} title={title} compact>
             <StatValue size="sm">{value}</StatValue>
@@ -164,15 +234,33 @@ function Tile({ icon, title, value, note }: { icon: typeof Users; title: string;
 function Tiles({ tiles }: { tiles: Summary['tiles'] }) {
     return (
         <>
-            <Tile icon={ListChecks} title="Requirements met" value={`${tiles.requirementsMet} of ${tiles.requirementsTotal}`} />
-            <Tile icon={Users} title="Officers" value={tiles.officerCount} note="Active president and secretary" />
+            <Tile
+                icon={ListChecks}
+                title="Requirements met"
+                value={`${tiles.requirementsMet} of ${tiles.requirementsTotal}`}
+            />
+            <Tile
+                icon={Users}
+                title="Officers"
+                value={tiles.officerCount}
+                note="Active president and secretary"
+            />
             <Tile
                 icon={FileText}
                 title="Date registered"
-                value={tiles.registeredOn ? formatDate(tiles.registeredOn) : 'Not yet'}
+                value={
+                    tiles.registeredOn
+                        ? formatDate(tiles.registeredOn)
+                        : 'Not yet'
+                }
                 note={tiles.registeredOn ? null : 'No registration approved'}
             />
-            <Tile icon={RefreshCw} title="Renewal" value={tiles.renewal.value} note={tiles.renewal.note} />
+            <Tile
+                icon={RefreshCw}
+                title="Renewal"
+                value={tiles.renewal.value}
+                note={tiles.renewal.note}
+            />
         </>
     );
 }
@@ -180,7 +268,11 @@ function Tiles({ tiles }: { tiles: Summary['tiles'] }) {
 function TilesSkeleton() {
     return (
         <>
-            <StatCardSkeleton compact icon={ListChecks} title="Requirements met" />
+            <StatCardSkeleton
+                compact
+                icon={ListChecks}
+                title="Requirements met"
+            />
             <StatCardSkeleton compact icon={Users} title="Officers" />
             <StatCardSkeleton compact icon={FileText} title="Date registered" />
             <StatCardSkeleton compact icon={RefreshCw} title="Renewal" />
@@ -200,7 +292,13 @@ function SectionSkeleton({ title }: { title: string }) {
     );
 }
 
-function EmptySection({ title, description }: { title: string; description: string }) {
+function EmptySection({
+    title,
+    description,
+}: {
+    title: string;
+    description: string;
+}) {
     return (
         <Empty>
             <EmptyHeader>
@@ -215,12 +313,19 @@ function EmptySection({ title, description }: { title: string; description: stri
 }
 
 const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
-    { key: 'label', header: 'Requirement', slot: 'title', cell: (r) => r.label },
+    {
+        key: 'label',
+        header: 'Requirement',
+        slot: 'title',
+        cell: (r) => r.label,
+    },
     {
         key: 'met',
         header: 'Status',
         slot: 'badge',
-        cell: (r) => <RequirementBadge status={r.met ? 'done' : 'action_needed'} />,
+        cell: (r) => (
+            <RequirementBadge status={r.met ? 'done' : 'action_needed'} />
+        ),
     },
     {
         key: 'evidence',
@@ -231,7 +336,9 @@ const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
                     <span className="flex flex-col">
                         <span>{r.detail}</span>
                         {r.detailNote && (
-                            <span className="text-xs text-muted-foreground tabular-nums">{r.detailNote}</span>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                                {r.detailNote}
+                            </span>
                         )}
                     </span>
                 ) : (
@@ -240,19 +347,32 @@ const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
             ) : r.document ? (
                 <span className="flex flex-col">
                     <span className="font-medium">{r.document.title}</span>
-                    <span className="text-xs text-muted-foreground">{r.document.type}</span>
+                    <span className="text-xs text-muted-foreground">
+                        {r.document.type}
+                    </span>
                 </span>
             ) : (
                 (r.detail ?? DASH)
             ),
     },
-    { key: 'date', header: 'Approved', className: 'tabular-nums', cell: (r) => (r.date ? formatDate(r.date) : DASH) },
+    {
+        key: 'date',
+        header: 'Approved',
+        className: 'tabular-nums',
+        cell: (r) => (r.date ? formatDate(r.date) : DASH),
+    },
     {
         key: 'actions',
         header: 'Action',
         slot: 'action',
         align: 'right',
-        cell: (r) => (r.document ? <RowViewButton href={r.document.href} label={r.document.title} /> : null),
+        cell: (r) =>
+            r.document ? (
+                <RowViewButton
+                    href={r.document.href}
+                    label={r.document.title}
+                />
+            ) : null,
     },
 ];
 
@@ -260,13 +380,20 @@ function RequirementsSection({ rows }: { rows: RequirementRow[] }) {
     const met = rows.filter((r) => r.met).length;
 
     return (
-        <SectionCard title="Requirements" aside={`${met} of ${rows.length} met`}>
+        <SectionCard
+            title="Requirements"
+            aside={`${met} of ${rows.length} met`}
+        >
             <div className="flex flex-col gap-4">
                 <ThinProgress
                     value={met}
                     max={rows.length}
                     label="Requirements met"
-                    fillClassName={rows.length > 0 && met / rows.length >= 0.6 ? 'bg-success' : 'bg-warning'}
+                    fillClassName={
+                        rows.length > 0 && met / rows.length >= 0.6
+                            ? 'bg-success'
+                            : 'bg-warning'
+                    }
                 />
                 <DataTable
                     rows={rows}
@@ -280,11 +407,26 @@ function RequirementsSection({ rows }: { rows: RequirementRow[] }) {
 }
 
 const DOCUMENT_COLUMNS: DataColumn<DocumentRow>[] = [
-    { key: 'title', header: 'Document', slot: 'title', cell: (d) => <span className="font-semibold">{d.title}</span> },
-    { key: 'status', header: 'Status', slot: 'badge', cell: (d) => <StatusBadge status={d.status} /> },
+    {
+        key: 'title',
+        header: 'Document',
+        slot: 'title',
+        cell: (d) => <span className="font-semibold">{d.title}</span>,
+    },
+    {
+        key: 'status',
+        header: 'Status',
+        slot: 'badge',
+        cell: (d) => <StatusBadge status={d.status} />,
+    },
     { key: 'type', header: 'Type', cell: (d) => d.type },
     { key: 'period', header: 'Term', cell: (d) => d.period?.label ?? DASH },
-    { key: 'submitted', header: 'Submitted', className: 'tabular-nums', cell: (d) => formatDate(d.submitted_at) },
+    {
+        key: 'submitted',
+        header: 'Submitted',
+        className: 'tabular-nums',
+        cell: (d) => formatDate(d.submitted_at),
+    },
     {
         key: 'actions',
         header: 'Action',
@@ -299,13 +441,20 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
     const allRows = useMemo(() => data.rows ?? [], [data.rows]);
     const periods = data.periods ?? [];
     const rows = useMemo(
-        () => (period === ALL_PERIODS ? allRows : allRows.filter((d) => d.period?.key === period)),
+        () =>
+            period === ALL_PERIODS
+                ? allRows
+                : allRows.filter((d) => d.period?.key === period),
         [allRows, period],
     );
 
     const filter = periods.length > 1 && (
         <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger aria-label="Filter by term" size="sm" className="w-48">
+            <SelectTrigger
+                aria-label="Filter by term"
+                size="sm"
+                className="w-48"
+            >
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -320,10 +469,18 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
     );
 
     return (
-        <SectionCard title="Submitted documents" count={allRows.length} aside={filter || undefined}>
+        <SectionCard
+            title="Submitted documents"
+            count={allRows.length}
+            aside={filter || undefined}
+        >
             {rows.length === 0 ? (
                 <EmptySection
-                    title={allRows.length === 0 ? 'No documents submitted yet' : 'No documents in this term'}
+                    title={
+                        allRows.length === 0
+                            ? 'No documents submitted yet'
+                            : 'No documents in this term'
+                    }
                     description={
                         allRows.length === 0
                             ? 'Registrations, calendars, proposals and reports appear here once the organization submits them.'
@@ -331,7 +488,11 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
                     }
                 />
             ) : (
-                <DataTable rows={rows} columns={DOCUMENT_COLUMNS} rowKey={(d) => d.id} />
+                <DataTable
+                    rows={rows}
+                    columns={DOCUMENT_COLUMNS}
+                    rowKey={(d) => d.id}
+                />
             )}
         </SectionCard>
     );
@@ -340,19 +501,44 @@ function DocumentsSection({ data }: { data: NonNullable<Props['documents']> }) {
 function officerColumns(organizationName: string): DataColumn<Officer>[] {
     return [
         { key: 'name', header: 'Name', slot: 'title', cell: (o) => o.name },
-        { key: 'position', header: 'Position', slot: 'badge', cell: (o) => o.position },
-        { key: 'id_number', header: 'ID number', cell: (o) => o.id_number ?? DASH },
-        { key: 'since', header: 'Since', className: 'tabular-nums', cell: (o) => (o.since ? formatDate(o.since) : DASH) },
+        {
+            key: 'position',
+            header: 'Position',
+            slot: 'badge',
+            cell: (o) => o.position,
+        },
+        {
+            key: 'id_number',
+            header: 'ID number',
+            cell: (o) => o.id_number ?? DASH,
+        },
+        {
+            key: 'since',
+            header: 'Since',
+            className: 'tabular-nums',
+            cell: (o) => (o.since ? formatDate(o.since) : DASH),
+        },
         {
             key: 'actions',
             header: 'Action',
             slot: 'action',
-            cell: (o) => <DeactivateOfficerAccountDialog officer={o} organizationName={organizationName} />,
+            cell: (o) => (
+                <DeactivateOfficerAccountDialog
+                    officer={o}
+                    organizationName={organizationName}
+                />
+            ),
         },
     ];
 }
 
-function OfficersSection({ rows, organizationName }: { rows: Officer[]; organizationName: string }) {
+function OfficersSection({
+    rows,
+    organizationName,
+}: {
+    rows: Officer[];
+    organizationName: string;
+}) {
     return (
         <SectionCard title="Officers" count={rows.length}>
             {rows.length === 0 ? (
@@ -361,7 +547,11 @@ function OfficersSection({ rows, organizationName }: { rows: Officer[]; organiza
                     description="The adviser binds a president and a secretary once the organization is approved."
                 />
             ) : (
-                <DataTable rows={rows} columns={officerColumns(organizationName)} rowKey={(o) => o.id} />
+                <DataTable
+                    rows={rows}
+                    columns={officerColumns(organizationName)}
+                    rowKey={(o) => o.id}
+                />
             )}
         </SectionCard>
     );
@@ -376,7 +566,8 @@ function NotFound() {
                 </EmptyMedia>
                 <EmptyTitle>Organization not found</EmptyTitle>
                 <EmptyDescription>
-                    No organization has this id. It may have been removed, or the link may be wrong.
+                    No organization has this id. It may have been removed, or
+                    the link may be wrong.
                 </EmptyDescription>
             </EmptyHeader>
             <Button asChild size="sm">
@@ -389,14 +580,27 @@ function NotFound() {
     );
 }
 
-type LoadedProps = Omit<Props, 'organization'> & { organization: NonNullable<Props['organization']> };
+type LoadedProps = Omit<Props, 'organization'> & {
+    organization: NonNullable<Props['organization']>;
+};
 
 /** Every section is its own Deferred: skeleton while loading, content once it lands. */
-function OrganizationDetail({ organization, summary, requirements, documents, officers }: LoadedProps) {
+function OrganizationDetail({
+    organization,
+    summary,
+    requirements,
+    documents,
+    officers,
+}: LoadedProps) {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-3">
-                <Button asChild variant="ghost" size="sm" className="self-start">
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="self-start"
+                >
                     <Link href={organizations.index().url}>
                         <ArrowLeft data-icon="inline-start" />
                         Back to organizations
@@ -408,7 +612,7 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
                         <PageHeader
                             title={organization.name}
                             badge={<Skeleton className="h-5 w-24" />}
-                            subtitle={<Skeleton className="h-4 w-64" />}
+                            subtitle="Status, requirements and submitted documents"
                         />
                     }
                 >
@@ -417,18 +621,30 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
                         badge={
                             summary ? (
                                 <span className="flex flex-wrap items-center gap-2">
-                                    <OrganizationStatusBadge status={summary.status} />
-                                    {summary.program && <TagBadge>{summary.program}</TagBadge>}
+                                    <OrganizationStatusBadge
+                                        status={summary.status}
+                                    />
+                                    <TagBadge>
+                                        {summary.school ?? NO_SCHOOL_LABEL}
+                                    </TagBadge>
+                                    {summary.program && (
+                                        <TagBadge>{summary.program}</TagBadge>
+                                    )}
                                 </span>
                             ) : undefined
                         }
-                        subtitle={summary?.school ?? null}
+                        subtitle="Status, requirements and submitted documents"
                     />
                 </Deferred>
             </div>
 
-            <Deferred data="summary" fallback={<Skeleton className="h-14 w-full rounded-lg" />}>
-                {summary?.banner ? <StatusBanner banner={summary.banner} /> : null}
+            <Deferred
+                data="summary"
+                fallback={<Skeleton className="h-14 w-full rounded-lg" />}
+            >
+                {summary?.banner ? (
+                    <StatusBanner banner={summary.banner} />
+                ) : null}
             </Deferred>
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -437,16 +653,30 @@ function OrganizationDetail({ organization, summary, requirements, documents, of
                 </Deferred>
             </div>
 
-            <Deferred data="requirements" fallback={<SectionSkeleton title="Requirements" />}>
+            <Deferred
+                data="requirements"
+                fallback={<SectionSkeleton title="Requirements" />}
+            >
                 <RequirementsSection rows={requirements ?? []} />
             </Deferred>
 
-            <Deferred data="documents" fallback={<SectionSkeleton title="Submitted documents" />}>
-                <DocumentsSection data={documents ?? { rows: [], periods: [] }} />
+            <Deferred
+                data="documents"
+                fallback={<SectionSkeleton title="Submitted documents" />}
+            >
+                <DocumentsSection
+                    data={documents ?? { rows: [], periods: [] }}
+                />
             </Deferred>
 
-            <Deferred data="officers" fallback={<SectionSkeleton title="Officers" />}>
-                <OfficersSection rows={officers ?? []} organizationName={organization.name} />
+            <Deferred
+                data="officers"
+                fallback={<SectionSkeleton title="Officers" />}
+            >
+                <OfficersSection
+                    rows={officers ?? []}
+                    organizationName={organization.name}
+                />
             </Deferred>
         </div>
     );
@@ -469,13 +699,27 @@ export default function OrganizationShow(props: Props) {
         <>
             <Head title={name ?? 'Organization not found'} />
 
-            <ErrorBoundary backHref={organizations.index().url} backLabel="Back to organizations">
-                {props.organization ? <OrganizationDetail {...props} organization={props.organization} /> : <NotFound />}
+            <ErrorBoundary
+                backHref={organizations.index().url}
+                backLabel="Back to organizations"
+            >
+                {props.organization ? (
+                    <OrganizationDetail
+                        {...props}
+                        organization={props.organization}
+                    />
+                ) : (
+                    <NotFound />
+                )}
             </ErrorBoundary>
         </>
     );
 }
 
 OrganizationShow.layout = {
-    breadcrumbs: [{ title: 'Admin' }, { title: 'Organizations', href: organizations.index() }, { title: 'Organization' }],
+    breadcrumbs: [
+        { title: 'Admin' },
+        { title: 'Organizations', href: organizations.index() },
+        { title: 'Organization' },
+    ],
 };

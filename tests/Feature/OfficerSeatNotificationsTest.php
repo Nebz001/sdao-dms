@@ -14,11 +14,11 @@ use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
 use App\Organizations\BindOrganizationOfficer;
 use App\Organizations\RequestOfficerChange;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Who is told what when a seat changes. Every path to a seat tells the person
@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Notification;
  * them, so a notice would only create an expectation that may never be met.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
     $this->sdao = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();

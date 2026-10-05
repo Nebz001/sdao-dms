@@ -26,7 +26,7 @@ function renderDialog(remaining: number) {
                 position: 'President',
                 remaining_officers: remaining,
             }}
-            organizationName="Computing Society"
+            organizationName="Debate Society"
         />,
     );
 }
@@ -60,7 +60,7 @@ describe('Deactivate account dialog (SDAO, organization page)', () => {
 
         expect(
             within(dialog).getByText(
-                'Computing Society will have no active officers.',
+                'Debate Society will have no active officers.',
             ),
         ).toBeInTheDocument();
         expect(
@@ -103,7 +103,7 @@ describe('Deactivate account dialog (SDAO, organization page)', () => {
         ).toBeInTheDocument();
         expect(
             within(dialog).getByText(
-                /ends their President seat of Computing Society/,
+                /ends their President seat of Debate Society/,
             ),
         ).toBeInTheDocument();
         expect(

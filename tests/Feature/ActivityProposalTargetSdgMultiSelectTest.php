@@ -11,9 +11,9 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Printing\ActivityProposalForm;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Group C item 1 — target_sdg multi-select. Same shape and cast pattern as
@@ -22,7 +22,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * per document, not per activity), and the print-form/show-page wiring.
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->startDraft = app(StartProposalDraft::class);
     $this->submitProposal = app(SubmitActivityProposal::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

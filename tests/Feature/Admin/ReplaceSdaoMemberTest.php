@@ -15,11 +15,11 @@ use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
 use App\Models\WorkflowStep;
-use Database\Seeders\IdentitySeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Replacing an SDAO member: SDAO is multi-holder, so provisioning alone only
@@ -28,7 +28,7 @@ use Illuminate\Validation\ValidationException;
  */
 beforeEach(function () {
     Notification::fake();
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class]);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->oldSdao = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
@@ -243,7 +243,7 @@ test('a failure after the role removal and deactivation rolls both back', functi
 });
 
 test('other provisioning flows never deactivate anyone', function () {
-    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
     $dean = User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail();
 
     app(ProvisionApprover::class)->execute(

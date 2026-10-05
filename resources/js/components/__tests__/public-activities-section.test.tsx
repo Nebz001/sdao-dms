@@ -18,7 +18,7 @@ function activity(overrides: Partial<PublicActivity>): PublicActivity {
         activity_date: '2026-09-10',
         start_time: '09:00',
         end_time: '11:00',
-        organization: 'IT Guild',
+        organization: 'Robotics Guild',
         ...overrides,
     };
 }

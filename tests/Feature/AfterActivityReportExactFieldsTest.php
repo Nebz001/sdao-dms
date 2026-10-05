@@ -15,9 +15,9 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Reports\SubmitAfterActivityReport;
 use App\Support\AcademicYear;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Phase 2 item 7 slice 3 — exact field corrections for the After-Activity
@@ -28,7 +28,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * introduced (deferred to Phase 2 item 8).
  */
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->reportAction = app(SubmitAfterActivityReport::class);
     $this->engine = app(ApprovalEngine::class);
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();

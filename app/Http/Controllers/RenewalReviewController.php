@@ -11,6 +11,7 @@ use App\Enums\FormType;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
+use App\Models\School;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ class RenewalReviewController extends Controller
         $queue = new ReviewQueueData(
             FormType::OrganizationRenewal,
             'review.renewals.show',
-            fn (Document $d) => $d->organization->school?->name ?? 'None',
+            fn (Document $d) => $d->organization->school?->name ?? School::NONE_LABEL,
             ['organization.school'],
         );
 

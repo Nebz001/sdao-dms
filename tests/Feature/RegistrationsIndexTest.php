@@ -13,12 +13,12 @@ use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
 use App\Registrations\SubmitOrganizationRegistration;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
 
     $this->computingSociety = Organization::where('name', 'Computing Society')->firstOrFail();
     $this->itGuild = Organization::where('name', 'IT Guild')->firstOrFail();
@@ -75,7 +75,7 @@ function submitFoundingRegistration(User $actor, string $name, ?User $adviser = 
         'role' => Role::Adviser->value,
     ]));
 
-    $school = School::where('name', 'School of Computing and IT')->firstOrFail();
+    $school = School::where('name', 'School of Architecture, Computing, and Engineering')->firstOrFail();
 
     return app(SubmitOrganizationRegistration::class)->execute(
         actor: $actor,

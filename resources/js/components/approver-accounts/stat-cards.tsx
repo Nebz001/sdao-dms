@@ -3,13 +3,19 @@ import {
     ArrowRight,
     CircleCheck,
     TriangleAlert,
+    UserRoundPlus,
     UserRoundX,
     UsersRound,
 } from 'lucide-react';
 import SegmentedBar from '@/components/review-queue/segmented-bar';
 import StatCard, { StatValue } from '@/components/review-queue/stat-card';
+import {
+    TIER_ACCENT_TEXT,
+    TIER_CARD_TONE,
+} from '@/components/review-queue/wait-tier';
 import { ToneBadge } from '@/components/status-badge';
 import { splitAccountName } from '@/lib/account-name';
+import { cn } from '@/lib/utils';
 import { ROLE_GROUPS } from './types';
 import type { ApproverStats } from './types';
 
@@ -148,6 +154,55 @@ export function DeactivatedCard({
             ) : (
                 <p className="text-sm text-muted-foreground">
                     No accounts have been deactivated.
+                </p>
+            )}
+        </StatCard>
+    );
+}
+
+/**
+ * Advisers provisioned but not yet bound to an organization. Same attention
+ * treatment as the "Oldest waiting" card (the amber band of the shared
+ * wait-tier map: tinted surface, colored border, colored link); the neutral
+ * card surface once every adviser has an assignment.
+ */
+export function UnassignedAdvisersCard({
+    stats,
+}: {
+    stats: ApproverStats['unassignedAdvisers'];
+}) {
+    const waiting = stats.count > 0;
+    const tier = waiting ? 'aging' : 'fresh';
+
+    return (
+        <StatCard
+            icon={UserRoundPlus}
+            title="Advisers not assigned yet"
+            tone={TIER_CARD_TONE[tier]}
+        >
+            <StatValue>{stats.count}</StatValue>
+            {waiting ? (
+                <>
+                    <p className="text-sm text-muted-foreground">
+                        {stats.count === 1
+                            ? '1 adviser is'
+                            : `${stats.count} advisers are`}{' '}
+                        waiting for an organization.
+                    </p>
+                    <Link
+                        href={stats.href}
+                        className={cn(
+                            'mt-auto inline-flex items-center gap-1.5 text-sm font-medium hover:underline',
+                            TIER_ACCENT_TEXT[tier],
+                        )}
+                    >
+                        View advisers
+                        <ArrowRight className="size-4" aria-hidden />
+                    </Link>
+                </>
+            ) : (
+                <p className="text-sm text-muted-foreground">
+                    Every adviser has an assignment.
                 </p>
             )}
         </StatCard>

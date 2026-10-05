@@ -3,10 +3,10 @@
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
-use Database\Seeders\CalendarSeeder;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 /**
  * Regression coverage for the seeder pipeline itself. No other test seeds
@@ -15,7 +15,7 @@ use Database\Seeders\WorkflowTemplateSeeder;
  * silently, since the ~350-test suite otherwise never runs it.
  */
 test('CalendarSeeder runs without error and seeds the expected calendars', function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class, CalendarSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class, CalendarSeeder::class]);
 
     $approvedCount = Document::where('form_type', FormType::ActivityCalendar->value)
         ->where('status', DocumentStatus::Approved->value)

@@ -13,6 +13,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
+import { NO_SCHOOL_LABEL } from '@/lib/school';
 import { cn } from '@/lib/utils';
 import * as renewals from '@/routes/renewals';
 
@@ -65,7 +66,7 @@ export default function MyOrganization({
                 <PageNotice tone="info" icon={Building2}>
                     {[organization.school, organization.program]
                         .filter(Boolean)
-                        .join(' · ') || 'No college'}
+                        .join(' · ') || NO_SCHOOL_LABEL}
                 </PageNotice>
 
                 {renewalDue && (
@@ -80,8 +81,8 @@ export default function MyOrganization({
                             </Button>
                         }
                     >
-                        It&apos;s renewal season, and {organization.name} hasn&apos;t
-                        filed for next year yet.
+                        It&apos;s renewal season, and {organization.name}{' '}
+                        hasn&apos;t filed for next year yet.
                     </PageNotice>
                 )}
 
@@ -152,10 +153,10 @@ export default function MyOrganization({
                                 <div className="divide-y">
                                     {officers.map((o) => (
                                         <div key={o.id} className="py-2.5">
-                                            <p className="sm:truncate max-sm:break-words font-medium">
+                                            <p className="font-medium max-sm:break-words sm:truncate">
                                                 {o.user.name}
                                             </p>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground max-sm:break-words sm:truncate">
                                                 {o.position_label} ·{' '}
                                                 {o.user.email}
                                             </p>
@@ -188,8 +189,11 @@ export default function MyOrganization({
                                 </Empty>
                             ) : (
                                 <div>
-                                    <AccountName name={adviser.name} nameClassName="font-medium" />
-                                    <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
+                                    <AccountName
+                                        name={adviser.name}
+                                        nameClassName="font-medium"
+                                    />
+                                    <p className="text-sm text-muted-foreground max-sm:break-words sm:truncate">
                                         {adviser.email}
                                     </p>
                                 </div>

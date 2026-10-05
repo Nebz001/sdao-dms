@@ -7,12 +7,12 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\User;
-use Database\Seeders\IdentitySeeder;
-use Database\Seeders\MembershipSeeder;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\MembershipSeeder;
+use Tests\Fixtures\TestIdentitySeeder;
 
 beforeEach(function () {
-    $this->seed([IdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
+    $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
     $this->withoutVite();
     $this->sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
     $this->org = Organization::where('name', 'Computing Society')->firstOrFail();
@@ -98,4 +98,31 @@ test('a non SDAO user cannot open the page', function () {
     $student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($student)->get(route('admin.approvers.index'))->assertForbidden();
+});
+
+test('the unassigned advisers card counts active advisers with no organization, and links to the filtered list', function () {
+    $pool = User::factory()->create(['name' => 'Waiting Adviser']);
+    RoleAssignment::create(['user_id' => $pool->id, 'role' => Role::Adviser]);
+    $deactivatedPool = User::factory()->create(['deactivated_at' => now()]);
+    RoleAssignment::create(['user_id' => $deactivatedPool->id, 'role' => Role::Adviser]);
+
+    approverIndex($this->sdaoA)->assertOk()->assertInertia(fn ($page) => $page
+        ->where('stats.unassignedAdvisers.count', 1)
+        ->where('stats.unassignedAdvisers.href', route('admin.approvers.index', ['role' => 'adviser', 'scope' => 'unassigned']))
+    );
+
+    RoleAssignment::where('user_id', $pool->id)->delete();
+
+    approverIndex($this->sdaoA)->assertInertia(fn ($page) => $page->where('stats.unassignedAdvisers.count', 0));
+});
+
+test('role and scope in the query string preselect the filters, and unknown values are ignored', function () {
+    approverIndex($this->sdaoA)->assertInertia(fn ($page) => $page
+        ->where('initialFilters', ['role' => null, 'scope' => null]));
+
+    $this->actingAs($this->sdaoA)->get(route('admin.approvers.index', ['role' => 'adviser', 'scope' => 'unassigned']))
+        ->assertInertia(fn ($page) => $page->where('initialFilters', ['role' => 'adviser', 'scope' => 'unassigned']));
+
+    $this->actingAs($this->sdaoA)->get(route('admin.approvers.index', ['role' => 'nonsense', 'scope' => 'school:abc']))
+        ->assertInertia(fn ($page) => $page->where('initialFilters', ['role' => null, 'scope' => null]));
 });

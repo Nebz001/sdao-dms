@@ -12,6 +12,7 @@ use App\Enums\TransitionAction;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\School;
 use App\Organizations\OrganizationDetailData;
 use App\Organizations\OrganizationStatusResolver;
 use App\Support\AcademicPeriod;
@@ -237,7 +238,7 @@ class OrganizationController extends Controller
             'submitted_at' => $oldest['since']->toIso8601String(),
             'waiting_days' => $days,
             'tier' => ReviewQueueData::tierFor($days),
-            'extra' => $document->organization->school?->name ?? 'None',
+            'extra' => $document->organization->school?->name ?? School::NONE_LABEL,
             'noun' => $isRenewal ? 'renewal' : 'registration',
             'href' => route($isRenewal ? 'review.renewals.show' : 'review.registrations.show', $document->id),
         ];

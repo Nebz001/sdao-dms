@@ -25,16 +25,20 @@ function user(overrides: Partial<User> = {}): User {
  */
 describe('UserInfo', () => {
     it('renders the subtitle line when passed', () => {
-        render(<UserInfo user={user()} subtitle="School of Computing and IT" />);
+        render(
+            <UserInfo user={user()} subtitle="School of Architecture, Computing, and Engineering" />,
+        );
 
-        expect(screen.getByText('School of Computing and IT')).toBeInTheDocument();
+        expect(
+            screen.getByText('School of Architecture, Computing, and Engineering'),
+        ).toBeInTheDocument();
     });
 
     it('renders no second line at all when subtitle is omitted — not a placeholder string', () => {
         const { container } = render(<UserInfo user={user()} />);
 
         // Only the name's <span> should exist in the text block; nothing
-        // else stands in for a missing subtitle (e.g. no "No college").
+        // else stands in for a missing subtitle (e.g. no "No college / school").
         const spans = container.querySelectorAll('div.grid > span');
         expect(spans).toHaveLength(1);
         expect(spans[0]).toHaveTextContent('Torres, Marco');
@@ -43,13 +47,25 @@ describe('UserInfo', () => {
     it('still renders the email independently when showEmail is true — the dropdown case is unaffected', () => {
         render(<UserInfo user={user()} showEmail />);
 
-        expect(screen.getByText('torresm@students.nu-lipa.edu.ph')).toBeInTheDocument();
+        expect(
+            screen.getByText('torresm@students.nu-lipa.edu.ph'),
+        ).toBeInTheDocument();
     });
 
     it('renders both the email and the subtitle when both are given, without interfering with each other', () => {
-        render(<UserInfo user={user()} showEmail subtitle="School of Computing and IT" />);
+        render(
+            <UserInfo
+                user={user()}
+                showEmail
+                subtitle="School of Architecture, Computing, and Engineering"
+            />,
+        );
 
-        expect(screen.getByText('torresm@students.nu-lipa.edu.ph')).toBeInTheDocument();
-        expect(screen.getByText('School of Computing and IT')).toBeInTheDocument();
+        expect(
+            screen.getByText('torresm@students.nu-lipa.edu.ph'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('School of Architecture, Computing, and Engineering'),
+        ).toBeInTheDocument();
     });
 });

@@ -1,4 +1,5 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
+import CountBadge from '@/components/count-badge';
 import PageHeader from '@/components/page-header';
 import {
     PendingTable,
@@ -19,7 +20,6 @@ import type {
     RecentDecision,
     ReviewQueueConfig,
 } from '@/components/review-queue/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
@@ -33,7 +33,10 @@ type Filter = 'overdue' | 'approved' | 'returned' | 'decided' | null;
 type TabRow = Pick<QueueRow, 'id' | 'title' | 'organization'> &
     Partial<QueueRow> & {
         college?: string | null;
-        decision: { action: RecentDecision['result']; decided_at: string } | null;
+        decision: {
+            action: RecentDecision['result'];
+            decided_at: string;
+        } | null;
     };
 
 type Props = {
@@ -43,13 +46,22 @@ type Props = {
     academicYear: string;
     /** Every proposal waiting on this approver, whichever tab is open. */
     pending: QueueRow[];
-    tabCounts: { pending: number; overdue: number; approved: number; returned: number };
+    tabCounts: {
+        pending: number;
+        overdue: number;
+        approved: number;
+        returned: number;
+    };
     /** Deferred: undefined until the second request lands. */
     stats?: QueueStats;
     recent?: RecentDecision[];
 };
 
-const FILTER_TABS: Array<{ value: Filter; label: string; count?: keyof Props['tabCounts'] }> = [
+const FILTER_TABS: Array<{
+    value: Filter;
+    label: string;
+    count?: keyof Props['tabCounts'];
+}> = [
     { value: null, label: 'Pending', count: 'pending' },
     { value: 'overdue', label: 'Overdue', count: 'overdue' },
     { value: 'approved', label: 'Approved', count: 'approved' },
@@ -73,7 +85,8 @@ const config: ReviewQueueConfig = {
     subtitle: 'Activity proposals routed to your step',
     noun: 'proposal',
     typeLabel: 'Activity proposal',
-    emptyDescription: 'Proposals will show up here once they reach a step routed to your role.',
+    emptyDescription:
+        'Proposals will show up here once they reach a step routed to your role.',
     showRoute,
 };
 
@@ -107,7 +120,10 @@ export default function ReviewActivityProposalsIndex({
             <Head title={config.headTitle} />
 
             <div className="flex flex-col gap-6">
-                <PageHeader title={config.title} subtitle={config.subtitle} />
+                <PageHeader
+                    title={config.title}
+                    subtitle="Activity proposals routed to your step"
+                />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <WaitingCard
@@ -116,7 +132,11 @@ export default function ReviewActivityProposalsIndex({
                         overdueLabel={(n) => `${n} overdue`}
                         pillInHeader
                     />
-                    <OldestCard rows={pending} config={config} headline="title" />
+                    <OldestCard
+                        rows={pending}
+                        config={config}
+                        headline="title"
+                    />
                     <Deferred
                         data="stats"
                         fallback={
@@ -135,7 +155,10 @@ export default function ReviewActivityProposalsIndex({
                     </Deferred>
                 </div>
 
-                <nav aria-label="Filter proposals" className="flex flex-wrap gap-1.5">
+                <nav
+                    aria-label="Filter proposals"
+                    className="flex flex-wrap gap-1.5"
+                >
                     {FILTER_TABS.map((tab) => {
                         const active = tab.value === filter;
 
@@ -152,9 +175,10 @@ export default function ReviewActivityProposalsIndex({
                                 >
                                     {tab.label}
                                     {tab.count && (
-                                        <Badge variant="outline" className="tabular-nums">
-                                            {tabCounts[tab.count]}
-                                        </Badge>
+                                        <CountBadge
+                                            count={tabCounts[tab.count]}
+                                            variant="outline"
+                                        />
                                     )}
                                 </Link>
                             </Button>
@@ -183,9 +207,15 @@ export default function ReviewActivityProposalsIndex({
                                         ? 'No proposal has waited 8 or more days on you.'
                                         : config.emptyDescription,
                             }}
-                            title={filter === 'overdue' ? 'Overdue' : 'Pending your action'}
+                            title={
+                                filter === 'overdue'
+                                    ? 'Overdue'
+                                    : 'Pending your action'
+                            }
                             emptyTitle={
-                                filter === 'overdue' ? 'Nothing overdue' : 'Nothing waiting on you'
+                                filter === 'overdue'
+                                    ? 'Nothing overdue'
+                                    : 'Nothing waiting on you'
                             }
                             showActivity
                             showStep
@@ -193,12 +223,15 @@ export default function ReviewActivityProposalsIndex({
                             showCollege
                         />
 
-                        <Deferred data="recent" fallback={<RecentDecisionsSkeleton />}>
+                        <Deferred
+                            data="recent"
+                            fallback={<RecentDecisionsSkeleton />}
+                        >
                             <RecentDecisionsTable
                                 rows={recent ?? []}
                                 showActivity
                                 showDecidedBy={false}
-                        showCollege
+                                showCollege
                             />
                         </Deferred>
                     </>
