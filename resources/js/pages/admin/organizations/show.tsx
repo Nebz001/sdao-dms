@@ -249,7 +249,7 @@ const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
     { key: 'date', header: 'Approved', className: 'tabular-nums', cell: (r) => (r.date ? formatDate(r.date) : DASH) },
     {
         key: 'actions',
-        header: 'Actions',
+        header: 'Action',
         slot: 'action',
         align: 'right',
         cell: (r) => (r.document ? <RowViewButton href={r.document.href} label={r.document.title} /> : null),
@@ -287,7 +287,7 @@ const DOCUMENT_COLUMNS: DataColumn<DocumentRow>[] = [
     { key: 'submitted', header: 'Submitted', className: 'tabular-nums', cell: (d) => formatDate(d.submitted_at) },
     {
         key: 'actions',
-        header: 'Actions',
+        header: 'Action',
         slot: 'action',
         align: 'right',
         cell: (d) => <RowViewButton href={d.href} label={d.title} />,
@@ -345,7 +345,7 @@ function officerColumns(organizationName: string): DataColumn<Officer>[] {
         { key: 'since', header: 'Since', className: 'tabular-nums', cell: (o) => (o.since ? formatDate(o.since) : DASH) },
         {
             key: 'actions',
-            header: 'Actions',
+            header: 'Action',
             slot: 'action',
             cell: (o) => <DeactivateOfficerAccountDialog officer={o} organizationName={organizationName} />,
         },

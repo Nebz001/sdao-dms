@@ -273,9 +273,7 @@ export default function ApproverDashboard({
                                         <TableHead>Waiting since</TableHead>
                                         <TableHead>Event date</TableHead>
                                         <TableHead className="text-right">
-                                            <span className="sr-only">
-                                                Action
-                                            </span>
+                                            Action
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>

@@ -128,6 +128,7 @@ class ActivityProposalReviewController extends Controller
             'tier' => ReviewQueueData::tierFor($days),
             'step' => $this->stepInfo($d),
             'extra' => $d->organization->school?->name,
+            'college' => $d->organization->school?->name,
         ];
     }
 

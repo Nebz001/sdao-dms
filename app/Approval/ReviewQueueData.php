@@ -63,7 +63,7 @@ class ReviewQueueData
         $now = Date::now();
 
         return Document::query()
-            ->with(['organization', 'transitions', ...$this->with])
+            ->with(['organization.school', 'transitions', ...$this->with])
             ->where('form_type', $this->formType->value)
             ->where('status', DocumentStatus::InReview->value)
             // Defensive: a submitter-less document must never reach the queue
@@ -88,6 +88,7 @@ class ReviewQueueData
                     'waiting_days' => $days,
                     'tier' => self::tierFor($days),
                     'extra' => ($this->extraValue)($d),
+                    'college' => $d->organization->school?->name,
                 ];
             })
             ->sortBy('submitted_at')
@@ -156,7 +157,7 @@ class ReviewQueueData
     /**
      * Decisions from the last 30 days, newest first.
      *
-     * @return array<int, array{id: int, organization: string, result: string, decided_at: string, decided_by: string|null, href: string}>
+     * @return array<int, array{id: int, organization: string, college: string|null, result: string, decided_at: string, decided_by: string|null, href: string}>
      */
     public function recent(User $actor): array
     {
@@ -173,6 +174,7 @@ class ReviewQueueData
             ->map(fn (DocumentTransition $t) => [
                 'id' => $t->id,
                 'organization' => $t->document->organization->name,
+                'college' => $t->document->organization->school?->name,
                 'result' => match ($t->action) {
                     TransitionAction::Completed => 'approved',
                     default => $t->action->value,
@@ -205,7 +207,7 @@ class ReviewQueueData
         $allowed = [];
 
         return DocumentTransition::query()
-            ->with(['document.organization', 'actor'])
+            ->with(['document.organization.school', 'actor'])
             ->whereIn('action', array_map(fn (TransitionAction $a) => $a->value, $actions))
             ->where('created_at', '>=', $from)
             ->where('created_at', '<', $to)

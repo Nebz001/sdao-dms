@@ -96,7 +96,7 @@ export function PendingTable({
             cell: (r) => (
                 <OrganizationCell
                     name={r.organization.name}
-                    college={r.extra}
+                    college={r.college}
                     showCollege={showCollege}
                     strong={!showActivity}
                 />
@@ -133,7 +133,7 @@ export function PendingTable({
         },
         {
             key: 'actions',
-            header: 'Actions',
+            header: 'Action',
             slot: 'action',
             align: 'right',
             cell: (r) => (
@@ -213,7 +213,7 @@ export function RecentDecisionsTable({
         ...(showDecidedBy ? [{ key: 'by', header: 'Decided by', cell: (r: RecentDecision) => (r.decided_by ? <AccountName name={r.decided_by} nameClassName="font-normal" /> : '—') }] : []),
         {
             key: 'actions',
-            header: 'Actions',
+            header: 'Action',
             slot: 'action',
             align: 'right',
             cell: (r) => <RowViewButton href={r.href} label={showActivity ? (r.title ?? r.organization) : r.organization} />,

@@ -327,7 +327,7 @@ export default function PendingAccountsIndex({
         },
         {
             key: 'actions',
-            header: 'Actions',
+            header: 'Action',
             slot: 'action',
             align: 'right',
             cell: (account) => (

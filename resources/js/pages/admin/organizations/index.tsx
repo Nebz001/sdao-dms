@@ -210,7 +210,7 @@ const COLUMNS: DataColumn<OrganizationRow>[] = [
     { key: 'status', header: 'Status', slot: 'badge', align: 'right', cell: (org) => <StatusCell org={org} /> },
     {
         key: 'actions',
-        header: 'Actions',
+        header: 'Action',
         slot: 'action',
         align: 'right',
         cell: (org) => <RowViewButton href={organizations.show(org.id).url} label={org.name} />,

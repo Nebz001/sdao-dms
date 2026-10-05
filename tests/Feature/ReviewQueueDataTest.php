@@ -42,6 +42,7 @@ test('queue rows carry the submitted date, waiting days and tier, oldest first',
             ->where('queue.1.id', $new->id)
             ->where('queue.1.tier', 'fresh')
             ->where('extraColumnLabel', 'College')
+            ->where('queue.0.college', $this->org->school?->name)
         );
 });
 
@@ -65,7 +66,8 @@ test('stats and recent decisions count approved and returned documents, and only
     $recent = $queue->recent($this->sdaoA);
     expect($recent)->toHaveCount(2)
         ->and(collect($recent)->pluck('result')->sort()->values()->all())->toBe(['approved', 'returned'])
-        ->and($recent[0]['organization'])->toBe($this->org->name);
+        ->and($recent[0]['organization'])->toBe($this->org->name)
+        ->and($recent[0]['college'])->toBe($this->org->school?->name);
 
     // A student with no approver role sees no one else's activity.
     $outsider = User::factory()->create();

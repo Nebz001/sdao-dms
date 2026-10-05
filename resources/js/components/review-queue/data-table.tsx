@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils';
 
 const HEAD = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
 
+/** Every table's button column reads "Action", whatever the row buttons are. */
+const ACTION_HEADER = 'Action';
+
 export type DataColumn<T> = {
     key: string;
     header: string;
@@ -54,8 +57,11 @@ export default function DataTable<T>({
                     <TableHeader>
                         <TableRow>
                             {columns.map((c) => (
-                                <TableHead key={c.key} className={cn(HEAD, c.align === 'right' && 'text-right')}>
-                                    {c.slot === 'action' ? <span className="sr-only">{c.header}</span> : c.header}
+                                <TableHead
+                                    key={c.key}
+                                    className={cn(HEAD, (c.align === 'right' || c.slot === 'action') && 'text-right')}
+                                >
+                                    {c.slot === 'action' ? ACTION_HEADER : c.header}
                                 </TableHead>
                             ))}
                         </TableRow>
@@ -71,7 +77,11 @@ export default function DataTable<T>({
                                 {columns.map((c) => (
                                     <TableCell
                                         key={c.key}
-                                        className={cn('whitespace-normal', c.align === 'right' && 'text-right', c.className)}
+                                        className={cn(
+                                            'whitespace-normal',
+                                            (c.align === 'right' || c.slot === 'action') && 'text-right',
+                                            c.className,
+                                        )}
                                     >
                                         {c.cell(row)}
                                     </TableCell>

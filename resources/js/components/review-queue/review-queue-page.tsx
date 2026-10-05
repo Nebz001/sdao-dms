@@ -62,10 +62,10 @@ export default function ReviewQueuePage({
                     </Deferred>
                 </div>
 
-                <PendingTable rows={queue} extraColumnLabel={extraColumnLabel} config={config} />
+                <PendingTable rows={queue} extraColumnLabel={extraColumnLabel} config={config} showCollege />
 
                 <Deferred data="recent" fallback={<RecentDecisionsSkeleton />}>
-                    <RecentDecisionsTable rows={recent ?? []} />
+                    <RecentDecisionsTable rows={recent ?? []} showCollege />
                 </Deferred>
             </div>
         </>
