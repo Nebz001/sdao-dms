@@ -1,11 +1,16 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { CalendarClock, CircleCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import IdleBadge from '@/components/idle-badge';
-import type { IdleTier } from '@/components/idle-badge';
+import { FormTypeLabelBadge } from '@/components/form-type-badge';
 import PageHeader from '@/components/page-header';
 import PaginationFooter from '@/components/pagination-footer';
-import QueueStatStrip from '@/components/queue-stat-strip';
+import RemindDocumentButton from '@/components/remind-document-button';
+import DataTable from '@/components/review-queue/data-table';
+import type { DataColumn } from '@/components/review-queue/data-table';
+import { SectionCard } from '@/components/review-queue/queue-tables';
+import { ToneBadge } from '@/components/status-badge';
+import StuckDocumentsStats, { pluralDays } from '@/components/stuck-documents-stats';
+import type { StuckDocumentsStatsData } from '@/components/stuck-documents-stats';
 import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Tone } from '@/lib/status-tones';
 import * as adminDashboard from '@/routes/admin/dashboard';
 import * as stuckDocuments from '@/routes/admin/stuck-documents';
 
@@ -45,12 +51,17 @@ type OpenDocument = {
     id: number;
     title: string;
     formType: string;
+    formTypeLabel: string;
     organizationName: string;
+    college: string;
     state: 'in_review' | 'returned';
     waitingOn: string;
     waitingOnLine: string;
+    remindTo: string;
+    remindAvailableLabel: string | null;
+    sinceDate: string;
     idleDays: number;
-    tier: IdleTier;
+    idleTone: Tone;
     href: string;
 };
 
@@ -70,26 +81,28 @@ type Props = {
         approver: string | null;
         role: string | null;
         form_type: string | null;
-        idle: number | null;
+        idle: string | null;
         search: string;
     };
     approvers: { key: string; name: string; line: string }[];
     formTypes: { value: string; label: string }[];
-    stats: { withApprovers: number; returned: number };
+    stats: StuckDocumentsStatsData;
 };
 
 const ALL = 'all';
 
 const WAITING_ON_OPTIONS = [
-    { value: ALL, label: 'Everyone' },
+    { value: ALL, label: 'Anyone' },
     { value: 'approver', label: 'An approver' },
     { value: 'org', label: 'The organization (returned)' },
 ];
 
 const IDLE_OPTIONS = [
-    { value: ALL, label: 'Any time' },
-    { value: '3', label: '3 days or more' },
-    { value: '7', label: '7 days or more' },
+    { value: ALL, label: 'Any length' },
+    { value: 'under_7', label: 'Under 7 days' },
+    { value: '7_14', label: '7 to 14 days' },
+    { value: '15_30', label: '15 to 30 days' },
+    { value: 'over_30', label: 'Over 30 days' },
 ];
 
 function formatDate(date: string): string {
@@ -112,7 +125,7 @@ export default function StuckDocumentsIndex({
     const [waitingOn, setWaitingOn] = useState(filters.waiting_on ?? ALL);
     const [approver, setApprover] = useState(filters.approver ?? ALL);
     const [formType, setFormType] = useState(filters.form_type ?? ALL);
-    const [idle, setIdle] = useState(filters.idle ? String(filters.idle) : ALL);
+    const [idle, setIdle] = useState(filters.idle ?? ALL);
     const [search, setSearch] = useState(filters.search);
     const [loading, setLoading] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -124,7 +137,7 @@ export default function StuckDocumentsIndex({
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['documents', 'filters', 'stats'],
+            only: ['documents', 'filters'],
             onFinish: () => setLoading(false),
         });
     }
@@ -207,7 +220,7 @@ export default function StuckDocumentsIndex({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['documents', 'activities', 'filters', 'stats'],
+                only: ['documents', 'activities', 'filters'],
                 onFinish: () => setLoading(false),
             },
         );
@@ -220,8 +233,8 @@ export default function StuckDocumentsIndex({
 
                 <div className="space-y-6">
                     <PageHeader
-                        title="Stuck documents"
-                        subtitle="Documents waiting on an approver or on the organization's officers."
+                        title="Stuck Documents"
+                        subtitle="Activities in the next 7 days that still need an approval."
                     />
 
                     <Card>
@@ -288,24 +301,11 @@ export default function StuckDocumentsIndex({
 
             <div className="space-y-6">
                 <PageHeader
-                    title="Stuck documents"
-                    subtitle="Documents waiting on an approver or on the organization's officers."
+                    title="Stuck Documents"
+                    subtitle="Documents sitting too long with an approver or with the organization that has to fix them."
                 />
 
-                <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'With approvers',
-                            value: String(stats.withApprovers),
-                            count: stats.withApprovers,
-                        },
-                        {
-                            label: 'Returned to organizations',
-                            value: String(stats.returned),
-                            count: stats.returned,
-                        },
-                    ]}
-                />
+                <StuckDocumentsStats stats={stats} />
 
                 <Card>
                     <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
@@ -381,87 +381,127 @@ export default function StuckDocumentsIndex({
                                 id="stuck-search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Document, org or approver"
+                                placeholder="Document, organization, or approver"
                             />
                         </div>
 
                         {hasFilters && (
-                            <Button type="button" variant="ghost" onClick={clearFilters}>
-                                Clear filters
-                            </Button>
+                            <div className="sm:basis-full">
+                                <Button type="button" variant="link" className="h-auto p-0" onClick={clearFilters}>
+                                    Clear filters
+                                </Button>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Open documents</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Skeleton key={i} className="h-12 w-full" />
-                                ))}
-                            </div>
-                        ) : rows.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <CircleCheck />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters ? 'No documents match these filters' : 'Nothing is stuck'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different approver, form type, or search term.'
-                                            : 'No document is waiting on an approver or returned to an organization.'}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            <div className="divide-y">
-                                {rows.map((row) => (
-                                    <div
-                                        key={row.id}
-                                        className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                                    >
-                                        <div className="min-w-0">
-                                            <Link
-                                                href={row.href}
-                                                className="block text-sm font-semibold hover:underline break-words"
-                                            >
-                                                {row.title}
-                                            </Link>
-                                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                                <TagBadge className="text-[0.7rem]">{row.organizationName}</TagBadge>
-                                                <span>
-                                                    {row.state === 'returned'
-                                                        ? 'Returned, waiting on the organization'
-                                                        : `at ${row.waitingOn}`}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <IdleBadge days={row.idleDays} tier={row.tier} label="idle" />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {!loading && documents && (
-                            <PaginationFooter meta={documents.meta} links={documents.links} onNavigate={goToPage} />
-                        )}
-                    </CardContent>
-                </Card>
+                <SectionCard title="Open documents" count={documents?.meta.total ?? 0} aside="Longest idle first">
+                    {loading ? (
+                        <div className="space-y-3" aria-busy="true">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full" />
+                            ))}
+                        </div>
+                    ) : rows.length === 0 ? (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <CircleCheck />
+                                </EmptyMedia>
+                                <EmptyTitle>
+                                    {hasFilters ? 'No documents match these filters' : 'Nothing is stuck'}
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    {hasFilters
+                                        ? 'Try a different approver, form type, idle length, or search term.'
+                                        : 'No document is waiting on an approver or returned to an organization.'}
+                                </EmptyDescription>
+                                {hasFilters && (
+                                    <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+                                        Clear filters
+                                    </Button>
+                                )}
+                            </EmptyHeader>
+                        </Empty>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} roomy />
+                            {documents && (
+                                <PaginationFooter meta={documents.meta} links={documents.links} onNavigate={goToPage} />
+                            )}
+                        </div>
+                    )}
+                </SectionCard>
             </div>
         </>
     );
 }
+
+const columns: DataColumn<OpenDocument>[] = [
+    {
+        key: 'document',
+        header: 'Document',
+        slot: 'title',
+        cell: (r) => (
+            <div className="flex flex-col items-start gap-1.5">
+                <FormTypeLabelBadge label={r.formTypeLabel} />
+                <Link href={r.href} className="font-semibold hover:underline">
+                    {r.title}
+                </Link>
+            </div>
+        ),
+    },
+    {
+        key: 'organization',
+        header: 'Organization',
+        cell: (r) => (
+            <div className="flex flex-col">
+                <span className="font-medium">{r.organizationName}</span>
+                <span className="text-sm text-muted-foreground">{r.college}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'waiting_on',
+        header: 'Waiting on',
+        cell: (r) => (
+            <div className="flex flex-col">
+                <span className="font-semibold">{r.waitingOn}</span>
+                <span className="text-sm text-muted-foreground">{r.waitingOnLine}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'since',
+        header: 'Since',
+        className: 'tabular-nums',
+        cell: (r) => r.sinceDate,
+    },
+    {
+        key: 'idle',
+        header: 'Idle',
+        slot: 'badge',
+        cell: (r) => (
+            <ToneBadge tone={r.idleTone} className="text-xs tracking-normal normal-case tabular-nums">
+                {pluralDays(r.idleDays)}
+            </ToneBadge>
+        ),
+    },
+    {
+        key: 'actions',
+        header: 'Action',
+        slot: 'action',
+        align: 'right',
+        cell: (r) => (
+            <RemindDocumentButton
+                documentId={r.id}
+                documentTitle={r.title}
+                remindTo={r.remindTo}
+                availableLabel={r.remindAvailableLabel}
+            />
+        ),
+    },
+];
 
 StuckDocumentsIndex.layout = {
     breadcrumbs: [

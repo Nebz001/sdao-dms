@@ -266,6 +266,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // its organization). Reached only from dashboard links, never the
         // sidebar.
         Route::get('/stuck-documents', [StuckDocumentsController::class, 'index'])->name('stuck-documents.index');
+        Route::post('/stuck-documents/{document}/remind', [StuckDocumentsController::class, 'remind'])->name('stuck-documents.remind');
     });
 });
 

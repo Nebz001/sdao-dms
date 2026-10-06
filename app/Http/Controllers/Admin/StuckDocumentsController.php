@@ -2,17 +2,26 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Approval\Exceptions\ReminderNotAllowedException;
+use App\Approval\StuckDocumentReminders;
 use App\Dashboard\AdminAttentionData;
 use App\Dashboard\DocumentDisplayTitle;
 use App\Dashboard\InReviewSnapshot;
 use App\Dashboard\StuckDocument;
+use App\Dashboard\StuckDocumentStats;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\School;
+use App\Support\DisplayTimezone;
+use App\Support\FlashToast;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,10 +39,10 @@ class StuckDocumentsController extends Controller
 {
     private const int PER_PAGE = 20;
 
-    /** The `idle` filter's allowed day thresholds. */
-    private const array IDLE_THRESHOLDS = [3, 7];
+    /** The `idle` filter's allowed values: the idle buckets on the "How long idle" card. */
+    private const array IDLE_BUCKETS = ['under_7', '7_14', '15_30', 'over_30'];
 
-    public function index(Request $request, InReviewSnapshot $snapshot, AdminAttentionData $attention): Response
+    public function index(Request $request, InReviewSnapshot $snapshot, AdminAttentionData $attention, StuckDocumentStats $stats, StuckDocumentReminders $reminders): Response
     {
         if ($request->string('view')->toString() === 'upcoming') {
             return $this->upcoming($request, $attention);
@@ -47,33 +56,43 @@ class StuckDocumentsController extends Controller
         $approver = $request->string('approver')->trim()->toString();
         $role = Role::tryFrom($request->string('role')->toString())?->value;
         $formType = FormType::tryFrom($request->string('form_type')->toString())?->value;
-        $idle = in_array($request->integer('idle'), self::IDLE_THRESHOLDS, true) ? $request->integer('idle') : null;
+        $idle = in_array($request->string('idle')->toString(), self::IDLE_BUCKETS, true) ? $request->string('idle')->toString() : null;
         $search = $request->string('search')->trim()->toString();
 
         // An approver, role or approver-only filter can only match documents
         // sitting with an approver, so the returned set is left out for them.
         $approverOnly = $approver !== '' || $role !== null;
 
-        $inReview = $waitingOn === 'org' ? collect() : $snapshot->rows()
-            ->when($approver !== '', fn (Collection $rows) => $rows->where('approverKey', $approver))
-            ->when($role, fn (Collection $rows) => $rows->filter(fn (StuckDocument $row) => $row->stepRole->value === $role))
-            ->map(fn (StuckDocument $row) => $this->inReviewRow($row));
+        // Every stuck document, unfiltered: the stat cards read all of it.
+        $all = $snapshot->rows()->map(fn (StuckDocument $row) => $this->inReviewRow($row))
+            ->concat($attention->returnedDocuments()->map(fn (Document $document) => $this->returnedRow($document)))
+            ->values();
 
-        $returned = ($waitingOn === 'approver' || $approverOnly) ? collect() : $attention->returnedDocuments()
-            ->map(fn (Document $document) => $this->returnedRow($document));
-
-        $rows = $inReview->concat($returned)
-            ->when($formType, fn (Collection $all) => $all->where('formType', $formType))
-            ->when($idle, fn (Collection $all) => $all->where('idleDays', '>=', $idle))
-            ->when($search !== '', fn (Collection $all) => $all->filter(
+        $rows = $all
+            ->when($waitingOn === 'org', fn (Collection $c) => $c->where('state', 'returned'))
+            ->when($waitingOn === 'approver' || $approverOnly, fn (Collection $c) => $c->where('state', 'in_review'))
+            ->when($approver !== '', fn (Collection $c) => $c->where('approverKey', $approver))
+            ->when($role, fn (Collection $c) => $c->where('stepRole', $role))
+            ->when($formType, fn (Collection $c) => $c->where('formType', $formType))
+            ->when($idle, fn (Collection $c) => $c->filter(fn (array $row) => StuckDocumentStats::bucketFor($row['idleDays']) === $idle))
+            ->when($search !== '', fn (Collection $c) => $c->filter(
                 fn (array $row) => str_contains(mb_strtolower($row['title'].' '.$row['organizationName'].' '.$row['waitingOn']), mb_strtolower($search))
             ))
-            ->sortByDesc('idleDays')
+            ->sort(fn (array $a, array $b) => [$b['idleDays'], $a['since'], $a['id']] <=> [$a['idleDays'], $b['since'], $b['id']])
             ->values();
+
+        $documents = $this->paginate($request, $rows->all());
+        $cooldowns = $reminders->nextAvailableForMany(array_column($documents['data'], 'id'));
+        $documents['data'] = array_map(fn (array $row) => [
+            ...$row,
+            'remindAvailableLabel' => isset($cooldowns[$row['id']])
+                ? DisplayTimezone::convert($cooldowns[$row['id']]->copy())->format('n/j/Y g:i A')
+                : null,
+        ], $documents['data']);
 
         return Inertia::render('admin/stuck-documents/index', [
             'mode' => 'documents',
-            'documents' => $this->paginate($request, $rows->all()),
+            'documents' => $documents,
             'activities' => null,
             'filters' => [
                 'waiting_on' => $waitingOn,
@@ -87,11 +106,30 @@ class StuckDocumentsController extends Controller
             'formTypes' => collect(FormType::cases())
                 ->map(fn (FormType $type) => ['value' => $type->value, 'label' => $type->label()])
                 ->values(),
-            'stats' => [
-                'withApprovers' => $snapshot->rows()->count(),
-                'returned' => $attention->returnedDocuments()->count(),
-            ],
+            'stats' => $stats->summary($all),
         ]);
+    }
+
+    /**
+     * Sends a reminder to whoever the document is waiting on. The route sits
+     * behind `can:access-admin`; the check is repeated here and inside the
+     * action, so the button being visible is never the only guard.
+     */
+    public function remind(Document $document, StuckDocumentReminders $reminders): RedirectResponse
+    {
+        Gate::authorize('access-admin');
+
+        try {
+            $recipients = $reminders->send(Auth::user(), $document);
+        } catch (ReminderNotAllowedException $e) {
+            return back()->with('flash', FlashToast::error('Reminder not sent', $e->getMessage()));
+        }
+
+        $names = $recipients->count() <= 2
+            ? $recipients->pluck('name')->join(' and ')
+            : $recipients->count().' people';
+
+        return back()->with('flash', FlashToast::make('Reminder sent', "{$names} will get a reminder about this document."));
     }
 
     private function upcoming(Request $request, AdminAttentionData $attention): Response
@@ -110,7 +148,7 @@ class StuckDocumentsController extends Controller
             ],
             'approvers' => [],
             'formTypes' => [],
-            'stats' => ['withApprovers' => 0, 'returned' => 0],
+            'stats' => app(StuckDocumentStats::class)->summary(collect()),
         ]);
     }
 
@@ -119,17 +157,22 @@ class StuckDocumentsController extends Controller
      */
     private function inReviewRow(StuckDocument $row): array
     {
+        $document = $row->document;
+        $stepCount = $document->workflowTemplate?->steps->count();
+        $roleLabel = $row->stepRole === Role::SdaoMember ? 'SDAO' : $row->stepRole->label();
+
         return [
-            'id' => $row->document->id,
-            'title' => DocumentDisplayTitle::for($row->document),
-            'formType' => $row->document->form_type->value,
-            'organizationName' => $row->document->organization->name,
+            ...$this->commonFields($document, $row->idleDays),
             'state' => 'in_review',
+            // Who the Remind button will message, in words for its confirmation.
+            'remindTo' => $row->isSdaoStep() ? 'the SDAO members who have not approved it yet' : $row->approverName,
             'waitingOn' => $row->approverName,
-            'waitingOnLine' => $row->approverLine,
-            'idleDays' => $row->idleDays,
-            'tier' => $row->tier,
-            'href' => DocumentDisplayTitle::href($row->document),
+            'waitingOnLine' => $stepCount
+                ? "{$roleLabel}, step {$document->current_step_position} of {$stepCount}"
+                : $roleLabel,
+            'approverKey' => $row->approverKey,
+            'approverRole' => $row->stepRole->label(),
+            'stepRole' => $row->stepRole->value,
         ];
     }
 
@@ -138,18 +181,39 @@ class StuckDocumentsController extends Controller
      */
     private function returnedRow(Document $document): array
     {
-        $idleDays = InReviewSnapshot::idleDays($document);
+        return [
+            ...$this->commonFields($document, InReviewSnapshot::idleDays($document)),
+            'state' => 'returned',
+            'remindTo' => "the president and secretary of {$document->organization->name}",
+            'waitingOn' => 'The organization',
+            'waitingOnLine' => 'Returned for revision',
+            'approverKey' => null,
+            'approverRole' => null,
+            'stepRole' => null,
+        ];
+    }
+
+    /**
+     * The fields every row shares. `since` is when the document reached its
+     * current holder: its latest transition, never documents.updated_at.
+     *
+     * @return array<string, mixed>
+     */
+    private function commonFields(Document $document, int $idleDays): array
+    {
+        $since = $document->latestTransition?->created_at ?? $document->created_at;
 
         return [
             'id' => $document->id,
-            'title' => DocumentDisplayTitle::for($document),
+            'title' => DocumentDisplayTitle::bareTitle($document),
             'formType' => $document->form_type->value,
+            'formTypeLabel' => $document->form_type->label(),
             'organizationName' => $document->organization->name,
-            'state' => 'returned',
-            'waitingOn' => 'Organization officers',
-            'waitingOnLine' => $document->organization->name,
+            'college' => $document->organization->school?->name ?? School::NONE_LABEL,
+            'since' => $since->toIso8601String(),
+            'sinceDate' => DisplayTimezone::convert($since->copy())->format('n/j/Y'),
             'idleDays' => $idleDays,
-            'tier' => InReviewSnapshot::tierFor($idleDays),
+            'idleTone' => StuckDocumentStats::toneFor($idleDays),
             'href' => DocumentDisplayTitle::href($document),
         ];
     }

@@ -26,6 +26,16 @@ class DocumentDisplayTitle
 
     public static function for(Document $document): string
     {
+        return $document->form_type->label().': '.self::bareTitle($document);
+    }
+
+    /**
+     * for() without the "{Form type}: " prefix, for rows that already show the
+     * form type in a badge of their own (a renewal reads as its coverage, a
+     * calendar as its term).
+     */
+    public static function bareTitle(Document $document): string
+    {
         $subject = match ($document->form_type) {
             FormType::OrganizationRegistration => $document->organization?->name,
             FormType::OrganizationRenewal => self::coverageLabel($document->registrationDetail?->covers_academic_year),
@@ -34,7 +44,7 @@ class DocumentDisplayTitle
             FormType::AfterActivityReport => $document->afterActivityReport?->activityProposal?->title,
         };
 
-        return $document->form_type->label().': '.($subject ?? self::strippedStoredTitle($document));
+        return $subject ?? self::strippedStoredTitle($document);
     }
 
     /**

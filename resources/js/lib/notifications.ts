@@ -25,6 +25,8 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
     switch (item.kind) {
         case 'approver_hand_off':
             return { Icon: Inbox, iconClassName: 'text-info', chipClassName: 'bg-info/15' };
+        case 'stuck_document_reminder':
+            return { Icon: Bell, iconClassName: 'text-warning', chipClassName: 'bg-warning/15' };
         case 'document_outcome':
             switch (item.status) {
                 case 'approved':

@@ -356,7 +356,7 @@ test('the stuck documents page filters by who the document is waiting on', funct
         ->assertInertia(fn ($page) => $page
             ->where('documents.meta.total', 1)
             ->where('documents.data.0.state', 'returned')
-            ->where('documents.data.0.title', 'Organization Registration: IT Guild')
+            ->where('documents.data.0.title', 'IT Guild')
         );
 });
 
@@ -372,9 +372,9 @@ test('the stuck documents page filters by approver key, role, idle days and sear
     $get(['approver' => 'user:999999'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 0));
     $get(['role' => 'sdao_member'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 2));
     $get(['role' => 'adviser'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 0));
-    $get(['idle' => 7])->assertInertia(fn ($page) => $page->where('documents.meta.total', 1));
+    $get(['idle' => '7_14'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 1));
     $get(['search' => 'computing'])->assertInertia(fn ($page) => $page->where('documents.meta.total', 1));
-    $get(['idle' => 4, 'waiting_on' => 'nonsense', 'role' => 'nope'])
+    $get(['idle' => 'bogus', 'waiting_on' => 'nonsense', 'role' => 'nope'])
         ->assertInertia(fn ($page) => $page->where('documents.meta.total', 2)->where('filters.idle', null));
 });
 
