@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Seeds the real, admin-provisioned staff roster for the running application
- * (the actual named individuals — replaces the placeholder IdentitySeeder,
- * which is retained solely as the test fixture).
+ * (the actual named individuals, including both SDAO members — which replaces
+ * the placeholder accounts that now live only in the test fixture).
  *
  * Scope is STAFF/APPROVERS ONLY: no students, no organizations, no demo
  * documents. Students self-register and advisers bind organizations at

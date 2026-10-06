@@ -149,9 +149,9 @@ class RoleDirectory
      * Returns every user holding the SDAO member role. The dual-approval
      * step (invariant #3) only ever requires 2 of them to approve — that
      * required count lives on WorkflowStep::required_approvals, not on how
-     * many SDAO accounts happen to exist. In seeded dev data this can be
-     * more than 2 (the real named roster coexists with IdentitySeeder's
-     * placeholder accounts by design — see IdentitySeeder's docblock).
+     * many SDAO accounts happen to exist. In the test suite this can be
+     * more than 2 (the real roster can coexist with the fixture's placeholder
+     * SDAO accounts); a dev or demo database has exactly the two real members.
      *
      * @return Collection<int, User>
      */

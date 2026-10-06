@@ -96,7 +96,7 @@ test('the migration leaves nothing of the placeholder data behind and keeps ever
         ->and(School::whereNotIn('name', FAKE_SCHOOL_NAMES)->count())->toBe($realSchools)
         ->and(User::count())->toBe($kept)
         ->and(RoleAssignment::whereNotIn('user_id', [$old['adviser']->id])->count())->toBe($realSeats)
-        ->and(User::whereIn('email', ['sdao-a@nu-lipa.edu.ph', 'sdao-b@nu-lipa.edu.ph', 'adviser-one@nu-lipa.edu.ph', 'adviser-two@nu-lipa.edu.ph', 'adviser-shs@nu-lipa.edu.ph'])->count())->toBe(5);
+        ->and(User::whereIn('email', ['adviser-one@nu-lipa.edu.ph', 'adviser-two@nu-lipa.edu.ph', 'adviser-shs@nu-lipa.edu.ph'])->count())->toBe(3);
 
     // An adviser account is never deleted: it only loses the removed organization.
     expect(User::find($old['adviser']->id))->not->toBeNull()

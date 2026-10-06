@@ -14,10 +14,12 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * The test suite's base fixture: IdentitySeeder (the SDAO accounts and the
- * adviser pool) plus everything else most tests need, so that none of it can
- * ever be seeded into a dev or demo database:
+ * The test suite's base fixture: IdentitySeeder (the adviser pool) plus
+ * everything else most tests need, so that none of it can ever be seeded into
+ * a dev or demo database:
  *
+ *  - the two placeholder SDAO accounts, sdao-a and sdao-b (the real SDAO
+ *    members come from RealRosterSeeder and are not part of this fixture);
  *  - the four real schools, with the same names and ranks as RealRosterSeeder;
  *  - placeholder directors and a Senior High principal;
  *  - a dean, two program chairs and two organizations at the first school,
@@ -36,6 +38,10 @@ class TestIdentitySeeder extends Seeder
     public function run(): void
     {
         $this->call(IdentitySeeder::class);
+
+        foreach ([['SDAO Member A', 'sdao-a@nu-lipa.edu.ph'], ['SDAO Member B', 'sdao-b@nu-lipa.edu.ph']] as [$name, $email]) {
+            RoleAssignment::create(['user_id' => $this->user($name, $email)->id, 'role' => Role::SdaoMember]);
+        }
 
         $sace = School::firstOrCreate(['name' => 'School of Architecture, Computing, and Engineering'], ['type' => 'regular', 'academic_rank' => 1]);
         School::firstOrCreate(['name' => 'School of Accountancy, Business, and Management'], ['type' => 'regular', 'academic_rank' => 2]);

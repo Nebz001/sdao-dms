@@ -53,11 +53,9 @@ use Illuminate\Support\Facades\Hash;
  * matching field-for-field) and simply stopping before the submit() call —
  * not a fabricated shape, just the real one halted one step earlier.
  *
- * SDAO approvals always use the two real, named SDAO members (Carl Justin
- * Magpantay, Zaira Joy Enayo) rather than App\Identity\RoleDirectory::
- * sdaoMembers(), which — because of pre-existing IdentitySeeder pollution
- * left untouched by design (see ResetDemoData's docblock) — would also
- * return two placeholder "SDAO Member A/B" accounts.
+ * SDAO approvals use the two real, named SDAO members (Carl Justin
+ * Magpantay, Zaira Joy Enayo), the only SDAO accounts a dev or demo database
+ * has.
  */
 class DemoDataSeeder extends Seeder
 {

@@ -38,8 +38,6 @@ class FixSeededAccountPasswords extends Command
 
     /** @var array<string, string> email => the exact name IdentitySeeder set */
     private const array ACCOUNTS = [
-        'sdao-a@nu-lipa.edu.ph' => 'SDAO Member A',
-        'sdao-b@nu-lipa.edu.ph' => 'SDAO Member B',
         'adviser-one@nu-lipa.edu.ph' => 'Adviser One',
         'adviser-two@nu-lipa.edu.ph' => 'Adviser Two',
         'adviser-shs@nu-lipa.edu.ph' => 'Adviser SHS',

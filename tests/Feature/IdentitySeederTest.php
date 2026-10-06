@@ -26,10 +26,11 @@ test('IdentitySeeder creates no school, program, organization, student or direct
         ])->exists())->toBeFalse();
 });
 
-test('IdentitySeeder provisions the two SDAO accounts and the unassigned demo adviser pool', function () {
+test('IdentitySeeder provisions the unassigned demo adviser pool and no SDAO account', function () {
     $this->seed(IdentitySeeder::class);
 
-    expect(RoleAssignment::where('role', Role::SdaoMember->value)->count())->toBe(2);
+    expect(RoleAssignment::where('role', Role::SdaoMember->value)->exists())->toBeFalse()
+        ->and(User::where('email', 'like', 'sdao-%')->exists())->toBeFalse();
 
     $pool = ['adviser-one@nu-lipa.edu.ph', 'adviser-two@nu-lipa.edu.ph', 'adviser-shs@nu-lipa.edu.ph'];
 

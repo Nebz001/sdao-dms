@@ -35,7 +35,7 @@ import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 const PASSWORD = 'ict@1234';
 const roles = {
-  sdao: ['sdao-a@nu-lipa.edu.ph', ['/review/registrations/1', '/admin/approvers/create', '/notifications']],
+  sdao: ['magpantayc@nu-lipa.edu.ph', ['/review/registrations/1', '/admin/approvers/create', '/notifications']],
   adviser: ['adviser-one@nu-lipa.edu.ph', ['/notifications']],
   dean: ['matiracd@nu-lipa.edu.ph', ['/notifications']],
   officer: ['marqueze@students.nu-lipa.edu.ph', ['/registrations/create', '/organizations/join', '/notifications']],

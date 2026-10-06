@@ -13,9 +13,9 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database.
      *
      * RealRosterSeeder (real, admin-provisioned staff) is the base. The demo
-     * restore sequence adds IdentitySeeder (the SDAO sign-in accounts and the
+     * restore sequence adds IdentitySeeder (the
      * adviser pool) and then demo:reset. Test-only fixtures (placeholder
-     * schools, students, organizations) live under tests/Fixtures and are
+     * SDAO accounts, schools, students, organizations) live under tests/Fixtures and are
      * never seeded here.
      */
     public function run(): void

@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * The accounts a dev or demo database needs on top of the real roster
- * (RealRosterSeeder owns every school, program, dean, chair, principal and
- * director): the two SDAO sign-in accounts, and the unassigned adviser pool
- * DemoDataSeeder picks from when it founds organizations.
+ * (RealRosterSeeder owns every school, program, dean, chair, principal,
+ * director and both SDAO members): the unassigned adviser pool DemoDataSeeder
+ * picks from when it founds organizations.
  *
- * It creates no school, program, organization, student or director of its
- * own. Everything else the test suite needs lives under tests/Fixtures, so
- * none of it can reach a dev or demo database.
+ * It creates no school, program, organization, student, director or SDAO
+ * account of its own. Everything else the test suite needs, including its
+ * placeholder SDAO accounts, lives under tests/Fixtures, so none of it can
+ * reach a dev or demo database.
  *
  * Every account uses the password "ict@1234", the same convention as
  * RealRosterSeeder and DemoDataSeeder. `user()` must set it explicitly:
@@ -32,10 +33,6 @@ class IdentitySeeder extends Seeder
 
     public function run(): void
     {
-        foreach ([['SDAO Member A', 'sdao-a@nu-lipa.edu.ph'], ['SDAO Member B', 'sdao-b@nu-lipa.edu.ph']] as [$name, $email]) {
-            RoleAssignment::create(['user_id' => $this->user($name, $email)->id, 'role' => Role::SdaoMember]);
-        }
-
         // The demo adviser pool: provisioned with NO organization. They own no
         // school, program or organization; DemoDataSeeder binds them as the
         // advisers of the organizations it founds.
