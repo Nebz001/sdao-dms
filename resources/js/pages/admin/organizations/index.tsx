@@ -2,6 +2,7 @@ import { Deferred, Head, router } from '@inertiajs/react';
 import { Building2, Clock, ListChecks, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
+import PaginationFooter from '@/components/pagination-footer';
 import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
 import type { DataColumn } from '@/components/review-queue/data-table';
 import { SectionCard } from '@/components/review-queue/queue-tables';
@@ -457,44 +458,20 @@ export default function OrganizationsIndex({
                             </EmptyHeader>
                         </Empty>
                     ) : (
-                        <DataTable
-                            rows={items.data}
-                            columns={COLUMNS}
-                            rowKey={(org) => org.id}
-                        />
+                        <div className="flex flex-col gap-4">
+                            <DataTable
+                                rows={items.data}
+                                columns={COLUMNS}
+                                rowKey={(org) => org.id}
+                            />
+                            <PaginationFooter
+                                meta={items.meta}
+                                links={items.links}
+                                onNavigate={goToPage}
+                            />
+                        </div>
                     )}
                 </SectionCard>
-
-                {!loading && items.data.length > 0 && (
-                    <Card className="shadow-none">
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {items.meta.from}–{items.meta.to} of{' '}
-                                {items.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!items.links.prev}
-                                    onClick={() => goToPage(items.links.prev)}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!items.links.next}
-                                    onClick={() => goToPage(items.links.next)}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </>
     );

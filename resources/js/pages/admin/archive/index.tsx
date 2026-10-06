@@ -6,6 +6,7 @@ import type { DocumentArchiveStatsData } from '@/components/document-archive-sta
 import { FormTypeLabelBadge } from '@/components/form-type-badge';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
+import PaginationFooter from '@/components/pagination-footer';
 import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
 import type { DataColumn } from '@/components/review-queue/data-table';
 import { SectionCard } from '@/components/review-queue/queue-tables';
@@ -379,36 +380,11 @@ export default function DocumentArchiveIndex({
                                 rowKey={(d) => d.id}
                                 roomy
                             />
-                            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-                                <p className="text-sm text-muted-foreground">
-                                    Showing {documents.meta.from} to{' '}
-                                    {documents.meta.to} of {documents.meta.total}
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={!documents.links.prev}
-                                        onClick={() =>
-                                            goToPage(documents.links.prev)
-                                        }
-                                    >
-                                        Previous
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={!documents.links.next}
-                                        onClick={() =>
-                                            goToPage(documents.links.next)
-                                        }
-                                    >
-                                        Next
-                                    </Button>
-                                </div>
-                            </div>
+                            <PaginationFooter
+                                meta={documents.meta}
+                                links={documents.links}
+                                onNavigate={goToPage}
+                            />
                         </div>
                     )}
                 </SectionCard>

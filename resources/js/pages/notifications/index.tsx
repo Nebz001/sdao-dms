@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { index as notificationsIndex, markAllRead } from '@/actions/App/Http/Controllers/NotificationController';
 import { NotificationRow } from '@/components/notification-row';
 import PageHeader from '@/components/page-header';
+import PaginationFooter from '@/components/pagination-footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -169,39 +170,13 @@ export default function NotificationsIndex({ notifications, filters, unreadCount
                                 ))}
                             </ul>
                         )}
+                        {!loading && (
+                            <div className="px-6 pt-2">
+                                <PaginationFooter meta={notifications.meta} links={notifications.links} onNavigate={goToPage} />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-
-                {!loading && items.length > 0 && (
-                    <Card>
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {notifications.meta.from}–{notifications.meta.to} of{' '}
-                                {notifications.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!notifications.links.prev}
-                                    onClick={() => goToPage(notifications.links.prev)}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!notifications.links.next}
-                                    onClick={() => goToPage(notifications.links.next)}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </>
     );

@@ -3,6 +3,7 @@ import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
+import PaginationFooter from '@/components/pagination-footer';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { Button } from '@/components/ui/button';
@@ -292,7 +293,7 @@ export default function ActivityLogIndex({
                     <CardHeader>
                         <CardTitle className="text-base">Events</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex flex-col gap-4">
                         {loading ? (
                             <div className="space-y-3">
                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -357,44 +358,11 @@ export default function ActivityLogIndex({
                                 ))}
                             </div>
                         )}
+                        {!loading && (
+                            <PaginationFooter meta={transitions.meta} links={transitions.links} onNavigate={goToPage} />
+                        )}
                     </CardContent>
                 </Card>
-
-                {!loading && transitions.data.length > 0 && (
-                    <Card>
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {transitions.meta.from}–
-                                {transitions.meta.to} of{' '}
-                                {transitions.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!transitions.links.prev}
-                                    onClick={() =>
-                                        goToPage(transitions.links.prev)
-                                    }
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!transitions.links.next}
-                                    onClick={() =>
-                                        goToPage(transitions.links.next)
-                                    }
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </>
     );

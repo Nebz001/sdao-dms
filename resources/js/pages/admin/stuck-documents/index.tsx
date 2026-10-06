@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import IdleBadge from '@/components/idle-badge';
 import type { IdleTier } from '@/components/idle-badge';
 import PageHeader from '@/components/page-header';
+import PaginationFooter from '@/components/pagination-footer';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
@@ -97,44 +98,6 @@ function formatDate(date: string): string {
         month: 'short',
         day: 'numeric',
     });
-}
-
-function Pager({
-    page,
-    onGo,
-}: {
-    page: Paginated<unknown>;
-    onGo: (url: string | null) => void;
-}) {
-    return (
-        <Card>
-            <CardContent className="flex items-center justify-between gap-4">
-                <p className="text-sm text-muted-foreground">
-                    Showing {page.meta.from} to {page.meta.to} of {page.meta.total}
-                </p>
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!page.links.prev}
-                        onClick={() => onGo(page.links.prev)}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!page.links.next}
-                        onClick={() => onGo(page.links.next)}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
 }
 
 export default function StuckDocumentsIndex({
@@ -309,10 +272,9 @@ export default function StuckDocumentsIndex({
                                     ))}
                                 </div>
                             )}
+                            <PaginationFooter meta={activities.meta} links={activities.links} onNavigate={goToPage} />
                         </CardContent>
                     </Card>
-
-                    {activities.data.length > 0 && <Pager page={activities} onGo={goToPage} />}
                 </div>
             </>
         );
@@ -491,10 +453,11 @@ export default function StuckDocumentsIndex({
                                 ))}
                             </div>
                         )}
+                        {!loading && documents && (
+                            <PaginationFooter meta={documents.meta} links={documents.links} onNavigate={goToPage} />
+                        )}
                     </CardContent>
                 </Card>
-
-                {!loading && documents && rows.length > 0 && <Pager page={documents} onGo={goToPage} />}
             </div>
         </>
     );

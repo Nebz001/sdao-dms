@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Files } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
+import PaginationFooter from '@/components/pagination-footer';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -241,7 +242,7 @@ export default function RegistrationsIndex({
                             My Registrations
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex flex-col gap-4">
                         {loading ? (
                             <div className="space-y-3">
                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -329,39 +330,11 @@ export default function RegistrationsIndex({
                                 ))}
                             </div>
                         )}
+                        {!loading && (
+                            <PaginationFooter meta={items.meta} links={items.links} onNavigate={goToPage} />
+                        )}
                     </CardContent>
                 </Card>
-
-                {!loading && items.data.length > 0 && (
-                    <Card>
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {items.meta.from}–{items.meta.to} of{' '}
-                                {items.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!items.links.prev}
-                                    onClick={() => goToPage(items.links.prev)}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!items.links.next}
-                                    onClick={() => goToPage(items.links.next)}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </>
     );

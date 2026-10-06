@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from '@/components/page-header';
+import PaginationFooter from '@/components/pagination-footer';
 import QueueStatStrip from '@/components/queue-stat-strip';
 import { RelativeTime } from '@/components/relative-time';
 import { StatusBadge } from '@/components/status-badge';
@@ -217,7 +218,7 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
                     <CardHeader>
                         <CardTitle className="text-base">Documents</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex flex-col gap-4">
                         {loading ? (
                             <div className="space-y-3">
                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -265,38 +266,11 @@ export default function DocumentHistoryIndex({ documents, filters, formTypes, st
                                 ))}
                             </div>
                         )}
+                        {!loading && (
+                            <PaginationFooter meta={documents.meta} links={documents.links} onNavigate={goToPage} />
+                        )}
                     </CardContent>
                 </Card>
-
-                {!loading && documents.data.length > 0 && (
-                    <Card>
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {documents.meta.from}–{documents.meta.to} of {documents.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!documents.links.prev}
-                                    onClick={() => goToPage(documents.links.prev)}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!documents.links.next}
-                                    onClick={() => goToPage(documents.links.next)}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         </>
     );
