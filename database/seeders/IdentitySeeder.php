@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Support\PersonName;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -48,7 +49,7 @@ class IdentitySeeder extends Seeder
     private function user(string $name, string $email): User
     {
         return User::factory()->create([
-            'name' => $name,
+            ...PersonName::attributes($name),
             'email' => $email,
             'password' => Hash::make(self::PASSWORD),
         ]);

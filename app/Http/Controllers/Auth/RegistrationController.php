@@ -10,6 +10,7 @@ use App\Identity\EmailVerification\EmailVerificationCodeService;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
 use App\Support\FlashToast;
+use App\Support\PersonName;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,7 @@ class RegistrationController extends Controller
             // not required: register.tsx always sends one, but nothing else
             // hitting this endpoint (existing tests included) needs to.
             'intended_path' => ['nullable', 'string', 'in:register_new,join_existing'],
-        ]);
+        ], $this->personNameMessages());
 
         // Hashed immediately (never held plaintext) and the whole payload is
         // additionally encrypted at rest via EmailVerificationCode's cast.
@@ -60,7 +61,8 @@ class RegistrationController extends Controller
             email: $data['email'],
             purpose: self::PURPOSE,
             payload: [
-                'name' => $data['name'],
+                'first_name' => PersonName::stripTitle($data['first_name']),
+                'last_name' => PersonName::clean($data['last_name']),
                 'password' => Hash::make($data['password']),
                 'id_number' => $data['id_number'],
                 'intended_path' => $data['intended_path'] ?? 'register_new',
@@ -100,8 +102,13 @@ class RegistrationController extends Controller
         $record = $codes->verify($email, self::PURPOSE, $request->string('code')->toString());
         $payload = $record->payload ?? [];
 
+        // A code issued before first/last name existed carries only 'name';
+        // split it so an in-flight registration still completes.
+        $legacy = isset($payload['first_name']) ? null : PersonName::split((string) ($payload['name'] ?? ''));
+
         $user = User::create([
-            'name' => $payload['name'],
+            'first_name' => $payload['first_name'] ?? $legacy['first'],
+            'last_name' => $payload['last_name'] ?? ($legacy['last'] ?: null),
             'email' => $email,
             'password' => $payload['password'],
             'id_number' => $payload['id_number'],

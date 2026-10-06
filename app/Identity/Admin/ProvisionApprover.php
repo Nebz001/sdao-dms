@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\ApproverProvisionedNotification;
+use App\Support\PersonName;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -52,7 +53,7 @@ class ProvisionApprover
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, string $name, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null, bool $deactivateReplaced = true): User
+    public function execute(User $actor, string $firstName, string $lastName, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null, bool $deactivateReplaced = true): User
     {
         if (! $actor->roleAssignments->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember)) {
             throw new AuthorizationException('Only an SDAO member may provision approver accounts.');
@@ -71,7 +72,11 @@ class ProvisionApprover
 
         $temporaryPassword = Str::password(self::TEMPORARY_PASSWORD_LENGTH, symbols: false);
 
-        $user = DB::transaction(function () use ($actor, $name, $email, $idNumber, $role, $scope, $replacesUserId, $deactivateReplaced, $temporaryPassword) {
+        $firstName = PersonName::stripTitle($firstName);
+        $lastName = PersonName::clean($lastName);
+        $name = PersonName::join($firstName, $lastName);
+
+        $user = DB::transaction(function () use ($actor, $name, $firstName, $lastName, $email, $idNumber, $role, $scope, $replacesUserId, $deactivateReplaced, $temporaryPassword) {
             if ($replacesUserId !== null) {
                 $this->retireSdaoMember($replacesUserId);
 
@@ -87,7 +92,8 @@ class ProvisionApprover
             }
 
             $user = User::create([
-                'name' => $name,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => $email,
                 'id_number' => $idNumber,
                 'password' => Hash::make($temporaryPassword),

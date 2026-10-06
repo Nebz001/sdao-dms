@@ -70,7 +70,7 @@ class EligibleOfficerCandidates
             )
             ->whereNotIn('id', $inFlightElsewhereUserIds)
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
+                ->whereNameMatches($search)
                 ->orWhere('email', 'like', "%{$search}%")
             ))
             ->orderBy('name');

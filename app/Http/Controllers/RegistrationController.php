@@ -203,7 +203,7 @@ class RegistrationController extends Controller
             ->active()
             ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value))
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
+                ->whereNameMatches($search)
                 ->orWhere('email', 'like', "%{$search}%")
             ))
             ->orderBy('name')

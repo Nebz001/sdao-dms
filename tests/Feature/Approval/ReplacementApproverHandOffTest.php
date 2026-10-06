@@ -73,7 +73,7 @@ function driveActivityProposalToDeanStep(ApprovalEngine $engine, Organization $o
 test('a dean provisioned as a replacement receives the hand-off notification and can open the review page without a 403', function () {
     $replacement = app(ProvisionApprover::class)->execute(
         actor: $this->sdaoA,
-        name: 'Replacement Dean',
+        firstName: 'Replacement', lastName: 'Dean',
         email: 'replacement-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -116,7 +116,7 @@ test('a dean provisioned as a replacement receives the hand-off notification and
 test('the superseded dean, who never acted on the document, is neither notified nor authorized to open it', function () {
     app(ProvisionApprover::class)->execute(
         actor: $this->sdaoA,
-        name: 'Replacement Dean',
+        firstName: 'Replacement', lastName: 'Dean',
         email: 'replacement-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],

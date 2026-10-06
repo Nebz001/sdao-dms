@@ -7,6 +7,8 @@ function user(overrides: Partial<User> = {}): User {
     return {
         id: 1,
         name: 'Torres, Marco',
+        first_name: 'Marco',
+        last_name: 'Torres',
         email: 'torresm@students.nu-lipa.edu.ph',
         email_verified_at: '2026-01-01T00:00:00Z',
         account_status: 'verified',

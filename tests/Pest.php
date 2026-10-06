@@ -184,7 +184,7 @@ function registerViaHttp(array $overrides = []): array
     Mail::fake();
 
     $payload = array_merge([
-        'name' => 'Test Student',
+        'first_name' => 'Test', 'last_name' => 'Student',
         'email' => 'student-'.Str::random(10).'@students.nu-lipa.edu.ph',
         'id_number' => fake()->unique()->numerify('####-######'),
         'password' => 'password',

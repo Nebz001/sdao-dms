@@ -20,7 +20,7 @@ test('self-registration rejects a personal email', function () {
     Mail::fake();
 
     $response = $this->post(route('register.store'), [
-        'name' => 'Someone',
+        'first_name' => 'Someone', 'last_name' => 'Tester',
         'email' => 'someone@gmail.com',
         'id_number' => '2023-182854',
         'password' => 'password',
@@ -35,7 +35,7 @@ test('self-registration rejects a staff-domain email — students use the studen
     Mail::fake();
 
     $response = $this->post(route('register.store'), [
-        'name' => 'Someone',
+        'first_name' => 'Someone', 'last_name' => 'Tester',
         'email' => 'someone@nu-lipa.edu.ph',
         'id_number' => '2023-182854',
         'password' => 'password',
@@ -49,7 +49,7 @@ test('a logged-in user cannot change their profile email to a personal address',
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'someone@yahoo.com',
     ]);
 
@@ -62,7 +62,7 @@ test('SDAO can provision an approver with a personal email, stored lowercase so 
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'Carl Justin Magpantay',
+        'first_name' => 'Carl Justin', 'last_name' => 'Magpantay',
         'email' => ' Magpantaycarljustin@Gmail.com ',
         'role' => Role::SdaoMember->value,
     ]);
@@ -81,7 +81,7 @@ test('SDAO cannot provision an approver on a student domain, in any letter case'
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'Fake Adviser',
+        'first_name' => 'Fake', 'last_name' => 'Adviser',
         'email' => 'Fake-Adviser@Students.NU-Lipa.edu.ph',
         'role' => Role::Adviser->value,
     ])->assertSessionHasErrors('email');
@@ -93,7 +93,7 @@ test('a personal-email approver can save their profile without changing their em
     $user = User::factory()->create(['email' => 'approver@gmail.com']);
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => 'Renamed Approver',
+        'first_name' => 'Renamed', 'last_name' => 'Approver',
         'email' => 'approver@gmail.com',
     ])->assertSessionHasNoErrors();
 
@@ -104,7 +104,7 @@ test('submitting the same email in a different letter case saves the profile and
     $user = User::factory()->create(['email' => 'approver@gmail.com']);
 
     $response = $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => 'Renamed Approver',
+        'first_name' => 'Renamed', 'last_name' => 'Approver',
         'email' => '  Approver@GMAIL.com ',
     ]);
 
@@ -118,7 +118,7 @@ test('a personal-email approver still cannot change to another personal address'
     $user = User::factory()->create(['email' => 'approver@gmail.com']);
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'someone-else@yahoo.com',
     ])->assertSessionHasErrors('email');
 });
@@ -128,7 +128,7 @@ test('SDAO cannot provision an approver with a student-domain email — staff us
     $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
 
     $response = $this->actingAs($sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'Fake Adviser',
+        'first_name' => 'Fake', 'last_name' => 'Adviser',
         'email' => 'fake-adviser@students.nu-lipa.edu.ph',
         'role' => Role::Adviser->value,
     ]);

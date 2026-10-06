@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { splitAccountName } from '@/lib/account-name';
@@ -40,6 +41,7 @@ export default function ManageAccountDialog({
     onChanged?: () => void;
 }) {
     const [open, setOpen] = useState(false);
+    const [editingName, setEditingName] = useState(false);
     const deactivated = account.deactivated_at !== null;
     const displayName = splitAccountName(account.name).name;
 
@@ -49,7 +51,16 @@ export default function ManageAccountDialog({
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                setOpen(next);
+
+                if (!next) {
+                    setEditingName(false);
+                }
+            }}
+        >
             <DialogTrigger asChild>
                 <Button type="button" size="sm" variant="outline">
                     Manage<span className="sr-only"> {displayName}</span>
@@ -60,6 +71,22 @@ export default function ManageAccountDialog({
                 <DialogDescription>{account.email}</DialogDescription>
 
                 <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2 text-sm">
+                    <dt className="text-muted-foreground">Name</dt>
+                    <dd className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>{displayName}</span>
+                        {!editingName && (
+                            <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0"
+                                onClick={() => setEditingName(true)}
+                            >
+                                Edit name
+                                <span className="sr-only"> of {displayName}</span>
+                            </Button>
+                        )}
+                    </dd>
                     <dt className="text-muted-foreground">Status</dt>
                     <dd>
                         {deactivated ? (
@@ -97,6 +124,69 @@ export default function ManageAccountDialog({
                         </>
                     )}
                 </dl>
+
+                {editingName && (
+                    <Form
+                        {...AccountController.updateName.form(account.id)}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => {
+                            setEditingName(false);
+                            onChanged?.();
+                        }}
+                        className="grid gap-4 rounded-lg border p-4"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`first-name-${account.id}`}>
+                                            First name
+                                        </Label>
+                                        <Input
+                                            id={`first-name-${account.id}`}
+                                            name="first_name"
+                                            defaultValue={account.first_name ?? ''}
+                                            required
+                                            autoFocus
+                                            maxLength={100}
+                                            autoComplete="off"
+                                            aria-invalid={errors.first_name ? true : undefined}
+                                        />
+                                        <InputError message={errors.first_name} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`last-name-${account.id}`}>
+                                            Last name
+                                        </Label>
+                                        <Input
+                                            id={`last-name-${account.id}`}
+                                            name="last_name"
+                                            defaultValue={account.last_name ?? ''}
+                                            required
+                                            maxLength={100}
+                                            autoComplete="off"
+                                            aria-invalid={errors.last_name ? true : undefined}
+                                        />
+                                        <InputError message={errors.last_name} />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={processing}
+                                        onClick={() => setEditingName(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" loading={processing}>
+                                        Save name
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </Form>
+                )}
 
                 {account.is_self && !deactivated && (
                     <p className="text-sm text-muted-foreground">

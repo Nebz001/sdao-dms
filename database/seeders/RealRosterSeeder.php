@@ -9,6 +9,7 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use App\Support\PersonName;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -173,7 +174,7 @@ class RealRosterSeeder extends Seeder
 
         if ($user === null) {
             return User::create([
-                'name' => $name,
+                ...PersonName::attributes($name),
                 'email' => $email,
                 'password' => Hash::make('ict@1234'),
                 'must_change_password' => true,
@@ -182,7 +183,7 @@ class RealRosterSeeder extends Seeder
             ]);
         }
 
-        $user->name = $name;
+        $user->fill(PersonName::attributes($name));
         $user->password = Hash::make('ict@1234');
         $user->must_change_password = true;
         $user->email_verified_at ??= Carbon::now();

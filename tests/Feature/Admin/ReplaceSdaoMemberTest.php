@@ -61,7 +61,7 @@ function replaceOldSdaoWith(User $actor, User $old, string $email = 'magpantayca
 {
     return app(ProvisionApprover::class)->execute(
         actor: $actor,
-        name: 'Carl Justin Magpantay',
+        firstName: 'Carl Justin', lastName: 'Magpantay',
         email: $email,
         role: Role::SdaoMember,
         scope: [],
@@ -145,7 +145,7 @@ test('an approval the old member already cast before being replaced still counts
 
 test('an SDAO admin can replace a member through the form endpoint and sees the confirmation flash', function () {
     $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
-        'name' => 'Carl Justin Magpantay',
+        'first_name' => 'Carl Justin', 'last_name' => 'Magpantay',
         'email' => 'Magpantaycarljustin@gmail.com',
         'role' => Role::SdaoMember->value,
         'replaces_user_id' => $this->oldSdao->id,
@@ -159,7 +159,7 @@ test('an SDAO admin can replace a member through the form endpoint and sees the 
 
 test('replaces_user_id is rejected for a role that is not SDAO member', function () {
     $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
-        'name' => 'Some Adviser',
+        'first_name' => 'Some', 'last_name' => 'Adviser',
         'email' => 'some-adviser@gmail.com',
         'role' => Role::Adviser->value,
         'replaces_user_id' => $this->oldSdao->id,
@@ -173,7 +173,7 @@ test('replaces_user_id must point at a current SDAO member', function () {
     $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
     $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
-        'name' => 'Carl Justin Magpantay',
+        'first_name' => 'Carl Justin', 'last_name' => 'Magpantay',
         'email' => 'magpantaycarljustin@gmail.com',
         'role' => Role::SdaoMember->value,
         'replaces_user_id' => $adviser->id,
@@ -204,7 +204,7 @@ test('replacing with deactivation on locks the old account out and records who a
 
 test('the form endpoint deactivates the replaced account by default and when the box is checked', function () {
     $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
-        'name' => 'Carl Justin Magpantay',
+        'first_name' => 'Carl Justin', 'last_name' => 'Magpantay',
         'email' => 'magpantaycarljustin@gmail.com',
         'role' => Role::SdaoMember->value,
         'replaces_user_id' => $this->oldSdao->id,
@@ -216,7 +216,7 @@ test('the form endpoint deactivates the replaced account by default and when the
 
 test('unchecking the box replaces the role but leaves the old account active', function () {
     $this->actingAs($this->otherSdao)->post(route('admin.approvers.store'), [
-        'name' => 'Carl Justin Magpantay',
+        'first_name' => 'Carl Justin', 'last_name' => 'Magpantay',
         'email' => 'magpantaycarljustin@gmail.com',
         'role' => Role::SdaoMember->value,
         'replaces_user_id' => $this->oldSdao->id,
@@ -248,7 +248,7 @@ test('other provisioning flows never deactivate anyone', function () {
 
     app(ProvisionApprover::class)->execute(
         actor: $this->otherSdao,
-        name: 'Replacement Dean',
+        firstName: 'Replacement', lastName: 'Dean',
         email: 'replacement-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $school->id],
@@ -256,7 +256,7 @@ test('other provisioning flows never deactivate anyone', function () {
 
     app(ProvisionApprover::class)->execute(
         actor: $this->otherSdao,
-        name: 'Extra SDAO',
+        firstName: 'Extra', lastName: 'SDAO',
         email: 'extra-sdao@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],

@@ -15,7 +15,7 @@ test('a submission with a personal email is rejected before any code is generate
     Mail::fake();
 
     $response = $this->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'test@gmail.com',
         'id_number' => '2023-182854',
         'password' => 'password',
@@ -31,7 +31,7 @@ test('an ID number that does not match the 4-digit-year-dash-6-digit format is r
     Mail::fake();
 
     $response = $this->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'bad-id@students.nu-lipa.edu.ph',
         'id_number' => '02000123456',
         'password' => 'password',
@@ -46,7 +46,7 @@ test('a valid submission sends a code and creates no user yet', function () {
     Mail::fake();
 
     $response = $this->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'test.user@students.nu-lipa.edu.ph',
         'id_number' => '2023-182854',
         'password' => 'password',
@@ -71,7 +71,7 @@ test('entering the wrong code fails and creates no account', function () {
     $email = 'wrong-code@students.nu-lipa.edu.ph';
 
     $this->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
         'password' => 'password',
@@ -90,7 +90,7 @@ test('a code can only be used once', function () {
     $email = 'reuse-code@students.nu-lipa.edu.ph';
 
     $this->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
         'password' => 'password',

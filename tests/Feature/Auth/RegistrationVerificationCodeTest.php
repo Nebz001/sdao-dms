@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Mail;
 function startRegistration(string $email): void
 {
     test()->post(route('register.store'), [
-        'name' => 'Test User',
+        'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
         'password' => 'password',

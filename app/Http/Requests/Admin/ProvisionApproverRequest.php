@@ -31,12 +31,21 @@ class ProvisionApproverRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->personNameMessages();
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'name' => $this->nameRules(),
+            'first_name' => $this->personNameRules(),
+            'last_name' => $this->personNameRules(),
             // Any valid address except a student-domain one: an approver may
             // be reached on a personal mailbox. Students and profile email
             // changes keep the school-domain rule (see ProfileValidationRules).

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AccountStatus;
 use App\Enums\Role;
+use App\Support\PersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,7 +25,9 @@ use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property int $id
- * @property string $name
+ * @property string $name "First Last", kept in sync with first_name/last_name on save.
+ * @property string|null $first_name
+ * @property string|null $last_name
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property AccountStatus $account_status
@@ -39,12 +42,78 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'must_change_password', 'account_status', 'account_reviewed_at', 'email_verified_at', 'id_number'])]
+#[Fillable(['name', 'first_name', 'last_name', 'email', 'password', 'must_change_password', 'account_status', 'account_reviewed_at', 'email_verified_at', 'id_number'])]
 #[Hidden(['password', 'remember_token', 'id_number'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
+
+    /**
+     * `name` stays a real column holding the display name (rather than an
+     * accessor) because it is read in raw selects, plucks, orderBy, joins and
+     * mail/notification text all over the app. It is kept in sync here:
+     * - when first_name/last_name change, name is rebuilt from them, keeping
+     *   any honorific the old name started with ("Dr.") so what is displayed
+     *   and printed does not lose a title just because a name was corrected;
+     * - when only name is written (legacy callers), first_name/last_name are
+     *   derived from it, without any title or parenthesised note.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if ($user->isDirty(['first_name', 'last_name'])) {
+                $joined = PersonName::join($user->first_name, $user->last_name);
+
+                if ($joined === '') {
+                    return;
+                }
+
+                // A caller that wrote `name` too (a seeder, a factory) wins when
+                // it agrees with the first/last it wrote.
+                if ($user->isDirty('name') && self::splitMatches((string) $user->name, $user)) {
+                    return;
+                }
+
+                $title = $user->isDirty('name') ? '' : PersonName::leadingTitle((string) $user->getOriginal('name'));
+                $user->name = PersonName::join($title, $joined);
+
+                return;
+            }
+
+            if ($user->isDirty('name')) {
+                $parts = PersonName::split((string) $user->name);
+
+                if ($parts['first'] !== '') {
+                    $user->first_name = $parts['first'];
+                    $user->last_name = $parts['last'] === '' ? null : $parts['last'];
+                }
+            }
+        });
+    }
+
+    private static function splitMatches(string $name, User $user): bool
+    {
+        $parts = PersonName::split($name);
+
+        return $parts['first'] === (string) $user->first_name
+            && $parts['last'] === (string) $user->last_name;
+    }
+
+    /**
+     * Matches a person by first name, last name, or the full name
+     * ("First Last"). Same plain `like` as every other search in the app.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeWhereNameMatches(Builder $query, string $search): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where($query->qualifyColumn('name'), 'like', "%{$search}%")
+            ->orWhere($query->qualifyColumn('first_name'), 'like', "%{$search}%")
+            ->orWhere($query->qualifyColumn('last_name'), 'like', "%{$search}%"));
+    }
 
     /** @return HasMany<RoleAssignment, $this> */
     public function roleAssignments(): HasMany

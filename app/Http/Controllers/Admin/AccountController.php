@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateAccountNameRequest;
 use App\Identity\Admin\DeactivateAccount;
 use App\Identity\Admin\ReactivateAccount;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Support\FlashToast;
+use App\Support\PersonName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,13 +35,26 @@ class AccountController extends Controller
         $accounts = User::query()
             ->nonStudent()
             ->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
+                ->whereNameMatches($search)
                 ->orWhere('email', 'like', "%{$search}%"))
             ->orderBy('name')
             ->limit(self::SEARCH_LIMIT)
             ->get();
 
         return response()->json(['accounts' => $approvers->rows($accounts)]);
+    }
+
+    /**
+     * Corrects a person's first and last name. `name` is rebuilt from them by
+     * the User model, so all three always agree.
+     */
+    public function updateName(UpdateAccountNameRequest $request, User $account): RedirectResponse
+    {
+        $account->first_name = PersonName::stripTitle($request->string('first_name')->toString());
+        $account->last_name = PersonName::clean($request->string('last_name')->toString());
+        $account->save();
+
+        return back()->with('flash', FlashToast::make('Name updated', "The account is now named {$account->name}."));
     }
 
     public function deactivate(Request $request, User $account, DeactivateAccount $action): RedirectResponse

@@ -18,7 +18,7 @@ test('the name can be updated immediately when the email is unchanged', function
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test', 'last_name' => 'User',
             'email' => $user->email,
         ]);
 
@@ -37,7 +37,7 @@ test('changing to a new school email defers the write behind a verification code
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test', 'last_name' => 'User',
             'email' => 'new.address@students.nu-lipa.edu.ph',
         ]);
 
@@ -57,7 +57,7 @@ test('a personal email is rejected on profile update', function () {
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => $user->name,
+            'first_name' => $user->first_name, 'last_name' => $user->last_name,
             'email' => 'someone@gmail.com',
         ]);
 
@@ -71,7 +71,7 @@ test('email verification status is unchanged when the email address is unchanged
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
-            'name' => 'Test User',
+            'first_name' => 'Test', 'last_name' => 'User',
             'email' => $user->email,
         ]);
 

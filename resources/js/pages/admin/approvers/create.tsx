@@ -41,7 +41,8 @@ export default function CreateApprover({ roles, schools, programs, organizations
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     const form = useForm({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         id_number: '',
         role: '',
@@ -104,16 +105,35 @@ export default function CreateApprover({ roles, schools, programs, organizations
                 <PageHeader title="Provision Approver" subtitle="Creates the account with a one time password and emails it to the approver. They must change it the first time they log in." />
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="name">Name</Label>
-                        <Input
-                            id="name"
-                            name="name"
-                            required
-                            value={form.data.name}
-                            onChange={(e) => form.setData('name', e.target.value)}
-                        />
-                        <InputError message={form.errors.name} />
+                    <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="first_name">First name</Label>
+                            <Input
+                                id="first_name"
+                                name="first_name"
+                                required
+                                maxLength={100}
+                                autoComplete="off"
+                                value={form.data.first_name}
+                                onChange={(e) => form.setData('first_name', e.target.value)}
+                                aria-invalid={form.errors.first_name ? true : undefined}
+                            />
+                            <InputError message={form.errors.first_name} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="last_name">Last name</Label>
+                            <Input
+                                id="last_name"
+                                name="last_name"
+                                required
+                                maxLength={100}
+                                autoComplete="off"
+                                value={form.data.last_name}
+                                onChange={(e) => form.setData('last_name', e.target.value)}
+                                aria-invalid={form.errors.last_name ? true : undefined}
+                            />
+                            <InputError message={form.errors.last_name} />
+                        </div>
                     </div>
 
                     <div className="grid gap-2">
@@ -315,7 +335,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
                     description={
                         <>
                             <span className="block">
-                                {form.data.name} will be added as {selectedRole?.label}. Their one time password will
+                                {form.data.first_name} {form.data.last_name} will be added as {selectedRole?.label}. Their one time password will
                                 be emailed to:
                             </span>
                             <span className="block py-2 font-medium break-all text-foreground">

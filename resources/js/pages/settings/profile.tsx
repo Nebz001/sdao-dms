@@ -47,23 +47,35 @@ export default function Profile({
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Full name"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
+                            <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="first_name">First name</Label>
+                                    <Input
+                                        id="first_name"
+                                        defaultValue={auth.user.first_name ?? ''}
+                                        name="first_name"
+                                        required
+                                        maxLength={100}
+                                        autoComplete="given-name"
+                                        placeholder="Juan"
+                                        aria-invalid={errors.first_name ? true : undefined}
+                                    />
+                                    <InputError message={errors.first_name} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="last_name">Last name</Label>
+                                    <Input
+                                        id="last_name"
+                                        defaultValue={auth.user.last_name ?? ''}
+                                        name="last_name"
+                                        required
+                                        maxLength={100}
+                                        autoComplete="family-name"
+                                        placeholder="Dela Cruz"
+                                        aria-invalid={errors.last_name ? true : undefined}
+                                    />
+                                    <InputError message={errors.last_name} />
+                                </div>
                             </div>
 
                             <div className="grid gap-2">

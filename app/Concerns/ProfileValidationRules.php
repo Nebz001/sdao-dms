@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 trait ProfileValidationRules
 {
+    private const int PERSON_NAME_MAX_LENGTH = 100;
+
     /**
      * Get the validation rules used to validate user profiles.
      *
@@ -19,19 +21,41 @@ trait ProfileValidationRules
     protected function profileRules(?int $userId = null, ?string $audience = null, bool $requireSchoolDomain = true): array
     {
         return [
-            'name' => $this->nameRules(),
+            'first_name' => $this->personNameRules(),
+            'last_name' => $this->personNameRules(),
             'email' => $this->emailRules($userId, $audience, requireSchoolDomain: $requireSchoolDomain),
         ];
     }
 
     /**
-     * Get the validation rules used to validate user names.
+     * Rules for a first or last name. Input is trimmed by the framework's
+     * TrimStrings middleware. Letters (including accented ones such as ñ),
+     * spaces, periods, hyphens and apostrophes only, starting with a letter.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function nameRules(): array
+    protected function personNameRules(): array
     {
-        return ['required', 'string', 'max:255'];
+        return ['required', 'string', 'max:'.self::PERSON_NAME_MAX_LENGTH, "regex:/^\\p{L}[\\p{L}\\p{M} .'’-]*$/u"];
+    }
+
+    /**
+     * Plain-words messages for first_name and last_name.
+     *
+     * @return array<string, string>
+     */
+    protected function personNameMessages(): array
+    {
+        $messages = [];
+
+        foreach (['first_name' => 'First name', 'last_name' => 'Last name'] as $field => $label) {
+            $messages["{$field}.required"] = 'Enter a '.strtolower($label).'.';
+            $messages["{$field}.max"] = "{$label} must be ".self::PERSON_NAME_MAX_LENGTH.' characters or fewer.';
+            $messages["{$field}.regex"] = "{$label} can only have letters, spaces, periods, hyphens, and apostrophes, and must start with a letter.";
+            $messages["{$field}.string"] = "{$label} must be text.";
+        }
+
+        return $messages;
     }
 
     /**

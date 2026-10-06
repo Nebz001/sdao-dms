@@ -104,7 +104,7 @@ class ActivityLogController extends Controller
                 fn ($outer) => $outer
                     ->whereHas('document', fn ($q) => $q->where('title', 'like', "%{$search}%")
                         ->orWhereHas('organization', fn ($q2) => $q2->where('name', 'like', "%{$search}%")))
-                    ->orWhereHas('actor', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('actor', fn ($q) => $q->whereNameMatches($search))
             ));
 
         $transitions = $base

@@ -22,7 +22,7 @@ test('the code-entry screen renders once an email change is pending', function (
     Mail::fake();
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'pending@students.nu-lipa.edu.ph',
     ]);
 
@@ -37,7 +37,7 @@ test('entering the correct code writes the new email and marks it verified', fun
     Mail::fake();
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'new-verified@students.nu-lipa.edu.ph',
     ]);
 
@@ -58,7 +58,7 @@ test('entering the wrong code leaves the email unchanged', function () {
     Mail::fake();
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'wrong-code@students.nu-lipa.edu.ph',
     ]);
 
@@ -76,7 +76,7 @@ test('an expired code is rejected and the email stays unchanged', function () {
     Mail::fake();
 
     $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'expired-change@students.nu-lipa.edu.ph',
     ]);
 
@@ -95,7 +95,7 @@ test('a personal email is rejected before any code is sent', function () {
     Mail::fake();
 
     $response = $this->actingAs($user)->patch(route('profile.update'), [
-        'name' => $user->name,
+        'first_name' => $user->first_name, 'last_name' => $user->last_name,
         'email' => 'someone@outlook.com',
     ]);
 

@@ -29,7 +29,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
     // 1. Self-register a real account through the real two-step flow
     // (school-email domain check, code issuance, code verification).
     [$student] = registerViaHttp([
-        'name' => 'Real Auth Student',
+        'first_name' => 'Real Auth', 'last_name' => 'Student',
         'email' => 'real-auth-student@students.nu-lipa.edu.ph',
     ]);
 

@@ -46,7 +46,7 @@ test('security page loads for a freshly-provisioned approver, and their password
 
     $approver = app(ProvisionApprover::class)->execute(
         actor: $sdao,
-        name: 'New Adviser',
+        firstName: 'New', lastName: 'Adviser',
         email: 'new-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: [],

@@ -22,6 +22,8 @@ function account(
     return {
         id,
         name: `Person ${id}`,
+        first_name: 'Person',
+        last_name: String(id),
         email: `person${id}@nu-lipa.edu.ph`,
         is_self: false,
         deactivated_at: null,

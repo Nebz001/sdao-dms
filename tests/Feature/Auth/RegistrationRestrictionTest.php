@@ -33,7 +33,7 @@ test('the public registration endpoint ignores role/scope fields smuggled into t
     // None of these are real registration fields — an attempt to self-grant
     // a role via the public form must have no effect.
     [$user] = registerViaHttp([
-        'name' => 'Smuggler',
+        'first_name' => 'Smug', 'last_name' => 'Gler',
         'email' => 'smuggler@students.nu-lipa.edu.ph',
         'role' => Role::SdaoMember->value,
         'organization_id' => $org->id,

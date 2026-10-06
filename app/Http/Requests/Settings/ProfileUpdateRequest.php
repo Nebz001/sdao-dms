@@ -25,6 +25,14 @@ class ProfileUpdateRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->personNameMessages();
+    }
+
+    /**
      * Whether the submitted email is the account's current one, compared
      * lowercase and trimmed so a change of letter case alone never counts as
      * a change (login lowercases emails, so the two are the same address).

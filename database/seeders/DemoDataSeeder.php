@@ -32,6 +32,7 @@ use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
+use App\Support\PersonName;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -244,7 +245,7 @@ class DemoDataSeeder extends Seeder
     private function makeStaff(string $name, string $localPart): User
     {
         return User::factory()->create([
-            'name' => $name,
+            ...PersonName::attributes($name),
             'email' => "{$localPart}@nu-lipa.edu.ph",
             'password' => Hash::make(self::PASSWORD),
         ]);
@@ -261,7 +262,7 @@ class DemoDataSeeder extends Seeder
         }
 
         return $factory->create([
-            'name' => $name,
+            ...PersonName::attributes($name),
             'email' => "{$localPart}@students.nu-lipa.edu.ph",
             'password' => Hash::make(self::PASSWORD),
             'id_number' => $this->nextIdNumber(),

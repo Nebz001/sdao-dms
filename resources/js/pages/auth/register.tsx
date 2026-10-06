@@ -3,12 +3,13 @@ import { FolderPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import PasswordRuleHint from '@/components/password-rule-hint';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupCard } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -34,7 +35,7 @@ export default function Register({ passwordRules }: Props) {
     const [idNumber, setIdNumber] = useState('');
     // Rides along as one more key in EmailVerificationCode's encrypted
     // payload (see App\Http\Controllers\Auth\RegistrationController::store()),
-    // exactly like name/password/id_number already do — no account exists
+    // exactly like first_name/last_name/password/id_number already do — no account exists
     // yet to persist it on. The only thing it ever changes is verifyStore()'s
     // post-verification redirect: "register_new" (or missing) lands on the
     // dashboard exactly as before; "join_existing" lands directly on the
@@ -55,72 +56,61 @@ export default function Register({ passwordRules }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label>How do you want to get started?</Label>
-                                <ToggleGroup
-                                    type="single"
-                                    variant="outline"
-                                    value={intendedPath}
-                                    onValueChange={(value) => {
-                                        if (value) {
-                                            setIntendedPath(
-                                                value as IntendedPath,
-                                            );
-                                        }
-                                    }}
-                                    className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2"
-                                >
-                                    <ToggleGroupItem
+                                <Label id="intended-path-label">
+                                    What do you want to do?
+                                </Label>
+                                <RadioGroup aria-labelledby="intended-path-label">
+                                    <RadioGroupCard
+                                        name="intended_path"
                                         value="register_new"
-                                        aria-label="Register a new organization"
-                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary-text data-[state=on]:ring-1 data-[state=on]:ring-primary-text"
-                                    >
-                                        <FolderPlus className="size-5 text-muted-foreground" />
-                                        <span className="text-sm font-semibold">
-                                            Register a new organization
-                                        </span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            Found a brand-new org for SDAO to
-                                            review.
-                                        </span>
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem
+                                        checked={intendedPath === 'register_new'}
+                                        onChange={() => setIntendedPath('register_new')}
+                                        icon={<FolderPlus />}
+                                        title="Register a new organization"
+                                        description="Start one that does not exist yet"
+                                    />
+                                    <RadioGroupCard
+                                        name="intended_path"
                                         value="join_existing"
-                                        aria-label="Join an existing organization"
-                                        className="h-auto flex-col items-start gap-1.5 rounded-md! border! p-4 text-left whitespace-normal data-[state=on]:border-primary-text data-[state=on]:ring-1 data-[state=on]:ring-primary-text"
-                                    >
-                                        <Users className="size-5 text-muted-foreground" />
-                                        <span className="text-sm font-semibold">
-                                            Join an existing organization
-                                        </span>
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            Search for your org and request to
-                                            join as an officer.
-                                        </span>
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
-                                <input
-                                    type="hidden"
-                                    name="intended_path"
-                                    value={intendedPath}
-                                />
+                                        checked={intendedPath === 'join_existing'}
+                                        onChange={() => setIntendedPath('join_existing')}
+                                        icon={<Users />}
+                                        title="Join an organization"
+                                        description="Ask to be added as an officer"
+                                    />
+                                </RadioGroup>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    required
-                                    autoFocus
-                                    tabIndex={2}
-                                    autoComplete="name"
-                                    name="name"
-                                    placeholder="Full name"
-                                />
-                                <InputError
-                                    message={errors.name}
-                                    className="mt-2"
-                                />
+                            <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="first_name">First name</Label>
+                                    <Input
+                                        id="first_name"
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        autoComplete="given-name"
+                                        name="first_name"
+                                        placeholder="Juan"
+                                        maxLength={100}
+                                        aria-invalid={errors.first_name ? true : undefined}
+                                    />
+                                    <InputError message={errors.first_name} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="last_name">Last name</Label>
+                                    <Input
+                                        id="last_name"
+                                        type="text"
+                                        required
+                                        autoComplete="family-name"
+                                        name="last_name"
+                                        placeholder="Dela Cruz"
+                                        maxLength={100}
+                                        aria-invalid={errors.last_name ? true : undefined}
+                                    />
+                                    <InputError message={errors.last_name} />
+                                </div>
                             </div>
 
                             <div className="grid gap-2">
@@ -129,14 +119,12 @@ export default function Register({ passwordRules }: Props) {
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={3}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="juan.delacruz@students.nu-lipa.edu.ph"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Use your NU Lipa student email — we&apos;ll
-                                    send a verification code to it.
+                                    We send a verification code to this address.
                                 </p>
                                 <InputError message={errors.email} />
                             </div>
@@ -150,7 +138,6 @@ export default function Register({ passwordRules }: Props) {
                                     type="text"
                                     inputMode="numeric"
                                     required
-                                    tabIndex={4}
                                     autoComplete="off"
                                     name="id_number"
                                     placeholder="2023-182854"
@@ -170,11 +157,15 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={5}
                                     autoComplete="new-password"
                                     name="password"
-                                    placeholder="Password"
+                                    placeholder="At least 8 characters"
+                                    aria-describedby="password-rules"
                                     passwordrules={passwordRules}
+                                />
+                                <PasswordRuleHint
+                                    id="password-rules"
+                                    rules={passwordRules}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -186,10 +177,9 @@ export default function Register({ passwordRules }: Props) {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={6}
                                     autoComplete="new-password"
                                     name="password_confirmation"
-                                    placeholder="Confirm password"
+                                    placeholder="Type it again"
                                     passwordrules={passwordRules}
                                 />
                                 <InputError
@@ -201,7 +191,6 @@ export default function Register({ passwordRules }: Props) {
                                 type="submit"
                                 variant="brand-fixed"
                                 className="mt-2 w-full"
-                                tabIndex={7}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
@@ -211,7 +200,7 @@ export default function Register({ passwordRules }: Props) {
 
                         <div className="text-center text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={7}>
+                            <TextLink href={login()}>
                                 Log in
                             </TextLink>
                         </div>
@@ -224,5 +213,5 @@ export default function Register({ passwordRules }: Props) {
 
 Register.layout = {
     title: 'Create an account',
-    description: 'Enter your details below to create your account',
+    description: 'Enter your details below to get started',
 };

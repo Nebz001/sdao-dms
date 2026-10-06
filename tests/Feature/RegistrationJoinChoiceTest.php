@@ -17,7 +17,7 @@ function startRegistrationWithIntent(?string $intentedPath): string
     $email = 'student-'.Str::random(10).'@students.nu-lipa.edu.ph';
 
     $payload = [
-        'name' => 'Test Student',
+        'first_name' => 'Test', 'last_name' => 'Student',
         'email' => $email,
         'id_number' => fake()->unique()->numerify('####-######'),
         'password' => 'password',
@@ -76,7 +76,7 @@ test('an invalid intended_path value is rejected by validation', function () {
     Mail::fake();
 
     $response = test()->post(route('register.store'), [
-        'name' => 'Test Student',
+        'first_name' => 'Test', 'last_name' => 'Student',
         'email' => 'student-'.Str::random(10).'@students.nu-lipa.edu.ph',
         'id_number' => fake()->unique()->numerify('####-######'),
         'password' => 'password',

@@ -10,6 +10,8 @@ export type RoleEntry = { role: string; label: string; scope: string };
 export type ApproverAccount = {
     id: number;
     name: string;
+    first_name: string | null;
+    last_name: string | null;
     email: string;
     is_self: boolean;
     deactivated_at: string | null;

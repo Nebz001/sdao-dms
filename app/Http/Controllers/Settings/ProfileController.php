@@ -9,6 +9,7 @@ use App\Identity\EmailVerification\EmailVerificationCodeService;
 use App\Models\EmailVerificationCode;
 use App\Registrations\WithdrawInFlightRegistrations;
 use App\Support\FlashToast;
+use App\Support\PersonName;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,7 +45,8 @@ class ProfileController extends Controller
         $data = $request->validated();
         $emailUnchanged = $request->emailIsUnchanged();
 
-        $user->name = $data['name'];
+        $user->first_name = PersonName::stripTitle($data['first_name']);
+        $user->last_name = PersonName::clean($data['last_name']);
         $user->save();
 
         if ($emailUnchanged) {

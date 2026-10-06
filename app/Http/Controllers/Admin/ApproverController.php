@@ -150,6 +150,8 @@ class ApproverController extends Controller
             return [
                 'id' => $u->id,
                 'name' => $u->name,
+                'first_name' => $u->first_name,
+                'last_name' => $u->last_name,
                 'email' => $u->email,
                 'id_number' => $u->id_number,
                 'is_self' => $u->id === Auth::id(),
@@ -270,7 +272,8 @@ class ApproverController extends Controller
 
         $action->execute(
             actor: Auth::user(),
-            name: $request->string('name')->toString(),
+            firstName: $request->string('first_name')->toString(),
+            lastName: $request->string('last_name')->toString(),
             email: $request->string('email')->toString(),
             idNumber: $request->string('id_number')->toString() ?: null,
             role: Role::from($request->string('role')->toString()),

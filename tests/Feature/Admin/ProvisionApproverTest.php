@@ -33,7 +33,7 @@ beforeEach(function () {
 test('an SDAO member can provision an adviser scoped to an organization', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Adviser',
+        firstName: 'New', lastName: 'Adviser',
         email: 'new-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['organization_id' => $this->org->id],
@@ -48,7 +48,7 @@ test('an SDAO member can provision an adviser scoped to an organization', functi
 test('an SDAO member can provision an adviser with NO scope — available, pending assignment (Phase 2 item 5)', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Available Adviser',
+        firstName: 'Available', lastName: 'Adviser',
         email: 'available-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: [],
@@ -61,7 +61,7 @@ test('an SDAO member can provision an adviser with NO scope — available, pendi
 test('an SDAO member can provision a dean scoped to a school', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Dean',
+        firstName: 'New', lastName: 'Dean',
         email: 'new-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -76,7 +76,7 @@ test('an SDAO member can provision a dean scoped to a school', function () {
 test('an SDAO member can provision a program chair scoped to a program', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Chair',
+        firstName: 'New', lastName: 'Chair',
         email: 'new-chair@nu-lipa.edu.ph',
         role: Role::ProgramChair,
         scope: ['program_id' => $this->program->id],
@@ -91,7 +91,7 @@ test('an SDAO member can provision a program chair scoped to a program', functio
 test('an SDAO member can provision a global role with no scope', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Director',
+        firstName: 'New', lastName: 'Director',
         email: 'new-director@nu-lipa.edu.ph',
         role: Role::ExecutiveDirector,
         scope: [],
@@ -114,7 +114,7 @@ test('an SDAO member can provision a global role with no scope', function () {
 test('provisioning a new Assistant Director REPLACES the existing holder rather than duplicating the role', function () {
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Asst Director',
+        firstName: 'New Asst', lastName: 'Director',
         email: 'new-asst-director@nu-lipa.edu.ph',
         role: Role::AssistantDirectorAcademicServices,
         scope: [],
@@ -128,7 +128,7 @@ test('provisioning a new Assistant Director REPLACES the existing holder rather 
 test('provisioning a new Academic Director REPLACES the existing holder rather than duplicating the role', function () {
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Academic Director',
+        firstName: 'New Academic', lastName: 'Director',
         email: 'new-academic-director@nu-lipa.edu.ph',
         role: Role::AcademicDirector,
         scope: [],
@@ -142,7 +142,7 @@ test('provisioning a new Academic Director REPLACES the existing holder rather t
 test('provisioning a new Executive Director REPLACES the existing holder rather than duplicating the role', function () {
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New Executive Director',
+        firstName: 'New Executive', lastName: 'Director',
         email: 'new-executive-director@nu-lipa.edu.ph',
         role: Role::ExecutiveDirector,
         scope: [],
@@ -158,7 +158,7 @@ test('provisioning a new SDAO member still ADDS a row — the multi-holder role 
 
     $this->action->execute(
         actor: $this->sdaoA,
-        name: 'New SDAO Member',
+        firstName: 'New SDAO', lastName: 'Member',
         email: 'new-sdao-member@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],
@@ -184,7 +184,7 @@ test('provisioning a replacement dean RETIRES the previous holder\'s assignment 
 
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Replacement Dean',
+        firstName: 'Replacement', lastName: 'Dean',
         email: 'replacement-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -203,7 +203,7 @@ test('provisioning a replacement program chair RETIRES the previous holder\'s as
 
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Replacement Chair',
+        firstName: 'Replacement', lastName: 'Chair',
         email: 'replacement-chair@nu-lipa.edu.ph',
         role: Role::ProgramChair,
         scope: ['program_id' => $this->program->id],
@@ -222,7 +222,7 @@ test('provisioning a replacement adviser UNBINDS the previous adviser back to th
 
     $newHolder = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Replacement Adviser',
+        firstName: 'Replacement', lastName: 'Adviser',
         email: 'replacement-adviser@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['organization_id' => $this->org->id],
@@ -255,7 +255,7 @@ test('provisioning a dean for one school leaves another school\'s dean untouched
     $otherSchool = School::where('name', 'School of Accountancy, Business, and Management')->firstOrFail();
     $otherDean = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Other School Dean',
+        firstName: 'Other School', lastName: 'Dean',
         email: 'other-school-dean@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $otherSchool->id],
@@ -269,13 +269,13 @@ test('provisioning a dean for one school leaves another school\'s dean untouched
 });
 
 test('provisioning an unscoped adviser never disturbs the available pool or any org-bound adviser', function () {
-    $this->action->execute(actor: $this->sdaoA, name: 'Pool One', email: 'pool-one@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
-    $this->action->execute(actor: $this->sdaoA, name: 'Pool Two', email: 'pool-two@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+    $this->action->execute(actor: $this->sdaoA, firstName: 'Pool', lastName: 'One', email: 'pool-one@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+    $this->action->execute(actor: $this->sdaoA, firstName: 'Pool', lastName: 'Two', email: 'pool-two@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
 
     $poolCountBefore = RoleAssignment::where('role', Role::Adviser->value)->whereNull('organization_id')->count();
     $boundAdviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 
-    $this->action->execute(actor: $this->sdaoA, name: 'Pool Three', email: 'pool-three@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
+    $this->action->execute(actor: $this->sdaoA, firstName: 'Pool', lastName: 'Three', email: 'pool-three@nu-lipa.edu.ph', role: Role::Adviser, scope: []);
 
     expect(RoleAssignment::where('role', Role::Adviser->value)->whereNull('organization_id')->count())->toBe($poolCountBefore + 1);
     expect(RoleAssignment::where('user_id', $boundAdviser->id)->where('organization_id', $this->org->id)->exists())->toBeTrue();
@@ -284,7 +284,7 @@ test('provisioning an unscoped adviser never disturbs the available pool or any 
 test('provisioning Student is rejected — students self-register and are adviser-bound, never admin-provisioned', function () {
     expect(fn () => $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Should Fail',
+        firstName: 'Should', lastName: 'Fail',
         email: 'should-fail@nu-lipa.edu.ph',
         role: Role::Student,
         scope: ['organization_id' => $this->org->id],
@@ -295,7 +295,7 @@ test('a mismatched role/scope pair is rejected', function () {
     // Adviser is organization-scoped — supplying a school_id instead must fail.
     expect(fn () => $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Mismatched',
+        firstName: 'Mismatched', lastName: 'Tester',
         email: 'mismatched@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['school_id' => $this->school->id],
@@ -307,7 +307,7 @@ test('a non-SDAO actor cannot provision an approver via the action', function ()
 
     expect(fn () => $this->action->execute(
         actor: $adviser,
-        name: 'Nope',
+        firstName: 'Nope', lastName: 'Tester',
         email: 'nope@nu-lipa.edu.ph',
         role: Role::Adviser,
         scope: ['organization_id' => $this->org->id],
@@ -320,14 +320,14 @@ test('a non-SDAO authenticated user gets 403 on every admin route', function () 
     $this->actingAs($adviser)->get(route('admin.approvers.index'))->assertForbidden();
     $this->actingAs($adviser)->get(route('admin.approvers.create'))->assertForbidden();
     $this->actingAs($adviser)->post(route('admin.approvers.store'), [
-        'name' => 'X', 'email' => 'x@nu-lipa.edu.ph', 'role' => Role::Adviser->value, 'organization_id' => $this->org->id,
+        'first_name' => 'X', 'last_name' => 'Tester', 'email' => 'x@nu-lipa.edu.ph', 'role' => Role::Adviser->value, 'organization_id' => $this->org->id,
     ])->assertForbidden();
 });
 
 test('a provisioned approver lands account-Verified and email-verified — no verification wall on the reset-link login path', function () {
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Trusted Approver',
+        firstName: 'Trusted', lastName: 'Approver',
         email: 'trusted-approver@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -355,7 +355,7 @@ test('provisioning sets a random one time password and flags the account to chan
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Password Check',
+        firstName: 'Password', lastName: 'Check',
         email: 'password-check@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],
@@ -373,8 +373,8 @@ test('provisioning sets a random one time password and flags the account to chan
 test('two provisioned accounts never share a password', function () {
     Notification::fake();
 
-    $first = $this->action->execute(actor: $this->sdaoA, name: 'First', email: 'first-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
-    $second = $this->action->execute(actor: $this->sdaoA, name: 'Second', email: 'second-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
+    $first = $this->action->execute(actor: $this->sdaoA, firstName: 'First', lastName: 'Tester', email: 'first-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
+    $second = $this->action->execute(actor: $this->sdaoA, firstName: 'Second', lastName: 'Tester', email: 'second-temp@nu-lipa.edu.ph', role: Role::SdaoMember, scope: []);
 
     expect(sentTemporaryPassword($first))->not->toBe(sentTemporaryPassword($second))
         ->and($first->password)->not->toBe($second->password);
@@ -385,7 +385,7 @@ test('provisioning sends an encrypted ApproverProvisionedNotification carrying t
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Reset Check',
+        firstName: 'Reset', lastName: 'Check',
         email: 'reset-check@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],
@@ -416,7 +416,7 @@ test('the one time password never leaks into the persisted in-app notification p
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Bell Check',
+        firstName: 'Bell', lastName: 'Check',
         email: 'bell-check@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -439,7 +439,7 @@ test('a notification dispatch failure is logged and reported but does not preven
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Mail Down',
+        firstName: 'Mail', lastName: 'Down',
         email: 'mail-down@nu-lipa.edu.ph',
         role: Role::SdaoMember,
         scope: [],
@@ -457,7 +457,7 @@ test('the store endpoint warns the admin when the welcome email could not be sen
     Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp boom'));
 
     $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'Mail Down Http',
+        'first_name' => 'Mail Down', 'last_name' => 'Http',
         'email' => 'mail-down-http@nu-lipa.edu.ph',
         'role' => Role::SdaoMember->value,
     ])->assertSessionHas('flash.type', 'error');
@@ -468,7 +468,7 @@ test('a newly provisioned approver logs in with the one time password and is sen
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'Can Login',
+        firstName: 'Can', lastName: 'Login',
         email: 'can-login@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -488,7 +488,7 @@ test('the retired shared default password no longer logs a newly provisioned app
 
     $user = $this->action->execute(
         actor: $this->sdaoA,
-        name: 'No Default',
+        firstName: 'No', lastName: 'Default',
         email: 'no-default@nu-lipa.edu.ph',
         role: Role::Dean,
         scope: ['school_id' => $this->school->id],
@@ -502,7 +502,7 @@ test('the retired shared default password no longer logs a newly provisioned app
 
 test('the store endpoint provisions an adviser with no organization_id — the unbound available-pool path', function () {
     $response = $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'Available Via HTTP',
+        'first_name' => 'Available Via', 'last_name' => 'HTTP',
         'email' => 'available-via-http@nu-lipa.edu.ph',
         'role' => Role::Adviser->value,
     ]);
@@ -528,7 +528,7 @@ test('an SDAO member can reach the admin routes end-to-end via HTTP', function (
         );
 
     $response = $this->actingAs($this->sdaoA)->post(route('admin.approvers.store'), [
-        'name' => 'HTTP Provisioned',
+        'first_name' => 'HTTP', 'last_name' => 'Provisioned',
         'email' => 'http-provisioned@nu-lipa.edu.ph',
         'role' => Role::Adviser->value,
         'organization_id' => $this->org->id,

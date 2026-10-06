@@ -226,6 +226,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // any such account, including one that no longer holds a role. Same
         // throttle as the adviser search typeahead.
         Route::get('/accounts/search', [AccountController::class, 'search'])->middleware('throttle:30,1')->name('accounts.search');
+        Route::patch('/accounts/{account}/name', [AccountController::class, 'updateName'])->name('accounts.name.update');
         Route::post('/accounts/{account}/deactivate', [AccountController::class, 'deactivate'])->name('accounts.deactivate');
         Route::post('/accounts/{account}/reactivate', [AccountController::class, 'reactivate'])->name('accounts.reactivate');
 

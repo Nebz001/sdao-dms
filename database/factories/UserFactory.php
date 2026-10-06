@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\AccountStatus;
 use App\Models\User;
+use App\Support\PersonName;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -26,7 +27,14 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            // A test that overrides `name` gets a matching first/last split; the
+            // User model rebuilds `name` from first_name/last_name on save.
+            'first_name' => fn (array $attributes) => isset($attributes['name'])
+                ? PersonName::split($attributes['name'])['first']
+                : fake()->firstName(),
+            'last_name' => fn (array $attributes) => isset($attributes['name'])
+                ? (PersonName::split($attributes['name'])['last'] ?: null)
+                : fake()->lastName(),
             // Every account must hold an NU Lipa school address — defaults to
             // the student domain since most factory-created users in tests
             // are unaffiliated actors, not provisioned staff.
@@ -39,6 +47,16 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * `make()` never saves, so the model's saving hook has not built `name`.
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user) {
+            $user->name ??= PersonName::join($user->first_name, $user->last_name);
+        });
     }
 
     /**
