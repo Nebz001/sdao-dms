@@ -3,9 +3,12 @@
 use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Enums\TransitionAction;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -112,7 +115,7 @@ test('the form_type filter narrows the result set', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
-            ->where('documents.data.0.title', 'A Renewal')
+            ->where('documents.data.0.form_type', FormType::OrganizationRenewal->value)
         );
 });
 
@@ -125,13 +128,13 @@ test('the status filter narrows the result set', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
-            ->where('documents.data.0.title', 'Rejected Doc')
+            ->where('documents.data.0.status', 'rejected')
         );
 });
 
 test('search matches the document title or the organization name', function () {
     archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Approved, 'Findable Title');
-    archivedDocument(FormType::OrganizationRegistration, $this->itGuild, DocumentStatus::Approved, 'Something Else');
+    $other = archivedDocument(FormType::OrganizationRegistration, $this->itGuild, DocumentStatus::Approved, 'Something Else');
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.archive.index', ['search' => 'Findable']))
@@ -143,7 +146,7 @@ test('search matches the document title or the organization name', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
-            ->where('documents.data.0.title', 'Something Else')
+            ->where('documents.data.0.id', $other->id)
         );
 });
 
@@ -158,9 +161,10 @@ test('an unknown form_type or status filter value is ignored rather than emptyin
 
 test('results are paginated at 20 per page, newest-decided first', function () {
     foreach (range(1, 25) as $i) {
-        $doc = archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Approved, "Doc {$i}");
-        // Force distinct, increasing updated_at so ordering is deterministic
-        // rather than relying on same-second factory timestamps.
+        $doc = archivedDocument(FormType::ActivityCalendar, $this->org, DocumentStatus::Approved, "Doc {$i}");
+        // No transitions here, so decided_at falls back to updated_at. Force
+        // distinct, increasing values so ordering is deterministic rather than
+        // relying on same-second factory timestamps.
         $doc->forceFill(['updated_at' => now()->addSeconds($i)])->save();
     }
 
@@ -180,17 +184,179 @@ test('results are paginated at 20 per page, newest-decided first', function () {
         ->assertInertia(fn ($page) => $page->has('documents.data', 5));
 });
 
-test('stats reflect approved and rejected counts independent of the status filter', function () {
+/** Records the final transition that moved a document into a terminal status. */
+function decidedAt(Document $doc, CarbonInterface $at, DocumentStatus $status): void
+{
+    DocumentTransition::factory()->create([
+        'document_id' => $doc->id,
+        'to_status' => $status,
+        'action' => $status === DocumentStatus::Approved ? TransitionAction::Completed : TransitionAction::Rejected,
+        'created_at' => $at,
+    ]);
+}
+
+test('stats cover the whole archive and ignore the filters', function () {
     archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Approved, 'Approved Doc');
-    archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Approved, 'Approved Doc 2');
-    archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Rejected, 'Rejected Doc');
+    archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Approved, 'Approved Doc 2');
+    archivedDocument(FormType::ActivityProposal, $this->itGuild, DocumentStatus::Rejected, 'Rejected Doc');
+    archivedDocument(FormType::ActivityProposal, $this->itGuild, DocumentStatus::InReview, 'Still In Review');
 
     $this->actingAs($this->sdaoA)->withoutVite()
-        ->get(route('admin.archive.index', ['status' => DocumentStatus::Rejected->value]))
+        ->get(route('admin.archive.index', ['status' => 'rejected', 'form_type' => 'activity_proposal', 'search' => 'IT Guild']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('stats.approved', 2)
-            ->where('stats.rejected', 1)
-            ->where('stats.total', 3)
+            ->has('documents.data', 1)
+            ->where('stats.total', ['total' => 3, 'approved' => 2, 'rejected' => 1])
+        );
+});
+
+test('by form type lists all five types, highest count first, zero counts included', function () {
+    archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Approved, 'P1');
+    archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Rejected, 'P2');
+    archivedDocument(FormType::AfterActivityReport, $this->org, DocumentStatus::Approved, 'R1');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('stats.byFormType', 5)
+            ->where('stats.byFormType.0', ['form_type' => 'activity_proposal', 'label' => 'Activity Proposal', 'count' => 2])
+            ->where('stats.byFormType.1', ['form_type' => 'after_activity_report', 'label' => 'After-Activity Report', 'count' => 1])
+            // Zero counts keep the declared form type order.
+            ->where('stats.byFormType.2', ['form_type' => 'organization_registration', 'label' => 'Registration', 'count' => 0])
+            ->where('stats.byFormType.3.label', 'Renewal')
+            ->where('stats.byFormType.4.label', 'Activity Calendar')
+        );
+});
+
+test('decided per week buckets the last 8 Monday-start weeks and counts this week', function () {
+    $this->travelTo(now()->setDate(2026, 9, 16)->setTime(12, 0)); // a Wednesday
+    $monday = now()->startOfWeek();
+
+    $inWeek = function (int $weeksAgo, int $count, DocumentStatus $status = DocumentStatus::Approved) use ($monday) {
+        foreach (range(1, $count) as $_) {
+            $doc = archivedDocument(FormType::ActivityCalendar, $this->org, $status, 'W');
+            decidedAt($doc, $monday->copy()->subWeeks($weeksAgo)->addDay(), $status);
+        }
+    };
+    $inWeek(0, 2);
+    $inWeek(0, 1, DocumentStatus::Rejected);
+    $inWeek(1, 1);
+    $inWeek(7, 4);
+    $inWeek(8, 5); // outside the 8-week window
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.perWeek.weeks', [4, 0, 0, 0, 0, 0, 1, 3])
+            ->where('stats.perWeek.thisWeek', 3)
+        );
+});
+
+test('decided on is the final approve or reject transition, not updated_at', function () {
+    $doc = archivedDocument(FormType::ActivityCalendar, $this->org, DocumentStatus::Approved, 'Dated');
+    DocumentTransition::factory()->create(['document_id' => $doc->id, 'to_status' => DocumentStatus::InReview, 'created_at' => '2026-01-01 08:00:00']);
+    DocumentTransition::factory()->create(['document_id' => $doc->id, 'to_status' => DocumentStatus::Approved, 'created_at' => '2026-03-05 09:30:00']);
+    $doc->forceFill(['updated_at' => '2026-09-30 10:00:00'])->saveQuietly();
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.data.0.decided_at', fn ($value) => str_starts_with((string) $value, '2026-03-05'))
+        );
+});
+
+test('the table is ordered by the decision time, not updated_at', function () {
+    $early = archivedDocument(FormType::ActivityCalendar, $this->org, DocumentStatus::Approved, 'Decided early');
+    $late = archivedDocument(FormType::ActivityCalendar, $this->org, DocumentStatus::Rejected, 'Decided late');
+    decidedAt($early, now()->subDays(10), DocumentStatus::Approved);
+    decidedAt($late, now()->subDay(), DocumentStatus::Rejected);
+    // updated_at says the opposite; it must be ignored.
+    $early->forceFill(['updated_at' => now()->addDay()])->saveQuietly();
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.data.0.id', $late->id)
+            ->where('documents.data.1.id', $early->id)
+        );
+});
+
+test('most documents picks the organization with the most decided documents', function () {
+    foreach ([DocumentStatus::Approved, DocumentStatus::Approved, DocumentStatus::Rejected] as $status) {
+        archivedDocument(FormType::ActivityProposal, $this->itGuild, $status, 'IT');
+    }
+    archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Approved, 'Other');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.topOrganization.id', $this->itGuild->id)
+            ->where('stats.topOrganization.name', 'IT Guild')
+            ->where('stats.topOrganization.approved', 2)
+            ->where('stats.topOrganization.rejected', 1)
+        );
+});
+
+test('most documents breaks a tie by organization name, then id', function () {
+    archivedDocument(FormType::ActivityProposal, $this->itGuild, DocumentStatus::Rejected, 'B');
+    archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Approved, 'A');
+
+    // "Computing Society" sorts before "IT Guild", whichever was created first.
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertInertia(fn ($page) => $page->where('stats.topOrganization.name', 'Computing Society'));
+});
+
+test('most documents is null when nothing has been decided', function () {
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.topOrganization', null)
+            ->where('stats.total.total', 0)
+            ->where('stats.perWeek.thisWeek', 0)
+        );
+});
+
+test('row titles drop the form type prefix and the organization suffix', function () {
+    $registration = archivedDocument(FormType::OrganizationRegistration, $this->org, DocumentStatus::Approved, 'Organization Registration — Computing Society (2026-2027)');
+    $renewal = archivedDocument(FormType::OrganizationRenewal, $this->org, DocumentStatus::Approved, 'Organization Renewal — Computing Society (2027-2028)');
+    $orphanProposal = archivedDocument(FormType::ActivityProposal, $this->org, DocumentStatus::Approved, 'Activity Proposal — Career Fair (Computing Society)');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.data', function ($rows) use ($registration, $renewal, $orphanProposal) {
+                $titles = collect($rows)->pluck('title', 'id');
+
+                return $titles[$registration->id] === 'Computing Society'
+                    && $titles[$renewal->id] === 'Computing Society'
+                    // No proposal row: falls back to the stored title, stripped.
+                    && $titles[$orphanProposal->id] === 'Career Fair';
+            })
+        );
+});
+
+test('each row carries the organization college, or "No college"', function () {
+    $withSchool = archivedDocument(FormType::ActivityCalendar, $this->org, DocumentStatus::Approved, 'Has School');
+    $this->itGuild->forceFill(['school_id' => null, 'program_id' => null])->save();
+    $without = archivedDocument(FormType::ActivityCalendar, $this->itGuild, DocumentStatus::Approved, 'No School');
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.archive.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('documents.data', function ($rows) use ($withSchool, $without) {
+                $colleges = collect($rows)->pluck('college', 'id');
+
+                return $colleges[$without->id] === 'No college'
+                    && $colleges[$withSchool->id] !== 'No college';
+            })
         );
 });

@@ -1,12 +1,18 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Archive as ArchiveIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import DocumentArchiveStats from '@/components/document-archive-stats';
+import type { DocumentArchiveStatsData } from '@/components/document-archive-stats';
+import { FormTypeLabelBadge } from '@/components/form-type-badge';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
-import QueueStatStrip from '@/components/queue-stat-strip';
+import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
+import type { DataColumn } from '@/components/review-queue/data-table';
+import { SectionCard } from '@/components/review-queue/queue-tables';
+import { formatDate } from '@/components/review-queue/types';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Empty,
     EmptyDescription,
@@ -35,6 +41,7 @@ type ArchivedDocument = {
     form_type: string;
     form_type_label: string;
     organization: { id: number; name: string };
+    college: string;
     decided_at: string;
     href: string;
 };
@@ -58,7 +65,7 @@ type Props = {
         academic_year?: string | null;
     };
     formTypes: FormTypeOption[];
-    stats: { approved: number; rejected: number; total: number };
+    stats: DocumentArchiveStatsData;
 };
 
 const ALL_TYPES = 'all';
@@ -78,13 +85,14 @@ export default function DocumentArchiveIndex({
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
     const isFirstRender = useRef(true);
 
+    // The stat cards cover the whole archive, so only the table and filters reload.
     function reload(params: Record<string, string>) {
         setLoading(true);
         router.get(archive.index().url, params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['documents', 'filters', 'stats'],
+            only: ['documents', 'filters'],
             onFinish: () => setLoading(false),
         });
     }
@@ -156,40 +164,80 @@ export default function DocumentArchiveIndex({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['documents', 'filters', 'stats'],
+                only: ['documents', 'filters'],
                 onFinish: () => setLoading(false),
             },
         );
     }
 
+    const columns: DataColumn<ArchivedDocument>[] = [
+        {
+            key: 'document',
+            header: 'Document',
+            slot: 'title',
+            cell: (d) => (
+                <div className="flex flex-col items-start gap-1.5">
+                    <FormTypeLabelBadge label={d.form_type_label} />
+                    <span className="font-semibold">{d.title}</span>
+                </div>
+            ),
+        },
+        {
+            key: 'organization',
+            header: 'Organization',
+            cell: (d) => (
+                <div className="flex flex-col">
+                    <span className="font-medium">{d.organization.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                        {d.college}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'decided',
+            header: 'Decided on',
+            className: 'tabular-nums',
+            cell: (d) => formatDate(d.decided_at),
+        },
+        {
+            key: 'result',
+            header: 'Result',
+            slot: 'badge',
+            cell: (d) => (
+                <StatusBadge
+                    status={d.status}
+                    className="text-xs tracking-normal normal-case"
+                />
+            ),
+        },
+        {
+            key: 'actions',
+            header: 'Action',
+            slot: 'action',
+            align: 'right',
+            cell: (d) => (
+                <RowViewButton
+                    href={d.href}
+                    label={`${d.form_type_label}: ${d.title}`}
+                />
+            ),
+        },
+    ];
+
     return (
         <>
             <Head title="Document Archive" />
 
-            <div className="space-y-6">
-                <PageHeader title="Document Archive" subtitle="Approved and rejected documents across every form type, once they&apos;ve left the review queues." />
-
-                <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'Approved',
-                            value: String(stats.approved),
-                            count: stats.approved,
-                        },
-                        {
-                            label: 'Rejected',
-                            value: String(stats.rejected),
-                            count: stats.rejected,
-                        },
-                        {
-                            label: 'Total decided',
-                            value: String(stats.total),
-                            count: stats.total,
-                        },
-                    ]}
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Document Archive"
+                    subtitle="Approved and rejected documents of every form type, after they leave the review queues."
                 />
 
-                <Card>
+                <DocumentArchiveStats stats={stats} />
+
+                <Card className="shadow-none">
                     <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
                         <div className="grid gap-2">
                             <Label htmlFor="archive-form-type">Form type</Label>
@@ -224,13 +272,13 @@ export default function DocumentArchiveIndex({
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger
                                     id="archive-status"
-                                    className="w-full sm:w-48"
+                                    className="w-full sm:w-52"
                                 >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value={ALL_STATUSES}>
-                                        Approved & Rejected
+                                        Approved and Rejected
                                     </SelectItem>
                                     <SelectItem value="approved">
                                         Approved
@@ -248,7 +296,7 @@ export default function DocumentArchiveIndex({
                                 id="archive-search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Title or organization…"
+                                placeholder="Title or organization"
                             />
                         </div>
 
@@ -284,119 +332,86 @@ export default function DocumentArchiveIndex({
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            Decided Documents
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Skeleton key={i} className="h-12 w-full" />
-                                ))}
-                            </div>
-                        ) : documents.data.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <ArchiveIcon />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters
-                                            ? 'No documents match these filters'
-                                            : 'Nothing decided yet'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different form type, status, or search term.'
-                                            : 'Approved and rejected documents will show up here once SDAO finalizes them.'}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                        >
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            <div className="divide-y">
-                                {documents.data.map((doc) => (
-                                    <div
-                                        key={doc.id}
-                                        className="flex items-center justify-between gap-4 py-3"
+                <SectionCard
+                    title="Decided documents"
+                    count={documents.meta.total}
+                    aside="Newest first"
+                >
+                    {loading ? (
+                        <div className="space-y-3" aria-busy="true">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full" />
+                            ))}
+                        </div>
+                    ) : documents.data.length === 0 ? (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <ArchiveIcon />
+                                </EmptyMedia>
+                                <EmptyTitle>
+                                    {hasFilters
+                                        ? 'No documents match these filters'
+                                        : 'Nothing decided yet'}
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    {hasFilters
+                                        ? 'Try a different form type, status, or search term.'
+                                        : 'Approved and rejected documents will show up here once SDAO finalizes them.'}
+                                </EmptyDescription>
+                                {hasFilters && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={clearFilters}
                                     >
-                                        <div className="min-w-0">
-                                            <p className="sm:truncate max-sm:break-words font-medium">
-                                                {doc.title}
-                                            </p>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {doc.organization.name} ·{' '}
-                                                {doc.form_type_label} ·{' '}
-                                                {new Date(
-                                                    doc.decided_at,
-                                                ).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <StatusBadge status={doc.status} />
-                                            <Button
-                                                asChild
-                                                size="sm"
-                                                variant="outline"
-                                            >
-                                                <Link href={doc.href}>
-                                                    View
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                                        Clear filters
+                                    </Button>
+                                )}
+                            </EmptyHeader>
+                        </Empty>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            <DataTable
+                                rows={documents.data}
+                                columns={columns}
+                                rowKey={(d) => d.id}
+                                roomy
+                            />
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Showing {documents.meta.from} to{' '}
+                                    {documents.meta.to} of {documents.meta.total}
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!documents.links.prev}
+                                        onClick={() =>
+                                            goToPage(documents.links.prev)
+                                        }
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!documents.links.next}
+                                        onClick={() =>
+                                            goToPage(documents.links.next)
+                                        }
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {!loading && documents.data.length > 0 && (
-                    <Card>
-                        <CardContent className="flex items-center justify-between gap-4">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {documents.meta.from}–
-                                {documents.meta.to} of {documents.meta.total}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!documents.links.prev}
-                                    onClick={() =>
-                                        goToPage(documents.links.prev)
-                                    }
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!documents.links.next}
-                                    onClick={() =>
-                                        goToPage(documents.links.next)
-                                    }
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        </div>
+                    )}
+                </SectionCard>
             </div>
         </>
     );

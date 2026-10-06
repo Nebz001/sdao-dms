@@ -2,31 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\DocumentStatus;
+use App\Dashboard\DocumentArchiveStats;
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\FormType;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\School;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DocumentArchiveController extends Controller
 {
     private const int PER_PAGE = 20;
-
-    /**
-     * The two terminal statuses (DocumentStatus::isTerminal()) — everything
-     * this archive exists to surface, since the five review queues are
-     * deliberately InReview-only (RegistrationReviewController::index() etc.)
-     * and nothing else lists a document once it leaves them.
-     *
-     * @var array<int, string>
-     */
-    private const ARCHIVED_STATUSES = [
-        DocumentStatus::Approved->value,
-        DocumentStatus::Rejected->value,
-    ];
 
     /**
      * Maps a document's form type to its approver-facing "show" route name —
@@ -45,13 +35,13 @@ class DocumentArchiveController extends Controller
         'after_activity_report' => 'review.reports.show',
     ];
 
-    public function index(Request $request): Response
+    public function index(Request $request, DocumentArchiveStats $stats): Response
     {
         // Unrecognized filter values are treated as "no filter" rather than
         // trusted into the query — an unknown form_type/status should not
         // silently produce an empty page.
         $formType = FormType::tryFrom($request->string('form_type')->toString())?->value;
-        $status = collect(self::ARCHIVED_STATUSES)->contains($request->string('status')->toString())
+        $status = collect(DocumentArchiveStats::ARCHIVED_STATUSES)->contains($request->string('status')->toString())
             ? $request->string('status')->toString()
             : null;
         $search = $request->string('search')->trim()->toString();
@@ -59,32 +49,19 @@ class DocumentArchiveController extends Controller
         // created-this-academic-year window the donut counts, so the numbers match.
         $currentYearOnly = $request->string('academic_year')->toString() === 'current';
 
-        $base = Document::query()
-            ->whereIn('status', self::ARCHIVED_STATUSES)
-            ->when($currentYearOnly, fn ($query) => $query->whereBetween('created_at', CurrentPeriod::get()->academicYearRange()))
-            ->when($formType, fn ($query, $value) => $query->where('form_type', $value))
+        // The archive scope: every Approved/Rejected document, each with its
+        // `decided_at` (the final approve or reject transition).
+        $documents = DocumentArchiveStats::archivedWithDecidedAt()
+            ->when($currentYearOnly, fn ($query) => $query->whereBetween('documents.created_at', CurrentPeriod::get()->academicYearRange()))
+            ->when($formType, fn ($query, $value) => $query->where('documents.form_type', $value))
+            ->when($status, fn ($query, $value) => $query->where('documents.status', $value))
             ->when($search !== '', fn ($query) => $query->where(
-                fn ($q) => $q->where('title', 'like', "%{$search}%")
+                fn ($q) => $q->where('documents.title', 'like', "%{$search}%")
                     ->orWhereHas('organization', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
-            ));
-
-        // Reflects the current form-type/search filters but NOT the status
-        // filter, so the Approved/Rejected counts always show what selecting
-        // them would yield.
-        $counts = (clone $base)
-            ->selectRaw('status, count(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status');
-
-        $documents = (clone $base)
-            ->with('organization:id,name')
-            ->when($status, fn ($query, $value) => $query->where('status', $value))
-            // documents.updated_at is a faithful "decided at" for a terminal
-            // document: DocumentPolicy::edit() requires status = Returned, so
-            // nothing ever writes to a row again after the finalizing update
-            // that set it to Approved/Rejected.
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
+            ))
+            ->with([...DocumentDisplayTitle::relations(), 'organization.school'])
+            ->orderByDesc('decided_at')
+            ->orderByDesc('documents.id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
 
@@ -92,12 +69,13 @@ class DocumentArchiveController extends Controller
             'documents' => [
                 'data' => collect($documents->items())->map(fn (Document $d) => [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    'title' => DocumentDisplayTitle::subject($d),
                     'status' => $d->status->value,
                     'form_type' => $d->form_type->value,
                     'form_type_label' => $d->form_type->label(),
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
-                    'decided_at' => $d->updated_at,
+                    'college' => $d->organization->school?->name ?? School::NONE_LABEL,
+                    'decided_at' => Date::parse($d->getAttribute('decided_at')),
                     'href' => route(self::REVIEW_SHOW_ROUTE_NAMES[$d->form_type->value], $d),
                 ])->values(),
                 'meta' => [
@@ -121,11 +99,8 @@ class DocumentArchiveController extends Controller
             'formTypes' => collect(FormType::cases())
                 ->map(fn (FormType $t) => ['value' => $t->value, 'label' => $t->label()])
                 ->values(),
-            'stats' => [
-                'approved' => (int) ($counts[DocumentStatus::Approved->value] ?? 0),
-                'rejected' => (int) ($counts[DocumentStatus::Rejected->value] ?? 0),
-                'total' => (int) $counts->sum(),
-            ],
+            // Whole-archive figures: the filters above never narrow these.
+            'stats' => $stats->summary(),
         ]);
     }
 }

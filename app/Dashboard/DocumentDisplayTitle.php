@@ -37,6 +37,26 @@ class DocumentDisplayTitle
         return $document->form_type->label().': '.($subject ?? self::strippedStoredTitle($document));
     }
 
+    /**
+     * The document's own title with no form type prefix and no "(Org)" suffix,
+     * for rows that already show the form type and organization in their own
+     * badge and column. Registration and renewal have no better title than the
+     * organization's name; a calendar reads as its term and year.
+     */
+    public static function subject(Document $document): string
+    {
+        $subject = match ($document->form_type) {
+            FormType::OrganizationRegistration, FormType::OrganizationRenewal => $document->organization?->name,
+            FormType::ActivityCalendar => $document->activityCalendar === null
+                ? null
+                : "{$document->activityCalendar->term->label()}, {$document->activityCalendar->academic_year}",
+            FormType::ActivityProposal => $document->activityProposal?->title,
+            FormType::AfterActivityReport => $document->afterActivityReport?->activityProposal?->title,
+        };
+
+        return $subject ?? self::strippedStoredTitle($document);
+    }
+
     /** The approver-facing show page for any document that has ever been submitted. */
     public static function href(Document $document): string
     {
