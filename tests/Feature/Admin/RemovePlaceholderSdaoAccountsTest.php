@@ -4,6 +4,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentStepApproval;
 use App\Models\DocumentTransition;
 use App\Models\RoleAssignment;
 use App\Models\User;
@@ -93,52 +94,92 @@ test('the migration removes both placeholders, their seats and their duplicate n
         ->and(DB::table('notifications')->whereIn('notifiable_id', [$this->carl->id, $this->zaira->id])->count())->toBe(2);
 });
 
-test('the dry run lists the accounts, what is attached and every check, and changes nothing', function () {
+test('the dry run says what it would delete, deactivate and skip, and changes nothing', function () {
     $document = sdaoCleanupRegistration();
-
-    foreach ([$this->sdaoA, $this->sdaoB, $this->carl, $this->zaira] as $user) {
-        sdaoCleanupNotify($document, $user);
-    }
-
-    $users = User::count();
-    $notifications = DB::table('notifications')->count();
-
-    $lines = implode("\n", removePlaceholderSdaoMigration()->dryRun());
-
-    expect($lines)->toContain('DRY RUN')
-        ->toContain("#{$this->sdaoA->id} sdao-a@nu-lipa.edu.ph")
-        ->toContain("#{$this->sdaoB->id} sdao-b@nu-lipa.edu.ph")
-        ->toContain('magpantayc@nu-lipa.edu.ph')
-        ->toContain('2 approver notifications')
-        ->toContain('RESULT: all checks pass')
-        ->and(User::count())->toBe($users)
-        ->and(DB::table('notifications')->count())->toBe($notifications);
-});
-
-test('the migration refuses, and changes nothing, once a placeholder has acted on a document', function () {
-    $document = sdaoCleanupRegistration();
+    DocumentTransition::factory()->create(['document_id' => $document->id, 'actor_id' => $this->sdaoB->id, 'created_at' => now()]);
+    $this->sdaoA->forceFill(['deactivated_at' => now()])->save();
     DocumentTransition::factory()->create(['document_id' => $document->id, 'actor_id' => $this->sdaoA->id, 'created_at' => now()]);
     $users = User::count();
 
-    expect(fn () => removePlaceholderSdaoMigration()->up())->toThrow(RuntimeException::class, 'transitions by the removed accounts')
+    $lines = implode('
+', removePlaceholderSdaoMigration()->dryRun());
+
+    expect($lines)->toContain('DRY RUN')
+        ->toContain('WOULD DEACTIVATE (1)')
+        ->toContain("#{$this->sdaoB->id} sdao-b@nu-lipa.edu.ph")
+        ->toContain('WOULD SKIP (1)')
+        ->toContain('magpantayc@nu-lipa.edu.ph')
+        ->toContain('Safety check passed')
         ->and(User::count())->toBe($users)
-        ->and(implode("\n", removePlaceholderSdaoMigration()->dryRun()))->toContain('RESULT: BLOCKED');
+        ->and($this->sdaoB->fresh()->deactivated_at)->toBeNull();
 });
 
-test('the migration refuses when a placeholder was notified about a document no real SDAO member was', function () {
-    sdaoCleanupNotify(sdaoCleanupRegistration(), $this->sdaoA);
+test('a placeholder with attached work is deactivated, kept, and its history is left exactly as it was', function () {
+    $document = sdaoCleanupRegistration();
+    $transition = DocumentTransition::factory()->create(['document_id' => $document->id, 'actor_id' => $this->sdaoA->id, 'created_at' => now()]);
+    DocumentStepApproval::factory()->create(['document_id' => $document->id, 'user_id' => $this->sdaoA->id]);
+    config(['session.driver' => 'database']);
+    DB::table('sessions')->insert(['id' => 'abc', 'user_id' => $this->sdaoA->id, 'payload' => 'x', 'last_activity' => now()->timestamp]);
+    $transitions = DB::table('document_transitions')->get()->toArray();
+    $approvals = DB::table('document_step_approvals')->get()->toArray();
     $users = User::count();
 
-    expect(fn () => removePlaceholderSdaoMigration()->up())->toThrow(RuntimeException::class, 'notifications only the removed accounts received')
-        ->and(User::count())->toBe($users);
+    removePlaceholderSdaoMigration()->up();
+
+    $kept = $this->sdaoA->fresh();
+
+    expect(User::count())->toBe($users - 1) // only the clean placeholder (B) is deleted
+        ->and($kept)->not->toBeNull()
+        ->and($kept->isDeactivated())->toBeTrue()
+        ->and($kept->deactivated_reason)->toContain('Placeholder SDAO account retired')
+        ->and(DB::table('sessions')->where('user_id', $kept->id)->exists())->toBeFalse()
+        // Append only: not a single history row was edited, moved or removed.
+        ->and(DB::table('document_transitions')->get()->toArray())->toEqual($transitions)
+        ->and(DB::table('document_step_approvals')->get()->toArray())->toEqual($approvals)
+        ->and(DocumentTransition::find($transition->id)->actor_id)->toBe($this->sdaoA->id);
 });
 
-test('the migration refuses unless two other SDAO members remain', function () {
-    RoleAssignment::where('user_id', $this->zaira->id)->where('role', Role::SdaoMember->value)->delete();
-    $users = User::count();
+test('a placeholder that is already deactivated and has history is left exactly as it is', function () {
+    DocumentTransition::factory()->create(['document_id' => sdaoCleanupRegistration()->id, 'actor_id' => $this->sdaoA->id, 'created_at' => now()]);
+    $at = now()->subDays(5)->startOfSecond();
+    $this->sdaoA->forceFill(['deactivated_at' => $at, 'deactivated_reason' => 'Earlier reason'])->save();
 
-    expect(fn () => removePlaceholderSdaoMigration()->up())->toThrow(RuntimeException::class, 'fewer than two other SDAO members')
-        ->and(User::count())->toBe($users);
+    removePlaceholderSdaoMigration()->up();
+
+    $kept = $this->sdaoA->fresh();
+
+    expect($kept->deactivated_at->equalTo($at))->toBeTrue()
+        ->and($kept->deactivated_reason)->toBe('Earlier reason');
+});
+
+test('with no active real SDAO account nothing changes and nothing is thrown', function () {
+    DocumentTransition::factory()->create(['document_id' => sdaoCleanupRegistration()->id, 'actor_id' => $this->sdaoA->id, 'created_at' => now()]);
+    // Both real members are unable to sign in: one deactivated, one never verified.
+    $this->carl->forceFill(['deactivated_at' => now()])->save();
+    $this->zaira->forceFill(['account_status' => 'unverified'])->save();
+    $users = User::count();
+    Log::spy();
+
+    removePlaceholderSdaoMigration()->up();
+
+    expect(User::count())->toBe($users)
+        ->and($this->sdaoA->fresh()->isDeactivated())->toBeFalse()
+        ->and($this->sdaoB->fresh())->not->toBeNull()
+        ->and($this->sdaoB->fresh()->isDeactivated())->toBeFalse()
+        ->and(implode('
+', removePlaceholderSdaoMigration()->dryRun()))->toContain('SAFETY CHECK FAILED');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains($message, 'Skipped ALL placeholder SDAO accounts'))->once();
+});
+
+test('every action is written to the log', function () {
+    DocumentTransition::factory()->create(['document_id' => sdaoCleanupRegistration()->id, 'actor_id' => $this->sdaoA->id, 'created_at' => now()]);
+    Log::spy();
+
+    removePlaceholderSdaoMigration()->up();
+
+    Log::shouldHaveReceived('info')->withArgs(fn ($m) => str_contains($m, 'Deactivated #'.$this->sdaoA->id))->once();
+    Log::shouldHaveReceived('info')->withArgs(fn ($m) => str_contains($m, 'Deleted #'.$this->sdaoB->id))->once();
 });
 
 test('the migration never touches an account on a placeholder email whose name differs', function () {
@@ -147,6 +188,7 @@ test('the migration never touches an account on a placeholder email whose name d
     removePlaceholderSdaoMigration()->up();
 
     expect(User::find($this->sdaoA->id))->not->toBeNull()
+        ->and($this->sdaoA->fresh()->isDeactivated())->toBeFalse()
         ->and(User::find($this->sdaoB->id))->toBeNull();
 });
 
