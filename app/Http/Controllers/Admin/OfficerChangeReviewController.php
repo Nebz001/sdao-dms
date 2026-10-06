@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Dashboard\OfficerChangeStats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organizations\DeclineOfficerChangeRequest;
 use App\Models\OfficerChangeRequest;
-use App\Models\OrganizationMembership;
 use App\Organizations\Admin\ApproveOfficerChange;
 use App\Organizations\Admin\DeclineOfficerChange;
+use App\Support\CurrentPeriod;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -23,38 +24,19 @@ use Inertia\Response;
  */
 class OfficerChangeReviewController extends Controller
 {
-    public function index(): Response
+    public function index(OfficerChangeStats $stats): Response
     {
-        $requests = OfficerChangeRequest::query()
-            ->with(['organization', 'requester', 'nominee', 'outgoingOfficer'])
-            ->pending()
-            ->orderBy('created_at')
-            ->get()
-            ->map(function (OfficerChangeRequest $r) {
-                $currentHolderId = OrganizationMembership::query()
-                    ->where('organization_id', $r->organization_id)
-                    ->where('position', $r->position->value)
-                    ->where('is_active', true)
-                    ->value('user_id');
-
-                return [
-                    'id' => $r->id,
-                    'organization' => ['id' => $r->organization->id, 'name' => $r->organization->name],
-                    'position_label' => $r->position->label(),
-                    'requester' => ['id' => $r->requester->id, 'name' => $r->requester->name],
-                    'nominee' => ['id' => $r->nominee->id, 'name' => $r->nominee->name],
-                    'outgoing_officer' => $r->outgoingOfficer ? ['id' => $r->outgoingOfficer->id, 'name' => $r->outgoingOfficer->name] : null,
-                    'reason' => $r->reason,
-                    'created_at' => $r->created_at,
-                    // Whether the seat has changed hands since this request
-                    // was filed — surfaced so the admin can decline a stale
-                    // request instead of approving into a race.
-                    'is_stale' => $currentHolderId !== $r->outgoing_user_id,
-                ];
-            });
+        $queue = $stats->queue();
 
         return Inertia::render('admin/officer-change-requests/index', [
-            'requests' => $requests,
+            'requests' => $queue,
+            'buckets' => $stats->buckets($queue),
+            // First of an oldest-first list; null when nothing is pending.
+            'oldest' => $queue->first(),
+            'recentDecisions' => $stats->recentlyDecided(),
+            // Term-scoped aggregates scan the whole term, so they load after
+            // the queue and its cards have rendered.
+            'termActivity' => Inertia::defer(fn () => $stats->termActivity(CurrentPeriod::get())),
         ]);
     }
 

@@ -38,7 +38,7 @@ function account(
 
 const adviser = account('adviser', {
     name: 'Ramon Dela Cruz',
-    approves_for: { primary: 'MTSC', secondary: 'No college / school' },
+    approves_for: { primary: 'MTSC', secondary: 'No college' },
     scope_key: 'none',
 });
 const dean = account('dean', {

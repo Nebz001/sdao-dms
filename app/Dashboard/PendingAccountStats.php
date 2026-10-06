@@ -122,7 +122,7 @@ class PendingAccountStats
      * @param  Collection<int, CarbonInterface>  $timestamps
      * @return array{0: array<int, int>, 1: int}
      */
-    private function weeklyCounts(Collection $timestamps, CarbonInterface $termStart, CarbonInterface $termEnd, CarbonInterface $now): array
+    public function weeklyCounts(Collection $timestamps, CarbonInterface $termStart, CarbonInterface $termEnd, CarbonInterface $now): array
     {
         $upTo = $now->lessThan($termEnd) ? $now : $termEnd->copy()->subSecond();
         $firstWeek = $termStart->copy()->startOfWeek();

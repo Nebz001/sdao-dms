@@ -23,7 +23,7 @@ class School extends Model
     use HasFactory;
 
     /** What every screen shows for an organization that belongs to no college or school. Mirrors resources/js/lib/school.ts. */
-    public const string NONE_LABEL = 'No college / school';
+    public const string NONE_LABEL = 'No college';
 
     protected $casts = [
         'type' => SchoolType::class,

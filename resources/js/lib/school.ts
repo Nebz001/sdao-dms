@@ -4,4 +4,4 @@
  * Mirrors App\Models\School::NONE_LABEL; the schools themselves come from the
  * `schools` table, never from a list in the front end.
  */
-export const NO_SCHOOL_LABEL = 'No college / school';
+export const NO_SCHOOL_LABEL = 'No college';
