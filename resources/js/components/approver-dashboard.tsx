@@ -23,6 +23,9 @@ import FormTypeBadge from '@/components/form-type-badge';
 import IdentityPill from '@/components/identity-pill';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
+import { SegmentedLegend } from '@/components/review-queue/segmented-bar';
+import StatIconTile from '@/components/stat-icon-tile';
+import type { StatIconTileTone } from '@/components/stat-icon-tile';
 import { ActionBadge, ToneBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,9 +129,9 @@ type ApproverDashboardProps = {
 const TYPE_SHADES = ['bg-primary', 'bg-primary/70', 'bg-primary/45', 'bg-primary/25', 'bg-primary/15'];
 
 const OUTCOMES = [
-    { key: 'approved', label: 'Approved', bar: 'bg-success', dot: 'bg-success' },
-    { key: 'returned', label: 'Returned', bar: 'bg-warning', dot: 'bg-warning' },
-    { key: 'rejected', label: 'Rejected', bar: 'bg-destructive', dot: 'bg-destructive' },
+    { key: 'approved', label: 'Approved', bar: 'bg-success' },
+    { key: 'returned', label: 'Returned', bar: 'bg-warning' },
+    { key: 'rejected', label: 'Rejected', bar: 'bg-destructive' },
 ] as const;
 
 function plural(count: number, noun: string): string {
@@ -216,8 +219,17 @@ function CardLink({ href, children }: { href: string; children: ReactNode }) {
     );
 }
 
-function StatLabel({ children }: { children: ReactNode }) {
-    return <CardTitle className="text-sm font-medium text-muted-foreground">{children}</CardTitle>;
+/**
+ * A stat card's header: the shared icon tile, then the title. The negative
+ * margin absorbs the tile's extra height so the number below keeps its place.
+ */
+function StatHeader({ icon, tone, children }: { icon: LucideIcon; tone?: StatIconTileTone; children: ReactNode }) {
+    return (
+        <CardHeader className="-my-1.5 flex-row items-center gap-3 px-4">
+            <StatIconTile icon={icon} tone={tone} />
+            <CardTitle className="text-sm font-medium text-muted-foreground">{children}</CardTitle>
+        </CardHeader>
+    );
 }
 
 function ReviewBanner({ summary }: { summary: ApproverSummary }) {
@@ -255,9 +267,7 @@ function WaitingCard({ waiting }: { waiting: ApproverSummary['waiting'] }) {
 
     return (
         <Card className="gap-3 py-4">
-            <CardHeader className="gap-1 px-4">
-                <StatLabel>Waiting for you</StatLabel>
-            </CardHeader>
+            <StatHeader icon={Inbox}>Waiting for you</StatHeader>
             <CardContent className="flex flex-col gap-3 px-4">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-3xl leading-none font-semibold tabular-nums">{waiting.count}</span>
@@ -279,15 +289,13 @@ function WaitingCard({ waiting }: { waiting: ApproverSummary['waiting'] }) {
                         />
                     ))}
                 </div>
-                <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    {waiting.byType.map((type, index) => (
-                        <li key={type.formType} className="flex items-center gap-2">
-                            <span aria-hidden className={cn('size-2 shrink-0 rounded-full', TYPE_SHADES[index % TYPE_SHADES.length])} />
-                            <span className="font-medium text-foreground tabular-nums">{type.count}</span>
-                            <span className="min-w-0 break-words">{type.label}</span>
-                        </li>
-                    ))}
-                </ul>
+                <SegmentedLegend
+                    segments={waiting.byType.map((type, index) => ({
+                        label: type.label,
+                        count: type.count,
+                        className: TYPE_SHADES[index % TYPE_SHADES.length],
+                    }))}
+                />
             </CardContent>
         </Card>
     );
@@ -296,9 +304,9 @@ function WaitingCard({ waiting }: { waiting: ApproverSummary['waiting'] }) {
 function NextEventCard({ event }: { event: NeedsReviewEntry | null }) {
     return (
         <Card className="gap-3 border-warning/40 bg-warning/10 py-4">
-            <CardHeader className="gap-1 px-4">
-                <StatLabel>Event in the next 7 days</StatLabel>
-            </CardHeader>
+            <StatHeader icon={CalendarClock} tone="warning">
+                Event in the next 7 days
+            </StatHeader>
             <CardContent className="flex flex-1 flex-col gap-2 px-4">
                 {event === null || event.eventDate === null || event.daysUntilEvent === null ? (
                     <p className="text-sm text-muted-foreground">
@@ -325,9 +333,7 @@ function NextEventCard({ event }: { event: NeedsReviewEntry | null }) {
 function ReviewedCard({ reviewed }: { reviewed: ApproverSummary['reviewed'] }) {
     return (
         <Card className="gap-3 py-4">
-            <CardHeader className="gap-1 px-4">
-                <StatLabel>You reviewed this term</StatLabel>
-            </CardHeader>
+            <StatHeader icon={CircleCheck}>You reviewed this term</StatHeader>
             <CardContent className="flex flex-col gap-3 px-4">
                 {reviewed.total === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -345,15 +351,9 @@ function ReviewedCard({ reviewed }: { reviewed: ApproverSummary['reviewed'] }) {
                                 />
                             ))}
                         </div>
-                        <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-                            {OUTCOMES.map((o) => (
-                                <li key={o.key} className="flex items-center gap-2">
-                                    <span aria-hidden className={cn('size-2 shrink-0 rounded-full', o.dot)} />
-                                    <span className="font-medium text-foreground tabular-nums">{reviewed[o.key]}</span>
-                                    <span>{o.label}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <SegmentedLegend
+                            segments={OUTCOMES.map((o) => ({ label: o.label, count: reviewed[o.key], className: o.bar }))}
+                        />
                     </>
                 )}
             </CardContent>

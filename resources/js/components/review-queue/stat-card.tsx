@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import StatIconTile from '@/components/stat-icon-tile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -36,19 +37,7 @@ export default function StatCard({
             )}
         >
             <CardHeader className="flex flex-row items-center gap-3 px-5">
-                <span
-                    className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-md [&_svg]:size-4',
-                        tone === 'alert'
-                            ? 'bg-destructive/15 text-destructive-foreground'
-                            : tone === 'warning'
-                              ? 'bg-warning/15 text-warning-foreground'
-                              : 'bg-primary/10 text-primary-text',
-                    )}
-                    aria-hidden
-                >
-                    <Icon />
-                </span>
+                <StatIconTile icon={Icon} tone={tone} />
                 <CardTitle
                     className={cn(
                         'text-sm font-medium text-foreground/90',

@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { AlertCircle, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import StatIconTile from '@/components/stat-icon-tile';
+import type { StatIconTileTone } from '@/components/stat-icon-tile';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Tooltip,
@@ -68,8 +70,12 @@ type StatTileProps = {
     label: string;
     count: number;
     href: string;
-    /** Omitted on the admin dashboard tiles, which carry no icon. */
+    /** A bare icon at the end of the tile (student dashboard). */
     icon?: LucideIcon;
+    /** The shared rounded icon tile left of the label (admin dashboard). Decorative. */
+    tileIcon?: LucideIcon;
+    /** Tint of the icon tile, matching the state the tile reports. */
+    tileTone?: StatIconTileTone;
     /** Trend vs. last week. Omit when this tile has no honest historical baseline to compare against. */
     weekly?: WeeklyDelta;
     /**
@@ -178,6 +184,8 @@ export default function StatTile({
     count,
     href,
     icon: Icon,
+    tileIcon,
+    tileTone,
     weekly,
     urgent,
     tone = 'primary',
@@ -223,9 +231,12 @@ export default function StatTile({
                     className="flex items-start justify-between gap-2 rounded-sm focus-visible:focus-ring-edge"
                 >
                     <div>
-                        <p className={cn('text-xs font-medium text-muted-foreground', labelClassName)}>
-                            {label}
-                        </p>
+                        <div className="flex items-start gap-2">
+                            {tileIcon && <StatIconTile icon={tileIcon} tone={tileTone} className="-my-1" />}
+                            <p className={cn('text-xs font-medium text-muted-foreground', tileIcon && 'self-center', labelClassName)}>
+                                {label}
+                            </p>
+                        </div>
                         <p
                             className={cn(
                                 'mt-1 text-xl font-semibold tabular-nums',

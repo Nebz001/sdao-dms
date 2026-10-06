@@ -1,4 +1,6 @@
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
+import { Hourglass, Inbox, Undo2, UserRoundSearch, UserX } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import OldestInReviewCard from '@/components/oldest-in-review-card';
 import type { OldestDocument } from '@/components/oldest-in-review-card';
 import OrgComplianceCard, { academicYearLabel } from '@/components/org-compliance-card';
@@ -11,6 +13,7 @@ import RecentActivityCard from '@/components/recent-activity-card';
 import type { ActivityEntry } from '@/components/recent-activity-card';
 import ReturnAnalyticsRow, { ReturnAnalyticsSkeleton } from '@/components/return-analytics-row';
 import type { ReturnAnalytics } from '@/components/return-analytics-row';
+import type { StatIconTileTone } from '@/components/stat-icon-tile';
 import StatTile from '@/components/stat-tile';
 import StatusDistributionCard from '@/components/status-distribution-card';
 import type { StatusCount } from '@/components/status-distribution-card';
@@ -22,6 +25,21 @@ import WeeklySubmissionsCard, { WeeklySubmissionsSkeleton } from '@/components/w
 import type { WeeklySubmissions } from '@/components/weekly-submissions-card';
 import * as activityLog from '@/routes/admin/activity';
 import * as stuckDocuments from '@/routes/admin/stuck-documents';
+
+/** One icon per attention tile, reusing the icons the other admin pages already use for the same idea. */
+const TILE_ICONS: Record<string, LucideIcon> = {
+    awaiting_sdao: Inbox,
+    stuck_with_approvers: Hourglass,
+    returned: Undo2,
+    pending_accounts: UserRoundSearch,
+    without_adviser: UserX,
+};
+
+const TILE_TONES: Record<Tile['hintTone'], StatIconTileTone> = {
+    muted: 'default',
+    warning: 'warning',
+    destructive: 'alert',
+};
 
 type UpcomingAlert = { count: number; names: string[]; href: string };
 
@@ -104,6 +122,8 @@ export default function AdminDashboard({
                             href={tile.href}
                             hint={tile.hint}
                             hintTone={tile.hintTone}
+                            tileIcon={TILE_ICONS[tile.key]}
+                            tileTone={TILE_TONES[tile.hintTone]}
                             tone="neutral"
                             valueClassName="text-3xl"
                             labelClassName="lg:min-h-[2lh]"
