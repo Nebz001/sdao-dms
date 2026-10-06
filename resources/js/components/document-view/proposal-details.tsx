@@ -4,6 +4,13 @@ import TagBadge from '@/components/tag-badge';
 import { formatTimeRange } from '@/lib/utils';
 import { DetailField, DetailSection, DetailText, DetailsCard } from './details';
 import { formatLongDate, formatPeso } from './format';
+import {
+    CriteriaMechanicsSection,
+    NarrativeSection,
+    ObjectivesSection,
+    Paragraphs,
+    ResponsiblePersonsSection,
+} from './proposal-text';
 
 export type ProposalData = {
     calendar_mode: string;
@@ -95,57 +102,28 @@ export default function ProposalDetails({
             {proposal && (hasNarrative || persons.length > 0 || proposal.expense_items?.length || proposal.expenses) ? (
                 <section aria-label="Narrative" className="flex flex-col gap-5">
                     <h3 className="text-xs font-medium tracking-wide text-primary-text uppercase">Narrative</h3>
-                    {proposal.objectives && <NarrativeBlock label="Objectives">{proposal.objectives}</NarrativeBlock>}
-                    {(proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow) && (
-                        <div className="flex flex-col gap-3">
-                            {proposal.activity_description && (
-                                <NarrativeBlock label="Activity description">{proposal.activity_description}</NarrativeBlock>
-                            )}
-                            {(proposal.criteria_mechanics || proposal.program_flow) && (
-                                <div className="flex flex-col gap-3 border-l-2 pl-4">
-                                    {proposal.criteria_mechanics && (
-                                        <NarrativeBlock label="Criteria/Mechanics" secondary>
-                                            {proposal.criteria_mechanics}
-                                        </NarrativeBlock>
-                                    )}
-                                    {proposal.program_flow && (
-                                        <NarrativeBlock label="Program flow" secondary>
-                                            {proposal.program_flow}
-                                        </NarrativeBlock>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    {proposal.objectives && <ObjectivesSection text={proposal.objectives} />}
+                    {proposal.activity_description && (
+                        <NarrativeSection label="Activity description" labelId="proposal-activity-description">
+                            <Paragraphs text={proposal.activity_description} />
+                        </NarrativeSection>
+                    )}
+                    {proposal.criteria_mechanics && <CriteriaMechanicsSection text={proposal.criteria_mechanics} />}
+                    {proposal.program_flow && (
+                        <NarrativeSection label="Program flow" labelId="proposal-program-flow">
+                            <Paragraphs text={proposal.program_flow} />
+                        </NarrativeSection>
                     )}
                     <ExpenseItemsTable
                         items={proposal.expense_items}
                         total={proposal.expense_items_total}
                         legacyText={proposal.expenses}
                     />
-                    {persons.length > 0 && <NarrativeBlock label="Responsible person(s)">{persons.join(', ')}</NarrativeBlock>}
+                    <ResponsiblePersonsSection entries={proposal.responsible_persons} />
                 </section>
             ) : (
                 <DetailText label="Narrative" />
             )}
         </DetailsCard>
-    );
-}
-
-function NarrativeBlock({
-    label,
-    secondary = false,
-    children,
-}: {
-    label: string;
-    secondary?: boolean;
-    children: string;
-}) {
-    return (
-        <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-            <p className={secondary ? 'leading-relaxed whitespace-pre-wrap text-muted-foreground' : 'leading-relaxed whitespace-pre-wrap'}>
-                {children}
-            </p>
-        </div>
     );
 }
