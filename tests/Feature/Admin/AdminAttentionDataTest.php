@@ -774,7 +774,7 @@ test('the activity log can be limited to a date range, inclusive of both days', 
         ->get(route('admin.activity.index', ['from' => '2026-09-02', 'to' => '2026-09-05']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('stats.total', 1)
+            ->where('transitions.meta.total', 1)
             ->where('filters.from', '2026-09-02')
             ->where('filters.to', '2026-09-05')
         );
@@ -784,10 +784,10 @@ test('an invalid activity log date is ignored rather than trusted', function () 
     attentionTransitionAt($this->org, 'submitted', '2026-09-01 12:00:00');
 
     $this->actingAs($this->sdaoA)->withoutVite()
-        ->get(route('admin.activity.index', ['from' => 'not-a-date', 'to' => '2026-13-45']))
+        ->get(route('admin.activity.index', ['from' => 'not-a-date', 'to' => '2026-13-45', 'date' => 'all']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('stats.total', 1)
+            ->where('transitions.meta.total', 1)
             ->where('filters.from', null)
             ->where('filters.to', null)
         );

@@ -1,13 +1,17 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ActivityLogStats from '@/components/activity-log-stats';
+import type { ActivityLogStatsData } from '@/components/activity-log-stats';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import PaginationFooter from '@/components/pagination-footer';
-import QueueStatStrip from '@/components/queue-stat-strip';
-import { RelativeTime } from '@/components/relative-time';
+import DataTable from '@/components/review-queue/data-table';
+import type { DataColumn } from '@/components/review-queue/data-table';
+import { SectionCard } from '@/components/review-queue/queue-tables';
+import { ActionBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Empty,
     EmptyDescription,
@@ -38,9 +42,23 @@ type ActivityEntry = {
     documentTitle: string;
     formTypeLabel: string;
     organizationName: string;
+    college: string;
     createdAt: string;
-    href: string;
+    whenDate: string;
+    whenTime: string;
+    href: string | null;
 };
+
+const DATE_OPTIONS = [
+    { value: 'term', label: 'This term' },
+    { value: 'week', label: 'This week' },
+    { value: 'last_30', label: 'Last 30 days' },
+    { value: 'academic_year', label: 'This academic year' },
+    { value: 'all', label: 'All time' },
+];
+
+const DEFAULT_DATE = 'term';
+const CUSTOM_RANGE = 'custom';
 
 type Props = {
     transitions: {
@@ -60,10 +78,11 @@ type Props = {
         search: string;
         from?: string | null;
         to?: string | null;
+        date?: string | null;
     };
     formTypes: FormTypeOption[];
     actions: ActionOption[];
-    stats: { total: number };
+    stats: ActivityLogStatsData;
 };
 
 const ALL_TYPES = 'all';
@@ -79,6 +98,7 @@ export default function ActivityLogIndex({
     const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
     const [action, setAction] = useState(filters.action ?? ALL_ACTIONS);
     const [search, setSearch] = useState(filters.search);
+    const [date, setDate] = useState(filters.date ?? DEFAULT_DATE);
     const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(
         filters.from && filters.to ? { from: filters.from, to: filters.to } : null,
     );
@@ -92,7 +112,7 @@ export default function ActivityLogIndex({
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['transitions', 'filters', 'stats'],
+            only: ['transitions', 'filters'],
             onFinish: () => setLoading(false),
         });
     }
@@ -130,6 +150,8 @@ export default function ActivityLogIndex({
             if (dateRange) {
                 params.from = dateRange.from;
                 params.to = dateRange.to;
+            } else if (date !== DEFAULT_DATE) {
+                params.date = date;
             }
 
             reload(params);
@@ -140,16 +162,18 @@ export default function ActivityLogIndex({
                 clearTimeout(debounceTimer.current);
             }
         };
-    }, [formType, action, search, dateRange]);
+    }, [formType, action, search, date, dateRange]);
 
     const hasFilters =
         dateRange !== null ||
+        date !== DEFAULT_DATE ||
         formType !== ALL_TYPES ||
         action !== ALL_ACTIONS ||
         search.trim() !== '';
 
     function clearFilters() {
         setDateRange(null);
+        setDate(DEFAULT_DATE);
         setFormType(ALL_TYPES);
         setAction(ALL_ACTIONS);
         setSearch('');
@@ -167,7 +191,7 @@ export default function ActivityLogIndex({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['transitions', 'filters', 'stats'],
+                only: ['transitions', 'filters'],
                 onFinish: () => setLoading(false),
             },
         );
@@ -180,15 +204,7 @@ export default function ActivityLogIndex({
             <div className="space-y-6">
                 <PageHeader title="Activity Log" subtitle="Every submission, approval, return, and rejection across every organization and form type." />
 
-                <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'Total Events',
-                            value: String(stats.total),
-                            count: stats.total,
-                        },
-                    ]}
-                />
+                <ActivityLogStats stats={stats} />
 
                 <Card>
                     <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
@@ -247,13 +263,40 @@ export default function ActivityLogIndex({
                             </Select>
                         </div>
 
+                        <div className="grid gap-2">
+                            <Label htmlFor="activity-date">Date</Label>
+                            <Select
+                                value={dateRange ? CUSTOM_RANGE : date}
+                                onValueChange={(value) => {
+                                    setDateRange(null);
+                                    setDate(value);
+                                }}
+                            >
+                                <SelectTrigger id="activity-date" className="w-full sm:w-48">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {dateRange && (
+                                        <SelectItem value={CUSTOM_RANGE} disabled>
+                                            Custom range
+                                        </SelectItem>
+                                    )}
+                                    {DATE_OPTIONS.map((o) => (
+                                        <SelectItem key={o.value} value={o.value}>
+                                            {o.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="grid flex-1 gap-2">
                             <Label htmlFor="activity-search">Search</Label>
                             <Input
                                 id="activity-search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Document title or organization…"
+                                placeholder="Document, person, or organization"
                             />
                         </div>
 
@@ -266,7 +309,10 @@ export default function ActivityLogIndex({
                                             type="button"
                                             variant="link"
                                             className="h-auto p-0"
-                                            onClick={() => setDateRange(null)}
+                                            onClick={() => {
+                                                setDateRange(null);
+                                                setDate('all');
+                                            }}
                                         >
                                             Show all dates
                                         </Button>
@@ -289,84 +335,104 @@ export default function ActivityLogIndex({
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Events</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Skeleton key={i} className="h-12 w-full" />
-                                ))}
-                            </div>
-                        ) : transitions.data.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <History />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters
-                                            ? 'No activity matches these filters'
-                                            : 'Nothing has happened yet'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different form type, action, or search term.'
-                                            : 'Submissions and approvals will show up here as they happen.'}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                        >
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            <div className="divide-y">
-                                {transitions.data.map((entry) => (
-                                    <div
-                                        key={entry.id}
-                                        className="flex items-center justify-between gap-4 py-3"
+                <SectionCard title="Events" count={transitions.meta.total} aside="Newest first">
+                    {loading ? (
+                        <div className="space-y-3" aria-busy="true">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-14 w-full" />
+                            ))}
+                        </div>
+                    ) : transitions.data.length === 0 ? (
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <History />
+                                </EmptyMedia>
+                                <EmptyTitle>
+                                    {hasFilters
+                                        ? 'No activity matches these filters'
+                                        : 'Nothing has happened yet'}
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    {hasFilters
+                                        ? 'Try a different form type, action, date, or search term.'
+                                        : 'Submissions and approvals will show up here as they happen.'}
+                                </EmptyDescription>
+                                {hasFilters && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={clearFilters}
                                     >
-                                        <div className="min-w-0">
-                                            <Link
-                                                href={entry.href}
-                                                className="sm:truncate max-sm:break-words font-medium hover:underline"
-                                            >
-                                                {entry.documentTitle}
-                                            </Link>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {entry.actorName}{' '}
-                                                {statusLabel(
-                                                    entry.action,
-                                                ).toLowerCase()}{' '}
-                                                · {entry.organizationName} ·{' '}
-                                                {entry.formTypeLabel}
-                                            </p>
-                                        </div>
-                                        <span className="shrink-0 text-sm text-muted-foreground">
-                                            <RelativeTime dateString={entry.createdAt} />
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {!loading && (
+                                        Clear filters
+                                    </Button>
+                                )}
+                            </EmptyHeader>
+                        </Empty>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            <DataTable rows={transitions.data} columns={columns} rowKey={(e) => e.id} roomy />
                             <PaginationFooter meta={transitions.meta} links={transitions.links} onNavigate={goToPage} />
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    )}
+                </SectionCard>
             </div>
         </>
     );
 }
+
+const columns: DataColumn<ActivityEntry>[] = [
+    {
+        key: 'when',
+        header: 'When',
+        cell: (e) => (
+            <div className="flex flex-col">
+                <span className="tabular-nums">{e.whenDate}</span>
+                <span className="text-sm text-muted-foreground tabular-nums">{e.whenTime}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'done_by',
+        header: 'Done by',
+        cell: (e) => <span className="font-semibold">{e.actorName}</span>,
+    },
+    {
+        key: 'action',
+        header: 'Action',
+        slot: 'badge',
+        cell: (e) => <ActionBadge action={e.action} className="text-xs tracking-normal normal-case" />,
+    },
+    {
+        key: 'document',
+        header: 'Document',
+        slot: 'title',
+        cell: (e) =>
+            e.href ? (
+                <Link href={e.href} className="font-semibold hover:underline">
+                    {e.documentTitle}
+                </Link>
+            ) : (
+                <span className="font-semibold">{e.documentTitle}</span>
+            ),
+    },
+    {
+        key: 'organization',
+        header: 'Organization',
+        cell: (e) => (
+            <div className="flex flex-col">
+                <span className="font-medium">{e.organizationName}</span>
+                <span className="text-sm text-muted-foreground">{e.college}</span>
+            </div>
+        ),
+    },
+    {
+        key: 'form_type',
+        header: 'Form type',
+        cell: (e) => e.formTypeLabel,
+    },
+];
 
 ActivityLogIndex.layout = {
     breadcrumbs: [{ title: 'Admin' }, { title: 'Activity Log' }],

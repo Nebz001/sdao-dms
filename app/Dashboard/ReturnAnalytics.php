@@ -99,7 +99,7 @@ class ReturnAnalytics
                     ->values()
                     ->all()
                 : [],
-            'href' => route('admin.activity.index', ['action' => TransitionAction::Returned->value]),
+            'href' => route('admin.activity.index', ['action' => TransitionAction::Returned->value, 'date' => 'academic_year']),
         ];
     }
 
@@ -155,7 +155,7 @@ class ReturnAnalytics
                     'returned' => $returned,
                     'enough' => $enough,
                     'percent' => $enough ? (int) round($returned / $count * 100) : null,
-                    'href' => route('admin.activity.index', ['form_type' => $type->value, 'action' => TransitionAction::Returned->value]),
+                    'href' => route('admin.activity.index', ['form_type' => $type->value, 'action' => TransitionAction::Returned->value, 'date' => 'academic_year']),
                 ];
             })
             ->sortBy([['enough', 'desc'], ['percent', 'desc'], ['label', 'asc']])
