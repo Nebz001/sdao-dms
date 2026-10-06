@@ -187,6 +187,22 @@ class ReviewQueueData
             ->all();
     }
 
+    /**
+     * How many rows fall in each waiting-time tier, for the queue pages'
+     * "waiting time" stat card.
+     *
+     * @param  Collection<int, array<string, mixed>>  $rows  each with a "tier" from tierFor()
+     * @return array{fresh: int, aging: int, overdue: int}
+     */
+    public static function bucketCounts(Collection $rows): array
+    {
+        return [
+            'fresh' => $rows->where('tier', 'fresh')->count(),
+            'aging' => $rows->where('tier', 'aging')->count(),
+            'overdue' => $rows->where('tier', 'overdue')->count(),
+        ];
+    }
+
     public static function tierFor(int $days): string
     {
         return match (true) {

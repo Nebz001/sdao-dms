@@ -200,7 +200,7 @@ test('history filters are isolated between approvers', function () {
         );
 });
 
-test('the queue exposes step info, SLA tiers, tab counts and deferred stats for the stat cards', function () {
+test('the queue exposes step info, SLA tiers, tab counts and recent decisions for the stat cards', function () {
     $now = now();
 
     $this->travelTo($now->copy()->subDays(9));
@@ -225,13 +225,44 @@ test('the queue exposes step info, SLA tiers, tab counts and deferred stats for 
             ->where('queue.0.title', 'Test Activity')
             ->where('queue.0.extra', $this->org->school?->name)
             ->where('tabCounts', ['pending' => 1, 'overdue' => 1, 'approved' => 1, 'returned' => 0])
+            ->where('showTermStats', false)
             ->loadDeferredProps('queue-insights', fn ($reload) => $reload
-                ->where('stats.decided.approved', 1)
-                ->where('stats.decided.total', 1)
+                ->missing('stats')
                 ->has('recent', 1)
                 ->where('recent.0.result', 'approved')
                 ->where('recent.0.college', $this->org->school?->name)
                 ->where('recent.0.title', 'Test Activity')
+            )
+        );
+});
+
+test('a non-SDAO approver is never sent the submitted or decided this term data, and an SDAO member is', function () {
+    $proposal = reviewFilterOnCalendarProposal($this->org, $this->studentAlpha);
+    $this->engine->approve($proposal, $this->adviserOne);
+    $sdao = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+
+    foreach ([$this->adviserOne, User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail(), User::where('email', 'dean-ccit@nu-lipa.edu.ph')->firstOrFail()] as $approver) {
+        $this->actingAs($approver)->withoutVite()
+            ->get(route('review.activity-proposals.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('showTermStats', false)
+                ->missing('stats')
+                ->loadDeferredProps('queue-insights', fn ($reload) => $reload
+                    ->missing('stats')
+                    ->has('recent')
+                )
+            );
+    }
+
+    $this->actingAs($sdao)->withoutVite()
+        ->get(route('review.activity-proposals.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('showTermStats', true)
+            ->loadDeferredProps('queue-insights', fn ($reload) => $reload
+                ->has('stats.submitted')
+                ->has('stats.decided')
             )
         );
 });

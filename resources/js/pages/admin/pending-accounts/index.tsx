@@ -4,9 +4,8 @@ import {
     BarChart3,
     CircleCheck,
     UserRoundCheck,
-    UserRoundSearch,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import PendingAccountController from '@/actions/App/Http/Controllers/Admin/PendingAccountController';
 import AccountName from '@/components/account-name';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -25,7 +24,8 @@ import { OldestWaitingCard } from '@/components/review-queue/stat-cards';
 import { formatDate } from '@/components/review-queue/types';
 import type { WaitTier } from '@/components/review-queue/types';
 import WaitPill from '@/components/review-queue/wait-pill';
-import { ToneBadge } from '@/components/status-badge';
+import WaitingBucketsCard from '@/components/review-queue/waiting-buckets-card';
+import type { WaitBuckets } from '@/components/review-queue/waiting-buckets-card';
 import { Button } from '@/components/ui/button';
 import {
     Empty,
@@ -35,8 +35,8 @@ import {
     EmptyTitle,
 } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
+import { useRowJump } from '@/hooks/use-row-jump';
 import { splitAccountName } from '@/lib/account-name';
-import type { Tone } from '@/lib/status-tones';
 
 type PendingAccount = {
     id: number;
@@ -49,8 +49,6 @@ type PendingAccount = {
     tier: WaitTier;
 };
 
-type Buckets = Record<WaitTier, number>;
-
 type TermActivity = {
     termLabel: string;
     signedUp: { total: number; thisWeek: number; weeks: number[] };
@@ -59,75 +57,11 @@ type TermActivity = {
 
 type Props = {
     accounts: PendingAccount[];
-    buckets: Buckets;
+    buckets: WaitBuckets;
     oldest: PendingAccount | null;
     /** Deferred: scans every self-registration in the term. */
     termActivity?: TermActivity;
 };
-
-const BUCKET_LABEL: Record<WaitTier, string> = {
-    fresh: '0 to 2 days',
-    aging: '3 to 7 days',
-    overdue: '8+ days',
-};
-
-const BUCKET_TONE: Record<WaitTier, Tone> = {
-    fresh: 'neutral',
-    aging: 'warning',
-    overdue: 'destructive',
-};
-
-/** The longest wait present, so the card flags the worst of the queue. */
-function worstBucket(
-    buckets: Buckets,
-): { tier: WaitTier; count: number } | null {
-    const tier = (['overdue', 'aging', 'fresh'] as const).find(
-        (t) => buckets[t] > 0,
-    );
-
-    return tier ? { tier, count: buckets[tier] } : null;
-}
-
-function WaitingCard({ buckets, total }: { buckets: Buckets; total: number }) {
-    const worst = worstBucket(buckets);
-
-    return (
-        <StatCard icon={UserRoundSearch} title="Waiting for verification">
-            <div className="flex items-center justify-between gap-3">
-                <StatValue>{total}</StatValue>
-                {worst && (
-                    <ToneBadge
-                        tone={BUCKET_TONE[worst.tier]}
-                        className="text-xs tracking-normal normal-case tabular-nums"
-                    >
-                        {worst.count === total ? 'All' : worst.count}{' '}
-                        {BUCKET_LABEL[worst.tier]}
-                    </ToneBadge>
-                )}
-            </div>
-            <SegmentedBar
-                ariaLabel={`Waiting time: ${buckets.fresh} at ${BUCKET_LABEL.fresh}, ${buckets.aging} at ${BUCKET_LABEL.aging}, ${buckets.overdue} at ${BUCKET_LABEL.overdue}`}
-                segments={[
-                    {
-                        label: BUCKET_LABEL.fresh,
-                        count: buckets.fresh,
-                        className: 'bg-info',
-                    },
-                    {
-                        label: BUCKET_LABEL.aging,
-                        count: buckets.aging,
-                        className: 'bg-warning',
-                    },
-                    {
-                        label: BUCKET_LABEL.overdue,
-                        count: buckets.overdue,
-                        className: 'bg-destructive',
-                    },
-                ]}
-            />
-        </StatCard>
-    );
-}
 
 function OldestCard({
     oldest,
@@ -261,37 +195,7 @@ export default function PendingAccountsIndex({
         message: string;
     } | null>(null);
 
-    // "Review account" scrolls to the person's row, focuses it (so a screen
-    // reader announces the row) and tints it briefly.
-    const [highlightedId, setHighlightedId] = useState<number | null>(null);
-    const highlightTimer = useRef<number | undefined>(undefined);
-
-    useEffect(() => () => window.clearTimeout(highlightTimer.current), []);
-
-    function jumpToRow(id: number) {
-        // Table and stacked-card layouts both render the row; only one is visible.
-        const matches = Array.from(
-            document.querySelectorAll<HTMLElement>(`[data-row-id="${id}"]`),
-        );
-        const row =
-            matches.find((el) => el.offsetParent !== null) ?? matches[0];
-        const reduceMotion = window.matchMedia(
-            '(prefers-reduced-motion: reduce)',
-        ).matches;
-
-        row?.scrollIntoView({
-            behavior: reduceMotion ? 'auto' : 'smooth',
-            block: 'center',
-        });
-        row?.focus({ preventScroll: true });
-
-        setHighlightedId(id);
-        window.clearTimeout(highlightTimer.current);
-        highlightTimer.current = window.setTimeout(
-            () => setHighlightedId(null),
-            2500,
-        );
-    }
+    const { highlightedId, jumpToRow } = useRowJump();
 
     const columns: DataColumn<PendingAccount>[] = [
         {
@@ -429,7 +333,7 @@ export default function PendingAccountsIndex({
                     aria-label="Pending account figures"
                     className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
                 >
-                    <WaitingCard buckets={buckets} total={accounts.length} />
+                    <WaitingBucketsCard title="Waiting for verification" buckets={buckets} total={accounts.length} />
                     <OldestCard oldest={oldest} onReview={jumpToRow} />
                     <Deferred
                         data="termActivity"

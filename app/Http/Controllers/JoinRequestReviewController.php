@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\ReviewQueueData;
 use App\Enums\JoinRequestStatus;
 use App\Enums\OfficerPosition;
 use App\Http\Requests\Organizations\ApproveJoinRequestRequest;
@@ -42,17 +43,24 @@ class JoinRequestReviewController extends Controller
             ->get()
             ->filter(fn (OrganizationJoinRequest $r) => Gate::allows('manageJoinRequests', $r->organization))
             ->values()
-            ->map(fn (OrganizationJoinRequest $r) => [
-                'id' => $r->id,
-                'student' => [
-                    'id' => $r->user->id,
-                    'name' => $r->user->name,
-                    'email' => $r->user->email,
-                ],
-                'organization' => ['id' => $r->organization->id, 'name' => $r->organization->name],
-                'created_at' => $r->created_at,
-                'open_positions' => $this->openPositionsFor($r->organization),
-            ]);
+            ->map(function (OrganizationJoinRequest $r) {
+                $days = (int) $r->created_at->diffInDays(now(), true);
+
+                return [
+                    'id' => $r->id,
+                    'student' => [
+                        'id' => $r->user->id,
+                        'name' => $r->user->name,
+                        'email' => $r->user->email,
+                        'id_number' => $r->user->id_number,
+                    ],
+                    'organization' => ['id' => $r->organization->id, 'name' => $r->organization->name],
+                    'created_at' => $r->created_at,
+                    'open_positions' => $this->openPositionsFor($r->organization),
+                    'days_waiting' => $days,
+                    'tier' => ReviewQueueData::tierFor($days),
+                ];
+            });
 
         // Requests the system closed on its own (the student became an officer
         // by another route) in the last two weeks — shown so a row that leaves
@@ -75,6 +83,9 @@ class JoinRequestReviewController extends Controller
 
         return Inertia::render('review/join-requests/index', [
             'queue' => $requests,
+            'buckets' => ReviewQueueData::bucketCounts($requests),
+            // First of an oldest-first list; null when nothing is pending.
+            'oldest' => $requests->first(),
             'closed' => $closed,
             'positions' => collect(OfficerPosition::cases())->map(fn ($p) => [
                 'value' => $p->value,

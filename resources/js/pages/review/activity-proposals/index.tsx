@@ -52,7 +52,9 @@ type Props = {
         approved: number;
         returned: number;
     };
-    /** Deferred: undefined until the second request lands. */
+    /** True for SDAO only: they alone get the term-wide submitted and decided cards. */
+    showTermStats: boolean;
+    /** Deferred, SDAO only: undefined until the second request lands. */
     stats?: QueueStats;
     recent?: RecentDecision[];
 };
@@ -97,10 +99,11 @@ export default function ReviewActivityProposalsIndex({
     academicYear,
     pending,
     tabCounts,
+    showTermStats,
     stats,
     recent,
 }: Props) {
-    useDocumentUpdates(['queue', 'pending', 'tabCounts', 'stats', 'recent']);
+    useDocumentUpdates(['queue', 'pending', 'tabCounts', ...(showTermStats ? ['stats'] : []), 'recent']);
 
     const isHistory = filter !== null && filter !== 'overdue';
 
@@ -125,7 +128,13 @@ export default function ReviewActivityProposalsIndex({
                     subtitle="Activity proposals routed to your step"
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div
+                    className={
+                        showTermStats
+                            ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]'
+                            : 'grid grid-cols-1 gap-4 md:grid-cols-2'
+                    }
+                >
                     <WaitingCard
                         rows={pending}
                         title="Waiting on you"
@@ -137,22 +146,24 @@ export default function ReviewActivityProposalsIndex({
                         config={config}
                         headline="title"
                     />
-                    <Deferred
-                        data="stats"
-                        fallback={
-                            <>
-                                <SubmittedCardSkeleton />
-                                <DecidedCardSkeleton />
-                            </>
-                        }
-                    >
-                        {stats && (
-                            <>
-                                <SubmittedCard stats={stats.submitted} />
-                                <DecidedCard stats={stats.decided} />
-                            </>
-                        )}
-                    </Deferred>
+                    {showTermStats && (
+                        <Deferred
+                            data="stats"
+                            fallback={
+                                <>
+                                    <SubmittedCardSkeleton />
+                                    <DecidedCardSkeleton />
+                                </>
+                            }
+                        >
+                            {stats && (
+                                <>
+                                    <SubmittedCard stats={stats.submitted} />
+                                    <DecidedCard stats={stats.decided} />
+                                </>
+                            )}
+                        </Deferred>
+                    )}
                 </div>
 
                 <nav

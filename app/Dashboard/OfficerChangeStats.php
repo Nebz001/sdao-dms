@@ -75,11 +75,7 @@ class OfficerChangeStats
      */
     public function buckets(Collection $queue): array
     {
-        return [
-            'fresh' => $queue->where('tier', 'fresh')->count(),
-            'aging' => $queue->where('tier', 'aging')->count(),
-            'overdue' => $queue->where('tier', 'overdue')->count(),
-        ];
+        return ReviewQueueData::bucketCounts($queue);
     }
 
     /**

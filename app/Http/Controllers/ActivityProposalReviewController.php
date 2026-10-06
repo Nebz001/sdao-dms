@@ -79,8 +79,14 @@ class ActivityProposalReviewController extends Controller
         $approvedCount = $yearDecisions[TransitionAction::Approved->value] ?? 0;
         $returnedCount = $yearDecisions[TransitionAction::Returned->value] ?? 0;
 
-        return Inertia::render('review/activity-proposals/index', [
+        // "Submitted this term" and "Decided this term" are SDAO's cards: for
+        // every other approver the queries below never run and the data is
+        // never sent, rather than being hidden in the UI.
+        $showTermStats = Gate::allows('access-admin');
+
+        $props = [
             'queue' => $rows,
+            'showTermStats' => $showTermStats,
             'filter' => $filter?->value,
             'filterLabel' => $filter?->label(),
             'academicYear' => CurrentPeriod::get()->academicYear,
@@ -92,9 +98,14 @@ class ActivityProposalReviewController extends Controller
                 'returned' => $returnedCount,
             ],
             // Deferred: the page shows skeletons until these land.
-            'stats' => Inertia::defer(fn () => $this->termStats($user), 'queue-insights'),
             'recent' => Inertia::defer(fn () => $this->recentDecisions($user), 'queue-insights'),
-        ]);
+        ];
+
+        if ($showTermStats) {
+            $props['stats'] = Inertia::defer(fn () => $this->termStats($user), 'queue-insights');
+        }
+
+        return Inertia::render('review/activity-proposals/index', $props);
     }
 
     /**

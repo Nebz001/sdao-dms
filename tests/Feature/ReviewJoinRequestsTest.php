@@ -187,3 +187,38 @@ test('HTTP: the adviser can approve end-to-end and lands back on the queue', fun
     $response->assertRedirect(route('review.join-requests.index'));
     expect($joinRequest->fresh()->status)->toBe(JoinRequestStatus::Approved);
 });
+
+test('index reports each request\'s waiting time and bucket, the bucket counts and the oldest request, scoped to the adviser', function () {
+    $this->travelTo(now()->subDays(5));
+    $oldest = fileJoinRequest($this->itGuild);
+    $this->travelBack();
+    $newest = fileJoinRequest($this->itGuild);
+    fileJoinRequest($this->computingSociety);
+
+    $this->actingAs($this->adviserTwo)
+        ->withoutVite()
+        ->get(route('review.join-requests.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('queue', 2)
+            ->where('queue.0.id', $oldest->id)
+            ->where('queue.0.days_waiting', 5)
+            ->where('queue.0.tier', 'aging')
+            ->where('queue.1.id', $newest->id)
+            ->where('queue.1.tier', 'fresh')
+            ->has('queue.0.student.id_number')
+            ->where('buckets', ['fresh' => 1, 'aging' => 1, 'overdue' => 0])
+            ->where('oldest.id', $oldest->id)
+        );
+});
+
+test('index has no oldest request and empty buckets when nothing is pending', function () {
+    $this->actingAs($this->adviserTwo)
+        ->withoutVite()
+        ->get(route('review.join-requests.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('queue', 0)
+            ->where('buckets', ['fresh' => 0, 'aging' => 0, 'overdue' => 0])
+            ->where('oldest', null)
+        );
+});
