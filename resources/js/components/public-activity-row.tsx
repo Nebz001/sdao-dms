@@ -1,3 +1,4 @@
+import DateBadge from '@/components/date-badge';
 import TagBadge from '@/components/tag-badge';
 import { formatTimeRange } from '@/lib/utils';
 import type { PublicActivity } from '@/types/public-activity';
@@ -5,24 +6,6 @@ import type { PublicActivity } from '@/types/public-activity';
 type Props = {
     activity: PublicActivity;
 };
-
-/**
- * Splits `"YYYY-MM-DD"` into the two parts the date badge needs. Parses by
- * component (year/month/day passed straight to `new Date(...)`) rather than
- * `new Date(isoString)` — the same UTC-midnight shift `formatCalendarDate`
- * and `lib/month-grid.ts` already avoid for the same reason.
- */
-function formatDateBadge(iso: string): { month: string; day: number } {
-    const [year, month, day] = iso.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-
-    return {
-        month: date
-            .toLocaleDateString(undefined, { month: 'short' })
-            .toUpperCase(),
-        day: date.getDate(),
-    };
-}
 
 /**
  * A single row in the public landing page's upcoming-activities list. The
@@ -35,7 +18,6 @@ function formatDateBadge(iso: string): { month: string; day: number } {
  * construction (see HomeController::approvedActivities()).
  */
 export default function PublicActivityRow({ activity }: Props) {
-    const { month, day } = formatDateBadge(activity.activity_date);
     const timeRange =
         activity.start_time && activity.end_time
             ? formatTimeRange(activity.start_time, activity.end_time)
@@ -43,12 +25,7 @@ export default function PublicActivityRow({ activity }: Props) {
 
     return (
         <div className="flex items-start gap-3 rounded-md border px-3 py-2">
-            <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-md bg-brand-fixed text-brand-fixed-foreground">
-                <span className="text-[0.625rem] font-semibold tracking-wide uppercase">
-                    {month}
-                </span>
-                <span className="text-xl leading-none font-bold">{day}</span>
-            </div>
+            <DateBadge iso={activity.activity_date} />
 
             <div className="min-w-0 flex-1 py-0.5">
                 <p className="truncate text-base font-semibold">

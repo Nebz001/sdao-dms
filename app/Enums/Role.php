@@ -90,6 +90,19 @@ enum Role: string
     }
 
     /**
+     * Compact name for a step in a progress tracker or a "With …" line —
+     * short enough to sit under a tracker dot.
+     */
+    public function stepLabel(): string
+    {
+        return match ($this) {
+            self::SdaoMember => 'SDAO',
+            self::AssistantDirectorAcademicServices => 'Asst. Director',
+            default => $this->label(),
+        };
+    }
+
+    /**
      * Human-readable label for display (approver provisioning, badges, etc).
      */
     public function label(): string

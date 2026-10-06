@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Approval\ApproverDashboardData;
-use App\Approval\ApproverQueue;
 use App\Enums\Role;
 use App\Models\OrganizationJoinRequest;
 use App\Organizations\StudentDashboardData;
@@ -90,27 +89,23 @@ class DashboardController extends Controller
         if ($reviewsProposals) {
             $dashboard = ApproverDashboardData::for($user, $period);
 
+            // The history and tracking pages are the proposal review queue's
+            // decision-history modes (ReviewQueueFilter) — the only existing
+            // approver-side lists of documents this approver has decided on.
             $data['approverDashboard'] = [
-                'overdueAfterDays' => ApproverQueue::OVERDUE_AFTER_DAYS,
+                ...$dashboard->header(),
                 'reviewHref' => route('review.activity-proposals.index'),
-                // The KPIs below are scoped to the academic year (see
-                // ApproverDashboardData::inAcademicYear()), not a narrower
-                // term window, so the UI labels that too rather than saying
-                // "this term".
-                'academicYear' => $period->academicYear,
+                'trackHref' => route('review.activity-proposals.index', ['filter' => 'approved']),
+                'historyHref' => route('review.activity-proposals.index', ['filter' => 'decided']),
             ];
 
-            // One deferred group: all seven sections resolve together in a
-            // single follow-up request (and share $dashboard's own memoized
-            // pending-document/outcome-count queries), so the page shell
-            // paints immediately and the skeleton is replaced all at once
-            // rather than section-by-section.
-            $data['approverKpis'] = Inertia::defer(fn () => $dashboard->kpis(), 'approver');
-            $data['approverQueue'] = Inertia::defer(fn () => $dashboard->priorityQueue(), 'approver');
-            $data['approverWaitingTime'] = Inertia::defer(fn () => $dashboard->waitingTimeDistribution(), 'approver');
-            $data['approverReviewActivity'] = Inertia::defer(fn () => $dashboard->reviewActivity(), 'approver');
-            $data['approverOutcomeSplit'] = Inertia::defer(fn () => $dashboard->outcomeSplit(), 'approver');
-            $data['approverUpcomingEvents'] = Inertia::defer(fn () => $dashboard->upcomingEvents(), 'approver');
+            // One deferred group: every card resolves together in a single
+            // follow-up request, so the greeting paints immediately and the
+            // skeleton is replaced all at once rather than card-by-card.
+            $data['approverSummary'] = Inertia::defer(fn () => $dashboard->summary(), 'approver');
+            $data['approverNeedsReview'] = Inertia::defer(fn () => $dashboard->needsReview(), 'approver');
+            $data['approverInProgress'] = Inertia::defer(fn () => $dashboard->approvedInProgress(), 'approver');
+            $data['approverComingUp'] = Inertia::defer(fn () => $dashboard->comingUp(), 'approver');
             $data['approverRecentDecisions'] = Inertia::defer(fn () => $dashboard->recentDecisions(), 'approver');
         }
 

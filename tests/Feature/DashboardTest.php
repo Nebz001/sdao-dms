@@ -165,9 +165,9 @@ test('a proposal-chain approver sees proposals currently at their step', functio
     $this->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('approverDashboard.overdueAfterDays', 3)
+            ->where('approverDashboard.reviewHref', route('review.activity-proposals.index'))
             ->loadDeferredProps('approver', fn ($reload) => $reload
-                ->where('approverKpis.waitingOnYou.count', 1)
+                ->where('approverSummary.waiting.count', 1)
             )
         );
 });

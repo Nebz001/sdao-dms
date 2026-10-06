@@ -1,14 +1,13 @@
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
 import { Ban, FilePlus2, Hourglass, UserCog, UserPlus } from 'lucide-react';
-import ApproverDashboard from '@/components/approver-dashboard';
+import ApproverDashboard, { ApproverGreeting } from '@/components/approver-dashboard';
 import type {
-    ApproverKpis,
-    OutcomeSplit,
-    PriorityQueueRow,
+    ApproverHeader,
+    ApproverNeedsReview,
+    ApproverSummary,
+    ComingUpEvent,
+    InProgressRow,
     RecentDecision,
-    ReviewWeek,
-    UpcomingEvent,
-    WaitingTimeBucket,
 } from '@/components/approver-dashboard';
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
 import PageHeader from '@/components/page-header';
@@ -32,16 +31,10 @@ import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
 
 type PendingJoinRequest = { organizationName: string };
-type ApproverDashboardMeta = {
-    overdueAfterDays: number;
-    reviewHref: string;
-    academicYear: string;
-};
-
 type Props = {
     studentDashboard: StudentDashboardMeta | null;
     pendingJoinRequest: PendingJoinRequest | null;
-    approverDashboard: ApproverDashboardMeta | null;
+    approverDashboard: ApproverHeader | null;
     studentKpis?: StudentKpis;
     studentNeedsAction?: NeedsActionData;
     studentTracker?: TrackerData;
@@ -49,12 +42,10 @@ type Props = {
     studentQuickSubmit?: QuickSubmitTile[];
     studentUpcoming?: UpcomingData;
     studentSubmissions?: SubmissionMonth[];
-    approverKpis?: ApproverKpis;
-    approverQueue?: PriorityQueueRow[];
-    approverWaitingTime?: WaitingTimeBucket[];
-    approverReviewActivity?: ReviewWeek[];
-    approverOutcomeSplit?: OutcomeSplit;
-    approverUpcomingEvents?: UpcomingEvent[];
+    approverSummary?: ApproverSummary;
+    approverNeedsReview?: ApproverNeedsReview;
+    approverInProgress?: InProgressRow[];
+    approverComingUp?: ComingUpEvent[];
     approverRecentDecisions?: RecentDecision[];
 };
 
@@ -69,12 +60,10 @@ const STUDENT_DEFERRED_KEYS = [
 ];
 
 const APPROVER_DEFERRED_KEYS = [
-    'approverKpis',
-    'approverQueue',
-    'approverWaitingTime',
-    'approverReviewActivity',
-    'approverOutcomeSplit',
-    'approverUpcomingEvents',
+    'approverSummary',
+    'approverNeedsReview',
+    'approverInProgress',
+    'approverComingUp',
     'approverRecentDecisions',
 ];
 
@@ -89,12 +78,10 @@ export default function Dashboard({
     studentQuickSubmit,
     studentUpcoming,
     studentSubmissions,
-    approverKpis,
-    approverQueue,
-    approverWaitingTime,
-    approverReviewActivity,
-    approverOutcomeSplit,
-    approverUpcomingEvents,
+    approverSummary,
+    approverNeedsReview,
+    approverInProgress,
+    approverComingUp,
     approverRecentDecisions,
 }: Props) {
     const { auth } = usePage().props;
@@ -159,10 +146,14 @@ export default function Dashboard({
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6">
-                <PageHeader
-                    title="Dashboard"
-                    subtitle="What needs your attention and where things stand"
-                />
+                {approverDashboard ? (
+                    <ApproverGreeting header={approverDashboard} />
+                ) : (
+                    <PageHeader
+                        title="Dashboard"
+                        subtitle="What needs your attention and where things stand"
+                    />
+                )}
 
                 {!hasAnyCard ? (
                     <div className="mx-auto w-full max-w-2xl">
@@ -278,21 +269,17 @@ export default function Dashboard({
                                 data={APPROVER_DEFERRED_KEYS}
                                 fallback={<ApproverDashboardSkeleton />}
                             >
-                                {approverKpis &&
-                                approverQueue &&
-                                approverWaitingTime &&
-                                approverReviewActivity &&
-                                approverOutcomeSplit &&
-                                approverUpcomingEvents &&
+                                {approverSummary &&
+                                approverNeedsReview &&
+                                approverInProgress &&
+                                approverComingUp &&
                                 approverRecentDecisions ? (
                                     <ApproverDashboard
-                                        meta={approverDashboard}
-                                        kpis={approverKpis}
-                                        queue={approverQueue}
-                                        waitingTime={approverWaitingTime}
-                                        reviewActivity={approverReviewActivity}
-                                        outcomeSplit={approverOutcomeSplit}
-                                        upcomingEvents={approverUpcomingEvents}
+                                        header={approverDashboard}
+                                        summary={approverSummary}
+                                        needsReview={approverNeedsReview}
+                                        inProgress={approverInProgress}
+                                        comingUp={approverComingUp}
                                         recentDecisions={
                                             approverRecentDecisions
                                         }

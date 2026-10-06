@@ -112,11 +112,6 @@ class ApproverQueue
         return self::waitingSinceTransition($document)->created_at;
     }
 
-    public static function isOverdue(Document $document): bool
-    {
-        return self::waitingSince($document)->lt(now()->subDays(self::OVERDUE_AFTER_DAYS));
-    }
-
     /**
      * @return 'normal'|'warning'|'overdue'
      */

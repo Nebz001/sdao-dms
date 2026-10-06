@@ -3,42 +3,63 @@
 namespace App\Approval;
 
 use App\Enums\DocumentStatus;
+use App\Enums\FormType;
+use App\Enums\Role;
 use App\Enums\TransitionAction;
+use App\Identity\RoleDirectory;
 use App\Models\ActivityProposal;
 use App\Models\Document;
 use App\Models\DocumentTransition;
+use App\Models\OrganizationMembership;
+use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Models\WorkflowStep;
+use App\Models\WorkflowTemplate;
+use App\Policies\DocumentPolicy;
 use App\Support\AcademicPeriod;
 use App\Support\DisplayTimezone;
 use App\Support\DocumentUrls;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 /**
- * Read model behind the approver dashboard — one method per section. Every
- * query is scoped to $approver (as the transition actor, or as the resolved
- * approver of a document's current step) and to $period's academic year, so
- * cross-approver leakage is structural, not just filtered out after the
- * fact. Two things are computed once and reused across methods: the pending
- * ("waiting on you") document set, and the approved/returned/rejected
- * outcome counts.
+ * Read model behind the approver dashboard (every approver except SDAO,
+ * who get the admin dashboard). One method per card. Every figure is scoped
+ * to $approver — as the resolved approver of a document's current step, as
+ * the actor of a transition, or through DocumentPolicy — so another
+ * approver's documents never reach this page.
+ *
+ * All day counts are whole calendar days in Asia/Manila, computed in PHP
+ * (never in SQL), and every "how long has this been here" figure reads
+ * Document::latestTransition() — never documents.updated_at, which lags
+ * behind a partial SDAO approval.
  */
 class ApproverDashboardData
 {
-    private const int QUEUE_LIMIT = 8;
+    private const int NEEDS_REVIEW_LIMIT = 5;
 
-    private const int RECENT_DECISIONS_LIMIT = 8;
+    private const int IN_PROGRESS_LIMIT = 5;
 
-    private const int UPCOMING_EVENTS_LIMIT = 6;
+    private const int COMING_UP_DAYS = 14;
 
-    private const int REVIEW_ACTIVITY_WEEKS = 8;
+    private const int COMING_UP_LIMIT = 4;
+
+    private const int RECENT_DECISIONS_LIMIT = 5;
+
+    /** A document at a step for this many days or more is "stalled" (warning tone). */
+    private const int STALLED_AFTER_DAYS = 3;
+
+    /** Past this many days a decision's age is shown as a plain date, not "N days ago". */
+    private const int RELATIVE_DATE_DAYS = 7;
 
     /**
      * Actions that count as "this approver decided" — excludes Advanced/
-     * Completed (quorum bookkeeping, not this actor's own decision on a
-     * multi-approver step) and Withdrawn (system-attributed).
+     * Completed (quorum bookkeeping, not this actor's own decision) and
+     * Withdrawn (system-attributed).
      *
      * @var array<int, TransitionAction>
      */
@@ -48,258 +69,193 @@ class ApproverDashboardData
         TransitionAction::Rejected,
     ];
 
-    /**
-     * The three transition actions that "activate" a step — used to find
-     * the moment a document reached this approver, for averageReviewTime().
-     *
-     * @var array<int, TransitionAction>
-     */
-    private const array ACTIVATION_ACTIONS = [
-        TransitionAction::Submitted,
-        TransitionAction::Advanced,
-        TransitionAction::Resubmitted,
-    ];
-
-    /** @var EloquentCollection<int, Document>|null */
-    private ?EloquentCollection $pending = null;
-
-    /** @var array{approved: int, returned: int, rejected: int}|null */
-    private ?array $outcomes = null;
+    /** @var Collection<int, array<string, mixed>>|null */
+    private ?Collection $needsReview = null;
 
     private function __construct(
         private readonly User $approver,
         private readonly AcademicPeriod $period,
         private readonly ApproverQueue $queue,
+        private readonly RoleDirectory $directory,
+        private readonly DocumentPolicy $policy,
     ) {}
 
     public static function for(User $approver, AcademicPeriod $period): self
     {
-        return new self($approver, $period, app(ApproverQueue::class));
+        return new self(
+            $approver,
+            $period,
+            app(ApproverQueue::class),
+            app(RoleDirectory::class),
+            app(DocumentPolicy::class),
+        );
     }
 
     /**
+     * The greeting and the pills under it — cheap, so it is not deferred.
+     * "scope" is null for a role with no scope; "extraRoles" holds one entry
+     * per further role assignment or active officer seat.
+     *
      * @return array{
-     *     waitingOnYou: array{count: int, href: string},
-     *     overdue: array{count: int, href: string},
-     *     approved: array{count: int, href: string},
-     *     returned: array{count: int, href: string},
-     *     averageReviewTime: array{hours: float|null, sampleSize: int, href: string},
+     *     greeting: string, lastName: string, roleTitle: string|null, role: string|null,
+     *     scope: array{label: string, value: string}|null,
+     *     extraRoles: array<int, array{label: string, value: string|null}>,
      * }
      */
-    public function kpis(): array
+    public function header(): array
     {
-        $outcomes = $this->outcomeCounts();
-        $overdueCount = $this->pending()->filter(fn (Document $d) => ApproverQueue::isOverdue($d))->count();
+        $assignments = $this->approverAssignments();
+        $primary = $assignments->first();
+        $hour = DisplayTimezone::convert(now())->hour;
 
         return [
-            'waitingOnYou' => [
-                'count' => $this->pending()->count(),
-                'href' => route('review.activity-proposals.index'),
-            ],
-            'overdue' => [
-                'count' => $overdueCount,
-                'href' => route('review.activity-proposals.index', ['filter' => 'overdue']),
-            ],
-            'approved' => [
-                'count' => $outcomes['approved'],
-                'href' => route('review.activity-proposals.index', ['filter' => 'approved']),
-            ],
-            'returned' => [
-                'count' => $outcomes['returned'],
-                'href' => route('review.activity-proposals.index', ['filter' => 'returned']),
-            ],
-            'averageReviewTime' => [
-                ...$this->averageReviewTime(),
-                'href' => route('review.activity-proposals.index', ['filter' => 'decided']),
-            ],
+            'greeting' => match (true) {
+                $hour < 12 => 'Good morning',
+                $hour < 18 => 'Good afternoon',
+                default => 'Good evening',
+            },
+            'lastName' => $this->approver->last_name ?? $this->approver->name,
+            'roleTitle' => $primary?->role->stepLabel(),
+            'role' => $primary !== null ? $this->roleLabel($primary->role) : null,
+            'scope' => $primary !== null ? $this->scopeOf($primary) : null,
+            'extraRoles' => $this->extraRoles($assignments->slice(1)),
         ];
     }
 
     /**
+     * The review banner and the three stat cards, computed together because
+     * they all derive from the same pending set.
+     *
+     * @return array{
+     *     banner: array{count: int, document: array<string, mixed>|null},
+     *     waiting: array{count: int, oldestDays: int|null, byType: array<int, array{formType: string, label: string, count: int}>},
+     *     nextEvent: array<string, mixed>|null,
+     *     reviewed: array{approved: int, returned: int, rejected: int, total: int},
+     * }
+     */
+    public function summary(): array
+    {
+        $entries = $this->needsReviewEntries();
+        $soonest = $entries->first(fn (array $e) => $e['daysUntilEvent'] !== null);
+
+        $nextEvent = $entries
+            ->filter(fn (array $e) => $e['daysUntilEvent'] !== null
+                && $e['daysUntilEvent'] >= 0
+                && $e['daysUntilEvent'] <= ApproverQueue::EVENT_SOON_DAYS)
+            ->first();
+
+        $countsByType = $entries->countBy('formType');
+
+        return [
+            'banner' => [
+                'count' => $entries->count(),
+                // Documents sort soonest-event-first, so the first one with an
+                // event date is the soonest; with none dated, the oldest wait.
+                'document' => $soonest ?? $entries->first(),
+            ],
+            'waiting' => [
+                'count' => $entries->count(),
+                'oldestDays' => $entries->isEmpty() ? null : (int) $entries->max('daysWithYou'),
+                'byType' => $this->receivableFormTypes()
+                    ->map(fn (FormType $type) => [
+                        'formType' => $type->value,
+                        'label' => $type->label(),
+                        'count' => (int) ($countsByType[$type->value] ?? 0),
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+            'nextEvent' => $nextEvent,
+            'reviewed' => $this->reviewedThisTerm(),
+        ];
+    }
+
+    /**
+     * "Needs your review": soonest event first, undated documents last.
+     *
+     * @return array{total: int, rows: array<int, array<string, mixed>>}
+     */
+    public function needsReview(): array
+    {
+        $entries = $this->needsReviewEntries();
+
+        return [
+            'total' => $entries->count(),
+            'rows' => $entries->take(self::NEEDS_REVIEW_LIMIT)->values()->all(),
+        ];
+    }
+
+    /**
+     * Documents this approver passed on that are still moving through the
+     * chain, longest at their current step first. A document leaves the
+     * moment it is Approved, Rejected or Returned, or comes back to this
+     * approver's own step (then it is in "Needs your review" instead).
+     *
      * @return array<int, array{
-     *     id: int, title: string, formType: string, formTypeLabel: string,
-     *     organizationName: string, submittedAt: string|null, waitingSince: string,
-     *     daysWaiting: int, waitTier: string, wasResubmitted: bool,
-     *     eventDate: string|null, eventSoon: bool, href: string,
+     *     id: int, title: string, organizationName: string, formTypeLabel: string, href: string,
+     *     steps: array<int, array{label: string, state: string}>, trackerLabel: string,
+     *     currentRole: string, daysAtStep: int, stalled: bool,
      * }>
      */
-    public function priorityQueue(): array
+    public function approvedInProgress(): array
     {
-        $today = DisplayTimezone::convert(now())->toDateString();
-        $eventSoonBy = DisplayTimezone::convert(now())->addDays(ApproverQueue::EVENT_SOON_DAYS)->toDateString();
+        $roles = $this->approverRoles();
 
-        return $this->pending()
-            ->map(function (Document $d) use ($today, $eventSoonBy) {
-                $sinceTransition = ApproverQueue::waitingSinceTransition($d);
-                $waitingSince = $sinceTransition->created_at;
-                $eventDate = $d->activityProposal?->calendarActivity?->activity_date?->toDateString();
-                $eventSoon = $eventDate !== null && $eventDate >= $today && $eventDate <= $eventSoonBy;
-                $urgent = ApproverQueue::isOverdue($d) || $eventSoon;
-
-                return [
-                    'row' => [
-                        'id' => $d->id,
-                        'title' => $d->title,
-                        'formType' => $d->form_type->value,
-                        'formTypeLabel' => $d->form_type->label(),
-                        'organizationName' => $d->organization->name,
-                        'submittedAt' => $this->submittedAt($d)?->toIso8601String(),
-                        'waitingSince' => $waitingSince->toIso8601String(),
-                        'daysWaiting' => (int) $waitingSince->diffInDays(now()),
-                        'waitTier' => ApproverQueue::waitTier($d),
-                        // Flags a document that came back to THIS SAME approver
-                        // after being returned for revision — the student may
-                        // have changed it since this approver last saw it, so
-                        // it's worth a distinct hint from an ordinary hand-off.
-                        'wasResubmitted' => $sinceTransition->action === TransitionAction::Resubmitted,
-                        'eventDate' => $eventDate,
-                        'eventSoon' => $eventSoon,
-                        'href' => DocumentUrls::pathForReviewer($d),
-                    ],
-                    // Urgent (overdue or event within the window) first, then
-                    // oldest-waiting first — ISO8601 timestamps sort correctly
-                    // as plain strings, so a single composite key is enough.
-                    'sortKey' => ($urgent ? '0-' : '1-').$waitingSince->toIso8601String(),
-                ];
-            })
-            ->sortBy('sortKey')
-            ->take(self::QUEUE_LIMIT)
-            ->map(fn (array $entry) => $entry['row'])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * How long the documents in the pending queue have been waiting,
-     * bucketed by the same tiers as WaitBadge/ApproverQueue::waitTier() —
-     * so this chart and the queue's own badges can never disagree about
-     * what "overdue" means. Reuses the already-loaded pending() set; no
-     * extra query.
-     *
-     * @return array<int, array{tier: string, label: string, count: int}>
-     */
-    public function waitingTimeDistribution(): array
-    {
-        $counts = $this->pending()
-            ->groupBy(fn (Document $d) => ApproverQueue::waitTier($d))
-            ->map(fn (EloquentCollection $docs) => $docs->count());
-
-        return [
-            [
-                'tier' => 'normal',
-                'label' => sprintf('Under %d days', ApproverQueue::WARNING_AFTER_DAYS),
-                'count' => (int) ($counts['normal'] ?? 0),
-            ],
-            [
-                'tier' => 'warning',
-                'label' => sprintf('%d–%d days', ApproverQueue::WARNING_AFTER_DAYS, ApproverQueue::OVERDUE_AFTER_DAYS),
-                'count' => (int) ($counts['warning'] ?? 0),
-            ],
-            [
-                'tier' => 'overdue',
-                'label' => sprintf('Over %d days', ApproverQueue::OVERDUE_AFTER_DAYS),
-                'count' => (int) ($counts['overdue'] ?? 0),
-            ],
-        ];
-    }
-
-    /**
-     * @return array<int, array{weekStart: string, label: string, approved: int, returned: int, rejected: int, total: int}>
-     */
-    public function reviewActivity(): array
-    {
-        $since = now()->startOfWeek()->subWeeks(self::REVIEW_ACTIVITY_WEEKS - 1);
-
-        $transitions = $this->myDecisions()
-            ->where('created_at', '>=', $since)
-            ->get(['action', 'created_at']);
-
-        // Tallied into a loosely-typed scratch array first (keyed by week
-        // index, then action), then read back out below while building each
-        // week's row as a single array literal — PHPStan can't track a
-        // return-shaped array being incrementally mutated in place, but can
-        // verify a literal built from already-known values in one go.
-        $tally = [];
-
-        foreach ($transitions as $transition) {
-            $weekIndex = (int) $since->diffInWeeks($transition->created_at->copy()->startOfWeek());
-
-            if ($weekIndex < 0 || $weekIndex >= self::REVIEW_ACTIVITY_WEEKS) {
-                continue;
-            }
-
-            $key = match ($transition->action) {
-                TransitionAction::Approved => 'approved',
-                TransitionAction::Returned => 'returned',
-                TransitionAction::Rejected => 'rejected',
-                default => null,
-            };
-
-            if ($key === null) {
-                continue;
-            }
-
-            $tally[$weekIndex][$key] = ($tally[$weekIndex][$key] ?? 0) + 1;
-        }
-
-        return collect(range(0, self::REVIEW_ACTIVITY_WEEKS - 1))
-            ->map(function (int $i) use ($since, $tally) {
-                $weekStart = $since->copy()->addWeeks($i);
-                $approved = $tally[$i]['approved'] ?? 0;
-                $returned = $tally[$i]['returned'] ?? 0;
-                $rejected = $tally[$i]['rejected'] ?? 0;
-
-                return [
-                    'weekStart' => $weekStart->toDateString(),
-                    'label' => $weekStart->format('M j'),
-                    'approved' => $approved,
-                    'returned' => $returned,
-                    'rejected' => $rejected,
-                    'total' => $approved + $returned + $rejected,
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return array{approved: int, returned: int, rejected: int}
-     */
-    public function outcomeSplit(): array
-    {
-        return $this->outcomeCounts();
-    }
-
-    /**
-     * @return array<int, array{id: int, title: string, organizationName: string, venue: string, date: string, startTime: string, endTime: string, href: string}>
-     */
-    public function upcomingEvents(): array
-    {
-        $today = DisplayTimezone::convert(now())->toDateString();
-        $windowEnd = DisplayTimezone::convert(now())->addDays(ApproverQueue::EVENT_SOON_DAYS)->toDateString();
-
-        $approvedDocumentIds = DocumentTransition::query()
+        $documentIds = DocumentTransition::query()
             ->where('actor_id', $this->approver->id)
             ->where('action', TransitionAction::Approved->value)
-            ->pluck('document_id');
+            ->pluck('document_id')
+            ->unique()
+            ->values();
 
-        return ActivityProposal::query()
-            ->with(['calendarActivity', 'document.organization:id,name'])
-            ->whereIn('document_id', $approvedDocumentIds)
-            ->whereHas('document', fn ($q) => $q->where('status', DocumentStatus::Approved->value))
-            ->whereHas('calendarActivity', fn ($q) => $q->whereBetween('activity_date', [$today, $windowEnd]))
+        /** @var Collection<int, array<string, mixed>> $rows */
+        $rows = $this->directory->remembering(fn () => Document::query()
+            ->with(['organization', 'workflowTemplate.steps', 'latestTransition', 'transitions'])
+            ->whereIn('id', $documentIds)
+            ->where('status', DocumentStatus::InReview->value)
             ->get()
-            ->filter(fn (ActivityProposal $p) => $p->calendarActivity !== null)
+            ->filter(fn (Document $d) => $this->policy->isChainApprover($this->approver, $d))
+            ->map(fn (Document $d) => $this->trackedRow($d, $roles))
+            ->filter()
+            ->values());
+
+        return $rows
+            ->sortBy([['daysAtStep', 'desc'], ['id', 'asc']])
+            ->take(self::IN_PROGRESS_LIMIT)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Approved activities in the next two weeks, soonest first, among the
+     * documents this approver can view.
+     *
+     * @return array<int, array{id: int, title: string, organizationName: string, venue: string, date: string, href: string}>
+     */
+    public function comingUp(): array
+    {
+        $today = $this->today();
+        $windowEnd = $today->addDays(self::COMING_UP_DAYS);
+
+        /** @var Collection<int, ActivityProposal> $proposals */
+        $proposals = $this->directory->remembering(fn () => ActivityProposal::query()
+            ->with(['calendarActivity', 'document.organization', 'document.workflowTemplate.steps', 'document.transitions'])
+            ->whereHas('document', fn ($q) => $q->where('status', DocumentStatus::Approved->value))
+            ->whereHas('calendarActivity', fn ($q) => $q->whereBetween('activity_date', [$today->toDateString(), $windowEnd->toDateString()]))
+            ->get()
+            ->filter(fn (ActivityProposal $p) => $p->calendarActivity !== null
+                && $this->policy->isChainApprover($this->approver, $p->document))
+            ->values());
+
+        return $proposals
             ->sortBy(fn (ActivityProposal $p) => $p->calendarActivity->activity_date->toDateString().' '.$p->calendarActivity->start_time)
-            ->take(self::UPCOMING_EVENTS_LIMIT)
+            ->take(self::COMING_UP_LIMIT)
             ->map(fn (ActivityProposal $p) => [
                 'id' => $p->document_id,
                 'title' => $p->title,
                 'organizationName' => $p->document->organization->name,
                 'venue' => $p->calendarActivity->venue,
                 'date' => $p->calendarActivity->activity_date->toDateString(),
-                'startTime' => $p->calendarActivity->start_time,
-                'endTime' => $p->calendarActivity->end_time,
                 'href' => DocumentUrls::pathForReviewer($p->document),
             ])
             ->values()
@@ -307,24 +263,29 @@ class ApproverDashboardData
     }
 
     /**
-     * @return array<int, array{id: int, action: string, formType: string, formTypeLabel: string, documentTitle: string, organizationName: string, createdAt: string, href: string}>
+     * This approver's latest decision on each of their last few documents.
+     *
+     * @return array<int, array{id: int, action: string, formTypeLabel: string, documentTitle: string, organizationName: string, whenLabel: string, waitingOnOrg: bool, href: string}>
      */
     public function recentDecisions(): array
     {
         return $this->myDecisions()
-            ->with(['document:id,title,form_type,organization_id', 'document.organization:id,name'])
+            ->with(['document:id,title,form_type,status,organization_id', 'document.organization:id,name'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->limit(self::RECENT_DECISIONS_LIMIT)
+            ->limit(self::RECENT_DECISIONS_LIMIT * 5)
             ->get()
+            ->unique('document_id')
+            ->take(self::RECENT_DECISIONS_LIMIT)
             ->map(fn (DocumentTransition $t) => [
                 'id' => $t->id,
                 'action' => $t->action->value,
-                'formType' => $t->document->form_type->value,
                 'formTypeLabel' => $t->document->form_type->label(),
                 'documentTitle' => $t->document->title,
                 'organizationName' => $t->document->organization->name,
-                'createdAt' => $t->created_at->toIso8601String(),
+                'whenLabel' => $this->decisionWhenLabel($t->created_at),
+                'waitingOnOrg' => $t->action === TransitionAction::Returned
+                    && $t->document->status === DocumentStatus::Returned,
                 'href' => DocumentUrls::pathForReviewer($t->document),
             ])
             ->values()
@@ -332,109 +293,223 @@ class ApproverDashboardData
     }
 
     /**
-     * @return EloquentCollection<int, Document>
+     * Pending documents this approver can act on now (DocumentPolicy::review()),
+     * soonest event first, undated documents last, then longest-waiting.
+     *
+     * @return Collection<int, array<string, mixed>>
      */
-    private function pending(): EloquentCollection
+    private function needsReviewEntries(): Collection
     {
-        return $this->pending ??= $this->queue->pendingFor(
-            $this->approver,
-            null,
-            ['activityProposal.calendarActivity', 'transitions'],
-        );
+        if ($this->needsReview !== null) {
+            return $this->needsReview;
+        }
+
+        $gate = Gate::forUser($this->approver);
+
+        /** @var EloquentCollection<int, Document> $pending */
+        $pending = $this->queue
+            ->pendingFor($this->approver, null, ['activityProposal.calendarActivity'])
+            ->filter(fn (Document $d) => $gate->allows('review', $d))
+            ->values();
+
+        return $this->needsReview = $pending
+            ->map(function (Document $d) {
+                $eventDate = $d->activityProposal?->calendarActivity?->activity_date?->toDateString();
+
+                return [
+                    'id' => $d->id,
+                    'title' => $d->title,
+                    'formType' => $d->form_type->value,
+                    'formTypeLabel' => $d->form_type->label(),
+                    'organizationName' => $d->organization->name,
+                    'eventDate' => $eventDate,
+                    'daysUntilEvent' => $eventDate !== null ? $this->daysUntil($eventDate) : null,
+                    'daysWithYou' => $this->daysSince(ApproverQueue::waitingSince($d)),
+                    'href' => DocumentUrls::pathForReviewer($d),
+                ];
+            })
+            ->sort(fn (array $a, array $b) => [
+                $a['eventDate'] === null ? 1 : 0, $a['eventDate'] ?? '', -$a['daysWithYou'], $a['id'],
+            ] <=> [
+                $b['eventDate'] === null ? 1 : 0, $b['eventDate'] ?? '', -$b['daysWithYou'], $b['id'],
+            ])
+            ->values();
     }
 
     /**
-     * @return array{approved: int, returned: int, rejected: int}
+     * The form types this approver's role(s) take part in, read from the
+     * workflow templates (configuration, not code — invariant #1).
+     *
+     * @return Collection<int, FormType>
      */
-    private function outcomeCounts(): array
+    private function receivableFormTypes(): Collection
     {
-        if ($this->outcomes !== null) {
-            return $this->outcomes;
-        }
+        $types = WorkflowTemplate::query()
+            ->whereHas('steps', fn ($q) => $q->whereIn('role', array_map(fn (Role $r) => $r->value, $this->approverRoles())))
+            ->get()
+            ->pluck('form_type')
+            ->unique();
 
-        $counts = $this->inAcademicYear($this->myDecisions())
+        return collect(FormType::cases())->filter(fn (FormType $type) => $types->contains($type))->values();
+    }
+
+    /**
+     * @return array{approved: int, returned: int, rejected: int, total: int}
+     */
+    private function reviewedThisTerm(): array
+    {
+        [$start, $end] = $this->period->termRange();
+
+        $counts = $this->myDecisions()
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end)
             ->selectRaw('action, count(*) as aggregate')
             ->groupBy('action')
             ->pluck('aggregate', 'action');
 
-        return $this->outcomes = [
-            'approved' => (int) ($counts[TransitionAction::Approved->value] ?? 0),
-            'returned' => (int) ($counts[TransitionAction::Returned->value] ?? 0),
-            'rejected' => (int) ($counts[TransitionAction::Rejected->value] ?? 0),
-        ];
-    }
-
-    /**
-     * Average minutes-to-decision, converted to hours. For each of this
-     * approver's own decisions this academic year, finds the nearest EARLIER
-     * transition on the same document at the same step position whose action
-     * activates a step (Submitted/Advanced/Resubmitted) — the moment the
-     * document actually reached this approver — and diffs against the
-     * decision's own timestamp. Two queries total (this approver's decisions,
-     * then every transition on just those documents), never per-row; the
-     * average itself is taken in PHP rather than in SQL because the test
-     * suite runs on SQLite and production on Postgres, whose datetime-diff
-     * SQL differs (same reasoning AdminDashboardController::bucketByWeek()
-     * already documents for its own weekly bucketing).
-     *
-     * @return array{hours: float|null, sampleSize: int}
-     */
-    private function averageReviewTime(): array
-    {
-        $decisions = $this->inAcademicYear($this->myDecisions())
-            ->orderBy('id')
-            ->get(['id', 'document_id', 'step_position', 'created_at']);
-
-        if ($decisions->isEmpty()) {
-            return ['hours' => null, 'sampleSize' => 0];
-        }
-
-        $documentIds = $decisions->pluck('document_id')->unique()->values();
-
-        $transitionsByDocument = DocumentTransition::query()
-            ->whereIn('document_id', $documentIds)
-            ->orderBy('id')
-            ->get(['id', 'document_id', 'action', 'step_position', 'created_at'])
-            ->groupBy('document_id');
-
-        $activationValues = collect(self::ACTIVATION_ACTIONS)->map(fn (TransitionAction $a) => $a->value)->all();
-
-        /** @var Collection<int, float> $minutes */
-        $minutes = $decisions
-            ->map(function (DocumentTransition $decision) use ($transitionsByDocument, $activationValues) {
-                $activation = $transitionsByDocument->get($decision->document_id, collect())
-                    ->filter(fn (DocumentTransition $t) => $t->id < $decision->id
-                        && $t->step_position === $decision->step_position
-                        && in_array($t->action->value, $activationValues, true))
-                    ->last();
-
-                return $activation?->created_at->diffInMinutes($decision->created_at);
-            })
-            ->filter(fn (?float $m) => $m !== null)
-            ->values();
-
-        if ($minutes->isEmpty()) {
-            return ['hours' => null, 'sampleSize' => 0];
-        }
+        $approved = (int) ($counts[TransitionAction::Approved->value] ?? 0);
+        $returned = (int) ($counts[TransitionAction::Returned->value] ?? 0);
+        $rejected = (int) ($counts[TransitionAction::Rejected->value] ?? 0);
 
         return [
-            'hours' => round(((float) $minutes->avg()) / 60, 1),
-            'sampleSize' => $minutes->count(),
+            'approved' => $approved,
+            'returned' => $returned,
+            'rejected' => $rejected,
+            'total' => $approved + $returned + $rejected,
         ];
     }
 
     /**
-     * When a document reached ANY of its steps first became "Submitted" —
-     * the same "first Submitted transition" rule
-     * App\Http\Resources\Mobile\ProposalTimestamps::submittedAt() uses,
-     * reimplemented here since that class lives under the mobile-API
-     * namespace. Expects ->transitions already eager-loaded (see pending()).
+     * One "where my approved documents are now" row, or null when the
+     * document no longer belongs there. Steps are read from the document's
+     * OWN template by role, since positions differ between chain variants.
+     *
+     * @param  array<int, Role>  $roles
+     * @return array<string, mixed>|null
      */
-    private function submittedAt(Document $document): ?CarbonInterface
+    private function trackedRow(Document $document, array $roles): ?array
     {
-        return $document->transitions
-            ->first(fn (DocumentTransition $t) => $t->action === TransitionAction::Submitted)
-            ?->created_at;
+        $steps = $document->workflowTemplate?->steps;
+
+        if ($steps === null) {
+            return null;
+        }
+
+        /** @var WorkflowStep|null $mine */
+        $mine = $steps->first(fn (WorkflowStep $s) => in_array($s->role, $roles, true));
+        /** @var WorkflowStep|null $current */
+        $current = $steps->firstWhere('position', $document->current_step_position);
+
+        if ($mine === null || $current === null || in_array($current->role, $roles, true)) {
+            return null;
+        }
+
+        /** @var WorkflowStep|null $previous */
+        $previous = $steps->where('position', '<', $mine->position)->last();
+        $daysAtStep = $this->daysSince($document->latestTransition->created_at);
+
+        $points = array_values(array_filter([
+            $previous !== null ? ['label' => $previous->role->stepLabel(), 'state' => 'done'] : null,
+            ['label' => 'You', 'state' => 'done'],
+            ['label' => $current->role->stepLabel(), 'state' => 'current'],
+            ['label' => 'Done', 'state' => 'upcoming'],
+        ]));
+
+        return [
+            'id' => $document->id,
+            'title' => $document->title,
+            'organizationName' => $document->organization->name,
+            'formTypeLabel' => $document->form_type->label(),
+            'href' => DocumentUrls::pathForReviewer($document),
+            'steps' => $points,
+            'trackerLabel' => sprintf(
+                'Approved by %s, now with %s',
+                $previous !== null ? $previous->role->stepLabel().' and you' : 'you',
+                $current->role->stepLabel(),
+            ),
+            'currentRole' => $current->role->stepLabel(),
+            'daysAtStep' => $daysAtStep,
+            'stalled' => $daysAtStep >= self::STALLED_AFTER_DAYS,
+        ];
+    }
+
+    /**
+     * Every approver-side role assignment (students and SDAO excluded), in
+     * the order they were granted — the first one is the primary role.
+     *
+     * @return Collection<int, RoleAssignment>
+     */
+    private function approverAssignments(): Collection
+    {
+        return $this->approver->roleAssignments
+            ->reject(fn (RoleAssignment $a) => $a->role === Role::Student || $a->role === Role::SdaoMember)
+            ->sortBy('id')
+            ->values();
+    }
+
+    /**
+     * @return array<int, Role>
+     */
+    private function approverRoles(): array
+    {
+        return $this->approver->roleAssignments
+            ->map(fn (RoleAssignment $a) => $a->role)
+            ->reject(fn (Role $r) => $r === Role::Student)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function roleLabel(Role $role): string
+    {
+        return $role === Role::Dean ? 'College Dean' : $role->label();
+    }
+
+    /**
+     * The one thing this assignment is scoped to, labelled by what it is, or
+     * null for a global role (nothing to show, never a placeholder).
+     *
+     * @return array{label: string, value: string}|null
+     */
+    private function scopeOf(RoleAssignment $assignment): ?array
+    {
+        $assignment->loadMissing(['school', 'program', 'organization']);
+
+        [$label, $value] = match ($assignment->role) {
+            Role::Adviser => ['Organization', $assignment->organization?->name],
+            Role::ProgramChair => ['Program', $assignment->program?->name],
+            Role::Dean, Role::Principal => ['School', $assignment->school?->name],
+            default => [null, null],
+        };
+
+        return $label !== null && $value !== null ? ['label' => $label, 'value' => $value] : null;
+    }
+
+    /**
+     * One entry per further approver assignment, then per active officer
+     * seat (e.g. "President | PICE").
+     *
+     * @param  Collection<int, RoleAssignment>  $assignments
+     * @return array<int, array{label: string, value: string|null}>
+     */
+    private function extraRoles(Collection $assignments): array
+    {
+        $fromAssignments = $assignments->map(fn (RoleAssignment $a) => [
+            'label' => $this->roleLabel($a->role),
+            'value' => $this->scopeOf($a)['value'] ?? null,
+        ]);
+
+        $seats = $this->approver->organizationMemberships()
+            ->active()
+            ->with('organization:id,name')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (OrganizationMembership $m) => [
+                'label' => $m->position->label(),
+                'value' => $m->organization->name,
+            ]);
+
+        return $fromAssignments->concat($seats)->values()->all();
     }
 
     /**
@@ -444,17 +519,39 @@ class ApproverDashboardData
     {
         return DocumentTransition::query()
             ->where('actor_id', $this->approver->id)
-            ->whereIn('action', collect(self::DECISION_ACTIONS)->map(fn (TransitionAction $a) => $a->value)->all());
+            ->whereIn('action', array_map(fn (TransitionAction $a) => $a->value, self::DECISION_ACTIONS));
     }
 
-    /**
-     * @param  Builder<DocumentTransition>  $query
-     * @return Builder<DocumentTransition>
-     */
-    private function inAcademicYear(Builder $query): Builder
+    private function today(): CarbonImmutable
     {
-        [$start, $end] = $this->period->academicYearRange();
+        return CarbonImmutable::instance(DisplayTimezone::convert(now())->startOfDay());
+    }
 
-        return $query->where('created_at', '>=', $start)->where('created_at', '<', $end);
+    /** Whole Manila calendar days from $at until today. */
+    private function daysSince(CarbonInterface $at): int
+    {
+        $start = CarbonImmutable::instance(DisplayTimezone::convert($at))->startOfDay();
+
+        return max(0, (int) $start->diffInDays($this->today()));
+    }
+
+    /** Whole Manila calendar days from today until the event date; negative once it has passed. */
+    private function daysUntil(string $date): int
+    {
+        $event = CarbonImmutable::parse($date, DisplayTimezone::ASIA_MANILA)->startOfDay();
+
+        return (int) $this->today()->diffInDays($event, false);
+    }
+
+    private function decisionWhenLabel(CarbonInterface $at): string
+    {
+        $days = $this->daysSince($at);
+
+        return match (true) {
+            $days === 0 => 'Today',
+            $days === 1 => '1 day ago',
+            $days <= self::RELATIVE_DATE_DAYS => "{$days} days ago",
+            default => DisplayTimezone::convert($at)->format('M j'),
+        };
     }
 }
