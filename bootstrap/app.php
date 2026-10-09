@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\UploadLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            SecurityHeaders::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             EnsureAccountIsActive::class,
