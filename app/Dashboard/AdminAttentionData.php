@@ -226,7 +226,10 @@ class AdminAttentionData
 
         return Organization::query()
             ->whereIn('id', $approvedOrgIds)
-            ->whereDoesntHave('adviser')
+            // Only an ACTIVE adviser counts, the same rule RoleDirectory applies
+            // when it resolves the seat: a deactivated holder leaves the
+            // organization with nobody who can act on its documents.
+            ->whereDoesntHave('adviser', fn ($q) => $q->whereHas('user', fn ($user) => $user->active()))
             ->orderBy('name')
             ->get(['id', 'name']);
     }

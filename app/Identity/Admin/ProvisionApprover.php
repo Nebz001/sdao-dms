@@ -3,10 +3,15 @@
 namespace App\Identity\Admin;
 
 use App\Enums\AccountStatus;
+use App\Enums\AdviserTermOutcome;
 use App\Enums\Role;
+use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Notifications\ApproverProvisionedNotification;
+use App\Organizations\Admin\AdviserChange;
+use App\Organizations\Admin\AssignOrganizationAdviser;
+use App\Organizations\AdviserChangeNotifier;
 use App\Support\PersonName;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -32,10 +37,20 @@ use Illuminate\Validation\ValidationException;
  * removed in the same transaction. By default the account is also deactivated
  * (AccountDeactivator) in that transaction, so it can no longer log in;
  * `deactivateReplaced: false` keeps it active. Its history is never touched.
+ *
+ * An adviser provisioned WITH an organization takes that organization's seat
+ * through AssignOrganizationAdviser — the same locked, history-keeping swap SDAO
+ * uses to assign an existing pool adviser — in the same transaction as the new
+ * account, so a collision rolls the account back too. SDAO chooses whether the
+ * outgoing adviser returns to the pool or is deactivated (`outgoingAdviser`).
  */
 class ProvisionApprover
 {
-    public function __construct(private readonly AccountDeactivator $deactivator) {}
+    public function __construct(
+        private readonly AccountDeactivator $deactivator,
+        private readonly AssignOrganizationAdviser $assignAdviser,
+        private readonly AdviserChangeNotifier $adviserNotifier,
+    ) {}
 
     /**
      * True when the last execute() created the account but could not queue the
@@ -49,11 +64,13 @@ class ProvisionApprover
 
     /**
      * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
+     * @param  AdviserTermOutcome  $outgoingAdviser  Adviser role only: what happens to the organization's current adviser
+     * @param  bool  $verifyOutgoingAdviser  Adviser role only: refuse unless the current adviser is still $expectedOutgoingAdviserId
      *
      * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function execute(User $actor, string $firstName, string $lastName, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null, bool $deactivateReplaced = true): User
+    public function execute(User $actor, string $firstName, string $lastName, string $email, Role $role, array $scope, ?string $idNumber = null, ?int $replacesUserId = null, bool $deactivateReplaced = true, AdviserTermOutcome $outgoingAdviser = AdviserTermOutcome::ReturnedToPool, bool $verifyOutgoingAdviser = false, ?int $expectedOutgoingAdviserId = null): User
     {
         if (! $actor->roleAssignments->contains(fn (RoleAssignment $ra) => $ra->role === Role::SdaoMember)) {
             throw new AuthorizationException('Only an SDAO member may provision approver accounts.');
@@ -76,7 +93,9 @@ class ProvisionApprover
         $lastName = PersonName::clean($lastName);
         $name = PersonName::join($firstName, $lastName);
 
-        $user = DB::transaction(function () use ($actor, $name, $firstName, $lastName, $email, $idNumber, $role, $scope, $replacesUserId, $deactivateReplaced, $temporaryPassword) {
+        $adviserChange = null;
+
+        $user = DB::transaction(function () use ($actor, $name, $firstName, $lastName, $email, $idNumber, $role, $scope, $replacesUserId, $deactivateReplaced, $temporaryPassword, $outgoingAdviser, $verifyOutgoingAdviser, $expectedOutgoingAdviserId, &$adviserChange) {
             if ($replacesUserId !== null) {
                 $this->retireSdaoMember($replacesUserId);
 
@@ -114,6 +133,22 @@ class ProvisionApprover
                     ['role' => $role, 'school_id' => null, 'program_id' => null, 'organization_id' => null],
                     ['user_id' => $user->id],
                 );
+            } elseif ($role === Role::Adviser) {
+                // Always created in the pool first; assigning to an organization
+                // is the shared swap's job, so a new account and an existing pool
+                // adviser take exactly the same path.
+                RoleAssignment::create(['user_id' => $user->id, 'role' => $role]);
+
+                if (($scope['organization_id'] ?? null) !== null) {
+                    $adviserChange = $this->assignAdviser->swap(
+                        $actor,
+                        $this->organizationFor((int) $scope['organization_id']),
+                        $user,
+                        $outgoingAdviser,
+                        $verifyOutgoingAdviser,
+                        $expectedOutgoingAdviserId,
+                    );
+                }
             } else {
                 $this->retireIncumbent($role, $scope);
 
@@ -128,6 +163,10 @@ class ProvisionApprover
 
             return $user;
         });
+
+        if ($adviserChange instanceof AdviserChange) {
+            $this->adviserNotifier->announce($adviserChange);
+        }
 
         try {
             $user->notify(new ApproverProvisionedNotification($role, $temporaryPassword));
@@ -194,32 +233,30 @@ class ProvisionApprover
     }
 
     /**
-     * A scope-bound single-holder role (adviser/chair/dean/principal) has
-     * exactly one seat per (role, scope) pair. Provisioning a replacement
-     * must vacate that seat first — otherwise RoleDirectory is left choosing
-     * between two live rows, and the replacement (the higher id) never wins
-     * (see RoleDirectory::resolveScoped()'s first-assigned-wins rule), so
-     * the newly provisioned approver is silently neither notified nor
-     * authorized for anything. A no-op for roles that aren't single-holder
-     * per scope (SdaoMember), and for an Adviser provisioned with no
-     * organization_id — that's the unassigned pool, not a seat; nothing to
-     * retire (see guardScopeMatchesRole()'s docblock on this same asymmetry).
+     * @throws ValidationException
+     */
+    private function organizationFor(int $organizationId): Organization
+    {
+        return Organization::query()->find($organizationId)
+            ?? throw ValidationException::withMessages(['organization_id' => 'That organization no longer exists.']);
+    }
+
+    /**
+     * A scope-bound single-holder role (chair/dean/principal) has exactly one
+     * seat per (role, scope) pair. Provisioning a replacement must vacate that
+     * seat first — otherwise RoleDirectory is left choosing between two live
+     * rows, and the replacement (the higher id) never wins (see
+     * RoleDirectory::resolveScoped()'s first-assigned-wins rule), so the newly
+     * provisioned approver is silently neither notified nor authorized for
+     * anything. A no-op for SdaoMember, which is not single-holder per scope.
      *
-     * Adviser vs. the other three roles retire differently, deliberately:
-     * an Adviser's previous holder is UNBOUND (organization_id => null),
-     * freed back to the available pool — never deleted — because
-     * StoreRegistrationRequest/UpdateRegistrationRequest validate a chosen
-     * adviser_id with Rule::exists('role_assignments', 'user_id')->where(
-     * 'role', 'adviser'), and App\Registrations\ApproveOrganizationRegistration
-     * looks up that same row by user_id alone to bind it at approval time —
-     * deleting it would fail an in-flight registration's revalidation and
-     * silently no-op that binding. This mirrors the existing
-     * organization_id nullOnDelete "freed to the pool" behavior (see
-     * tests/Feature/AdviserFreedOnOrganizationDeleteTest.php). Dean/
-     * ProgramChair/Principal have no such pool concept — their scope key is
-     * always required (guardScopeMatchesRole()), so a scope-less leftover
-     * row would be meaningless — their previous holder's row is deleted
-     * outright.
+     * Adviser is NOT handled here: its seat is swapped by
+     * AssignOrganizationAdviser, which unbinds the previous adviser back to the
+     * pool (never deleting the role row, so an in-flight registration naming
+     * them still validates) and keeps the dated history. Chair/Dean/Principal
+     * have no pool concept — their scope key is always required
+     * (guardScopeMatchesRole()), so a scope-less leftover row would be
+     * meaningless — their previous holder's row is deleted outright.
      *
      * @param  array{school_id?: int|null, program_id?: int|null, organization_id?: int|null}  $scope
      */
@@ -236,19 +273,12 @@ class ProvisionApprover
             return;
         }
 
-        $incumbents = RoleAssignment::query()
+        RoleAssignment::query()
             ->where('role', $role)
             ->where($column, $value)
             ->lockForUpdate()
-            ->get();
-
-        foreach ($incumbents as $incumbent) {
-            if ($role === Role::Adviser) {
-                $incumbent->update(['organization_id' => null]);
-            } else {
-                $incumbent->delete();
-            }
-        }
+            ->get()
+            ->each->delete();
     }
 
     /**

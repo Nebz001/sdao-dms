@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
 use App\Enums\OfficerPosition;
 use App\Enums\Role;
+use App\Models\AdviserTerm;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
 use App\Models\RoleAssignment;
@@ -107,7 +108,16 @@ class ApproveOrganizationRegistration
             // members) — the first of two approvals does not yet flip status to
             // Approved, and binding must not happen prematurely.
             if ($document->status === DocumentStatus::Approved) {
-                $adviserAssignment?->update(['organization_id' => $document->organization_id]);
+                if ($adviserAssignment !== null) {
+                    $adviserAssignment->update(['organization_id' => $document->organization_id]);
+
+                    AdviserTerm::create([
+                        'user_id' => $adviserAssignment->user_id,
+                        'organization_id' => $document->organization_id,
+                        'started_at' => now(),
+                        'started_by' => $actor->id,
+                    ]);
+                }
 
                 $period = CurrentPeriod::get();
 

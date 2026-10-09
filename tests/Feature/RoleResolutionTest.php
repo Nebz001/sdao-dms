@@ -7,6 +7,7 @@ use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -286,13 +287,17 @@ test('a duplicate principal assignment for the same school resolves to the FIRST
     expect($directory->principalFor($org)->id)->toBe($real->id);
 });
 
-test('a duplicate adviser assignment for the same organization resolves to the FIRST-assigned (lowest id) holder', function () {
+// Duplicate Dean/Chair/Principal rows can still exist, so those keep the
+// first-assigned rule above. For an adviser the database itself now refuses the
+// second bound row (role_assignments_one_bound_adviser_per_organization).
+test('a second adviser for the same organization is refused by the database, and the first-assigned holder keeps resolving', function () {
     $org = Organization::factory()->create();
 
     $real = User::factory()->create();
     $placeholder = User::factory()->create();
     assignRole($real, Role::Adviser, ['organization_id' => $org->id]);
-    assignRole($placeholder, Role::Adviser, ['organization_id' => $org->id]);
+    expect(fn () => assignRole($placeholder, Role::Adviser, ['organization_id' => $org->id]))
+        ->toThrow(UniqueConstraintViolationException::class);
 
     $directory = app(RoleDirectory::class);
 

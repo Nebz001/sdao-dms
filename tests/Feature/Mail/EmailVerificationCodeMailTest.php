@@ -84,7 +84,8 @@ test('the branded header renders on every markdown mailable', function (string $
         'expiresAt' => now()->addMinutes(10),
     ]],
     'approver-hand-off' => ['mail.approver-hand-off', [
-        'isResubmission' => false,
+        'returnedByYou' => false,
+        'isRevised' => false,
         'approverName' => 'Test Approver',
         'formTypeLabel' => 'Registration',
         'organizationName' => 'Test Org',

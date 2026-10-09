@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ApproverController;
 use App\Http\Controllers\Admin\CurrentPeriodController;
 use App\Http\Controllers\Admin\DocumentArchiveController;
 use App\Http\Controllers\Admin\OfficerChangeReviewController as AdminOfficerChangeReviewController;
+use App\Http\Controllers\Admin\OrganizationAdviserController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\PendingAccountController;
 use App\Http\Controllers\Admin\StuckDocumentsController;
@@ -221,6 +222,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/approvers', [ApproverController::class, 'index'])->name('approvers.index');
         Route::get('/approvers/create', [ApproverController::class, 'create'])->name('approvers.create');
         Route::post('/approvers', [ApproverController::class, 'store'])->name('approvers.store');
+        Route::post('/organizations/{organization}/adviser', [OrganizationAdviserController::class, 'store'])->name('organizations.adviser.store');
 
         // Deactivate or reactivate a non student account; the search finds
         // any such account, including one that no longer holds a role. Same

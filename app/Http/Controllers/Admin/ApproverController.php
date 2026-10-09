@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Dashboard\AdminAttentionData;
+use App\Enums\AdviserTermOutcome;
 use App\Enums\Role;
 use App\Enums\ScopeType;
 use App\Http\Controllers\Controller;
@@ -240,9 +241,16 @@ class ApproverController extends Controller
         };
     }
 
-    public function create(RoleDirectory $directory): Response
+    public function create(Request $request, RoleDirectory $directory): Response
     {
         return Inertia::render('admin/approvers/create', [
+            // "Create adviser account" on an organization page links here with
+            // the role and organization already chosen. Anything that is not a
+            // real, provisionable role or an existing organization is ignored.
+            'preset' => [
+                'role' => Role::tryFrom($request->string('role')->toString()) === Role::Adviser ? Role::Adviser->value : null,
+                'organization_id' => Organization::query()->whereKey($request->integer('organization_id'))->value('id'),
+            ],
             'sdaoMembers' => $directory->sdaoMembers()
                 ->reject(fn (User $u) => $u->id === Auth::id())
                 ->sortBy('name')
@@ -260,8 +268,14 @@ class ApproverController extends Controller
                 ->map(fn (School $s) => ['id' => $s->id, 'name' => $s->name]),
             'programs' => Program::query()->orderBy('name')->get(['id', 'name', 'school_id'])
                 ->map(fn (Program $p) => ['id' => $p->id, 'name' => $p->name, 'school_id' => $p->school_id]),
-            'organizations' => Organization::query()->orderBy('name')->get(['id', 'name'])
-                ->map(fn (Organization $o) => ['id' => $o->id, 'name' => $o->name]),
+            // The current adviser rides along so the form can say who a new adviser
+            // would replace, and send that id back for the stale-page check.
+            'organizations' => Organization::query()->with('adviser.user:id,name')->orderBy('name')->get(['id', 'name'])
+                ->map(fn (Organization $o) => [
+                    'id' => $o->id,
+                    'name' => $o->name,
+                    'adviser' => $o->adviser?->user === null ? null : ['id' => $o->adviser->user->id, 'name' => $o->adviser->user->name],
+                ]),
         ]);
     }
 
@@ -284,6 +298,9 @@ class ApproverController extends Controller
             ],
             replacesUserId: $replacesUserId,
             deactivateReplaced: $request->boolean('deactivate_replaced', true),
+            outgoingAdviser: AdviserTermOutcome::tryFrom($request->string('outgoing_adviser')->toString()) ?? AdviserTermOutcome::ReturnedToPool,
+            verifyOutgoingAdviser: $request->has('current_adviser_id'),
+            expectedOutgoingAdviserId: $request->integer('current_adviser_id') ?: null,
         );
 
         $message = 'Their one time password was emailed to them.';

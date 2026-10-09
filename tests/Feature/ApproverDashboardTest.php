@@ -14,6 +14,7 @@ use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\Program;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Support\AcademicPeriod;
@@ -198,8 +199,11 @@ test('extra role pills appear only for another role assignment or an active offi
     $this->actingAs($this->adviserOne)->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page->has('approverDashboard.extraRoles', 0));
 
-    // A second advised organization and an active officer seat each add one pill.
-    RoleAssignment::create(['user_id' => $this->adviserOne->id, 'role' => Role::Adviser, 'organization_id' => $this->itGuild->id]);
+    // A further approver role and an active officer seat each add one pill. (A
+    // second advised organization is not possible: the database allows an
+    // adviser at most one organization.)
+    $program = Program::where('name', 'BS Computer Science')->firstOrFail();
+    RoleAssignment::create(['user_id' => $this->adviserOne->id, 'role' => Role::ProgramChair, 'program_id' => $program->id]);
     OrganizationMembership::create([
         'user_id' => $this->adviserOne->id,
         'organization_id' => $this->shsCouncil->id,
@@ -214,7 +218,7 @@ test('extra role pills appear only for another role assignment or an active offi
         ->assertInertia(fn ($page) => $page
             ->where('approverDashboard.scope', ['label' => 'Organization', 'value' => 'Computing Society'])
             ->where('approverDashboard.extraRoles', [
-                ['label' => 'Adviser', 'value' => 'IT Guild'],
+                ['label' => Role::ProgramChair->label(), 'value' => 'BS Computer Science'],
                 ['label' => 'Secretary', 'value' => 'SHS Student Council'],
             ])
         );

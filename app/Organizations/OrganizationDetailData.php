@@ -7,11 +7,14 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
 use App\Enums\RenewalEligibility;
+use App\Enums\Role;
 use App\Enums\Term;
 use App\Enums\TransitionAction;
+use App\Models\AdviserTerm;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
+use App\Models\User;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
@@ -189,6 +192,58 @@ class OrganizationDetailData
                 'since' => ($m->started_at ?? $m->created_at)?->toIso8601String(),
             ])
             ->all();
+    }
+
+    /**
+     * The organization's adviser now, its dated history (newest first), and the
+     * pool SDAO can pick a replacement from: active advisers bound to no
+     * organization.
+     *
+     * @return array{current: array<string, mixed>|null, history: list<array<string, mixed>>, pool: list<array<string, mixed>>}
+     */
+    public function adviser(Organization $organization): array
+    {
+        $assignment = $organization->adviser()->with('user:id,name,email')->first();
+        $openTerm = $assignment === null ? null : AdviserTerm::query()
+            ->where('organization_id', $organization->id)
+            ->where('user_id', $assignment->user_id)
+            ->open()
+            ->with('startedBy:id,name')
+            ->first();
+
+        $history = AdviserTerm::query()
+            ->where('organization_id', $organization->id)
+            ->whereNotNull('ended_at')
+            ->with(['user:id,name', 'startedBy:id,name', 'endedBy:id,name'])
+            ->orderByDesc('ended_at')
+            ->limit(20)
+            ->get();
+
+        $pool = User::query()
+            ->active()
+            ->whereHas('roleAssignments', fn ($q) => $q->where('role', Role::Adviser->value)->whereNull('organization_id'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
+        return [
+            'current' => $assignment === null || $assignment->user === null ? null : [
+                'id' => $assignment->user->id,
+                'name' => $assignment->user->name,
+                'email' => $assignment->user->email,
+                'since' => ($openTerm?->started_at ?? $assignment->created_at)?->toIso8601String(),
+                'assigned_by' => $openTerm?->startedBy?->name,
+            ],
+            'history' => $history->map(fn (AdviserTerm $term) => [
+                'id' => $term->id,
+                'name' => $term->user->name,
+                'started_at' => $term->started_at->toIso8601String(),
+                'ended_at' => $term->ended_at?->toIso8601String(),
+                'assigned_by' => $term->startedBy?->name,
+                'ended_by' => $term->endedBy?->name,
+                'outcome' => $term->end_outcome?->label(),
+            ])->all(),
+            'pool' => $pool->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])->all(),
+        ];
     }
 
     /**

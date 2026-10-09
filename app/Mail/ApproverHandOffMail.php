@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Enums\TransitionAction;
 use App\Models\Document;
+use App\Models\DocumentTransition;
 use App\Models\User;
 use App\Support\DocumentUrls;
 use Illuminate\Bus\Queueable;
@@ -67,9 +68,29 @@ class ApproverHandOffMail extends Mailable
      */
     public function subjectLine(): string
     {
-        return $this->triggerAction === TransitionAction::Resubmitted
+        return $this->returnedByRecipient()
             ? "Resubmitted for your review: {$this->document->title}"
             : "Action needed: {$this->document->title}";
+    }
+
+    /**
+     * True only when THIS recipient is the one who returned the document at this
+     * step, so "you previously returned this" is true. A resubmission that lands
+     * on someone else — a new adviser who took over the seat while the document
+     * was out for revision — never saw it, so it reads as a plain hand-off.
+     */
+    public function returnedByRecipient(): bool
+    {
+        if ($this->triggerAction !== TransitionAction::Resubmitted) {
+            return false;
+        }
+
+        return DocumentTransition::query()
+            ->where('document_id', $this->document->id)
+            ->where('actor_id', $this->approver->id)
+            ->where('action', TransitionAction::Returned->value)
+            ->where('step_position', $this->stepPosition)
+            ->exists();
     }
 
     public function content(): Content
@@ -82,7 +103,8 @@ class ApproverHandOffMail extends Mailable
                 'organizationName' => $this->document->organization->name,
                 'documentTitle' => $this->document->title,
                 'reviewUrl' => DocumentUrls::forReviewer($this->document),
-                'isResubmission' => $this->triggerAction === TransitionAction::Resubmitted,
+                'returnedByYou' => $this->returnedByRecipient(),
+                'isRevised' => $this->triggerAction === TransitionAction::Resubmitted,
             ],
         );
     }

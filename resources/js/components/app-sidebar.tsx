@@ -86,8 +86,16 @@ export function AppSidebar() {
     // updated once created (would go stale on officer turnover).
     const isStudentOfficer = auth?.isActiveOfficer ?? false;
     const isSdao = roles.some((r) => r.role === 'sdao_member');
-    const reviewsProposals = roles.some((r) =>
+    const holdsApproverRole = roles.some((r) =>
         PROPOSAL_APPROVER_ROLES.has(r.role),
+    );
+    // An adviser in the unassigned pool (or one just replaced) has no
+    // organization, so there is nothing for them to review — the proposal
+    // review entries stay hidden until they are bound to one.
+    const reviewsProposals = roles.some(
+        (r) =>
+            PROPOSAL_APPROVER_ROLES.has(r.role) &&
+            !(r.role === 'adviser' && r.organization_id === null),
     );
     const adviserRole = roles.find(
         (r) => r.role === 'adviser' && r.organization_id !== null,
@@ -95,14 +103,14 @@ export function AppSidebar() {
 
     // A verified student with no org and no approver role yet — eligible to
     // found a new organization (DocumentPolicy::propose, shared server-side
-    // as auth.canProposeOrganization). Guarded against isSdao/reviewsProposals
+    // as auth.canProposeOrganization). Guarded against isSdao/holdsApproverRole
     // too: those roles use RoleAssignment, not OrganizationMembership, so
     // they'd also read as "no active org" without this extra check — the
-    // founding flow is student-only.
+    // founding flow is student-only (an unassigned adviser included).
     const canFoundOrganization =
         !isStudentOfficer &&
         !isSdao &&
-        !reviewsProposals &&
+        !holdsApproverRole &&
         (auth?.canProposeOrganization ?? false);
 
     const counts = page.props.navCounts;

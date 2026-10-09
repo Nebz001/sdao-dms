@@ -152,6 +152,7 @@ class OrganizationController extends Controller
             'requirements' => Inertia::defer(fn () => $detail->requirements($found), 'org-requirements'),
             'documents' => Inertia::defer(fn () => $detail->documents($found), 'org-documents'),
             'officers' => Inertia::defer(fn () => $detail->officers($found), 'org-officers'),
+            'adviser' => Inertia::defer(fn () => $detail->adviser($found), 'org-adviser'),
         ]);
     }
 

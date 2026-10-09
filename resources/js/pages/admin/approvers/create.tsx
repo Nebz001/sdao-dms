@@ -23,7 +23,12 @@ import {
 type RoleOption = { value: string; label: string; scope_type: string };
 type SchoolOption = { id: number; name: string };
 type ProgramOption = { id: number; name: string; school_id: number };
-type OrganizationOption = { id: number; name: string };
+type OrganizationOption = {
+    id: number;
+    name: string;
+    /** The organization's current adviser, who a new adviser would replace. */
+    adviser: { id: number; name: string } | null;
+};
 type SdaoMemberOption = { id: number; name: string; email: string };
 
 type Props = {
@@ -32,12 +37,15 @@ type Props = {
     programs: ProgramOption[];
     organizations: OrganizationOption[];
     sdaoMembers: SdaoMemberOption[];
+    /** From the "Create adviser account" link on an organization page. */
+    preset: { role: string | null; organization_id: number | null };
 };
 
 const SDAO_ROLE = 'sdao_member';
+const ADVISER_ROLE = 'adviser';
 const NO_REPLACEMENT = 'none';
 
-export default function CreateApprover({ roles, schools, programs, organizations, sdaoMembers }: Props) {
+export default function CreateApprover({ roles, schools, programs, organizations, sdaoMembers, preset }: Props) {
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     const form = useForm({
@@ -45,12 +53,14 @@ export default function CreateApprover({ roles, schools, programs, organizations
         last_name: '',
         email: '',
         id_number: '',
-        role: '',
+        role: preset.role ?? '',
         school_id: '',
         program_id: '',
-        organization_id: '',
+        organization_id:
+            preset.role === ADVISER_ROLE && preset.organization_id !== null ? String(preset.organization_id) : '',
         replaces_user_id: NO_REPLACEMENT,
         deactivate_replaced: true,
+        deactivate_outgoing_adviser: false,
     });
 
     const selectedRole = roles.find((r) => r.value === form.data.role);
@@ -59,6 +69,16 @@ export default function CreateApprover({ roles, schools, programs, organizations
         form.data.role === SDAO_ROLE
             ? sdaoMembers.find((m) => String(m.id) === form.data.replaces_user_id)
             : undefined;
+    // An adviser created for an organization takes over from its current
+    // adviser, if it has one.
+    const selectedOrganization =
+        form.data.role === ADVISER_ROLE
+            ? organizations.find((o) => String(o.id) === form.data.organization_id)
+            : undefined;
+    const outgoingAdviser = selectedOrganization?.adviser ?? null;
+    // The swap's own refusal (stale page, a collision) comes back under
+    // `adviser`, which is not one of this form's fields.
+    const adviserError = (form.errors as Record<string, string | undefined>).adviser;
 
     const handleRoleChange = (role: string) => {
         form.setData((data) => ({
@@ -69,6 +89,7 @@ export default function CreateApprover({ roles, schools, programs, organizations
             organization_id: '',
             replaces_user_id: NO_REPLACEMENT,
             deactivate_replaced: true,
+            deactivate_outgoing_adviser: false,
         }));
     };
 
@@ -80,13 +101,22 @@ export default function CreateApprover({ roles, schools, programs, organizations
     };
 
     const create = (close: () => void) => {
-        form.transform((data) => ({
+        form.transform(({ deactivate_outgoing_adviser, ...data }) => ({
             ...data,
             replaces_user_id:
                 data.role === SDAO_ROLE && data.replaces_user_id !== NO_REPLACEMENT
                     ? data.replaces_user_id
                     : null,
             deactivate_replaced: data.deactivate_replaced,
+            // Only for an adviser created for an organization: what happens to
+            // the current adviser, and which adviser this page showed, so the
+            // server refuses if it changed in the meantime.
+            ...(data.role === ADVISER_ROLE && data.organization_id !== ''
+                ? {
+                      outgoing_adviser: deactivate_outgoing_adviser ? 'deactivated' : 'returned_to_pool',
+                      current_adviser_id: outgoingAdviser?.id ?? null,
+                  }
+                : {}),
         }));
 
         form.post(ApproverController.store.url(), {
@@ -265,6 +295,39 @@ export default function CreateApprover({ roles, schools, programs, organizations
                                 organization automatically once a registration naming them is approved.
                             </p>
                             <InputError message={form.errors.organization_id} />
+                            <InputError message={adviserError} />
+
+                            {outgoingAdviser !== null && (
+                                <div className="mt-2 flex flex-col gap-3">
+                                    <PageNotice
+                                        tone="warning"
+                                        title={`${outgoingAdviser.name} stops being the adviser of ${selectedOrganization?.name}.`}
+                                    >
+                                        The new adviser takes over their pending documents and join requests. They
+                                        are told their role ended, and the organization&apos;s officers are told who
+                                        the new adviser is.
+                                    </PageNotice>
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="deactivate_outgoing_adviser"
+                                            checked={form.data.deactivate_outgoing_adviser}
+                                            onCheckedChange={(checked) =>
+                                                form.setData('deactivate_outgoing_adviser', checked === true)
+                                            }
+                                        />
+                                        <div className="grid gap-1">
+                                            <Label htmlFor="deactivate_outgoing_adviser">
+                                                Also deactivate {outgoingAdviser.name}&apos;s account
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {form.data.deactivate_outgoing_adviser
+                                                    ? 'They are signed out everywhere and can no longer log in. You can reactivate them later.'
+                                                    : 'Left unchecked, they return to the pool of unassigned advisers and keep their account.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -348,6 +411,16 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             <PageNotice tone="warning" title="Check the address carefully.">
                                 A typo sends the temporary password to the wrong person.
                             </PageNotice>
+                            {outgoingAdviser !== null && (
+                                <PageNotice
+                                    tone="info"
+                                    title={`Replace ${outgoingAdviser.name} as adviser of ${selectedOrganization?.name}?`}
+                                >
+                                    {form.data.deactivate_outgoing_adviser
+                                        ? 'They will also be deactivated and can no longer log in. Their history stays and keeps showing their name.'
+                                        : 'They go back to the pool of unassigned advisers and keep their account.'}
+                                </PageNotice>
+                            )}
                             {replacedMember !== undefined && (
                                 <PageNotice tone="info" title={`Remove SDAO role from ${replacedMember.name}?`}>
                                     {form.data.deactivate_replaced

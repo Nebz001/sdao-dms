@@ -3,6 +3,7 @@
 use App\Enums\DocumentStatus;
 use App\Enums\OfficerPosition;
 use App\Enums\Role;
+use App\Models\AdviserTerm;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\Program;
@@ -48,7 +49,9 @@ test('adviser-search reports an unbound adviser as available and a bound one as 
     RoleAssignment::create(['user_id' => $available->id, 'role' => Role::Adviser->value]);
 
     $bound = User::factory()->create(['name' => 'Bound Adviser']);
-    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    // An organization with no adviser of its own: the database allows one bound
+    // adviser per organization, so a second one cannot share Computing Society.
+    $org = Organization::factory()->create();
     RoleAssignment::create(['user_id' => $bound->id, 'role' => Role::Adviser->value, 'organization_id' => $org->id]);
 
     $response = $this->actingAs($this->sdaoA)
@@ -164,19 +167,26 @@ test('the chosen adviser is bound only after Approval, never before', function (
 
     expect($document->status)->toBe(DocumentStatus::InReview);
     expect($stillUnbound())->toBeTrue();
+    expect(AdviserTerm::where('user_id', $adviser->id)->exists())->toBeFalse();
 
     // First of two SDAO approvals — quorum not yet reached, still unbound.
     $this->actingAs($this->sdaoA)->post(route('review.registrations.approve', $document));
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::InReview);
     expect($stillUnbound())->toBeTrue();
+    expect(AdviserTerm::where('user_id', $adviser->id)->exists())->toBeFalse();
 
-    // Second approval reaches quorum — NOW bound.
+    // Second approval reaches quorum — NOW bound, and the adviser's term opens
+    // with the SDAO member who completed the approval recorded as who bound them.
     $this->actingAs($this->sdaoB)->post(route('review.registrations.approve', $document));
     $document->refresh();
     expect($document->status)->toBe(DocumentStatus::Approved);
     expect(RoleAssignment::where('user_id', $adviser->id)->where('role', Role::Adviser->value)->first()->organization_id)
         ->toBe($document->organization_id);
+
+    $term = AdviserTerm::where('user_id', $adviser->id)->open()->firstOrFail();
+    expect($term->organization_id)->toBe($document->organization_id)
+        ->and($term->started_by)->toBe($this->sdaoB->id);
 });
 
 // Investigation (reported gap: "founding adviser missing Manage Officers in

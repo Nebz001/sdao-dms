@@ -1,5 +1,5 @@
 <x-mail::message>
-@if ($isResubmission)
+@if ($returnedByYou)
 # Resubmitted for your review
 
 Hi {{ $approverName }},
@@ -13,7 +13,12 @@ revision. It has now been resubmitted and is ready for your review again:
 
 Hi {{ $approverName }},
 
+@if ($isRevised)
+A **{{ $formTypeLabel }}** from **{{ $organizationName }}** was revised after being returned
+for changes and is waiting for your review:
+@else
 A **{{ $formTypeLabel }}** from **{{ $organizationName }}** is waiting for your review:
+@endif
 
 > {{ $documentTitle }}
 @endif

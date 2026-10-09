@@ -11,6 +11,8 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import DeactivateOfficerAccountDialog from '@/components/deactivate-officer-account-dialog';
 import ErrorBoundary from '@/components/error-boundary';
+import OrganizationAdviserCard from '@/components/organization-adviser-card';
+import type { AdviserData } from '@/components/organization-adviser-card';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import DataTable, { RowViewButton } from '@/components/review-queue/data-table';
@@ -132,6 +134,7 @@ type Props = {
     requirements?: RequirementRow[];
     documents?: { rows: DocumentRow[]; periods: Period[] };
     officers?: Officer[];
+    adviser?: AdviserData;
 };
 
 const ALL_PERIODS = 'all';
@@ -591,6 +594,7 @@ function OrganizationDetail({
     requirements,
     documents,
     officers,
+    adviser,
 }: LoadedProps) {
     return (
         <div className="flex flex-col gap-6">
@@ -667,6 +671,18 @@ function OrganizationDetail({
                 <DocumentsSection
                     data={documents ?? { rows: [], periods: [] }}
                 />
+            </Deferred>
+
+            <Deferred
+                data="adviser"
+                fallback={<SectionSkeleton title="Adviser" />}
+            >
+                {adviser ? (
+                    <OrganizationAdviserCard
+                        organization={organization}
+                        data={adviser}
+                    />
+                ) : null}
             </Deferred>
 
             <Deferred

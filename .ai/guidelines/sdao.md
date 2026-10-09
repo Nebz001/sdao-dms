@@ -291,6 +291,43 @@ registration is Approved — not at submission. If the chosen adviser is the
 specific problem, SDAO uses return-for-revision (not reject) so the student can
 pick a different one; reject remains available separately for other reasons.
 
+### Changing an organization's adviser
+
+SDAO changes an organization's adviser two ways — assign an existing unassigned
+(pool) adviser from the organization page, or create a new adviser account for
+the organization — and BOTH end in one action,
+`App\Organizations\Admin\AssignOrganizationAdviser`. Never change who is bound
+anywhere else.
+
+- **One locked transaction**, same idea as `runSeatChange()`: lock the
+  organization row, close the outgoing adviser's `adviser_terms` row, unbind
+  their role row (back to the pool — never deleted), bind the incoming adviser
+  and open their term. A collision gets a plain validation message, not a 500.
+- **History is a table, not a column:** `adviser_terms` (user, organization,
+  `started_at`, `ended_at`, who started and who ended it, and how it ended).
+  Rows are closed, never deleted. `role_assignments` stays the live source of
+  "who is the adviser now"; RoleDirectory is unchanged.
+- **Database rules:** partial unique indexes allow one bound adviser per
+  organization and one bound organization per adviser, and one open term per
+  organization and per user. Unbound pool advisers are unconstrained.
+- **SDAO chooses the outgoing adviser's fate:** back to the pool, or
+  deactivated in the same transaction. The screens send the adviser the page
+  showed; the action refuses if it changed meanwhile (so a confirmation about
+  one adviser can never deactivate another).
+- **Documents move on their own:** nothing is stored per document, so whatever
+  waits at the adviser step belongs to the new adviser the moment the swap
+  commits. Because the engine only notifies on a transition, the swap sends the
+  new adviser ONE notice (never one per document) listing the documents waiting
+  at their step and pending join requests.
+- **Notices, after commit and best-effort:** new adviser (what is waiting), old
+  adviser (their role ended — NEVER who replaced them; mail only if
+  deactivated), the organization's active officers (who the new adviser is).
+- **Printed forms keep the adviser who actually signed** (read from the step
+  approval); only an unsigned form previews whoever holds the seat now.
+- An adviser with no organization is not a reviewer: the proposal review
+  entries stay hidden for them, and an organization whose only adviser is
+  deactivated counts as having no adviser.
+
 ### Section-based revision flagging — universal (all form types, all approvers)
 Every return-for-revision action allows the approver to flag one or more specific
 sections of the document as needing revision (not just a free-text comment), and

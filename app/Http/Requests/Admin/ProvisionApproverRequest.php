@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\ProfileValidationRules;
+use App\Enums\AdviserTermOutcome;
 use App\Enums\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -58,6 +59,11 @@ class ProvisionApproverRequest extends FormRequest
                 Rule::prohibitedIf(fn () => $this->input('role') !== Role::SdaoMember->value),
                 Rule::exists('role_assignments', 'user_id')->where('role', Role::SdaoMember->value),
             ],
+            // Adviser with an organization only: what happens to the organization's
+            // current adviser, and which adviser the page showed (see
+            // AssignOrganizationAdviserRequest).
+            'outgoing_adviser' => ['sometimes', Rule::enum(AdviserTermOutcome::class)],
+            'current_adviser_id' => ['sometimes', 'nullable', 'integer'],
             'id_number' => $this->idNumberRules(required: false),
             'role' => ['required', 'string', Rule::enum(Role::class)->except([Role::Student])],
             'school_id' => ['nullable', 'integer', 'exists:schools,id'],
