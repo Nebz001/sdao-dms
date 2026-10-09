@@ -40,6 +40,7 @@ class ApprovalEngine
         private readonly ApproverNotifier $notifier,
         private readonly SubmitterNotifier $submitterNotifier,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
     ) {}
 
     // -------------------------------------------------------------------------
@@ -56,6 +57,10 @@ class ApprovalEngine
     public function submit(Document $document, User $actor): void
     {
         $this->guardStatus($document, DocumentStatus::Draft, 'submit');
+
+        // Before anything is written: a first step with nobody in post refuses
+        // the submission instead of failing halfway through it.
+        $this->approverGuard->assertCanSubmit($document->form_type, $document->variant, $document->organization);
 
         DB::transaction(function () use ($document, $actor) {
             $template = $this->templateResolver->resolve(
@@ -106,6 +111,14 @@ class ApprovalEngine
 
             $this->guardIsApprover($actor, $approvers);
             $this->guardNoDuplicate($document, $step, $actor);
+
+            // An approval that would complete this step must have someone to
+            // hand the document to; refuse it before recording anything.
+            $this->approverGuard->assertCanApprove(
+                $document,
+                $step,
+                DocumentStepApproval::query()->where('document_id', $document->id)->where('workflow_step_id', $step->id)->count() + 1,
+            );
 
             // Record this individual approval.
             DocumentStepApproval::create([
@@ -262,6 +275,9 @@ class ApprovalEngine
     public function resubmit(Document $document, User $actor, ?array $fieldChanges = null): void
     {
         $this->guardStatus($document, DocumentStatus::Returned, 'resubmit');
+
+        // The step that returned it must still have someone to take it back.
+        $this->approverGuard->assertCanResubmit($document);
 
         DB::transaction(function () use ($document, $actor, $fieldChanges) {
             $fromStatus = $document->status;

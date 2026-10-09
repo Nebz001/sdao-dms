@@ -1,5 +1,6 @@
 <?php
 
+use App\Approval\Exceptions\NoApproverForStepException;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureMobileAccess;
 use App\Http\Middleware\EnsurePasswordIsChanged;
@@ -7,6 +8,7 @@ use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
+use App\Support\FlashToast;
 use App\Support\UploadLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -60,6 +62,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // A step with nobody in post (no adviser, dean, chair, principal...) is
+        // refused by StepApproverGuard before anything is saved. Say which role
+        // is missing: a toast back on the page the person was on (the app's one
+        // feedback convention), or a 422 for the mobile api, never a 404/500.
+        $exceptions->render(function (NoApproverForStepException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'errors' => ['approve' => [$e->getMessage()]],
+                ], 422);
+            }
+
+            return back()->with('flash', FlashToast::error($e->title(), $e->getMessage()));
+        });
 
         // A request that exceeds PHP's post_max_size is caught by the global
         // ValidatePostSize middleware — which runs BEFORE StartSession, so no

@@ -3,8 +3,10 @@
 namespace App\Approval;
 
 use App\Enums\Role;
+use App\Enums\ScopeType;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
+use App\Models\Organization;
 use App\Models\User;
 use App\Models\WorkflowStep;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,7 +31,21 @@ class StepApproverResolver
      */
     public function approversFor(WorkflowStep $step, Document $document): Collection
     {
-        $org = $document->organization;
+        return $this->approversForOrganization($step, $document->organization);
+    }
+
+    /**
+     * Same resolution for an organization with no document yet — what the
+     * submit-time check needs, before the document exists. Org-independent
+     * steps (SDAO, the directors) ignore it.
+     *
+     * @return Collection<int, User>
+     */
+    public function approversForOrganization(WorkflowStep $step, ?Organization $org): Collection
+    {
+        if ($org === null && $step->role->scopeType() !== ScopeType::Global) {
+            throw new LogicException("The {$step->role->value} step is resolved from an organization.");
+        }
 
         $user = match ($step->role) {
             Role::Adviser => $this->directory->adviserFor($org),

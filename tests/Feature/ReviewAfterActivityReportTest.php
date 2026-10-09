@@ -3,6 +3,7 @@
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\Approval\ApprovalEngine;
+use App\Approval\Exceptions\NoApproverForStepException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -17,7 +18,6 @@ use App\Reports\SubmitAfterActivityReport;
 use App\Support\AcademicYear;
 use App\Support\NavCounts;
 use Database\Seeders\WorkflowTemplateSeeder;
-use Illuminate\Validation\ValidationException;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -243,7 +243,7 @@ test('an organization with no active adviser cannot submit a report, and nothing
         proposal: $proposal,
         summary: 'No adviser to receive this.',
         attachmentFiles: reportAttachmentFiles(),
-    ))->toThrow(ValidationException::class, 'no active adviser');
+    ))->toThrow(NoApproverForStepException::class, 'no active adviser');
 
     expect(Document::where('form_type', FormType::AfterActivityReport->value)->count())->toBe($before);
 });

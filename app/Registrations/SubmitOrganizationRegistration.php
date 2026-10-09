@@ -3,6 +3,7 @@
 namespace App\Registrations;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\StepApproverGuard;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -34,6 +35,7 @@ class SubmitOrganizationRegistration
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
         private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
@@ -96,6 +98,9 @@ class SubmitOrganizationRegistration
         }
 
         $academicYear = AcademicYear::current();
+
+        // Nothing is saved, and no file is written, if SDAO has nobody in post.
+        $this->approverGuard->assertCanSubmit(FormType::OrganizationRegistration, null, null);
 
         return DB::transaction(function () use (
             $actor, $name, $schoolId, $programId, $adviserId,

@@ -3,6 +3,7 @@
 namespace App\Calendar;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\StepApproverGuard;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\ActivityCalendar;
@@ -22,6 +23,7 @@ class SubmitActivityCalendar
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
         private readonly VenueConflictChecker $conflictChecker,
     ) {}
 
@@ -64,6 +66,8 @@ class SubmitActivityCalendar
 
         $academicYear = $period->academicYear;
         $term = $period->term;
+
+        $this->approverGuard->assertCanSubmit(FormType::ActivityCalendar, null, $organization);
 
         $document = DB::transaction(function () use ($actor, $organization, $term, $activities, $academicYear) {
             $document = Document::create([

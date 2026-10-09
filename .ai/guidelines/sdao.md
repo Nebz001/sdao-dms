@@ -141,9 +141,20 @@ SDAO only). SDAO keeps its rules exactly (both members required, split decision
 returns), just one step later. The report is routed by the generic engine like
 any other form: the organization's adviser resolves by role, and an adviser's
 return resumes at the adviser, SDAO's at SDAO. There is no report-specific
-branch in code. Submitting a report for an organization with no active adviser
-is refused up front with a plain message (`SubmitAfterActivityReport`), the same
-way an unresolvable adviser stops a proposal.
+branch in code.
+
+**A step with nobody in post is refused before anything is saved — every form.**
+`App\Approval\StepApproverGuard` is the one check that the step a document is
+about to enter has an active holder (or enough of them: SDAO needs
+`required_approvals`). It runs on submit and resubmit (the step that returned it)
+and on an approval that would complete its step; the engine calls it before any
+write and the five submit and five resubmit actions call it up front, before any
+upload, so a refused action leaves no document, file, transition, approval or
+notification. It throws `NoApproverForStepException`, which `bootstrap/app.php`
+renders as an error toast back on the page (web) or a 422 (mobile api) naming the
+missing role — "Your organization has no active adviser. Please contact SDAO."
+for an officer, "…SDAO needs to assign one before it can move on." for an
+approver. Never a 404 or 500, and never a per-form copy of this check.
 
 **Changing a chain once documents exist — retire, never edit.** A document reads
 its steps live from its own template by step position, and transitions,

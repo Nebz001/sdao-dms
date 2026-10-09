@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
+use App\Approval\StepApproverGuard;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
@@ -21,6 +22,7 @@ class UpdateAfterActivityReport
         private readonly ApprovalEngine $engine,
         private readonly AttachmentStorage $attachmentStorage,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
     ) {}
 
     /**
@@ -47,6 +49,10 @@ class UpdateAfterActivityReport
         if (! $this->membershipService->canActOnDocument($actor, $document)) {
             throw new AuthorizationException('Only an active officer of this organization may edit this document.');
         }
+
+        // The step that returned it must still have someone to take it back;
+        // refused before any edit, upload or transition.
+        $this->approverGuard->assertCanResubmit($document);
 
         return DB::transaction(function () use (
             $actor, $document, $summary, $outcomes, $participantCount,

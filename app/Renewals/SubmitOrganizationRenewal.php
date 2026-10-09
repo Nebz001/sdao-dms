@@ -3,11 +3,14 @@
 namespace App\Renewals;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\Exceptions\NoApproverForStepException;
+use App\Approval\StepApproverGuard;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Enums\RenewalEligibility;
+use App\Enums\Role;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
@@ -17,6 +20,7 @@ use App\Organizations\OrganizationMembershipService;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -46,6 +50,7 @@ class SubmitOrganizationRenewal
     public function __construct(
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
         private readonly RoleDirectory $roleDirectory,
         private readonly AttachmentStorage $attachmentStorage,
     ) {}
@@ -86,7 +91,15 @@ class SubmitOrganizationRenewal
 
         $period = $eligibility->currentPeriod;
         $coversAcademicYear = $period->nextAcademicYear();
-        $adviser = $this->roleDirectory->adviserFor($organization);
+        // Before anything is saved or written. The adviser is also recorded on
+        // the renewal, so a missing one is refused here, not left to fail below.
+        $this->approverGuard->assertCanSubmit(FormType::OrganizationRenewal, null, $organization);
+
+        try {
+            $adviser = $this->roleDirectory->adviserFor($organization);
+        } catch (ModelNotFoundException) {
+            throw NoApproverForStepException::forSubmitter(Role::Adviser);
+        }
 
         return DB::transaction(function () use (
             $actor, $organization, $purposeOfOrganization,

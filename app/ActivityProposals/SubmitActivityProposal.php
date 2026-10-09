@@ -3,8 +3,10 @@
 namespace App\ActivityProposals;
 
 use App\Approval\ApprovalEngine;
+use App\Approval\StepApproverGuard;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
+use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Models\CalendarActivity;
 use App\Models\Document;
@@ -21,6 +23,7 @@ class SubmitActivityProposal
         private readonly VenueConflictChecker $conflictChecker,
         private readonly ProposalVariantResolver $variantResolver,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
         private readonly OnCalendarActivityLockChecker $activityLockChecker,
     ) {}
 
@@ -69,6 +72,8 @@ class SubmitActivityProposal
         }
 
         $variant = $this->variantResolver->resolve($document->organization, $proposal->calendar_mode);
+
+        $this->approverGuard->assertCanSubmit(FormType::ActivityProposal, $variant, $document->organization);
 
         $document = DB::transaction(function () use (
             $actor, $document, $proposal, $variant, $objectives, $activityDescription,

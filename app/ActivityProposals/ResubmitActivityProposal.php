@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
+use App\Approval\StepApproverGuard;
 use App\Attachments\AttachmentStorage;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
@@ -26,6 +27,7 @@ class ResubmitActivityProposal
         private readonly ApprovalEngine $engine,
         private readonly VenueConflictChecker $conflictChecker,
         private readonly OrganizationMembershipService $membershipService,
+        private readonly StepApproverGuard $approverGuard,
         private readonly AttachmentStorage $attachmentStorage,
     ) {}
 
@@ -52,6 +54,10 @@ class ResubmitActivityProposal
         if (! $this->membershipService->canActOnDocument($actor, $document)) {
             throw new AuthorizationException('Only an active officer of this organization may resubmit this document.');
         }
+
+        // The step that returned it must still have someone to take it back;
+        // refused before any edit, upload or transition.
+        $this->approverGuard->assertCanResubmit($document);
 
         $document->load(['activityProposal.calendarActivity']);
         $proposal = $document->activityProposal;
