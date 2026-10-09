@@ -35,7 +35,6 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\RenewalReviewController;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 // Guests see the public landing page (including a preview of upcoming
@@ -210,16 +209,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/review/reports/{document}/approve', [AfterActivityReportReviewController::class, 'approve'])->name('review.reports.approve');
     Route::post('/review/reports/{document}/reject', [AfterActivityReportReviewController::class, 'reject'])->name('review.reports.reject');
     Route::post('/review/reports/{document}/return', [AfterActivityReportReviewController::class, 'return'])->name('review.reports.return');
-
-    // TEMPORARY — REMOVE AFTER TESTING. One-off check that an error logged
-    // from a PHP-FPM worker reaches Railway's logs (see php-fpm.conf). Open it
-    // once as an SDAO member after deploy, look for "logging-check FPM" in the
-    // deploy logs, then delete this route and redeploy.
-    Route::get('/__log-check', function () {
-        Log::error('logging-check FPM');
-
-        return response()->noContent();
-    })->middleware('can:access-admin');
 
     // SDAO admin — approver provisioning + account verification
     Route::middleware('can:access-admin')->prefix('admin')->name('admin.')->group(function () {
