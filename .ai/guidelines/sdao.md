@@ -486,6 +486,27 @@ approximate these.
 - **Page component tests** live in `resources/js/components/__tests__/`, never inside `resources/js/pages/`: the Inertia vite plugin globs `./pages/**/*.tsx` with no test exclusion, so a test file there is bundled as a page chunk and is resolvable as a page name.
 - Never commit secrets or `.env` files.
 
+## Production logging (Railway)
+
+- **Production errors reach Railway's logs only through `php-fpm.conf`** (repo
+  root). Nixpacks' stock FPM config has no `[global]` section, so FPM
+  daemonizes with no `error_log` and discards worker stderr. Ours sets
+  `daemonize = no`, `error_log = /proc/self/fd/2`, `log_limit = 8192`,
+  `catch_workers_output = yes` and `decorate_workers_output = no`.
+- **It is wired in by the Railway dashboard's Custom Start Command, not by
+  `nixpacks.toml`** (a dashboard start command overrides any `[start]` block,
+  so there is none). The command runs the queue worker and the web server
+  together: `php artisan queue:work ... &` then Nixpacks' prestart script,
+  then `php-fpm -y /app/php-fpm.conf & nginx -c /nginx.conf`. Keep
+  `-y /app/php-fpm.conf` in it; without it logging silently reverts to the
+  stock config.
+- **Migrations run in the Railway Pre-deploy Command, not on container
+  start.** A failing migration fails the deploy before the new container
+  takes traffic.
+- **Variables:** `LOG_CHANNEL=stack`, `LOG_STACK=single,stderr`,
+  `LOG_LEVEL=error`. `storage/logs/laravel.log` is still written.
+- Local Laragon never reads `php-fpm.conf`.
+
 ## Build order (vertical slices — see PLAN.md)
 
 stub identity → engine core (tested) → registration → calendar →

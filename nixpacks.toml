@@ -36,12 +36,3 @@ cmds = [
 
 [variables]
 NIXPACKS_PHP_ROOT_DIR = "/app/public"
-
-[start]
-# Same command Nixpacks' PHP provider generates by default (nginx template
-# compiled by its prestart script, then php-fpm and nginx side by side), with
-# one change: php-fpm reads the repo's php-fpm.conf instead of the stock
-# /assets/php-fpm.conf, so worker log output reaches the container's stderr.
-# If a Railway "Custom Start Command" is set in the dashboard it overrides
-# this and must be cleared.
-cmd = "node /assets/scripts/prestart.mjs /assets/nginx.template.conf /nginx.conf && (php-fpm -y /app/php-fpm.conf & nginx -c /nginx.conf)"
