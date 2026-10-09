@@ -345,6 +345,7 @@ class ApproverDashboardData
     private function receivableFormTypes(): Collection
     {
         $types = WorkflowTemplate::query()
+            ->active()
             ->whereHas('steps', fn ($q) => $q->whereIn('role', array_map(fn (Role $r) => $r->value, $this->approverRoles())))
             ->get()
             ->pluck('form_type')

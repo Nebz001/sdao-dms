@@ -6,7 +6,7 @@ import * as reviewReports from '@/routes/review/reports';
 const config: ReviewQueueConfig = {
     headTitle: 'Review: After-Activity Reports',
     title: 'Report Review Queue',
-    subtitle: 'After-activity reports waiting for SDAO review',
+    subtitle: 'After-activity reports waiting for your review',
     noun: 'report',
     typeLabel: 'After-activity report',
     emptyDescription: 'Submitted after-activity reports will show up here as soon as a student org sends one in.',

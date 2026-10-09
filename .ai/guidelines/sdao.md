@@ -134,8 +134,30 @@ These are product rules, not suggestions. Do not "simplify" them away.
 
 ## Short chains
 
-Registration, renewal, activity calendar, and after-activity report use:
-SDAO → final status.
+Registration, renewal, and activity calendar use: SDAO → final status.
+
+**After-activity report:** adviser → SDAO → final status (client direction; was
+SDAO only). SDAO keeps its rules exactly (both members required, split decision
+returns), just one step later. The report is routed by the generic engine like
+any other form: the organization's adviser resolves by role, and an adviser's
+return resumes at the adviser, SDAO's at SDAO. There is no report-specific
+branch in code. Submitting a report for an organization with no active adviser
+is refused up front with a plain message (`SubmitAfterActivityReport`), the same
+way an unresolvable adviser stops a proposal.
+
+**Changing a chain once documents exist — retire, never edit.** A document reads
+its steps live from its own template by step position, and transitions,
+approvals and wait stats all key off those positions. Renumbering steps of a
+template that documents already use would relabel their history. So a chain
+change that inserts or reorders steps retires the old template
+(`workflow_templates.retired_at`; kept, never picked for a new submission, see
+`WorkflowTemplate::active()`) and adds a new one. The after-activity report
+change is `2026_10_09_100001_add_adviser_step_to_after_activity_report_workflow`:
+reports in review that no approver has acted on, and whose organization has an
+active adviser, move to the new template at the adviser step; everything else
+(finished, returned, SDAO-started, no adviser) stays on the old one. It never
+edits or deletes a transition row (invariant #7). `check:workflow-templates`
+and `WorkflowTemplateSeeder` only look at active templates.
 
 **Registration & renewal — digital scope.** The physical NU Lipa
 registration/renewal form includes adviser, dean, and CRSO endorsement/receipt

@@ -22,6 +22,7 @@ class WorkflowTemplateResolver
     public function resolve(FormType $formType, ?ProposalVariant $variant = null): WorkflowTemplate
     {
         return WorkflowTemplate::query()
+            ->active()
             ->where('form_type', $formType)
             ->where('variant', $variant)
             ->with('steps')

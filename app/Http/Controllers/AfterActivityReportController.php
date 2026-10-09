@@ -127,7 +127,7 @@ class AfterActivityReportController extends Controller
         );
 
         return redirect()->route('reports.show', $document)
-            ->with('flash', FlashToast::make('Report submitted', 'SDAO will review it. You will be notified of the decision.'));
+            ->with('flash', FlashToast::make('Report submitted', 'Your adviser reviews it first, then SDAO. You will be notified of the decision.'));
     }
 
     public function show(Document $document, DocumentViewData $viewData): Response
@@ -234,6 +234,6 @@ class AfterActivityReportController extends Controller
         );
 
         return redirect()->route('reports.show', $document)
-            ->with('flash', FlashToast::make('Report resubmitted', 'SDAO has your changes and will review them again.'));
+            ->with('flash', FlashToast::make('Report resubmitted', 'The reviewer who returned it will look at your changes again.'));
     }
 }

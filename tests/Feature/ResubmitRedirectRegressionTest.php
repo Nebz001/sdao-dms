@@ -212,7 +212,7 @@ test('resubmitting a returned after-activity report: the redirect target loads f
         ->where('organization_id', $org->id)
         ->firstOrFail();
 
-    app(ApprovalEngine::class)->returnForRevision($document, $this->sdaoA, 'Please fix the evaluation form.');
+    app(ApprovalEngine::class)->returnForRevision($document, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(), 'Please fix the evaluation form.');
     $document->refresh();
 
     assertResubmitRedirectSucceeds($student, route('reports.update', $document), [

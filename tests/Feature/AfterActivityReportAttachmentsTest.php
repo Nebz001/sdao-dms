@@ -160,8 +160,8 @@ test('a single-file slot rejects a second upload by replacing, not appending', f
     $original = $report->attachments()->where('slot_key', 'evaluation_form')->firstOrFail();
 
     // Return + resubmit re-uploading only evaluation_form.
-    $sdaoA = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
-    $this->engine->returnForRevision($report, $sdaoA, 'Please fix the evaluation form.');
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->engine->returnForRevision($report, $adviser, 'Please fix the evaluation form.');
     $report->refresh();
 
     $this->actingAs($this->studentAlpha)->put(route('reports.update', $report), [

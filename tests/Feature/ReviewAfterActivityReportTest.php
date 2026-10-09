@@ -8,13 +8,16 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Models\ActivityCalendar;
+use App\Models\ApprovalNotification;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Reports\SubmitAfterActivityReport;
 use App\Support\AcademicYear;
+use App\Support\NavCounts;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Validation\ValidationException;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -104,18 +107,159 @@ function submittedReportForComputingSociety(): Document
     );
 }
 
-test('first SDAO approve is partial — report stays InReview', function () {
+/**
+ * A report whose adviser has already approved, so it now waits at the SDAO
+ * step — the state every SDAO-side test below starts from.
+ */
+function reportAtSdaoStep(): Document
+{
     $doc = submittedReportForComputingSociety();
+
+    app(ApprovalEngine::class)->approve($doc, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail());
+
+    return $doc->refresh();
+}
+
+test('a new report goes to the adviser first, then to SDAO', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    $doc = submittedReportForComputingSociety();
+
+    expect($doc->status)->toBe(DocumentStatus::InReview)
+        ->and($doc->current_step_position)->toBe(1)
+        ->and($doc->workflowTemplate->steps->pluck('role.value')->all())->toBe(['adviser', 'sdao_member']);
+
+    // SDAO cannot act ahead of the adviser.
+    expect(fn () => $this->engine->approve($doc, $this->sdaoA))->toThrow(UnauthorizedApproverException::class);
+
+    $this->engine->approve($doc, $adviser);
+    $doc->refresh();
+
+    expect($doc->status)->toBe(DocumentStatus::InReview)
+        ->and($doc->current_step_position)->toBe(2);
+
+    $this->engine->approve($doc, $this->sdaoA);
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::InReview)->and($doc->current_step_position)->toBe(2);
+
+    $this->engine->approve($doc, $this->sdaoB);
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Approved)->and($doc->current_step_position)->toBeNull();
+});
+
+test('the adviser gets the hand-off, the queue entry and the badge; SDAO gets them only after the adviser approves', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $doc = submittedReportForComputingSociety();
+
+    expect(ApprovalNotification::where('document_id', $doc->id)->where('user_id', $adviser->id)->where('step_position', 1)->exists())->toBeTrue()
+        ->and(ApprovalNotification::where('document_id', $doc->id)->where('user_id', $this->sdaoA->id)->exists())->toBeFalse();
+
+    $this->actingAs($adviser)->withoutVite()->get(route('review.reports.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('queue', 1)->where('queue.0.id', $doc->id));
+
+    expect(app(NavCounts::class)->for($adviser)['review']['reports'])->toBe(1)
+        ->and(app(NavCounts::class)->for($this->sdaoA)['review']['reports'])->toBe(0);
+
+    $this->engine->approve($doc, $adviser);
+
+    expect(ApprovalNotification::where('document_id', $doc->id)->where('user_id', $this->sdaoA->id)->where('step_position', 2)->exists())->toBeTrue()
+        ->and(app(NavCounts::class)->for($adviser)['review']['reports'])->toBe(0)
+        ->and(app(NavCounts::class)->for($this->sdaoA)['review']['reports'])->toBe(1);
+});
+
+test('the adviser can approve, return and reject a report over HTTP', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+
+    $approved = submittedReportForComputingSociety();
+    $this->actingAs($adviser)->withoutVite()
+        ->post(route('review.reports.approve', $approved))
+        ->assertRedirect(route('review.reports.show', $approved));
+    expect($approved->refresh()->current_step_position)->toBe(2);
+    // The adviser keeps read access after the report moves on.
+    $this->actingAs($adviser)->withoutVite()->get(route('review.reports.show', $approved))->assertOk();
+});
+
+test('the adviser can return a report over HTTP', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $doc = submittedReportForComputingSociety();
+
+    $this->actingAs($adviser)->withoutVite()
+        ->post(route('review.reports.return', $doc), ['comment' => 'Add the attendance totals.'])
+        ->assertRedirect(route('review.reports.show', $doc));
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
+});
+
+test('the adviser can reject a report over HTTP', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $doc = submittedReportForComputingSociety();
+
+    $this->actingAs($adviser)->withoutVite()
+        ->post(route('review.reports.reject', $doc), ['comment' => 'Not our activity.'])
+        ->assertRedirect(route('review.reports.index'));
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Rejected);
+});
+
+test('a report the adviser returned comes back to the adviser, and SDAO is not consulted until the adviser approves', function () {
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $doc = submittedReportForComputingSociety();
+
+    $this->engine->returnForRevision($doc, $adviser, 'Add participant numbers.');
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Returned)->and($doc->current_step_position)->toBe(1);
+
+    $this->engine->resubmit($doc, $this->studentAlpha);
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::InReview)->and($doc->current_step_position)->toBe(1);
+    expect(fn () => $this->engine->approve($doc, $this->sdaoA))->toThrow(UnauthorizedApproverException::class);
+
+    // The resubmission hands the report back to the adviser who returned it.
+    expect(ApprovalNotification::where('document_id', $doc->id)->where('user_id', $adviser->id)->count())->toBe(2);
+});
+
+test('a report SDAO returned resumes at SDAO and the adviser is not asked again', function () {
+    $doc = reportAtSdaoStep();
+
+    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please add participant numbers.');
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::Returned)->and($doc->current_step_position)->toBe(2);
+
+    $this->engine->resubmit($doc, $this->studentAlpha);
+    $doc->refresh();
+    expect($doc->status)->toBe(DocumentStatus::InReview)->and($doc->current_step_position)->toBe(2);
+});
+
+test('an organization with no active adviser cannot submit a report, and nothing is left behind', function () {
+    $proposal = approvedProposalForComputingSociety($this->org, $this->studentAlpha);
+
+    User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail()->forceFill(['deactivated_at' => now()])->save();
+
+    $before = Document::where('form_type', FormType::AfterActivityReport->value)->count();
+
+    expect(fn () => app(SubmitAfterActivityReport::class)->execute(
+        actor: $this->studentAlpha,
+        proposal: $proposal,
+        summary: 'No adviser to receive this.',
+        attachmentFiles: reportAttachmentFiles(),
+    ))->toThrow(ValidationException::class, 'no active adviser');
+
+    expect(Document::where('form_type', FormType::AfterActivityReport->value)->count())->toBe($before);
+});
+
+test('SDAO: first approve is partial — report stays InReview at the SDAO step', function () {
+    $doc = reportAtSdaoStep();
 
     $this->engine->approve($doc, $this->sdaoA);
     $doc->refresh();
 
     expect($doc->status)->toBe(DocumentStatus::InReview);
-    expect($doc->current_step_position)->toBe(1);
+    expect($doc->current_step_position)->toBe(2);
 });
 
-test('second SDAO approve completes the report — Approved', function () {
-    $doc = submittedReportForComputingSociety();
+test('SDAO: second approve completes the report — Approved', function () {
+    $doc = reportAtSdaoStep();
 
     $this->engine->approve($doc, $this->sdaoA);
     $doc->refresh();
@@ -126,8 +270,20 @@ test('second SDAO approve completes the report — Approved', function () {
     expect($doc->current_step_position)->toBeNull();
 });
 
-test('reject terminates the report', function () {
-    $doc = submittedReportForComputingSociety();
+test('SDAO: a split decision (one approves, the other returns) sends the report back and clears the partial', function () {
+    $doc = reportAtSdaoStep();
+
+    $this->engine->approve($doc, $this->sdaoA);
+    $doc->refresh();
+    $this->engine->returnForRevision($doc, $this->sdaoB, 'Add participant numbers.');
+    $doc->refresh();
+
+    expect($doc->status)->toBe(DocumentStatus::Returned);
+    expect($doc->stepApprovals()->where('step_position', 2)->count())->toBe(0);
+});
+
+test('SDAO: reject terminates the report', function () {
+    $doc = reportAtSdaoStep();
 
     $this->engine->reject($doc, $this->sdaoA, 'Not sufficient detail.');
     $doc->refresh();
@@ -136,16 +292,7 @@ test('reject terminates the report', function () {
     expect($doc->current_step_position)->toBeNull();
 });
 
-test('return sends the report back for revision', function () {
-    $doc = submittedReportForComputingSociety();
-
-    $this->engine->returnForRevision($doc, $this->sdaoA, 'Please add participant numbers.');
-    $doc->refresh();
-
-    expect($doc->status)->toBe(DocumentStatus::Returned);
-});
-
-test('non-SDAO user cannot approve a report', function () {
+test('non-approver user cannot approve a report', function () {
     $doc = submittedReportForComputingSociety();
 
     expect(fn () => $this->engine->approve($doc, $this->outsider))
@@ -153,7 +300,7 @@ test('non-SDAO user cannot approve a report', function () {
 });
 
 test('review show endpoint returns the report with its linked activity and history', function () {
-    $doc = submittedReportForComputingSociety();
+    $doc = reportAtSdaoStep();
 
     $this->actingAs($this->sdaoA)
         ->withoutVite()
@@ -171,7 +318,7 @@ test('review show endpoint returns the report with its linked activity and histo
 // ── HTTP: quorum-completing approve must not 403 (regression) ────────────────
 
 test('HTTP: first SDAO approve redirects back to the review show page', function () {
-    $doc = submittedReportForComputingSociety();
+    $doc = reportAtSdaoStep();
 
     $this->actingAs($this->sdaoA)
         ->withoutVite()
@@ -180,7 +327,7 @@ test('HTTP: first SDAO approve redirects back to the review show page', function
 });
 
 test('HTTP: quorum-completing SDAO approve redirects to the queue, not a 403', function () {
-    $doc = submittedReportForComputingSociety();
+    $doc = reportAtSdaoStep();
 
     $this->actingAs($this->sdaoA)
         ->withoutVite()

@@ -38,7 +38,7 @@ use Tests\Fixtures\TestIdentitySeeder;
  * calendarInReviewDocWithActivities() from SectionFlagValidationTest.php,
  * submittedRenewal() from ReviewOrganizationRenewalTest.php,
  * submittedCalendar() from ReviewActivityCalendarTest.php,
- * submittedReportForComputingSociety() from ReviewAfterActivityReportTest.php,
+ * reportAtSdaoStep() from ReviewAfterActivityReportTest.php,
  * and advanceToStep() from Approval/ReturnForRevisionTest.php.
  */
 beforeEach(function () {
@@ -93,7 +93,7 @@ test('HTTP: SDAO reject terminates an activity calendar and the rejecting member
 });
 
 test('HTTP: SDAO reject terminates an after-activity report and the rejecting member can still view it', function () {
-    $doc = submittedReportForComputingSociety();
+    $doc = reportAtSdaoStep();
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->post(route('review.reports.reject', $doc), ['comment' => 'Not sufficient detail.'])
@@ -212,7 +212,7 @@ test('HTTP: return sends an activity calendar back for revision and the returnin
 });
 
 test('HTTP: return sends an after-activity report back for revision and the returning approver can still view it', function () {
-    $doc = submittedReportForComputingSociety();
+    $doc = reportAtSdaoStep();
 
     $this->actingAs($this->sdaoA)->withoutVite()
         ->post(route('review.reports.return', $doc), ['comment' => 'Add participant numbers.'])

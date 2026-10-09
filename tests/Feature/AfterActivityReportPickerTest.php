@@ -158,7 +158,7 @@ test('(ii) a proposal whose only report was REJECTED reappears in the picker —
         attachmentFiles: reportAttachmentFiles(),
     );
 
-    $this->engine->reject($report, $sdaoA, 'Not enough detail.');
+    $this->engine->reject($report, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(), 'Not enough detail.');
     $report->refresh();
     expect($report->status)->toBe(DocumentStatus::Rejected);
 

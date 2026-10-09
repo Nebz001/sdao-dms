@@ -38,7 +38,12 @@ beforeEach(function () {
 });
 
 test('a legitimate SDAO approver sees the queue, but a student, a bare account, and an approver from an unrelated chain see nothing', function (FormType $formType, string $routeName) {
-    shortChainInReviewDoc($formType, $this->org, $this->engine, $this->studentAlpha);
+    $doc = shortChainInReviewDoc($formType, $this->org, $this->engine, $this->studentAlpha);
+
+    // A report goes to the adviser first; SDAO's step opens once they approve.
+    if ($formType === FormType::AfterActivityReport) {
+        $this->engine->approve($doc, $this->adviserOne);
+    }
 
     // The legitimate current-step approver sees it.
     $this->actingAs($this->sdaoA)
@@ -62,8 +67,8 @@ test('a legitimate SDAO approver sees the queue, but a student, a bare account, 
         ->assertOk()
         ->assertInertia(fn ($page) => $page->has('queue', 0));
 
-    // A real approver, but only in the LONG proposal chains — never a
-    // current-step approver for a short (single-SDAO-step) chain. Proves the
+    // A real approver, but never a current-step approver for these queues —
+    // the adviser's report step is already behind them here. Proves the
     // filter is scope-correct, not merely "logged in vs not."
     $this->actingAs($this->adviserOne)
         ->withoutVite()

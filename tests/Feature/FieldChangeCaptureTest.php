@@ -517,7 +517,7 @@ test('a flagged multi-file attachment slot with new uploads is recorded as added
 
     $this->engine->submit($reportDoc, $this->student);
     $reportDoc->refresh();
-    $this->engine->returnForRevision($reportDoc, $this->sdaoA, 'Add more photos.', ['photos']);
+    $this->engine->returnForRevision($reportDoc, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(), 'Add more photos.', ['photos']);
     $reportDoc->refresh();
 
     $update->execute(

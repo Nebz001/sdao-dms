@@ -91,11 +91,13 @@ class ResetDemoData extends Command
         // nothing but their own workflow_steps depends on a template, so
         // this is safe regardless of how many duplicates exist.
         $keepIds = WorkflowTemplate::query()
+            ->active()
             ->selectRaw('MIN(id) as id')
             ->groupBy('form_type', 'variant')
             ->pluck('id');
 
         $duplicateTemplateIds = WorkflowTemplate::query()
+            ->active()
             ->whereNotIn('id', $keepIds)
             ->pluck('id');
 

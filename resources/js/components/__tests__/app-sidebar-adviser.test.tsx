@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -81,6 +81,23 @@ describe('AppSidebar — adviser entries', () => {
         renderFor({ role: 'adviser', organization_id: null });
 
         expect(screen.queryByText('Registration')).not.toBeInTheDocument();
+    });
+
+    it('shows the report review to an adviser bound to an organization and to SDAO, but not to an unassigned adviser or a dean', () => {
+        renderFor({ role: 'adviser', organization_id: 4 });
+        expect(screen.getByText('Reports')).toBeInTheDocument();
+        cleanup();
+
+        renderFor({ role: 'sdao_member', organization_id: null });
+        expect(screen.getByText('Reports')).toBeInTheDocument();
+        cleanup();
+
+        renderFor({ role: 'adviser', organization_id: null });
+        expect(screen.queryByText('Reports')).not.toBeInTheDocument();
+        cleanup();
+
+        renderFor({ role: 'dean', organization_id: null });
+        expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     });
 
     it('still shows the proposal review to the other approver roles', () => {

@@ -295,11 +295,14 @@ test('the waiting card counts only the form types this role can receive, and mea
     approverDashboardAs($this->adviserOne, fn ($reload) => $reload
         ->where('approverSummary.waiting.count', 2)
         ->where('approverSummary.waiting.oldestDays', 5)
-        // An adviser only ever receives activity proposals — the four
-        // short-chain form types are SDAO's and must not be listed.
-        ->has('approverSummary.waiting.byType', 1)
-        ->where('approverSummary.waiting.byType.0.formType', 'activity_proposal')
-        ->where('approverSummary.waiting.byType.0.count', 2)
+        // An adviser receives activity proposals and after-activity reports (the
+        // report goes to the adviser before SDAO) — the other three short-chain
+        // form types are SDAO's and must not be listed.
+        ->has('approverSummary.waiting.byType', 2)
+        ->where('approverSummary.waiting.byType', fn ($byType) => collect($byType)->pluck('count', 'formType')->all() === [
+            'activity_proposal' => 2,
+            'after_activity_report' => 0,
+        ])
     );
 });
 

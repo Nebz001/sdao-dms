@@ -6,6 +6,7 @@ use App\Approval\ApprovalEngine;
 use App\Attachments\AttachmentStorage;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Identity\RoleDirectory;
 use App\Models\ActivityProposal;
 use App\Models\AfterActivityReport;
 use App\Models\Document;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Organizations\OrganizationMembershipService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +32,7 @@ class SubmitAfterActivityReport
         private readonly ApprovalEngine $engine,
         private readonly OrganizationMembershipService $membershipService,
         private readonly AttachmentStorage $attachmentStorage,
+        private readonly RoleDirectory $roleDirectory,
     ) {}
 
     /**
@@ -72,6 +75,8 @@ class SubmitAfterActivityReport
             ]);
         }
 
+        $this->assertOrganizationHasAdviser($organization);
+
         return DB::transaction(function () use (
             $actor, $proposal, $organization, $summary, $outcomes, $participantCount,
             $activityChairs, $preparedBy, $eventProgram, $targetParticipantsPercentage, $attachmentFiles
@@ -109,6 +114,24 @@ class SubmitAfterActivityReport
 
             return $document;
         });
+    }
+
+    /**
+     * A report's first step is the organization's adviser. Without one the
+     * engine could not hand it to anybody, so say so up front instead of
+     * failing mid-submit with nothing to show for it.
+     *
+     * @throws ValidationException
+     */
+    private function assertOrganizationHasAdviser(Organization $organization): void
+    {
+        try {
+            $this->roleDirectory->adviserFor($organization);
+        } catch (ModelNotFoundException) {
+            throw ValidationException::withMessages([
+                'activity_proposal_id' => 'Your organization has no active adviser, and a report goes to the adviser first. Ask SDAO to assign one, then submit again.',
+            ]);
+        }
     }
 
     /**

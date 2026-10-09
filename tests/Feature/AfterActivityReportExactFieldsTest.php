@@ -181,7 +181,10 @@ test('Summary, Activity Chair/s, Prepared By, Program, and % Target Participants
             ->has('document.date_submitted')
         );
 
-    // Approver (SDAO) show page — must see the same fields to make a decision
+    // Approver (SDAO) show page — must see the same fields to make a decision.
+    // SDAO's step opens once the adviser has approved.
+    app(ApprovalEngine::class)->approve($document, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail());
+
     $this->actingAs($this->sdaoA)
         ->withoutVite()
         ->get(route('review.reports.show', $document))

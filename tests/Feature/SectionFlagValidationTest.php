@@ -193,7 +193,7 @@ test('return accepts every valid section key for After-Activity Report', functio
     $doc = shortChainInReviewDoc(FormType::AfterActivityReport, $this->org, $this->engine, $this->studentAlpha);
     $allKeys = collect(SectionFlags::for(FormType::AfterActivityReport))->pluck('key')->all();
 
-    $this->actingAs($this->sdaoA)
+    $this->actingAs(User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail())
         ->post(route('review.reports.return', $doc), [
             'comment' => 'Please fix everything.',
             'sections' => $allKeys,

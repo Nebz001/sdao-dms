@@ -77,9 +77,10 @@ test('stats and recent decisions count approved and returned documents, and only
 
 test('the deferred props resolve on the index page', function () {
     $doc = shortChainInReviewDoc(FormType::AfterActivityReport, $this->org, $this->engine, $this->student);
-    $this->engine->returnForRevision($doc, $this->sdaoA, 'Add photos.');
+    $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
+    $this->engine->returnForRevision($doc, $adviser, 'Add photos.');
 
-    $this->actingAs($this->sdaoA)->withoutVite()
+    $this->actingAs($adviser)->withoutVite()
         ->get(route('review.reports.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page

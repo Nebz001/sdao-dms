@@ -208,7 +208,7 @@ test('a rejected report frees the slot — a new report for the same proposal is
         attachmentFiles: reportAttachmentFiles(),
     );
 
-    $this->engine->reject($firstReport, $this->sdaoA, 'Incomplete.');
+    $this->engine->reject($firstReport, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(), 'Incomplete.');
     $firstReport->refresh();
     expect($firstReport->status)->toBe(DocumentStatus::Rejected);
 

@@ -237,7 +237,7 @@ test('edit page exposes a per-slot attachment flag and comment for After-Activit
 
     $this->engine->returnForRevision(
         $doc,
-        $this->sdaoA,
+        User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(),
         'Please fix the flagged document.',
         ['attendance_sheet'],
         ['attendance_sheet' => 'A few names are missing signatures.'],

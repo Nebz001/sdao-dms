@@ -11,10 +11,12 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeds all 10 workflow templates as configuration data (invariant #1).
+ * Seeds all 10 active workflow templates as configuration data (invariant #1).
  *
- * Short chains (4): Registration, Renewal, ActivityCalendar, AfterActivityReport
- *   — each is a single SDAO step requiring both members to approve.
+ * Short chains (3): Registration, Renewal, ActivityCalendar — each is a single
+ *   SDAO step requiring both members to approve.
+ *
+ * After-Activity Report: the organization's adviser, then SDAO (both members).
  *
  * Proposal variants (6): RegularOnCalendar, RegularOffCalendar, ShsOnCalendar,
  *   ShsOffCalendar, ExtraCurricularOnCalendar, ExtraCurricularOffCalendar —
@@ -35,7 +37,10 @@ class WorkflowTemplateSeeder extends Seeder
         $this->shortChain(FormType::OrganizationRegistration, 'Organization Registration');
         $this->shortChain(FormType::OrganizationRenewal, 'Organization Renewal');
         $this->shortChain(FormType::ActivityCalendar, 'Activity Calendar');
-        $this->shortChain(FormType::AfterActivityReport, 'After-Activity Report');
+        $this->template(FormType::AfterActivityReport, null, 'After-Activity Report', [
+            [Role::Adviser, 1],
+            [Role::SdaoMember, 2],  // both members required, one step after the adviser
+        ]);
 
         $this->template(
             FormType::ActivityProposal,
@@ -150,7 +155,7 @@ class WorkflowTemplateSeeder extends Seeder
         // two NULL variants as distinct and would otherwise let short-chain
         // templates silently duplicate on rerun.
         $template = WorkflowTemplate::updateOrCreate(
-            ['form_type' => $formType, 'variant' => $variant],
+            ['form_type' => $formType, 'variant' => $variant, 'retired_at' => null],
             ['name' => $name],
         );
 

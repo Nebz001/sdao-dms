@@ -998,7 +998,7 @@ class DemoDataSeeder extends Seeder
         $this->approveEntireChain($venarisReportDoc, $venarisOrg);
         $statusCounts['approved']++;
 
-        // In Review, partial quorum — CODECS.
+        // In Review, waiting on the organization's adviser (the first step) — CODECS.
         $codecsProposal = $proposals['codecs_approved'];
         $codecsOrg = $codecsProposal->document->organization;
         $codecsPresident = $this->presidentOf($codecsOrg);
@@ -1014,7 +1014,6 @@ class DemoDataSeeder extends Seeder
             targetParticipantsPercentage: 80,
             attachmentFiles: $this->fakeAttachmentsFor(FormType::AfterActivityReport),
         );
-        $this->engine->approve($codecsReportDoc, $this->carl);
         $statusCounts['in_review']++;
 
         // Rejected — PICE.
@@ -1033,6 +1032,8 @@ class DemoDataSeeder extends Seeder
             targetParticipantsPercentage: 75,
             attachmentFiles: $this->fakeAttachmentsFor(FormType::AfterActivityReport),
         );
+        // The adviser signs off first; SDAO is the step that rejects.
+        $this->engine->approve($piceReportDoc, $this->currentAdviserOf($piceOrg));
         $this->engine->reject($piceReportDoc, $this->zaira, comment: 'Attendance sheet does not match the reported participant count. Please refile with corrected figures.');
         $statusCounts['rejected']++;
 

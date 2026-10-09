@@ -65,7 +65,7 @@ export default function ReviewReportShow({
                 <ApprovalActionsCard
                     approve={{
                         confirmTitle: 'Approve this report?',
-                        confirmDescription: 'This action is irreversible once the SDAO quorum is met.',
+                        confirmDescription: 'Your approval cannot be undone. The report moves on once every required approver at this step has approved.',
                         onConfirm: handleApprove,
                     }}
                     return={{

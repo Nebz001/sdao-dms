@@ -100,6 +100,8 @@ export function AppSidebar() {
     const adviserRole = roles.find(
         (r) => r.role === 'adviser' && r.organization_id !== null,
     );
+    // After-activity reports go to the organization's adviser first, then SDAO.
+    const reviewsReports = isSdao || adviserRole !== undefined;
 
     // A verified student with no org and no approver role yet — eligible to
     // found a new organization (DocumentPolicy::propose, shared server-side
@@ -270,12 +272,15 @@ export function AppSidebar() {
                 href: reviewActivityCalendars.index(),
                 badge: review?.calendars ?? 0,
             },
-            {
-                title: 'Reports',
-                href: reviewReports.index(),
-                badge: review?.reports ?? 0,
-            },
         );
+    }
+
+    if (reviewsReports) {
+        reviewItems.push({
+            title: 'Reports',
+            href: reviewReports.index(),
+            badge: review?.reports ?? 0,
+        });
     }
 
     if (reviewsProposals) {

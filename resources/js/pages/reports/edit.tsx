@@ -56,7 +56,7 @@ export default function EditReport({
             <Head title="Edit After-Activity Report" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Edit & Resubmit Report" subtitle="Update the details below and resubmit for SDAO review." />
+                <PageHeader title="Edit & Resubmit Report" subtitle="Update the details below and resubmit for review." />
 
                 {flaggedSections.includes('general') && (
                     <GeneralRevisionNotice

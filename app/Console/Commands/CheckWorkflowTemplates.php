@@ -53,6 +53,7 @@ class CheckWorkflowTemplates extends Command
             $matches = DB::table('workflow_templates')
                 ->where('form_type', $formType->value)
                 ->where('variant', $variant?->value)
+                ->whereNull('retired_at')
                 ->get(['id']);
 
             if ($matches->count() === 0) {
@@ -107,12 +108,13 @@ class CheckWorkflowTemplates extends Command
     private function expectedTemplates(): array
     {
         $shortChain = [[Role::SdaoMember, 2]];
+        $adviserThenSdao = [[Role::Adviser, 1], [Role::SdaoMember, 2]];
 
         return [
             [FormType::OrganizationRegistration, null, $shortChain],
             [FormType::OrganizationRenewal, null, $shortChain],
             [FormType::ActivityCalendar, null, $shortChain],
-            [FormType::AfterActivityReport, null, $shortChain],
+            [FormType::AfterActivityReport, null, $adviserThenSdao],
 
             [FormType::ActivityProposal, ProposalVariant::RegularOnCalendar, [
                 [Role::Adviser, 1],

@@ -57,6 +57,7 @@ class ProposalFunnelData
 
         $templates = WorkflowTemplate::query()
             ->with('steps')
+            ->active()
             ->where('form_type', FormType::ActivityProposal->value)
             ->whereIn('variant', $proposals->pluck('variant')->map->value->unique())
             ->get()

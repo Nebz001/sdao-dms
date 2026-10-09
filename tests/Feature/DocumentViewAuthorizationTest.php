@@ -471,7 +471,7 @@ test('viewArchive is SDAO-scoped, not "any approver": a dean who never acted sti
     $this->actingAs($this->chairCs)->get(route('review.registrations.show', $doc))->assertForbidden();
 });
 
-test('after-activity report show: org officer can view, different-org officer cannot, current-step SDAO can', function () {
+test('after-activity report show: org officer can view, different-org officer cannot, adviser can, SDAO only once it reaches them', function () {
     $activity = viewAuthApprovedCalendarActivity($this->computingSociety, 'Report View Auth Activity');
 
     $draft = app(StartProposalDraft::class)->execute(
@@ -512,5 +512,11 @@ test('after-activity report show: org officer can view, different-org officer ca
 
     $this->actingAs($this->studentAlpha)->get(route('reports.show', $reportDoc))->assertOk();
     $this->actingAs($this->studentBeta)->get(route('reports.show', $reportDoc))->assertForbidden();
+    // The adviser holds the first step; SDAO's step has not been reached yet.
+    $this->actingAs(User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail())->get(route('reports.show', $reportDoc))->assertOk();
+    $this->actingAs($this->sdaoA)->get(route('reports.show', $reportDoc))->assertForbidden();
+
+    $this->engine->approve($reportDoc, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail());
+
     $this->actingAs($this->sdaoA)->get(route('reports.show', $reportDoc))->assertOk();
 });
