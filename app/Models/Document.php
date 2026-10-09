@@ -102,6 +102,12 @@ class Document extends Model
         return $this->hasMany(DocumentStepApproval::class);
     }
 
+    /** @return HasMany<DocumentRemark, $this> */
+    public function remarks(): HasMany
+    {
+        return $this->hasMany(DocumentRemark::class)->orderBy('id');
+    }
+
     /** @return HasMany<DocumentTransition, $this> */
     public function transitions(): HasMany
     {

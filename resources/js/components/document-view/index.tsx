@@ -11,6 +11,7 @@ import { ToneBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { labelFor, toneFor } from '@/lib/status-tones';
 import type { BreadcrumbItem } from '@/types';
+import AddRemarkCard from './add-remark-card';
 import FlowCard from './flow-card';
 import HistoryCard from './history-card';
 import RecordCard from './record-card';
@@ -148,6 +149,7 @@ export default function DocumentView({
                     <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-span-3 lg:row-start-1">
                         {children}
                         <AttachmentsCard slots={attachmentSlots ?? []} files={attachments ?? {}} />
+                        {view.remark.canAdd && <AddRemarkCard remark={view.remark} />}
                         <HistoryCard events={view.history} />
                     </div>
 

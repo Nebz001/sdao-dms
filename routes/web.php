@@ -23,6 +23,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\DocumentPrintController;
+use App\Http\Controllers\DocumentRemarkController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JoinOrganizationController;
 use App\Http\Controllers\JoinRequestReviewController;
@@ -76,6 +77,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/documents/{document}/print', DocumentPrintController::class)
         ->middleware('throttle:20,1')
         ->name('documents.print');
+
+    // Approver remarks — generic across every form type. Append-only notes
+    // that never change a document's state; gated by the `remark` ability.
+    Route::post('/documents/{document}/remarks', [DocumentRemarkController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('documents.remarks.store');
 
     // Notification bell — generic across every form type, same category as
     // attachments/print above. See HandleInertiaRequests::share() for the

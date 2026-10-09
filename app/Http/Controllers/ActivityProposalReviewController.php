@@ -417,7 +417,7 @@ class ActivityProposalReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ReviewActivityProposal $action): RedirectResponse
+    public function approve(ReviewActionRequest $request, Document $document, ReviewActivityProposal $action): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-proposals.index')) {
             return $stale;
@@ -426,7 +426,7 @@ class ActivityProposalReviewController extends Controller
         try {
             // Off-calendar venue-conflict race re-check lives inside the
             // shared action now — see ReviewActivityProposal::approve().
-            if ($stale = $this->runReviewAction(fn () => $action->approve($document, Auth::user()), 'review.activity-proposals.index')) {
+            if ($stale = $this->runReviewAction(fn () => $action->approve($document, Auth::user(), $request->string('comment')->toString() ?: null), 'review.activity-proposals.index')) {
                 return $stale;
             }
         } catch (ProposalVenueConflictException $e) {

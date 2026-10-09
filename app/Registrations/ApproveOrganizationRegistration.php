@@ -41,7 +41,7 @@ class ApproveOrganizationRegistration
      *                             available, or the submitting account no
      *                             longer exists
      */
-    public function execute(Document $document, User $actor): Document
+    public function execute(Document $document, User $actor, ?string $comment = null): Document
     {
         // Defensive: WithdrawInFlightRegistrations rejects a document before
         // its submitter's account can be deleted, so submitted_by should
@@ -92,7 +92,7 @@ class ApproveOrganizationRegistration
         // Approval and binding also now commit or roll back together.
         $withdrawnJoinRequests = collect();
 
-        $this->membershipService->runSeatChange($document->organization, $founder, 'approve', function () use ($document, $actor, $founder, $adviserAssignment, &$withdrawnJoinRequests) {
+        $this->membershipService->runSeatChange($document->organization, $founder, 'approve', function () use ($document, $actor, $comment, $founder, $adviserAssignment, &$withdrawnJoinRequests) {
             // Fresh state, under the lock: the founder may have become an
             // active officer elsewhere since this was submitted.
             if ($this->membershipService->hasActiveMembershipElsewhere($founder, $document->organization)) {
@@ -101,7 +101,7 @@ class ApproveOrganizationRegistration
                 ]);
             }
 
-            $this->engine->approve($document, $actor);
+            $this->engine->approve($document, $actor, $comment);
             $document->refresh();
 
             // Only bind once the SDAO quorum is actually satisfied (both

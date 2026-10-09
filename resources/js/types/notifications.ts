@@ -3,6 +3,7 @@ export type NotificationKind =
     | 'approver_hand_off'
     | 'stuck_document_reminder'
     | 'document_outcome'
+    | 'document_remark'
     | 'account_verified'
     | 'account_rejected'
     | 'approver_provisioned'

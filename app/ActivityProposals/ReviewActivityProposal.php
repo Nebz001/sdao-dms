@@ -37,7 +37,7 @@ class ReviewActivityProposal
      * @throws UnauthorizedApproverException
      * @throws DuplicateApprovalException
      */
-    public function approve(Document $document, User $actor): void
+    public function approve(Document $document, User $actor, ?string $comment = null): void
     {
         // Fresh load, not loadMissing: a rival proposal may have been
         // Approved (claiming this same slot) since this document was first
@@ -66,7 +66,7 @@ class ReviewActivityProposal
             }
         }
 
-        $this->engine->approve($document, $actor);
+        $this->engine->approve($document, $actor, $comment);
     }
 
     /**

@@ -148,6 +148,52 @@ class DocumentPolicy
     }
 
     /**
+     * Can the user add a remark to this document? Its own check, deliberately
+     * NOT derived from `view()` or `review()`: "may read it" and "may comment
+     * on it" have been conflated before, and a remark is neither a decision
+     * nor something every reader should be able to write.
+     *
+     * - SDAO members: always (once the document has left Draft), including
+     *   after it is Approved or Rejected.
+     * - Any other approver: only while the document is still moving
+     *   (In Review or Returned), and only if they resolve as the approver of
+     *   a step it has already PASSED. The step it is at now, and any step it
+     *   has not reached, do not qualify; approvers are resolved live and
+     *   scoped to this document's own organization, so another chain's
+     *   adviser, chair or dean never matches.
+     * - Once the document is terminal, only SDAO may remark.
+     * - Officers never remark; this feature is approver-only.
+     */
+    public function remark(User $user, Document $document): bool
+    {
+        if ($document->status === DocumentStatus::Draft) {
+            return false;
+        }
+
+        if ($this->roleDirectory->sdaoMembers()->contains('id', $user->id)) {
+            return true;
+        }
+
+        if ($document->status->isTerminal()
+            || $document->workflow_template_id === null
+            || $document->current_step_position === null) {
+            return false;
+        }
+
+        foreach ($this->stepsUpToPosition($document, $document->current_step_position - 1) as $step) {
+            try {
+                if ($this->approverResolver->approversFor($step, $document)->contains('id', $user->id)) {
+                    return true;
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Can the user review (approve/reject/return) this document RIGHT NOW?
      *
      * Generalised to "actor ∈ current-step approvers" so that the long

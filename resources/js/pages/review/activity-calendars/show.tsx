@@ -48,10 +48,10 @@ export default function ReviewActivityCalendarShow({
         'hasConfirmedConflict',
     ]);
 
-    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+    function handleApprove({ close, stopProcessing, remarks }: ConfirmActions) {
         router.post(
             reviewActivityCalendars.approve.url(document.id),
-            {},
+            { comment: remarks },
             { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
         );
     }

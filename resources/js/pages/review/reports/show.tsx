@@ -41,10 +41,10 @@ export default function ReviewReportShow({
 }: Props) {
     useDocumentUpdates(['document', 'report', 'attachments', 'view', 'hasApproved', 'canAct']);
 
-    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+    function handleApprove({ close, stopProcessing, remarks }: ConfirmActions) {
         router.post(
             reviewReports.approve.url(document.id),
-            {},
+            { comment: remarks },
             { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
         );
     }

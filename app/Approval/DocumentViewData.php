@@ -6,12 +6,16 @@ use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
 use App\Enums\TransitionAction;
+use App\Http\Requests\StoreDocumentRemarkRequest;
 use App\Models\Document;
+use App\Models\DocumentRemark;
 use App\Models\DocumentTransition;
 use App\Models\OrganizationMembership;
 use App\Models\User;
 use App\Models\WorkflowStep;
+use App\Support\PersonName;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Throwable;
 
 /**
@@ -37,6 +41,7 @@ class DocumentViewData
             'organization',
             'submitter:id,name',
             'transitions.actor',
+            'remarks.author',
             'stepApprovals.user',
             'workflowTemplate.steps',
         ]);
@@ -60,6 +65,13 @@ class DocumentViewData
                 ->values()
                 ->all(),
             'history' => $this->history($document, $steps),
+            'remark' => [
+                // The `remark` ability, not `view`/`review`: the box is only
+                // offered to someone the POST would accept.
+                'canAdd' => Gate::forUser($viewer)->allows('remark', $document),
+                'url' => route('documents.remarks.store', $document, absolute: false),
+                'maxLength' => StoreDocumentRemarkRequest::MAX_LENGTH,
+            ],
             'flow' => $this->flow($document, $viewer, $steps),
             'waiting' => $this->waiting($document, $steps),
             'quorum' => $this->quorum($document, $steps),
@@ -96,7 +108,7 @@ class DocumentViewData
         $label = fn (string $key): string => $labels[$key]
             ?? (preg_match('/^activity_(\d+)$/', $key, $m) ? 'Activity '.((int) $m[1] + 1) : $key);
 
-        return $document->transitions
+        $transitions = $document->transitions
             ->sortByDesc('id')
             ->map(function (DocumentTransition $t) use ($steps, $positions, $label) {
                 $isDecision = in_array($t->action, [TransitionAction::Approved, TransitionAction::Completed, TransitionAction::Returned, TransitionAction::Rejected], true);
@@ -105,6 +117,8 @@ class DocumentViewData
                     : ($t->actor_id ? $positions->get($t->actor_id) : null);
 
                 return [
+                    'key' => 'transition-'.$t->id,
+                    'kind' => 'transition',
                     'id' => $t->id,
                     'action' => $t->action->value,
                     'step_position' => $t->step_position,
@@ -119,8 +133,93 @@ class DocumentViewData
                     'created_at' => $t->created_at?->toIso8601String(),
                 ];
             })
-            ->values()
-            ->all();
+            ->values();
+
+        $remarks = $document->remarks
+            ->sortByDesc('id')
+            ->map(fn (DocumentRemark $r) => [
+                'key' => 'remark-'.$r->id,
+                'kind' => 'remark',
+                'id' => $r->id,
+                'action' => 'remark',
+                'step_position' => null,
+                'comment' => $r->body,
+                'flagged' => [],
+                'section_notes' => [],
+                'field_changes' => null,
+                'actor' => $r->author ? ['name' => $this->authorName($r->author), 'role' => $this->remarkAuthorRole($r->author, $steps, $document)] : null,
+                'created_at' => $r->created_at->toIso8601String(),
+            ])
+            ->values();
+
+        return $this->mergeNewestFirst($transitions, $remarks);
+    }
+
+    /**
+     * Interleaves the two newest-first lists by time without disturbing the
+     * order inside either one (transitions keep their id order, so nothing
+     * about an existing timeline moves). On an exact tie the remark goes
+     * first: a remark can only be written after the event it comments on,
+     * and SQLite stores seconds while Postgres keeps microseconds, so ties
+     * must resolve the same way on both.
+     *
+     * @param  Collection<int, array<string, mixed>>  $transitions
+     * @param  Collection<int, array<string, mixed>>  $remarks
+     * @return list<array<string, mixed>>
+     */
+    private function mergeNewestFirst(Collection $transitions, Collection $remarks): array
+    {
+        $merged = [];
+        $t = 0;
+        $r = 0;
+
+        while ($t < $transitions->count() || $r < $remarks->count()) {
+            $transition = $transitions[$t] ?? null;
+            $remark = $remarks[$r] ?? null;
+
+            $takeRemark = $transition === null
+                || ($remark !== null && $this->instant($remark) >= $this->instant($transition));
+
+            if ($takeRemark) {
+                $merged[] = $remark;
+                $r++;
+            } else {
+                $merged[] = $transition;
+                $t++;
+            }
+        }
+
+        return $merged;
+    }
+
+    /** @param  array<string, mixed>  $event */
+    private function instant(array $event): int
+    {
+        return $event['created_at'] === null ? 0 : (int) strtotime((string) $event['created_at']);
+    }
+
+    /** "First Last" without an honorific, falling back to the stored display name. */
+    private function authorName(User $author): string
+    {
+        return PersonName::join($author->first_name, $author->last_name) ?: $author->name;
+    }
+
+    /**
+     * The role a remark's author holds on THIS document: the step they
+     * approve, else their first assigned role (an SDAO member remarking from
+     * outside their step).
+     *
+     * @param  Collection<int, WorkflowStep>  $steps
+     */
+    private function remarkAuthorRole(User $author, Collection $steps, Document $document): ?string
+    {
+        foreach ($steps as $step) {
+            if ($this->approvers($step, $document)->contains('id', $author->id)) {
+                return $step->role->label();
+            }
+        }
+
+        return $author->roleAssignments()->first()?->role->label();
     }
 
     /**

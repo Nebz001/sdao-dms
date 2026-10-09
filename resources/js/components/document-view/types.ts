@@ -2,6 +2,10 @@ import type { FieldChanges } from '@/types/document-transitions';
 
 /** One event in the unified, newest-first history timeline. */
 export type HistoryEvent = {
+    /** Unique across both kinds ("transition-4", "remark-4"); ids alone collide. */
+    key: string;
+    /** A remark is a note an approver added; it never changed the document's state. */
+    kind: 'transition' | 'remark';
     id: number;
     action: string;
     step_position: number | null;
@@ -33,8 +37,15 @@ export type DocumentViewData = {
     submittedAt: string | null;
     chips: { label: string; value: string }[];
     history: HistoryEvent[];
+    /** Whether the viewer may add a remark (the server's `remark` ability), where to post it, and the length cap. */
+    remark: { canAdd: boolean; url: string; maxLength: number };
     flow: FlowNode[];
-    waiting: { step: number; totalSteps: number; stepName: string; days: number } | null;
+    waiting: {
+        step: number;
+        totalSteps: number;
+        stepName: string;
+        days: number;
+    } | null;
     quorum: { required: number; approvedBy: string[] } | null;
     record: {
         submittedBy: string | null;

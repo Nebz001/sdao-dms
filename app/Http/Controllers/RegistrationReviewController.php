@@ -128,7 +128,7 @@ class RegistrationReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ApproveOrganizationRegistration $action): RedirectResponse
+    public function approve(ReviewActionRequest $request, Document $document, ApproveOrganizationRegistration $action): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.registrations.index')) {
             return $stale;
@@ -140,7 +140,7 @@ class RegistrationReviewController extends Controller
         // back with `errors.approve` via Laravel's default handling, same as
         // any other validation failure — not caught by runReviewAction(),
         // which only handles the engine's own RuntimeException family.
-        if ($stale = $this->runReviewAction(fn () => $action->execute($document, Auth::user()), 'review.registrations.index')) {
+        if ($stale = $this->runReviewAction(fn () => $action->execute($document, Auth::user(), $request->string('comment')->toString() ?: null), 'review.registrations.index')) {
             return $stale;
         }
 

@@ -26,8 +26,12 @@ class ReviewActionRequest extends FormRequest
 
         $commentRequired = in_array($action, ['reject', 'return'], strict: true);
 
+        // Approve's comment is the optional "Remarks" from the confirm dialog,
+        // capped at the same 1000 characters as an after-the-fact remark.
+        $maxLength = $action === 'approve' ? 1000 : 2000;
+
         $rules = [
-            'comment' => [$commentRequired ? 'required' : 'nullable', 'string', 'max:2000'],
+            'comment' => [$commentRequired ? 'required' : 'nullable', 'string', 'max:'.$maxLength],
         ];
 
         // Phase 2 item 9 — section flags are return-only metadata (purely

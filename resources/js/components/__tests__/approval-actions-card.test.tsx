@@ -85,6 +85,31 @@ describe('ApprovalActionsCard', () => {
         expect(onConfirm).toHaveBeenCalledTimes(1);
     });
 
+    it('passes the approve remarks to onConfirm, trimmed, capped at 1000 characters', async () => {
+        const user = userEvent.setup();
+        const onConfirm = vi.fn();
+        render(<ApprovalActionsCard {...baseProps({ approve: { ...baseProps().approve, onConfirm } })} />);
+
+        await user.click(screen.getByRole('button', { name: 'Approve' }));
+        const dialog = screen.getByRole('dialog');
+        const remarks = within(dialog).getByLabelText(/Remarks/);
+        expect(remarks).toHaveAttribute('maxlength', '1000');
+
+        await user.type(remarks, '  Looks good.  ');
+        await user.click(within(dialog).getByRole('button', { name: 'Confirm Approval' }));
+        expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ remarks: 'Looks good.' }));
+    });
+
+    it('sends an empty remarks string when the field is left blank', async () => {
+        const user = userEvent.setup();
+        const onConfirm = vi.fn();
+        render(<ApprovalActionsCard {...baseProps({ approve: { ...baseProps().approve, onConfirm } })} />);
+
+        await user.click(screen.getByRole('button', { name: 'Approve' }));
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm Approval' }));
+        expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ remarks: '' }));
+    });
+
     it('swaps to the return form when Return for revision is chosen, with the section chips slot and a required message', async () => {
         const user = userEvent.setup();
         render(<ApprovalActionsCard {...baseProps()} />);

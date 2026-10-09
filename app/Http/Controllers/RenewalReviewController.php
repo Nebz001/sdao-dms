@@ -100,13 +100,13 @@ class RenewalReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ApprovalEngine $engine): RedirectResponse
+    public function approve(ReviewActionRequest $request, Document $document, ApprovalEngine $engine): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.renewals.index')) {
             return $stale;
         }
 
-        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.renewals.index')) {
+        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user(), $request->string('comment')->toString() ?: null), 'review.renewals.index')) {
             return $stale;
         }
 

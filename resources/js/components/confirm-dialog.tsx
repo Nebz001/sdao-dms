@@ -1,6 +1,7 @@
 import type { VariantProps } from 'class-variance-authority';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import InputError from '@/components/input-error';
 import type { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +13,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
 
@@ -22,11 +25,23 @@ type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
  * Call `stopProcessing` from onFinish (or onError, if there's no separate
  * onFinish) so the confirm button re-enables and the dialog stays open to
  * show the error — without this, a failed request would leave the button
- * disabled forever.
+ * disabled forever. `remarks` is the trimmed text of the optional remarks
+ * field (see `remarks` below), or an empty string when it is blank or the
+ * dialog has no such field.
  */
 export type ConfirmActions = {
     close: () => void;
     stopProcessing: () => void;
+    remarks: string;
+};
+
+/** Opts a dialog into an optional "Remarks" textarea above the buttons. */
+export type RemarksField = {
+    maxLength: number;
+    /** A server validation message for the field, e.g. `errors.comment`. */
+    error?: string;
+    label?: string;
+    placeholder?: string;
 };
 
 type ConfirmDialogProps = {
@@ -47,6 +62,11 @@ type ConfirmDialogProps = {
      * description renders a paragraph and a notice is a block.
      */
     notice?: ReactNode;
+    /**
+     * Adds an optional, labelled remarks textarea (used by Approve). Its text
+     * is handed to `onConfirm` and cleared whenever the dialog closes.
+     */
+    remarks?: RemarksField;
     /** Disables the trigger itself (e.g. while a related mutation is in flight). */
     triggerDisabled?: boolean;
     /** Externally controlled open state — pairs with `onOpenChange`. Omit both to manage state internally (the default, used by every trigger-based caller). */
@@ -88,6 +108,7 @@ export default function ConfirmDialog({
     title,
     description,
     notice,
+    remarks,
     triggerDisabled = false,
     open: openProp,
     onOpenChange: onOpenChangeProp,
@@ -99,12 +120,14 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [remarksText, setRemarksText] = useState('');
 
     const open = openProp ?? internalOpen;
     const setOpen = onOpenChangeProp ?? setInternalOpen;
 
     const close = () => {
         setProcessing(false);
+        setRemarksText('');
         setOpen(false);
     };
 
@@ -135,6 +158,30 @@ export default function ConfirmDialog({
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>{description}</DialogDescription>
                 {notice}
+                {remarks && !children && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-baseline justify-between gap-3">
+                            <Label htmlFor="confirm-remarks">
+                                {remarks.label ?? 'Remarks'}{' '}
+                                <span className="font-normal text-muted-foreground">(optional)</span>
+                            </Label>
+                            <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
+                                {remarksText.length}/{remarks.maxLength}
+                            </span>
+                        </div>
+                        <Textarea
+                            id="confirm-remarks"
+                            rows={3}
+                            value={remarksText}
+                            maxLength={remarks.maxLength}
+                            disabled={processing}
+                            placeholder={remarks.placeholder}
+                            aria-invalid={remarks.error ? true : undefined}
+                            onChange={(event) => setRemarksText(event.target.value)}
+                        />
+                        <InputError message={remarks.error} />
+                    </div>
+                )}
                 {children ? (
                     children(close)
                 ) : (
@@ -151,7 +198,11 @@ export default function ConfirmDialog({
                             loading={processing}
                             onClick={() => {
                                 setProcessing(true);
-                                onConfirm?.({ close, stopProcessing });
+                                onConfirm?.({
+                                    close,
+                                    stopProcessing,
+                                    remarks: remarksText.trim(),
+                                });
                             }}
                         >
                             {confirmLabel}

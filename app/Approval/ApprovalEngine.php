@@ -86,15 +86,19 @@ class ApprovalEngine
      * If this approval satisfies the quorum (required_approvals), the document
      * advances to the next step (or becomes Approved if it was the final step).
      *
+     * $comment is the approver's optional remarks, stored on the Approved
+     * transition exactly like reject/return comments. It is never required
+     * and changes nothing about routing.
+     *
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      * @throws DuplicateApprovalException
      */
-    public function approve(Document $document, User $actor): void
+    public function approve(Document $document, User $actor, ?string $comment = null): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'approve');
 
-        DB::transaction(function () use ($document, $actor) {
+        DB::transaction(function () use ($document, $actor, $comment) {
             // Serialize concurrent approvals on the same document: without
             // this lock, two near-simultaneous approve() calls (e.g. both
             // SDAO members approving within moments of each other) can each
@@ -128,7 +132,7 @@ class ApprovalEngine
                 'user_id' => $actor->id,
             ]);
 
-            $this->recordTransition($document, $actor, TransitionAction::Approved, $document->status, $document->status, $step->position);
+            $this->recordTransition($document, $actor, TransitionAction::Approved, $document->status, $document->status, $step->position, $comment);
 
             // Check quorum.
             $approvalCount = DocumentStepApproval::query()

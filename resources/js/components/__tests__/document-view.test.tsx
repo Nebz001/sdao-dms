@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DetailField } from '@/components/document-view/details';
 import FlowCard from '@/components/document-view/flow-card';
-import { formatDuration, formatFileSize, formatLongDate, formatPhone } from '@/components/document-view/format';
+import { formatDateTime, formatDuration, formatFileSize, formatLongDate, formatPhone } from '@/components/document-view/format';
 import HistoryCard from '@/components/document-view/history-card';
 import ReviewPanel from '@/components/document-view/review-panel';
 import type { DocumentViewData, FlowNode, HistoryEvent } from '@/components/document-view/types';
@@ -13,6 +13,7 @@ const baseView: DocumentViewData = {
     submittedAt: '2026-09-12T00:00:00Z',
     chips: [],
     history: [],
+    remark: { canAdd: false, url: '/documents/1/remarks', maxLength: 1000 },
     flow: [],
     waiting: { step: 3, totalSteps: 4, stepName: 'SDAO review', days: 3 },
     quorum: null,
@@ -126,6 +127,8 @@ describe('HistoryCard', () => {
     const events: HistoryEvent[] = [
         {
             ...base,
+            key: 'transition-3',
+            kind: 'transition' as const,
             id: 3,
             action: 'resubmitted',
             actor: { name: 'Miguel Torres', role: 'President' },
@@ -140,6 +143,8 @@ describe('HistoryCard', () => {
         },
         {
             ...base,
+            key: 'transition-2',
+            kind: 'transition' as const,
             id: 2,
             action: 'returned',
             comment: 'Please correct the type of organization.',
@@ -149,12 +154,39 @@ describe('HistoryCard', () => {
         },
         {
             ...base,
+            key: 'transition-1',
+            kind: 'transition' as const,
             id: 1,
             action: 'submitted',
             actor: { name: 'Miguel Torres', role: 'President' },
             created_at: '2026-09-11T08:00:00Z',
         },
     ];
+
+    it('labels a remark, shows its author and role, and uses the same time format as every other event', () => {
+        render(
+            <HistoryCard
+                events={[
+                    {
+                        ...base,
+                        key: 'remark-9',
+                        kind: 'remark',
+                        id: 9,
+                        action: 'remark',
+                        step_position: null,
+                        comment: 'Please bring the signed copy.',
+                        actor: { name: 'Carl Magpantay', role: 'Adviser' },
+                        created_at: '2026-09-11T16:30:00Z',
+                    },
+                ]}
+            />,
+        );
+
+        expect(screen.getByText('Remark')).toBeInTheDocument();
+        expect(screen.getByText('Carl Magpantay, Adviser')).toBeInTheDocument();
+        expect(screen.getByText('Please bring the signed copy.')).toBeInTheDocument();
+        expect(screen.getByText(formatDateTime('2026-09-11T16:30:00Z') as string)).toBeInTheDocument();
+    });
 
     it('lists every event with its count, actor and role', () => {
         render(<HistoryCard events={events} />);

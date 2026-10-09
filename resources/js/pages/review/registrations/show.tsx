@@ -46,10 +46,10 @@ export default function ReviewRegistrationShow({
 
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
 
-    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+    function handleApprove({ close, stopProcessing, remarks }: ConfirmActions) {
         router.post(
             reviewRegistrations.approve.url(document.id),
-            {},
+            { comment: remarks },
             { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
         );
     }

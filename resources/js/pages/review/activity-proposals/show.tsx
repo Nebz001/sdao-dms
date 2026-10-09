@@ -98,10 +98,10 @@ export default function ReviewActivityProposalShow({
                             <PageNotice tone="destructive" urgent title={errors.approve} />
                         ) : undefined,
                         confirmDisabled: hasApproved || hasConfirmedConflict,
-                        onConfirm: ({ close, stopProcessing }: ConfirmActions) =>
+                        onConfirm: ({ close, stopProcessing, remarks }: ConfirmActions) =>
                             router.post(
                                 ActivityProposalReviewController.approve({ document: doc.id }).url,
-                                {},
+                                { comment: remarks },
                                 { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
                             ),
                     }}

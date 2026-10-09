@@ -41,10 +41,10 @@ export default function ReviewRenewalShow({
 }: Props) {
     useDocumentUpdates(['document', 'detail', 'attachments', 'view', 'hasApproved', 'canAct']);
 
-    function handleApprove({ close, stopProcessing }: ConfirmActions) {
+    function handleApprove({ close, stopProcessing, remarks }: ConfirmActions) {
         router.post(
             reviewRenewals.approve.url(document.id),
-            {},
+            { comment: remarks },
             { preserveScroll: true, onSuccess: close, onFinish: stopProcessing },
         );
     }

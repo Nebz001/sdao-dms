@@ -332,6 +332,21 @@ describe('NotificationBell', () => {
         ).not.toBeNull();
     });
 
+    it('renders a message icon, not the default bell, for a document remark', async () => {
+        mockNotifications({
+            unreadCount: 0,
+            items: [makeItem({ id: 'r', kind: 'document_remark', title: 'New remark on: Doc' })],
+        });
+        const user = userEvent.setup();
+        render(<NotificationBell />);
+
+        await user.click(screen.getByRole('button', { name: 'Notifications' }));
+
+        const row = screen.getByText('New remark on: Doc').closest('li');
+        expect(row?.querySelector('.lucide-message-square.text-info')).not.toBeNull();
+        expect(row?.querySelector('.lucide-bell')).toBeNull();
+    });
+
     it('lets a long title wrap onto two lines instead of hard-truncating to one', async () => {
         mockNotifications({
             unreadCount: 1,

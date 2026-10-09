@@ -124,7 +124,7 @@ class ActivityCalendarReviewController extends Controller
         ]);
     }
 
-    public function approve(Document $document, ApprovalEngine $engine, VenueConflictChecker $checker): RedirectResponse
+    public function approve(ReviewActionRequest $request, Document $document, ApprovalEngine $engine, VenueConflictChecker $checker): RedirectResponse
     {
         if ($stale = $this->authorizeReviewAction(Auth::user(), $document, 'review.activity-calendars.index')) {
             return $stale;
@@ -158,7 +158,7 @@ class ActivityCalendarReviewController extends Controller
             }
         }
 
-        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user()), 'review.activity-calendars.index')) {
+        if ($stale = $this->runReviewAction(fn () => $engine->approve($document, Auth::user(), $request->string('comment')->toString() ?: null), 'review.activity-calendars.index')) {
             return $stale;
         }
 

@@ -1,4 +1,4 @@
-import { ArrowUp, Ban, Check, FileText, Undo2, X } from 'lucide-react';
+import { ArrowUp, Ban, Check, FileText, MessageSquare, Undo2, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FieldChangeDiff } from '@/components/field-change-diff';
 import { ToneBadge } from '@/components/status-badge';
@@ -19,6 +19,7 @@ const ICONS: Record<string, LucideIcon> = {
     returned: Undo2,
     rejected: X,
     withdrawn: Ban,
+    remark: MessageSquare,
 };
 
 const ACTION_NAMES: Record<string, string> = {
@@ -30,6 +31,16 @@ const ACTION_NAMES: Record<string, string> = {
     returned: 'Returned',
     rejected: 'Rejected',
     withdrawn: 'Withdrawn',
+    remark: 'Remark',
+};
+
+/** The accent on a comment's left edge follows the event it belongs to. */
+const QUOTE_BORDER: Record<Tone, string> = {
+    success: 'border-success',
+    info: 'border-info',
+    warning: 'border-warning',
+    destructive: 'border-destructive',
+    neutral: 'border-muted-foreground',
 };
 
 /** Same tint-and-border pairs the status badges use, so no new colors. */
@@ -49,13 +60,18 @@ function EventRow({ event, last }: { event: HistoryEvent; last: boolean }) {
     const Icon = ICONS[event.action] ?? FileText;
     const tone = toneFor('action', event.action);
     const actor = event.actor ? [event.actor.name, event.actor.role].filter(Boolean).join(', ') : null;
+    const isRemark = event.kind === 'remark';
+    const quoteTone: Tone = isRemark ? 'info' : tone === 'success' ? 'success' : 'warning';
     const when = formatDateTime(event.created_at);
 
     return (
         <li className="relative flex gap-4 pb-6 last:pb-0">
             {!last && <span aria-hidden className="absolute top-9 bottom-1 left-4 w-px -translate-x-1/2 bg-border" />}
             <span
-                className={cn('z-10 flex size-8 shrink-0 items-center justify-center rounded-full border', CIRCLE[tone])}
+                className={cn(
+                    'z-10 flex size-8 shrink-0 items-center justify-center rounded-full border',
+                    CIRCLE[tone],
+                )}
             >
                 <Icon className="size-4" aria-hidden />
             </span>
@@ -73,7 +89,12 @@ function EventRow({ event, last }: { event: HistoryEvent; last: boolean }) {
                 {event.action === 'resubmitted' && <FieldChangeDiff changes={event.field_changes} />}
 
                 {event.comment && (
-                    <blockquote className="mt-2 rounded-md border-l-2 border-warning bg-muted/40 px-4 py-3 text-sm whitespace-pre-wrap">
+                    <blockquote
+                        className={cn(
+                            'mt-2 rounded-md border-l-2 bg-muted/40 px-4 py-3 text-sm whitespace-pre-wrap',
+                            QUOTE_BORDER[quoteTone],
+                        )}
+                    >
                         {event.comment}
                     </blockquote>
                 )}
@@ -104,7 +125,7 @@ function EventRow({ event, last }: { event: HistoryEvent; last: boolean }) {
     );
 }
 
-/** One unified timeline of every transition on the document, newest first. */
+/** One unified timeline of every transition and remark on the document, newest first. */
 export default function HistoryCard({ events }: { events: HistoryEvent[] }) {
     return (
         <Card>
@@ -117,7 +138,7 @@ export default function HistoryCard({ events }: { events: HistoryEvent[] }) {
                 ) : (
                     <ol>
                         {events.map((event, index) => (
-                            <EventRow key={event.id} event={event} last={index === events.length - 1} />
+                            <EventRow key={event.key} event={event} last={index === events.length - 1} />
                         ))}
                     </ol>
                 )}

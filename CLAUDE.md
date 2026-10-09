@@ -392,6 +392,30 @@ keys), not just a comment string. Section definitions per form type:
 - **After-Activity Report:** Event Details, Summary/Program, Evaluation,
   Attachments, General
 
+### Approver remarks — approve-time remarks and after-the-fact remarks
+
+Two separate things; neither changes routing, status, or any printed form.
+
+- **Approve remarks:** the Approve confirm dialog has an optional "Remarks"
+  field (max 1000). It is stored as `comment` on the `Approved` transition,
+  exactly like reject/return comments. `ApprovalEngine::approve()` takes an
+  optional `$comment`; the mobile API passes none and is unchanged.
+- **Add remark (after approving):** an append-only `document_remarks` table
+  (`document_id`, `user_id`, `body` max 1000, `created_at`; no edit, no
+  delete, never a fake transition). `POST /documents/{document}/remarks`
+  (throttled) is gated by its own `DocumentPolicy::remark()` ability, enforced
+  server-side: never derive it from `view()` or `review()`. SDAO members can
+  always remark on a non-draft document; any other approver only while the
+  document is In Review/Returned and only if they resolve as the approver of a
+  step it has already PASSED; nobody but SDAO once it is terminal; officers
+  never. `DocumentViewData` merges remarks into the history newest-first (a
+  tie puts the remark first) and exposes `view.remark.canAdd`. Adding one
+  notifies the org's active officers (fallback: submitter) with
+  `DocumentRemarkNotification` (mail + database), worded as a remark, not a
+  status change. Remarks use the same timestamp display as every other History
+  entry (the viewer's local time via `formatDateTime`), and the bell shows them
+  with a message icon.
+
 ### Registration/Renewal required attachments — no conditionals
 
 Every attachment listed on the physical form for the relevant application type is

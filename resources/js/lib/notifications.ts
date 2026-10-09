@@ -1,4 +1,4 @@
-import { Ban, Bell, CalendarClock, CircleCheck, CircleX, FileText, Inbox, Undo2, UserCheck, UserPlus } from 'lucide-react';
+import { Ban, Bell, CalendarClock, CircleCheck, CircleX, FileText, Inbox, MessageSquare, Undo2, UserCheck, UserPlus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NotificationItem } from '@/types/notifications';
 
@@ -27,6 +27,8 @@ export function notificationVisual(item: NotificationItem): NotificationVisual {
             return { Icon: Inbox, iconClassName: 'text-info', chipClassName: 'bg-info/15' };
         case 'stuck_document_reminder':
             return { Icon: Bell, iconClassName: 'text-warning', chipClassName: 'bg-warning/15' };
+        case 'document_remark':
+            return { Icon: MessageSquare, iconClassName: 'text-info', chipClassName: 'bg-info/15' };
         case 'document_outcome':
             switch (item.status) {
                 case 'approved':

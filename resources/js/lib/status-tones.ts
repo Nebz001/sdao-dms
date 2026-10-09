@@ -48,6 +48,8 @@ const TABLE: Record<StatusDomain, Record<string, Entry>> = {
         returned: { tone: 'warning', label: 'Returned' },
         rejected: { tone: 'destructive', label: 'Rejected' },
         withdrawn: { tone: 'neutral', label: 'Withdrawn' },
+        // Not a TransitionAction: an approver's note in the history (App\Models\DocumentRemark).
+        remark: { tone: 'info', label: 'Remark' },
     },
     // App\Enums\OrganizationStatus
     organization: {

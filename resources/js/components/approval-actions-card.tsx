@@ -12,6 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { RouteFormDefinition } from '@/wayfinder';
 
+/** Mirrors the 1000 character cap ReviewActionRequest puts on an approval's comment. */
+const APPROVE_REMARKS_MAX_LENGTH = 1000;
+
 type ApproveConfig = {
     /** Trigger button label. Default "Approve". */
     label?: string;
@@ -24,6 +27,7 @@ type ApproveConfig = {
     confirmNotice?: ReactNode;
     confirmLabel?: string;
     confirmDisabled?: boolean;
+    /** `actions.remarks` is the optional remarks text; send it as `comment`. */
     onConfirm: (actions: ConfirmActions) => void;
 };
 
@@ -144,6 +148,10 @@ export default function ApprovalActionsCard({
                         title={approve.confirmTitle}
                         description={approve.confirmDescription}
                         notice={approve.confirmNotice}
+                        remarks={{
+                            maxLength: APPROVE_REMARKS_MAX_LENGTH,
+                            placeholder: 'Add a note for the organization or the next approver…',
+                        }}
                         confirmLabel={approve.confirmLabel ?? 'Confirm Approval'}
                         confirmDisabled={approve.confirmDisabled}
                         onConfirm={approve.onConfirm}
