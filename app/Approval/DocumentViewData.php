@@ -110,7 +110,7 @@ class DocumentViewData
                     'step_position' => $t->step_position,
                     'comment' => $t->comment,
                     'flagged' => array_map($label, $t->flagged_sections ?? []),
-                    'section_notes' => collect($t->section_comments ?? [])
+                    'section_notes' => collect(SectionFlags::cleanNotes($t->section_comments))
                         ->map(fn (string $note, string $key) => ['label' => $label($key), 'note' => $note])
                         ->values()
                         ->all(),

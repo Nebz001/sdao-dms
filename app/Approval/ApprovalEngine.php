@@ -478,7 +478,7 @@ class ApprovalEngine
             'step_position' => $stepPosition,
             'comment' => $comment,
             'flagged_sections' => $flaggedSections,
-            'section_comments' => $sectionComments,
+            'section_comments' => $sectionComments === null ? null : (SectionFlags::cleanNotes($sectionComments) ?: null),
             'field_changes' => $fieldChanges,
             'created_at' => now(),
         ]);

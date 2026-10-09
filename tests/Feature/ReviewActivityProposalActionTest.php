@@ -256,3 +256,34 @@ test('approve on an already-terminal document still throws InvalidTransitionExce
     expect(fn () => $this->action->approve($doc, $this->adviser))
         ->toThrow(InvalidTransitionException::class);
 });
+
+test('a flagged section with a blank note stores no null note', function () {
+    $doc = submitOnCalendarProposal($this);
+    $this->action->approve($doc, $this->adviser);
+
+    $this->action->returnForRevision($doc->refresh(), $this->chair, 'Fix it.', ['budget', 'schedule_venue'], ['budget' => null, 'schedule_venue' => '  ']);
+
+    $returned = DocumentTransition::where('document_id', $doc->id)->where('action', TransitionAction::Returned->value)->first();
+
+    expect($returned->flagged_sections)->toBe(['budget', 'schedule_venue']);
+    expect($returned->section_comments)->toBeNull();
+});
+
+test('the review page renders a return that was stored with a null section note', function () {
+    // Production document 140 shape: {"activity_details": null}, written
+    // before blank notes were dropped. It made the page 500 with a TypeError.
+    $doc = submitOnCalendarProposal($this);
+    $this->action->approve($doc, $this->adviser);
+    $this->action->returnForRevision($doc->refresh(), $this->chair, 'revise', ['budget', 'schedule_venue'], ['schedule_venue' => 'Wrong date.']);
+
+    DocumentTransition::where('document_id', $doc->id)->where('action', TransitionAction::Returned->value)
+        ->update(['section_comments' => json_encode(['budget' => null, 'schedule_venue' => 'Wrong date.'])]);
+
+    $this->actingAs($this->chair)->withoutVite()
+        ->get(route('review.activity-proposals.show', $doc))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('view.history.0.action', 'returned')
+            ->where('view.history.0.section_notes', [['label' => 'Schedule & Venue', 'note' => 'Wrong date.']])
+        );
+});

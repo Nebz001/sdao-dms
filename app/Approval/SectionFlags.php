@@ -201,6 +201,30 @@ class SectionFlags
      */
     public static function currentSectionComments(Document $document): array
     {
-        return self::latestReturnTransition($document)?->section_comments ?? [];
+        return self::cleanNotes(self::latestReturnTransition($document)?->section_comments);
+    }
+
+    /**
+     * Keeps only real notes (non-blank strings, trimmed). A flagged section
+     * with an empty note box arrives as null (blank strings are converted to
+     * null by the request pipeline), and rows stored that way before this
+     * existed still carry such entries. Every writer and reader of
+     * section_comments goes through here so the documented
+     * array<string, string> shape holds.
+     *
+     * @param  array<array-key, mixed>|null  $notes
+     * @return array<string, string>
+     */
+    public static function cleanNotes(?array $notes): array
+    {
+        $clean = [];
+
+        foreach ($notes ?? [] as $key => $note) {
+            if (is_string($note) && trim($note) !== '') {
+                $clean[(string) $key] = trim($note);
+            }
+        }
+
+        return $clean;
     }
 }
