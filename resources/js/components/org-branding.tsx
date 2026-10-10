@@ -42,7 +42,7 @@ export default function OrgBranding({ organization }: { organization: AuthOrgani
  * else it's used (user-info.tsx, admin/dashboard.tsx) and should keep its
  * current one-word behavior there.
  */
-function orgMonogram(name: string): string {
+export function orgMonogram(name: string): string {
     const words = name.trim().split(' ').filter(Boolean);
 
     if (words.length === 0) {

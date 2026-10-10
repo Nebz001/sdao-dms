@@ -1,23 +1,34 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { History } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import PageHeader from '@/components/page-header';
-import PaginationFooter from '@/components/pagination-footer';
-import QueueStatStrip from '@/components/queue-stat-strip';
-import { RelativeTime } from '@/components/relative-time';
-import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    DocumentRow,
+    ListCard,
+    ListFooter,
+    ListSearch,
+    NoMatches,
+    RowChip,
+    StatusTabs,
+} from '@/components/student-list';
+import StudentPageHeader from '@/components/student-page-header';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { statusLabel } from '@/lib/utils';
+import { useServerList } from '@/hooks/use-server-list';
+import { FORM_STYLE, FORM_TYPE_KIND } from '@/lib/form-style';
+import { formatListDate, isTabKey, statusNote } from '@/lib/student-list';
+import type { TabKey } from '@/lib/student-list';
 import * as documentHistory from '@/routes/document-history';
-
-type FormTypeOption = { value: string; label: string };
-type StatusOption = { value: string };
 
 type HistoryDocument = {
     id: number;
@@ -26,6 +37,7 @@ type HistoryDocument = {
     formType: string;
     formTypeLabel: string;
     lastActivityAt: string;
+    currentApprover: string | null;
     href: string;
 };
 
@@ -46,236 +58,185 @@ type Props = {
         status: string | null;
         search: string;
     };
-    formTypes: FormTypeOption[];
-    statuses: StatusOption[];
+    formTypes: { value: string; label: string }[];
     stats: {
         total: number;
         inProgress: number;
+        inReview: number;
         approved: number;
+        returned: number;
         rejected: number;
     };
 };
 
-const ALL_TYPES = 'all';
-const ALL_STATUSES = 'all';
+const TABS: TabKey[] = ['all', 'in_review', 'approved', 'returned'];
 
-export default function DocumentHistoryIndex({ documents, filters, formTypes, statuses, stats }: Props) {
-    const [formType, setFormType] = useState(filters.form_type ?? ALL_TYPES);
-    const [status, setStatus] = useState(filters.status ?? ALL_STATUSES);
-    const [search, setSearch] = useState(filters.search);
-    const [loading, setLoading] = useState(false);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const isFirstRender = useRef(true);
-
-    function reload(params: Record<string, string>) {
-        setLoading(true);
-        router.get(documentHistory.index().url, params, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            only: ['documents', 'filters', 'stats'],
-            onFinish: () => setLoading(false),
-        });
-    }
-
-    // A single debounced effect covers all three filters (select changes and
-    // keystrokes alike) so clearing/combining filters triggers exactly one
-    // reload instead of racing separate effects per field — same pattern as
-    // the Document Archive page.
-    useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-
-            return;
-        }
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => {
-            const params: Record<string, string> = {};
-
-            if (formType !== ALL_TYPES) {
-                params.form_type = formType;
-            }
-
-            if (status !== ALL_STATUSES) {
-                params.status = status;
-            }
-
-            if (search.trim() !== '') {
-                params.search = search.trim();
-            }
-
-            reload(params);
-        }, 400);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [formType, status, search]);
-
-    const hasFilters = formType !== ALL_TYPES || status !== ALL_STATUSES || search.trim() !== '';
-
-    function clearFilters() {
-        setFormType(ALL_TYPES);
-        setStatus(ALL_STATUSES);
-        setSearch('');
-    }
-
-    function goToPage(url: string | null) {
-        if (!url) {
-            return;
-        }
-
-        setLoading(true);
-        router.get(
-            url,
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['documents', 'filters', 'stats'],
-                onFinish: () => setLoading(false),
-            },
-        );
-    }
+export default function DocumentHistoryIndex({
+    documents,
+    filters,
+    formTypes,
+    stats,
+}: Props) {
+    const list = useServerList({
+        url: documentHistory.index().url,
+        only: ['documents', 'filters', 'stats'],
+        initial: {
+            status: filters.status ?? '',
+            form_type: filters.form_type ?? '',
+            search: filters.search,
+        },
+    });
+    const tab: TabKey = isTabKey(list.filters.status)
+        ? list.filters.status
+        : 'all';
+    const { meta } = documents;
+    const neverFiled = stats.total === 0 && !list.isFiltered;
 
     return (
         <>
             <Head title="Document History" />
 
-            <div className="space-y-6">
-                <PageHeader title="Document History" subtitle="Every document your organization has ever filed, across every form type and status — president and secretary see the same full list." />
-
-                <QueueStatStrip
-                    stats={[
-                        { label: 'Total', value: String(stats.total), count: stats.total },
-                        { label: 'In Progress', value: String(stats.inProgress), count: stats.inProgress },
-                        { label: 'Approved', value: String(stats.approved), count: stats.approved },
-                        { label: 'Rejected', value: String(stats.rejected), count: stats.rejected },
-                    ]}
+            <div className="flex flex-col gap-6">
+                <StudentPageHeader
+                    icon={History}
+                    tone="green"
+                    title="Document History"
+                    subtitle="Everything your organization has filed. All officers see the same list."
                 />
 
-                <Card>
-                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-                        <div className="grid gap-2">
-                            <Label htmlFor="history-form-type">Form type</Label>
-                            <Select value={formType} onValueChange={setFormType}>
-                                <SelectTrigger id="history-form-type" className="w-full sm:w-56">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_TYPES}>All types</SelectItem>
-                                    {formTypes.map((t) => (
-                                        <SelectItem key={t.value} value={t.value}>
-                                            {t.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="history-status">Status</Label>
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger id="history-status" className="w-full sm:w-44">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
-                                    {statuses.map((s) => (
-                                        <SelectItem key={s.value} value={s.value}>
-                                            {statusLabel(s.value)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid flex-1 gap-2">
-                            <Label htmlFor="history-search">Search</Label>
-                            <Input
-                                id="history-search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by title…"
+                {neverFiled ? (
+                    <Empty className="border">
+                        <EmptyHeader>
+                            <EmptyTitle>No documents yet</EmptyTitle>
+                            <EmptyDescription>
+                                Once your organization files a document, it
+                                shows up here with where it stands.
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                ) : (
+                    <ListCard
+                        toolbar={
+                            <>
+                                <StatusTabs
+                                    tabs={TABS}
+                                    counts={{
+                                        all: stats.total,
+                                        in_review: stats.inReview,
+                                        approved: stats.approved,
+                                        returned: stats.returned,
+                                        draft: 0,
+                                    }}
+                                    value={tab}
+                                    onChange={(next) =>
+                                        list.set(
+                                            'status',
+                                            next === 'all' ? '' : next,
+                                        )
+                                    }
+                                />
+                                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                                    <Select
+                                        value={list.filters.form_type || 'all'}
+                                        onValueChange={(value) =>
+                                            list.set('form_type', value)
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            aria-label="Filter by form type"
+                                            className="h-9 w-full sm:w-40"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All forms
+                                            </SelectItem>
+                                            {formTypes.map((type) => (
+                                                <SelectItem
+                                                    key={type.value}
+                                                    value={type.value}
+                                                >
+                                                    {type.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <ListSearch
+                                        value={list.filters.search}
+                                        onChange={(value) =>
+                                            list.set('search', value)
+                                        }
+                                        placeholder="Search by name"
+                                    />
+                                </div>
+                            </>
+                        }
+                        footer={
+                            <ListFooter
+                                showing={
+                                    meta.from === null || meta.to === null
+                                        ? 0
+                                        : meta.to - meta.from + 1
+                                }
+                                total={meta.total}
+                                pagination={{
+                                    prev: documents.links.prev,
+                                    next: documents.links.next,
+                                    onNavigate: list.goToPage,
+                                }}
                             />
-                        </div>
-
-                        {hasFilters && (
-                            <Button type="button" variant="ghost" onClick={clearFilters}>
-                                Clear filters
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Documents</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
+                        }
+                    >
+                        {list.loading ? (
+                            <div className="space-y-3 p-5" aria-busy="true">
+                                {Array.from({ length: 4 }).map((_, i) => (
                                     <Skeleton key={i} className="h-12 w-full" />
                                 ))}
                             </div>
                         ) : documents.data.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <History />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters ? 'No documents match these filters' : 'Nothing filed yet'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different form type, status, or search term.'
-                                            : "Your organization's registrations, renewals, calendars, proposals, and reports will show up here as they're filed."}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
+                            <NoMatches onClear={list.clear} />
                         ) : (
-                            <div className="divide-y">
-                                {documents.data.map((doc) => (
-                                    <div key={doc.id} className="flex items-center justify-between gap-4 py-3">
-                                        <div className="min-w-0">
-                                            <p className="sm:truncate max-sm:break-words font-medium">{doc.title}</p>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {doc.formTypeLabel} · <RelativeTime dateString={doc.lastActivityAt} />
-                                            </p>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <StatusBadge status={doc.status} />
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={doc.href}>View</Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <ul>
+                                {documents.data.map((doc) => {
+                                    const kind =
+                                        FORM_TYPE_KIND[doc.formType] ??
+                                        'proposal';
+                                    const style = FORM_STYLE[kind];
+
+                                    return (
+                                        <DocumentRow
+                                            key={doc.id}
+                                            icon={style.icon}
+                                            tone={style.tone}
+                                            title={doc.title}
+                                            supporting={
+                                                <>
+                                                    <RowChip>
+                                                        {doc.formTypeLabel}
+                                                    </RowChip>
+                                                    <span>
+                                                        {formatListDate(
+                                                            doc.lastActivityAt,
+                                                        )}
+                                                    </span>
+                                                </>
+                                            }
+                                            status={doc.status}
+                                            note={statusNote(
+                                                doc.status,
+                                                kind,
+                                                doc.currentApprover,
+                                            )}
+                                            actionHref={doc.href}
+                                        />
+                                    );
+                                })}
+                            </ul>
                         )}
-                        {!loading && (
-                            <PaginationFooter meta={documents.meta} links={documents.links} onNavigate={goToPage} />
-                        )}
-                    </CardContent>
-                </Card>
+                    </ListCard>
+                )}
             </div>
         </>
     );
 }
-
-DocumentHistoryIndex.layout = {
-    breadcrumbs: [{ title: 'My Documents' }, { title: 'Document History' }],
-};

@@ -7,6 +7,7 @@ use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
+use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
@@ -28,6 +29,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Organizations\OrganizationMembershipService;
+use App\Organizations\StudentFormAvailability;
 use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use App\Support\FlashToast;
@@ -64,7 +66,7 @@ class ActivityProposalController extends Controller
             ->pluck('organization_id');
 
         $documents = Document::query()
-            ->with(['organization', 'activityProposal.calendarActivity'])
+            ->with(['organization', 'activityProposal.calendarActivity', 'workflowTemplate.steps'])
             ->where('form_type', FormType::ActivityProposal->value)
             ->whereIn('organization_id', $organizationIds)
             ->orderBy('updated_at', 'desc')
@@ -77,9 +79,13 @@ class ActivityProposalController extends Controller
                 'form_step' => $d->activityProposal?->form_step,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
+                'current_approver' => CurrentApproverLabel::for($d),
             ]);
 
-        return Inertia::render('activity-proposals/index', ['proposals' => $documents]);
+        return Inertia::render('activity-proposals/index', [
+            'proposals' => $documents,
+            'canStart' => StudentFormAvailability::for($user, FormType::ActivityProposal),
+        ]);
     }
 
     public function create(): Response

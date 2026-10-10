@@ -25,6 +25,7 @@ use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\DocumentRemarkController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\HubController;
 use App\Http\Controllers\JoinOrganizationController;
 use App\Http\Controllers\JoinRequestReviewController;
 use App\Http\Controllers\MyOrganizationController;
@@ -62,6 +63,11 @@ Route::middleware(['guest'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Student hub pages — what the home cards with several options open.
+    Route::get('/submit', [HubController::class, 'submit'])->name('hubs.submit');
+    Route::get('/my-documents', [HubController::class, 'myDocuments'])->name('hubs.my-documents');
+    Route::get('/review', [HubController::class, 'review'])->name('hubs.review');
 
     // Attachments (Phase 2 item 8) — generic across every form type.
     // store/destroy are Mode B (attach-to-existing-document, e.g. Activity

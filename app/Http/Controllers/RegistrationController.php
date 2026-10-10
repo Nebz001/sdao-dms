@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
@@ -16,6 +17,7 @@ use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use App\Organizations\StudentFormAvailability;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Registrations\UpdateOrganizationRegistration;
 use App\Support\FlashToast;
@@ -78,7 +80,7 @@ class RegistrationController extends Controller
             ->pluck('aggregate', 'status');
 
         $documents = (clone $base)
-            ->with('organization:id,name')
+            ->with(['organization:id,name', 'workflowTemplate.steps'])
             ->when($status, fn ($query, $value) => $query->where('status', $value))
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
@@ -93,6 +95,7 @@ class RegistrationController extends Controller
                     'status' => $d->status->value,
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                     'created_at' => $d->created_at,
+                    'current_approver' => CurrentApproverLabel::for($d),
                     'href' => route('registrations.show', $d),
                 ])->values(),
                 'meta' => [
@@ -121,9 +124,12 @@ class RegistrationController extends Controller
                 'inProgress' => (int) ($counts[DocumentStatus::Draft->value] ?? 0)
                     + (int) ($counts[DocumentStatus::InReview->value] ?? 0)
                     + (int) ($counts[DocumentStatus::Returned->value] ?? 0),
+                'inReview' => (int) ($counts[DocumentStatus::InReview->value] ?? 0),
                 'approved' => (int) ($counts[DocumentStatus::Approved->value] ?? 0),
+                'returned' => (int) ($counts[DocumentStatus::Returned->value] ?? 0),
                 'rejected' => (int) ($counts[DocumentStatus::Rejected->value] ?? 0),
             ],
+            'canStart' => StudentFormAvailability::for($user, FormType::OrganizationRegistration),
         ]);
     }
 

@@ -1,6 +1,8 @@
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
 import { Ban, FilePlus2, Hourglass, UserCog, UserPlus } from 'lucide-react';
-import ApproverDashboard, { ApproverGreeting } from '@/components/approver-dashboard';
+import ApproverDashboard, {
+    ApproverGreeting,
+} from '@/components/approver-dashboard';
 import type {
     ApproverHeader,
     ApproverNeedsReview,
@@ -10,7 +12,6 @@ import type {
     RecentDecision,
 } from '@/components/approver-dashboard';
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
-import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import type { RequirementsData } from '@/components/requirements-checklist';
 import StudentDashboard from '@/components/student-dashboard';
@@ -23,6 +24,10 @@ import type {
     UpcomingData,
 } from '@/components/student-dashboard';
 import StudentDashboardSkeleton from '@/components/student-dashboard-skeleton';
+import StudentHome, {
+    HomeStatusBanner,
+    HomeStatusBannerSkeleton,
+} from '@/components/student-home';
 import type { SubmissionMonth } from '@/components/submissions-chart';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
@@ -59,6 +64,12 @@ const STUDENT_DEFERRED_KEYS = [
     'studentSubmissions',
 ];
 
+const HOME_BANNER_KEYS = [
+    'studentNeedsAction',
+    'studentTracker',
+    'studentKpis',
+];
+
 const APPROVER_DEFERRED_KEYS = [
     'approverSummary',
     'approverNeedsReview',
@@ -92,7 +103,11 @@ export default function Dashboard({
             <>
                 <Head title="Dashboard" />
                 <div className="mx-auto w-full max-w-2xl">
-                    <PageNotice tone="info" icon={Hourglass} title="Pending SDAO verification.">
+                    <PageNotice
+                        tone="info"
+                        icon={Hourglass}
+                        title="Pending SDAO verification."
+                    >
                         <p>
                             Your account is awaiting review. Once SDAO verifies
                             it, you&apos;ll be able to be bound as an
@@ -110,8 +125,8 @@ export default function Dashboard({
                             </p>
                         ) : (
                             <p className="mt-1">
-                                There&apos;s nothing else to do right now.
-                                Check back later.
+                                There&apos;s nothing else to do right now. Check
+                                back later.
                             </p>
                         )}
                     </PageNotice>
@@ -125,7 +140,12 @@ export default function Dashboard({
             <>
                 <Head title="Dashboard" />
                 <div className="mx-auto w-full max-w-2xl">
-                    <PageNotice tone="destructive" urgent icon={Ban} title="Account not approved.">
+                    <PageNotice
+                        tone="destructive"
+                        urgent
+                        icon={Ban}
+                        title="Account not approved."
+                    >
                         <p>
                             SDAO reviewed your registration and it was not
                             approved.
@@ -140,101 +160,120 @@ export default function Dashboard({
         );
     }
 
-    const hasAnyCard = Boolean(studentDashboard || approverDashboard);
+    // Students and officers get the top-navbar home page (see app.tsx for the
+    // layout switch). Approvers, who share this page, keep the sidebar layout
+    // and the dashboard below.
+    if (!approverDashboard) {
+        const banner = studentDashboard ? (
+            <Deferred
+                data={HOME_BANNER_KEYS}
+                fallback={<HomeStatusBannerSkeleton />}
+            >
+                {studentNeedsAction && studentTracker && studentKpis ? (
+                    <HomeStatusBanner
+                        needsAction={studentNeedsAction}
+                        tracker={studentTracker}
+                        kpis={studentKpis}
+                        trackHref={studentDashboard.historyHref}
+                    />
+                ) : (
+                    <HomeStatusBannerSkeleton />
+                )}
+            </Deferred>
+        ) : (
+            <div className="w-full">
+                {pendingJoinRequest ? (
+                    <PageNotice
+                        tone="info"
+                        icon={Hourglass}
+                        title="Join request pending."
+                    >
+                        <p>
+                            Your request to join{' '}
+                            <strong>
+                                {pendingJoinRequest.organizationName}
+                            </strong>{' '}
+                            is waiting on its adviser or an active officer.
+                            You&apos;ll be notified as soon as it&apos;s
+                            decided.
+                        </p>
+                    </PageNotice>
+                ) : auth.canProposeOrganization ? (
+                    <PageNotice
+                        tone="neutral"
+                        icon={FilePlus2}
+                        title="Ready to get your organization set up?"
+                    >
+                        <p>
+                            Your account is verified and you aren&apos;t
+                            affiliated with an organization yet. If your
+                            organization isn&apos;t registered in the system,
+                            you can submit its registration now. SDAO will
+                            review it, and you&apos;ll be bound as its president
+                            once it&apos;s approved.
+                        </p>
+                        <p className="mt-1">
+                            Already part of an existing organization? Search for
+                            it and send a request to join instead.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <Button asChild>
+                                <Link href={registrations.create()}>
+                                    Submit Registration
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href={organizationsJoin.create()}>
+                                    <UserPlus data-icon="inline-start" />
+                                    Join an Organization
+                                </Link>
+                            </Button>
+                        </div>
+                    </PageNotice>
+                ) : (
+                    <PageNotice
+                        tone="neutral"
+                        icon={UserCog}
+                        title="Nothing to do yet."
+                    >
+                        <p>
+                            Your account is verified, but you aren&apos;t bound
+                            to an organization or an approval role yet.
+                        </p>
+                        <p className="mt-1">
+                            Search for your organization and send a request to
+                            join, or check the{' '}
+                            <Link href={calendar.index()} className="underline">
+                                Venue Calendar
+                            </Link>{' '}
+                            in the meantime.
+                        </p>
+                        <Button asChild className="mt-3" variant="outline">
+                            <Link href={organizationsJoin.create()}>
+                                <UserPlus data-icon="inline-start" />
+                                Join an Organization
+                            </Link>
+                        </Button>
+                    </PageNotice>
+                )}
+            </div>
+        );
+
+        return (
+            <>
+                <Head title="Home" />
+                <StudentHome meta={studentDashboard} banner={banner} />
+            </>
+        );
+    }
 
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6">
-                {approverDashboard ? (
-                    <ApproverGreeting header={approverDashboard} />
-                ) : (
-                    <PageHeader
-                        title="Dashboard"
-                        subtitle="What needs your attention and where things stand"
-                    />
-                )}
+                <ApproverGreeting header={approverDashboard} />
 
-                {!hasAnyCard ? (
-                    <div className="mx-auto w-full max-w-2xl">
-                        {pendingJoinRequest ? (
-                            <PageNotice tone="info" icon={Hourglass} title="Join request pending.">
-                                <p>
-                                    Your request to join{' '}
-                                    <strong>
-                                        {pendingJoinRequest.organizationName}
-                                    </strong>{' '}
-                                    is waiting on its adviser or an active
-                                    officer. You&apos;ll be notified as soon as
-                                    it&apos;s decided.
-                                </p>
-                            </PageNotice>
-                        ) : auth.canProposeOrganization ? (
-                            <PageNotice
-                                tone="neutral"
-                                icon={FilePlus2}
-                                title="Ready to get your organization set up?"
-                            >
-                                <p>
-                                    Your account is verified and you
-                                    aren&apos;t affiliated with an organization
-                                    yet. If your organization isn&apos;t
-                                    registered in the system, you can submit its
-                                    registration now. SDAO will review it, and
-                                    you&apos;ll be bound as its president once
-                                    it&apos;s approved.
-                                </p>
-                                <p className="mt-1">
-                                    Already part of an existing organization?
-                                    Search for it and send a request to join
-                                    instead.
-                                </p>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    <Button asChild>
-                                        <Link href={registrations.create()}>
-                                            Submit Registration
-                                        </Link>
-                                    </Button>
-                                    <Button asChild variant="outline">
-                                        <Link href={organizationsJoin.create()}>
-                                            <UserPlus data-icon="inline-start" />
-                                            Join an Organization
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </PageNotice>
-                        ) : (
-                            <PageNotice tone="neutral" icon={UserCog} title="Nothing to do yet.">
-                                <p>
-                                    Your account is verified, but you
-                                    aren&apos;t bound to an organization or an
-                                    approval role yet.
-                                </p>
-                                <p className="mt-1">
-                                    Search for your organization and send a
-                                    request to join, or check the{' '}
-                                    <Link
-                                        href={calendar.index()}
-                                        className="underline"
-                                    >
-                                        Venue Calendar
-                                    </Link>{' '}
-                                    in the meantime.
-                                </p>
-                                <Button
-                                    asChild
-                                    className="mt-3"
-                                    variant="outline"
-                                >
-                                    <Link href={organizationsJoin.create()}>
-                                        <UserPlus data-icon="inline-start" />
-                                        Join an Organization
-                                    </Link>
-                                </Button>
-                            </PageNotice>
-                        )}
-                    </div>
-                ) : (
+                {
                     <>
                         {studentDashboard && (
                             <Deferred
@@ -290,7 +329,7 @@ export default function Dashboard({
                             </Deferred>
                         )}
                     </>
-                )}
+                }
             </div>
         </>
     );

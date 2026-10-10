@@ -1,33 +1,22 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Files } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import PageHeader from '@/components/page-header';
-import PaginationFooter from '@/components/pagination-footer';
-import QueueStatStrip from '@/components/queue-stat-strip';
-import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Head } from '@inertiajs/react';
+import { Building2 } from 'lucide-react';
 import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    DocumentRow,
+    ListCard,
+    ListEmptyState,
+    ListFooter,
+    ListSearch,
+    NoMatches,
+    StartAction,
+    StatusTabs,
+} from '@/components/student-list';
+import type { CanStart } from '@/components/student-list';
+import StudentPageHeader from '@/components/student-page-header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { statusLabel } from '@/lib/utils';
-import * as registrations from '@/routes/registrations';
-
-type StatusOption = { value: string };
+import { useServerList } from '@/hooks/use-server-list';
+import { formatListDate, isTabKey, statusNote } from '@/lib/student-list';
+import type { TabKey } from '@/lib/student-list';
+import * as registrationRoutes from '@/routes/registrations';
 
 type Registration = {
     id: number;
@@ -35,6 +24,7 @@ type Registration = {
     status: string;
     organization: { id: number; name: string };
     created_at: string;
+    current_approver: string | null;
     href: string;
 };
 
@@ -50,296 +40,166 @@ type Props = {
         };
         links: { prev: string | null; next: string | null };
     };
-    filters: {
-        status: string | null;
-        search: string;
-    };
-    statuses: StatusOption[];
+    filters: { status: string | null; search: string };
     stats: {
         total: number;
         inProgress: number;
+        inReview: number;
         approved: number;
+        returned: number;
         rejected: number;
     };
+    canStart: CanStart;
 };
 
-const ALL_STATUSES = 'all';
+const TABS: TabKey[] = ['all', 'in_review', 'approved', 'returned'];
 
 export default function RegistrationsIndex({
-    registrations: items,
+    registrations,
     filters,
-    statuses,
     stats,
+    canStart,
 }: Props) {
-    const [status, setStatus] = useState(filters.status ?? ALL_STATUSES);
-    const [search, setSearch] = useState(filters.search);
-    const [loading, setLoading] = useState(false);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const isFirstRender = useRef(true);
-
-    function reload(params: Record<string, string>) {
-        setLoading(true);
-        router.get(registrations.index().url, params, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            only: ['registrations', 'filters', 'stats'],
-            onFinish: () => setLoading(false),
-        });
-    }
-
-    // A single debounced effect covers both filters (select change and
-    // keystrokes alike) so clearing/combining filters triggers exactly one
-    // reload instead of racing separate effects per field — same pattern as
-    // the Document Archive / Document History pages.
-    useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-
-            return;
-        }
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => {
-            const params: Record<string, string> = {};
-
-            if (status !== ALL_STATUSES) {
-                params.status = status;
-            }
-
-            if (search.trim() !== '') {
-                params.search = search.trim();
-            }
-
-            reload(params);
-        }, 400);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [status, search]);
-
-    const hasFilters = status !== ALL_STATUSES || search.trim() !== '';
-
-    function clearFilters() {
-        setStatus(ALL_STATUSES);
-        setSearch('');
-    }
-
-    function goToPage(url: string | null) {
-        if (!url) {
-            return;
-        }
-
-        setLoading(true);
-        router.get(
-            url,
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['registrations', 'filters', 'stats'],
-                onFinish: () => setLoading(false),
-            },
-        );
-    }
+    const list = useServerList({
+        url: registrationRoutes.index().url,
+        only: ['registrations', 'filters', 'stats'],
+        initial: { status: filters.status ?? '', search: filters.search },
+    });
+    const tab: TabKey = isTabKey(list.filters.status)
+        ? list.filters.status
+        : 'all';
+    const { meta } = registrations;
+    const neverFiled = stats.total === 0 && !list.isFiltered;
 
     return (
         <>
             <Head title="Registrations" />
 
-            <div className="space-y-6">
-                <PageHeader title="Registrations" subtitle="Every organization registration you've submitted, and its status in SDAO review." actions={
-<Button asChild>
-                        <Link href={registrations.create().url}>
-                            New Registration
-                        </Link>
-                    </Button>
-} />
-
-                <QueueStatStrip
-                    stats={[
-                        {
-                            label: 'Total',
-                            value: String(stats.total),
-                            count: stats.total,
-                        },
-                        {
-                            label: 'In Progress',
-                            value: String(stats.inProgress),
-                            count: stats.inProgress,
-                        },
-                        {
-                            label: 'Approved',
-                            value: String(stats.approved),
-                            count: stats.approved,
-                        },
-                        {
-                            label: 'Rejected',
-                            value: String(stats.rejected),
-                            count: stats.rejected,
-                        },
-                    ]}
+            <div className="flex flex-col gap-6">
+                <StudentPageHeader
+                    icon={Building2}
+                    tone="orange"
+                    title="Registrations"
+                    subtitle="Register your organization with SDAO and check its status"
+                    actions={
+                        neverFiled ? undefined : (
+                            <StartAction
+                                canStart={canStart}
+                                href={registrationRoutes.create().url}
+                                label="New Registration"
+                            />
+                        )
+                    }
                 />
 
-                <Card>
-                    <CardContent className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-                        <div className="grid gap-2">
-                            <Label htmlFor="registrations-status">Status</Label>
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger
-                                    id="registrations-status"
-                                    className="w-full sm:w-44"
-                                >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_STATUSES}>
-                                        All statuses
-                                    </SelectItem>
-                                    {statuses.map((s) => (
-                                        <SelectItem
-                                            key={s.value}
-                                            value={s.value}
-                                        >
-                                            {statusLabel(s.value)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="grid flex-1 gap-2">
-                            <Label htmlFor="registrations-search">Search</Label>
-                            <Input
-                                id="registrations-search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by title or organization…"
+                {neverFiled ? (
+                    <ListEmptyState
+                        icon={Building2}
+                        tone="orange"
+                        title="No registrations yet"
+                        description="Register your organization with SDAO, then follow its review here. It only takes three steps."
+                        steps={[
+                            'Fill in the form',
+                            'Attach requirements',
+                            'Send to SDAO',
+                        ]}
+                        canStart={canStart}
+                        startHref={registrationRoutes.create().url}
+                        startLabel="New Registration"
+                    />
+                ) : (
+                    <ListCard
+                        toolbar={
+                            <>
+                                <StatusTabs
+                                    tabs={TABS}
+                                    counts={{
+                                        all: stats.total,
+                                        in_review: stats.inReview,
+                                        approved: stats.approved,
+                                        returned: stats.returned,
+                                        draft: 0,
+                                    }}
+                                    value={tab}
+                                    onChange={(next) =>
+                                        list.set(
+                                            'status',
+                                            next === 'all' ? '' : next,
+                                        )
+                                    }
+                                />
+                                <ListSearch
+                                    value={list.filters.search}
+                                    onChange={(value) =>
+                                        list.set('search', value)
+                                    }
+                                    placeholder="Search registrations"
+                                />
+                            </>
+                        }
+                        footer={
+                            <ListFooter
+                                showing={
+                                    meta.from === null || meta.to === null
+                                        ? 0
+                                        : meta.to - meta.from + 1
+                                }
+                                total={meta.total}
+                                pagination={{
+                                    prev: registrations.links.prev,
+                                    next: registrations.links.next,
+                                    onNavigate: list.goToPage,
+                                }}
                             />
-                        </div>
-
-                        {hasFilters && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={clearFilters}
-                            >
-                                Clear filters
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">
-                            My Registrations
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                        {loading ? (
-                            <div className="space-y-3">
-                                {Array.from({ length: 5 }).map((_, i) => (
+                        }
+                    >
+                        {list.loading ? (
+                            <div className="space-y-3 p-5" aria-busy="true">
+                                {Array.from({ length: 3 }).map((_, i) => (
                                     <Skeleton key={i} className="h-12 w-full" />
                                 ))}
                             </div>
-                        ) : items.data.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <Files />
-                                    </EmptyMedia>
-                                    <EmptyTitle>
-                                        {hasFilters
-                                            ? 'No registrations match these filters'
-                                            : 'No registrations yet'}
-                                    </EmptyTitle>
-                                    <EmptyDescription>
-                                        {hasFilters
-                                            ? 'Try a different status or search term.'
-                                            : "Once you submit a registration, it'll show up here."}
-                                    </EmptyDescription>
-                                    {hasFilters && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                        >
-                                            Clear filters
-                                        </Button>
-                                    )}
-                                </EmptyHeader>
-                            </Empty>
+                        ) : registrations.data.length === 0 ? (
+                            <NoMatches onClear={list.clear} />
                         ) : (
-                            <div className="divide-y">
-                                {items.data.map((r) => (
-                                    <div
-                                        key={r.id}
-                                        className="relative flex items-center justify-between gap-4 py-3"
-                                    >
-                                        <div className="min-w-0">
-                                            {/* after:absolute after:inset-0 stretches this link's hit target to
-                                                the whole row (the parent is `relative`), so the row is fully
-                                                clickable without wrapping the trailing actions in an anchor —
-                                                that would nest a <button> inside an <a>, which is invalid HTML
-                                                with ambiguous click bubbling. Same title-as-link idiom as the
-                                                Activity Log page. */}
-                                            <Link
-                                                href={r.href}
-                                                className="font-medium after:absolute after:inset-0"
-                                            >
-                                                <p className="sm:truncate max-sm:break-words">
-                                                    {r.title}
-                                                </p>
-                                            </Link>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {r.organization.name} ·{' '}
-                                                {new Date(
-                                                    r.created_at,
-                                                ).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                        <div className="relative z-10 flex shrink-0 items-center gap-2">
-                                            <StatusBadge status={r.status} />
-                                            {r.status === 'returned' && (
-                                                <Button
-                                                    asChild
-                                                    size="sm"
-                                                    variant="outline"
-                                                >
-                                                    <Link
-                                                        href={
-                                                            registrations.edit({
-                                                                document: r.id,
-                                                            }).url
-                                                        }
-                                                    >
-                                                        Revise
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
+                            <ul>
+                                {registrations.data.map((row) => (
+                                    <DocumentRow
+                                        key={row.id}
+                                        icon={Building2}
+                                        tone="orange"
+                                        title={row.title}
+                                        supporting={
+                                            <span>
+                                                {row.status === 'draft' ? 'Started' : 'Submitted'}{' '}
+                                                {formatListDate(row.created_at)}
+                                            </span>
+                                        }
+                                        status={row.status}
+                                        note={statusNote(
+                                            row.status,
+                                            'registration',
+                                            row.current_approver,
+                                        )}
+                                        actionLabel={
+                                            row.status === 'returned'
+                                                ? 'Revise'
+                                                : 'View'
+                                        }
+                                        actionHref={
+                                            row.status === 'returned'
+                                                ? registrationRoutes.edit({
+                                                      document: row.id,
+                                                  }).url
+                                                : row.href
+                                        }
+                                    />
                                 ))}
-                            </div>
+                            </ul>
                         )}
-                        {!loading && (
-                            <PaginationFooter meta={items.meta} links={items.links} onNavigate={goToPage} />
-                        )}
-                    </CardContent>
-                </Card>
+                    </ListCard>
+                )}
             </div>
         </>
     );
 }
-
-RegistrationsIndex.layout = {
-    breadcrumbs: [{ title: 'Registrations' }],
-};

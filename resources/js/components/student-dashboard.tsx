@@ -47,6 +47,7 @@ type Href = { count: number; href: string };
 export type StudentDashboardMeta = {
     organizationName: string;
     organizationStatus: string;
+    officerPosition: string;
     academicYear: string;
     termLabel: string;
     historyHref: string;

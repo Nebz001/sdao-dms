@@ -24,6 +24,8 @@ export type NavGroup = {
     title: string;
     icon: LucideIcon;
     items: NavItem[];
+    /** The group's hub page (the student home cards open it). Groups with no hub omit it. */
+    href?: NonNullable<InertiaLinkProps['href']>;
 };
 
 export type NavEntry = NavItem | NavGroup;

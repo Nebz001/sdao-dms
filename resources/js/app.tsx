@@ -1,10 +1,13 @@
 import { createInertiaApp, router } from '@inertiajs/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import AppTopbarLayout from '@/layouts/app/app-topbar-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { layoutKindFor } from '@/lib/page-layout';
 import { notify } from '@/lib/toast';
+import type { Auth } from '@/types';
 
 const appName = import.meta.env.VITE_APP_NAME || 'SDAO-DMS';
 
@@ -20,7 +23,9 @@ router.on('httpException', (event) => {
         event.preventDefault();
         const data = response.data;
         const message =
-            typeof data === 'object' && data !== null && typeof data.message === 'string'
+            typeof data === 'object' &&
+            data !== null &&
+            typeof data.message === 'string'
                 ? data.message
                 : 'Your files are too large. Reduce their sizes and try again.';
         notify.error({ title: 'Files too large', message });
@@ -29,17 +34,22 @@ router.on('httpException', (event) => {
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    layout: (name) => {
-        switch (true) {
-            case name === 'welcome':
-            case name === 'errors/error':
+    layout: (name, page) => {
+        const shell = layoutKindFor(name, page.props.auth as Auth | undefined);
+
+        switch (shell) {
+            case 'none':
                 return null;
-            case name.startsWith('auth/'):
+            case 'auth':
                 return AuthLayout;
-            case name.startsWith('settings/'):
-                return [AppLayout, SettingsLayout];
+            case 'topbar':
+                return name.startsWith('settings/')
+                    ? [AppTopbarLayout, SettingsLayout]
+                    : AppTopbarLayout;
             default:
-                return AppLayout;
+                return name.startsWith('settings/')
+                    ? [AppLayout, SettingsLayout]
+                    : AppLayout;
         }
     },
     strictMode: true,

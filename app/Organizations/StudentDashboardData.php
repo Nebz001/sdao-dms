@@ -103,13 +103,14 @@ class StudentDashboardData
     }
 
     /**
-     * @return array{organizationName: string, organizationStatus: string, academicYear: string, termLabel: string, historyHref: string}
+     * @return array{organizationName: string, organizationStatus: string, officerPosition: string, academicYear: string, termLabel: string, historyHref: string}
      */
     public function meta(): array
     {
         return [
             'organizationName' => $this->membership->organization->name,
             'organizationStatus' => $this->status()->status->value,
+            'officerPosition' => $this->membership->position->label(),
             'academicYear' => $this->period->academicYear,
             'termLabel' => $this->period->term->label(),
             'historyHref' => route('document-history.index'),
@@ -289,6 +290,66 @@ class StudentDashboardData
             'applicable' => $applicable->count(),
             'items' => $items,
         ];
+    }
+
+    /**
+     * The short status chips on the Submit hub's option cards. Each one is
+     * read from data the dashboard already computes; an option with nothing
+     * real to say simply has no entry, so a chip is never invented.
+     *
+     * @return array<string, array{label: string, tone: 'neutral'|'warning'}>
+     */
+    public function hubChips(): array
+    {
+        $chips = [];
+        $today = DisplayTimezone::convert(now())->toDateString();
+        $termLabel = $this->period->term->label();
+
+        $reportsDue = $this->reportable()
+            ->filter(fn (Document $d) => $d->activityProposal?->calendarActivity !== null
+                && $d->activityProposal->calendarActivity->activity_date->toDateString() < $today)
+            ->count();
+
+        if ($reportsDue > 0) {
+            $chips['report'] = [
+                'label' => $reportsDue === 1 ? '1 activity needs a report' : "{$reportsDue} activities need a report",
+                'tone' => 'warning',
+            ];
+        }
+
+        if ($this->status()->coversThroughAcademicYear !== null) {
+            $chips['registration'] = [
+                'label' => "Covered through {$this->status()->coversThroughAcademicYear}",
+                'tone' => 'neutral',
+            ];
+        }
+
+        $nextYear = $this->period->nextAcademicYear();
+
+        $chips += match ($this->status()->eligibility->status) {
+            RenewalEligibility::Eligible => ['renewal' => ['label' => 'Renewal is open', 'tone' => 'warning']],
+            RenewalEligibility::AlreadyFiledThisYear => ['renewal' => ['label' => "Filed for {$nextYear}", 'tone' => 'neutral']],
+            RenewalEligibility::SeasonClosed => ['renewal' => ['label' => 'Opens in 3rd term', 'tone' => 'neutral']],
+            RenewalEligibility::NotYetDue, RenewalEligibility::NoPriorRecord => [],
+        };
+
+        $chips['activity_calendar'] = $this->calendarEligibility()->existingDocument !== null
+            ? ['label' => "Filed for {$termLabel}", 'tone' => 'neutral']
+            : ['label' => "Not filed for {$termLabel} yet", 'tone' => 'warning'];
+
+        $drafts = $this->open()
+            ->filter(fn (Document $d) => $d->status === DocumentStatus::Draft
+                && $d->form_type === FormType::ActivityProposal)
+            ->count();
+
+        if ($drafts > 0) {
+            $chips['draft'] = [
+                'label' => $drafts === 1 ? '1 draft saved' : "{$drafts} drafts saved",
+                'tone' => 'neutral',
+            ];
+        }
+
+        return $chips;
     }
 
     /**

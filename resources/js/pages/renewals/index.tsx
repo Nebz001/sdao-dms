@@ -1,90 +1,55 @@
-import { Head, Link } from '@inertiajs/react';
-import { Files } from 'lucide-react';
-import PageHeader from '@/components/page-header';
-import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import * as renewals from '@/routes/renewals';
-
-type Renewal = {
-    id: number;
-    title: string;
-    status: string;
-    organization: { id: number; name: string };
-    created_at: string;
-};
+import { Head } from '@inertiajs/react';
+import { RefreshCw } from 'lucide-react';
+import ClientListPage from '@/components/client-list-page';
+import type { ListRow } from '@/components/client-list-page';
+import type { CanStart } from '@/components/student-list';
+import * as renewalRoutes from '@/routes/renewals';
 
 type Props = {
-    renewals: Renewal[];
+    renewals: ListRow[];
+    canStart: CanStart;
 };
 
-export default function RenewalsIndex({ renewals: items }: Props) {
+export default function RenewalsIndex({ renewals, canStart }: Props) {
     return (
         <>
             <Head title="Renewals" />
-
-            <div className="space-y-6">
-                <PageHeader title="Organization Renewals" subtitle="Your organization's yearly renewals and their status" actions={
-<Button asChild>
-                        <Link href={renewals.create().url}>New Renewal</Link>
-                    </Button>
-} />
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">My Renewals</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {items.length === 0 ? (
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <Files />
-                                    </EmptyMedia>
-                                    <EmptyTitle>No renewals yet</EmptyTitle>
-                                    <EmptyDescription>
-                                        Once you submit a renewal, it'll show up here.
-                                    </EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
-                        ) : (
-                            <div className="divide-y">
-                                {items.map((r) => (
-                                    <div key={r.id} className="flex items-center justify-between gap-4 py-3">
-                                        <div className="min-w-0">
-                                            <p className="sm:truncate max-sm:break-words font-medium">{r.title}</p>
-                                            <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
-                                                {r.organization.name}
-                                            </p>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-2">
-                                            <StatusBadge status={r.status} />
-                                            {r.status === 'returned' ? (
-                                                <Button asChild size="sm" variant="outline">
-                                                    <Link href={renewals.edit({ document: r.id }).url}>
-                                                        Revise
-                                                    </Link>
-                                                </Button>
-                                            ) : (
-                                                <Button asChild size="sm" variant="ghost">
-                                                    <Link href={renewals.show({ document: r.id }).url}>
-                                                        View
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+            <ClientListPage
+                kind="renewal"
+                icon={RefreshCw}
+                tone="purple"
+                title="Renewals"
+                subtitle="Renew your organization each school year to keep it active"
+                searchPlaceholder="Search renewals"
+                startLabel="Start a Renewal"
+                startHref={renewalRoutes.create().url}
+                canStart={canStart}
+                rows={renewals}
+                dateLabel="Submitted"
+                empty={{
+                    title: 'No renewals yet',
+                    description:
+                        'When it’s time to renew your organization for a new school year, start it here. It only takes three steps.',
+                    steps: [
+                        'Fill in the form',
+                        'Attach requirements',
+                        'Send to SDAO',
+                    ],
+                }}
+                rowAction={(row) =>
+                    row.status === 'returned'
+                        ? {
+                              label: 'Revise',
+                              href: renewalRoutes.edit({ document: row.id })
+                                  .url,
+                          }
+                        : {
+                              label: 'View',
+                              href: renewalRoutes.show({ document: row.id })
+                                  .url,
+                          }
+                }
+            />
         </>
     );
 }
-
-RenewalsIndex.layout = {
-    breadcrumbs: [{ title: 'Renewals' }],
-};

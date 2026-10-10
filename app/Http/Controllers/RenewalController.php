@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
@@ -11,6 +12,7 @@ use App\Http\Requests\Renewals\StoreRenewalRequest;
 use App\Http\Requests\Renewals\UpdateRenewalRequest;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Organizations\StudentFormAvailability;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Renewals\UpdateOrganizationRenewal;
 use App\Support\CurrentPeriod;
@@ -37,7 +39,7 @@ class RenewalController extends Controller
             ->pluck('organization_id');
 
         $documents = Document::query()
-            ->with('organization')
+            ->with(['organization', 'workflowTemplate.steps'])
             ->where('form_type', FormType::OrganizationRenewal->value)
             ->whereIn('organization_id', $organizationIds)
             ->orderBy('updated_at', 'desc')
@@ -48,9 +50,12 @@ class RenewalController extends Controller
                 'status' => $d->status->value,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
+                'current_approver' => CurrentApproverLabel::for($d),
             ]);
 
-        return Inertia::render('renewals/index', ['renewals' => $documents]);
+        return Inertia::render('renewals/index', ['renewals' => $documents,
+            'canStart' => StudentFormAvailability::for($user, FormType::OrganizationRenewal),
+        ]);
     }
 
     public function create(SubmitOrganizationRenewal $renewalAction): Response

@@ -110,6 +110,8 @@ test('a student officer sees their organization\'s documents needing attention',
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('studentDashboard.organizationName', 'Computing Society')
+            ->where('studentDashboard.officerPosition', $studentAlpha->organizationMemberships()->active()->firstOrFail()->position->label())
+            ->where('approverDashboard', null)
             ->loadDeferredProps('student', fn ($reload) => $reload
                 ->where('studentNeedsAction.total', 1)
                 ->where('studentNeedsAction.items.0.title', 'Returned Renewal')

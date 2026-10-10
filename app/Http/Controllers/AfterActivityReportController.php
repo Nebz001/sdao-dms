@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
@@ -11,6 +12,7 @@ use App\Http\Requests\Reports\UpdateReportRequest;
 use App\Models\ActivityProposal;
 use App\Models\Document;
 use App\Models\OrganizationMembership;
+use App\Organizations\StudentFormAvailability;
 use App\Reports\SubmitAfterActivityReport;
 use App\Reports\UpdateAfterActivityReport;
 use App\Support\FlashToast;
@@ -36,7 +38,7 @@ class AfterActivityReportController extends Controller
             ->pluck('organization_id');
 
         $documents = Document::query()
-            ->with('organization')
+            ->with(['organization', 'workflowTemplate.steps'])
             ->where('form_type', FormType::AfterActivityReport->value)
             ->whereIn('organization_id', $organizationIds)
             ->orderBy('updated_at', 'desc')
@@ -47,9 +49,12 @@ class AfterActivityReportController extends Controller
                 'status' => $d->status->value,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
+                'current_approver' => CurrentApproverLabel::for($d),
             ]);
 
-        return Inertia::render('reports/index', ['reports' => $documents]);
+        return Inertia::render('reports/index', ['reports' => $documents,
+            'canStart' => StudentFormAvailability::for($user, FormType::AfterActivityReport),
+        ]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\CurrentApproverLabel;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
@@ -80,7 +81,7 @@ class DocumentHistoryController extends Controller
             ->pluck('aggregate', 'status');
 
         $documents = (clone $base)
-            ->with(['organization:id,name', 'latestTransition'])
+            ->with(['organization:id,name', 'latestTransition', 'workflowTemplate.steps'])
             ->when($status, fn ($query, $value) => $query->where('status', $value))
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
@@ -108,6 +109,7 @@ class DocumentHistoryController extends Controller
                     // attention" panel. A true zero-transition Draft falls
                     // back to when it was created.
                     'lastActivityAt' => $d->latestTransition?->created_at ?? $d->created_at,
+                    'currentApprover' => CurrentApproverLabel::for($d),
                     'href' => route($d->form_type->studentShowRouteName(), $d),
                 ])->values(),
                 'meta' => [
@@ -139,7 +141,9 @@ class DocumentHistoryController extends Controller
             'stats' => [
                 'total' => (int) $counts->sum(),
                 'inProgress' => $inProgress,
+                'inReview' => (int) ($counts[DocumentStatus::InReview->value] ?? 0),
                 'approved' => (int) ($counts[DocumentStatus::Approved->value] ?? 0),
+                'returned' => (int) ($counts[DocumentStatus::Returned->value] ?? 0),
                 'rejected' => (int) ($counts[DocumentStatus::Rejected->value] ?? 0),
             ],
         ]);
