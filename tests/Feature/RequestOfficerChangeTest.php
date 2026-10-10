@@ -183,3 +183,25 @@ test('the nominee search endpoint returns the same eligible set EligibleOfficerC
 
     expect($searchIds)->toBe($expectedIds);
 });
+
+test('the create page lists the seats that already have a pending request, whoever filed it', function () {
+    $nominee = User::factory()->create(['account_status' => 'verified']);
+    $this->action->execute($this->studentAlpha, OfficerPosition::Secretary, $nominee);
+
+    // The other officer opens the form and sees the seat as taken too.
+    $this->actingAs($this->studentDelta)->withoutVite()->get(route('organizations.officer-change.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('pendingPositions', ['secretary']));
+
+    // And the server still refuses a second request for that seat.
+    $another = User::factory()->create(['account_status' => 'verified']);
+    expect(fn () => $this->action->execute($this->studentDelta, OfficerPosition::Secretary, $another))
+        ->toThrow(ValidationException::class);
+});
+
+test('the create page has no pending seats when nothing is waiting', function () {
+    $this->actingAs($this->studentAlpha)->withoutVite()->get(route('organizations.officer-change.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('pendingPositions', []));
+});

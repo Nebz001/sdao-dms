@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import { FlagBadge } from '@/components/status-badge';
+import { cn } from '@/lib/utils';
 
 type Props = {
+    /** Extra classes for the outer block, e.g. padding so the highlight ring clears the fields. */
+    className?: string;
     sectionKey: string;
     flagged: string[];
     /** The general comment covering the whole return — shown whenever this
@@ -23,11 +26,11 @@ type Props = {
  * Purely informational: flagging never blocks or alters what the student
  * can submit.
  */
-export default function FlaggedSectionWrapper({ sectionKey, flagged, comment, sectionComment, children }: Props) {
+export default function FlaggedSectionWrapper({ className, sectionKey, flagged, comment, sectionComment, children }: Props) {
     const isFlagged = flagged.includes(sectionKey);
 
     return (
-        <div className={isFlagged ? 'space-y-2 rounded-lg ring-2 ring-warning/60' : undefined}>
+        <div className={cn(isFlagged && 'space-y-2 rounded-lg ring-2 ring-warning/60', className)}>
             {isFlagged && <FlagBadge flag="flagged" className="ml-1" />}
             {isFlagged && sectionComment && (
                 <p className="ml-1 text-sm font-medium text-warning-foreground">{sectionComment}</p>

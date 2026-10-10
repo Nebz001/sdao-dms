@@ -110,6 +110,8 @@ test('(i) picker includes an approved proposal with no report yet', function () 
             ->component('reports/create')
             ->has('eligibleProposals', 1)
             ->where('eligibleProposals.0.activity.name', 'Untouched Activity')
+            ->where('eligibleProposals.0.approved_on', now()->toDateString())
+            ->has('membership.organization.school')
         );
 });
 
@@ -195,5 +197,31 @@ test('(i)+(ii) combined: multiple orgs and report states — picker returns exac
             ->component('reports/create')
             ->has('eligibleProposals', 1)
             ->where('eligibleProposals.0.activity.name', 'CS Untouched')
+        );
+});
+
+test('approvedActivities lists every approved activity and flags the ones that already have a report', function () {
+    pickerApprovedProposal($this->computingSociety, $this->studentAlpha, 'Untouched Activity');
+    $reported = pickerApprovedProposal($this->computingSociety, $this->studentAlpha, 'Reported Activity');
+    app(SubmitAfterActivityReport::class)->execute(
+        actor: $this->studentAlpha,
+        proposal: $reported,
+        summary: 'Live report.',
+        attachmentFiles: reportAttachmentFiles(),
+    );
+
+    $this->actingAs($this->studentAlpha)
+        ->withoutVite()
+        ->get(route('reports.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('reports/create')
+            ->has('eligibleProposals', 1)
+            ->has('approvedActivities', 2)
+            ->where('approvedActivities.0.report_filed', false)
+            ->where('approvedActivities.0.title', 'Untouched Activity')
+            ->where('approvedActivities.1.report_filed', true)
+            ->where('approvedActivities.1.title', 'Reported Activity')
+            ->where('approvedActivities.0.term_label', fn ($label) => str_contains($label, 'Term'))
         );
 });

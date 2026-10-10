@@ -1,34 +1,36 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import ActivityPicker from '@/components/activity-picker';
+import type { PickerActivity } from '@/components/activity-picker';
+import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
+import PageNotice from '@/components/page-notice';
+import ReportFormSections from '@/components/report-form-sections';
+import { Button } from '@/components/ui/button';
+import * as activityProposals from '@/routes/activity-proposals';
 
 type Membership = {
     id: number;
     position: string;
     position_label: string;
-    organization: { id: number; name: string };
+    organization: { id: number; name: string; school: string | null };
 };
 
 type EligibleProposal = {
     activity_proposal_id: number;
     title: string;
+    approved_on: string | null;
     activity: {
         name: string;
         venue: string;
@@ -36,40 +38,99 @@ type EligibleProposal = {
     } | null;
 };
 
+type ApprovedActivity = {
+    activity_proposal_id: number;
+    title: string;
+    venue: string | null;
+    activity_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    term_label: string | null;
+    approved_on: string | null;
+    report_filed: boolean;
+};
+
 type Props = {
     membership: Membership | null;
     eligibleProposals: EligibleProposal[];
+    approvedActivities?: ApprovedActivity[];
     attachmentSlots: AttachmentSlotDef[];
 };
 
-export default function CreateReport({ membership, eligibleProposals, attachmentSlots }: Props) {
-    const [chairs, setChairs] = useState<string[]>(['']);
+const FORM_ID = 'after-activity-report-form';
+
+export default function CreateReport({
+    membership,
+    eligibleProposals,
+    approvedActivities = [],
+    attachmentSlots,
+}: Props) {
+    const { auth } = usePage().props;
+    const preparedBy = [auth.user.first_name, auth.user.last_name]
+        .filter(Boolean)
+        .join(' ') || auth.user.name;
+
+    // With a single reportable activity there is nothing to choose, so it
+    // starts picked; with several the student picks from the list.
+    const [activityId, setActivityId] = useState(
+        eligibleProposals.length === 1
+            ? String(eligibleProposals[0].activity_proposal_id)
+            : '',
+    );
+
+    const pickerActivities: PickerActivity[] = approvedActivities.map((a) => ({
+        id: String(a.activity_proposal_id),
+        title: a.title,
+        date: a.activity_date,
+        start_time: a.start_time,
+        end_time: a.end_time,
+        venue: a.venue,
+        group: a.term_label,
+        disabledReason: a.report_filed ? 'Report filed' : null,
+    }));
 
     if (!membership) {
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <CenteredContainer maxWidth="2xl">
-                    <p className="text-sm text-muted-foreground">
-                        You are not bound as an officer of any organization. Contact your
-                        adviser to be bound before submitting a report.
-                    </p>
-                </CenteredContainer>
+                <FormShell
+                    title="After-Activity Report"
+                    subtitle="Tell your adviser and SDAO how your approved activity went."
+                >
+                    <PageNotice tone="info">
+                        You are not bound as an officer of any organization.
+                        Contact your adviser to be bound before submitting a
+                        report.
+                    </PageNotice>
+                </FormShell>
             </>
         );
     }
 
-    if (eligibleProposals.length === 0) {
+    if (approvedActivities.length === 0) {
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <CenteredContainer maxWidth="2xl">
-                    <p className="text-sm text-muted-foreground">
-                        {membership.organization.name} has no approved activities awaiting a
-                        report. A report can only be filed against an approved activity
-                        proposal that does not already have one on file.
-                    </p>
-                </CenteredContainer>
+                <FormShell
+                    title="After-Activity Report"
+                    subtitle="Tell your adviser and SDAO how your approved activity went."
+                >
+                    <PageNotice
+                        tone="info"
+                        title="No approved activities yet."
+                        action={
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={activityProposals.index().url}>
+                                    View activity proposals
+                                </Link>
+                            </Button>
+                        }
+                    >
+                        {membership.organization.name} has no approved
+                        activities to report on. A report can only be filed
+                        against an approved activity proposal.
+                    </PageNotice>
+                </FormShell>
             </>
         );
     }
@@ -78,179 +139,92 @@ export default function CreateReport({ membership, eligibleProposals, attachment
         <>
             <Head title="Submit After-Activity Report" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="After-Activity Report" subtitle="Report on an approved activity" />
-
-                <PageNotice tone="info">
-                    Reporting for {membership.organization.name} as{' '}
-                    {membership.position_label}.
-                </PageNotice>
-
-                <Form {...AfterActivityReportController.store.form()} className="space-y-6">
+            <FormShell
+                title="After-Activity Report"
+                subtitle="Tell your adviser and SDAO how your approved activity went."
+            >
+                <Form
+                    {...AfterActivityReportController.store.form()}
+                    id={FORM_ID}
+                >
                     {({ processing, errors }) => (
-                        <>
-                            {/* Activity proposal */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="activity_proposal_id">Activity</Label>
-                                <Select name="activity_proposal_id" required>
-                                    <SelectTrigger id="activity_proposal_id" className="w-full">
-                                        <SelectValue placeholder="Select the approved activity…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {eligibleProposals.map((p) => (
-                                            <SelectItem
-                                                key={p.activity_proposal_id}
-                                                value={String(p.activity_proposal_id)}
-                                            >
-                                                {p.activity?.name ?? p.title}
-                                                {p.activity && ` · ${p.activity.activity_date}`}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.activity_proposal_id} />
-                            </div>
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    <>
+                                        Reporting for{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {membership.organization.name}
+                                        </strong>{' '}
+                                        as {membership.position_label}
+                                    </>
+                                }
+                                right={membership.organization.school}
+                            />
 
-                            {/* Summary */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="summary">Summary</Label>
-                                <Textarea
-                                    id="summary"
-                                    name="summary"
-                                    placeholder="Summarize how the activity was conducted…"
-                                    rows={5}
-                                    required
+                            <FormSection title="Which activity?">
+                                <input
+                                    type="hidden"
+                                    name="activity_proposal_id"
+                                    value={activityId}
                                 />
-                                <InputError message={errors.summary} />
-                            </div>
+                                <FormField
+                                    id="activity_proposal_id"
+                                    label="Approved activity"
+                                    error={errors.activity_proposal_id}
+                                >
+                                    {(aria) => (
+                                        <ActivityPicker
+                                            id="activity_proposal_id"
+                                            activities={pickerActivities}
+                                            value={activityId}
+                                            onChange={setActivityId}
+                                            placeholder="Choose an approved activity"
+                                            helper="Only approved activities without a report can be picked"
+                                            showDate
+                                            invalid={Boolean(errors.activity_proposal_id)}
+                                            describedBy={aria['aria-describedby']}
+                                        />
+                                    )}
+                                </FormField>
+                                {eligibleProposals.length === 0 && (
+                                    <PageNotice tone="info">
+                                        Every approved activity of{' '}
+                                        {membership.organization.name} already
+                                        has a report, so there is nothing to
+                                        report on right now.
+                                    </PageNotice>
+                                )}
+                            </FormSection>
 
-                            {/* Activity Chair/s */}
-                            <div className="grid gap-2">
-                                <div className="flex items-center justify-between">
-                                    <Label>Activity Chair/s</Label>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setChairs((prev) => [...prev, ''])}
-                                    >
-                                        + Add Chair
-                                    </Button>
-                                </div>
-                                {chairs.map((chair, i) => (
-                                    <div key={i} className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                name={`activity_chairs[${i}]`}
-                                                value={chair}
-                                                onChange={(e) =>
-                                                    setChairs((prev) => {
-                                                        const next = [...prev];
-                                                        next[i] = e.target.value;
+                            <ReportFormSections
+                                errors={errors}
+                                preparedByDefault={preparedBy}
+                                attachmentSlots={attachmentSlots}
+                            />
 
-                                                        return next;
-                                                    })
-                                                }
-                                                placeholder="Full name"
-                                                required
-                                            />
-                                            {chairs.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setChairs((prev) => prev.filter((_, idx) => idx !== i))}
-                                                >
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <InputError message={errors[`activity_chairs.${i}`]} />
-                                    </div>
-                                ))}
-                                <InputError message={errors.activity_chairs} />
-                            </div>
-
-                            {/* Prepared By */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="prepared_by">Prepared By</Label>
-                                <Input id="prepared_by" name="prepared_by" placeholder="Full name" required />
-                                <InputError message={errors.prepared_by} />
-                            </div>
-
-                            {/* Program */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="event_program">Program</Label>
-                                <Textarea
-                                    id="event_program"
-                                    name="event_program"
-                                    placeholder="Order of activities / program flow for the event…"
-                                    rows={4}
-                                    required
-                                />
-                                <InputError message={errors.event_program} />
-                            </div>
-
-                            {/* % Target Participants */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="target_participants_percentage">
-                                    Activity Evaluation Report — % Target Participants
-                                </Label>
-                                <Input
-                                    id="target_participants_percentage"
-                                    type="number"
-                                    name="target_participants_percentage"
-                                    min={0}
-                                    max={100}
-                                    required
-                                />
-                                <InputError message={errors.target_participants_percentage} />
-                            </div>
-
-                            {/* Outcomes */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="outcomes">Outcomes</Label>
-                                <Textarea
-                                    id="outcomes"
-                                    name="outcomes"
-                                    placeholder="What were the results or outcomes? (optional)"
-                                    rows={4}
-                                />
-                                <InputError message={errors.outcomes} />
-                            </div>
-
-                            {/* Participant count */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="participant_count">Participant Count</Label>
-                                <Input
-                                    id="participant_count"
-                                    type="number"
-                                    name="participant_count"
-                                    min={0}
-                                    placeholder="Optional"
-                                />
-                                <InputError message={errors.participant_count} />
-                            </div>
-
-                            {attachmentSlots.map((slot) => (
-                                <AttachmentSlotField
-                                    key={slot.key}
-                                    slot={slot}
-                                    error={errors[`attachments.${slot.key}`]}
-                                />
-                            ))}
-
-                            <div className="flex items-center gap-4">
-                                <Button loading={processing} loadingText="Submitting…">Submit for Review</Button>
-                            </div>
-                        </>
+                            <FormFooter status="Your adviser reviews it first, then SDAO.">
+                                <FormSubmitConfirm
+                                    formId={FORM_ID}
+                                    processing={processing}
+                                    title="Submit this report for review?"
+                                    description="It goes to your adviser first, then SDAO. You can't edit it unless an approver returns it."
+                                    confirmLabel="Submit for Review"
+                                >
+                                    Submit for Review
+                                    <ArrowRight aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
 
 CreateReport.layout = {
     breadcrumbs: [{ title: 'Reports' }, { title: 'New Report' }],
+    columnWidth: '3xl',
 };

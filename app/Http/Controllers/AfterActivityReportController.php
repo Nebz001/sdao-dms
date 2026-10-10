@@ -6,6 +6,7 @@ use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Reports\StoreReportRequest;
 use App\Http\Requests\Reports\UpdateReportRequest;
@@ -68,7 +69,7 @@ class AfterActivityReportController extends Controller
         $user = Auth::user();
 
         $membership = OrganizationMembership::query()
-            ->with('organization')
+            ->with('organization.school')
             ->where('user_id', $user->id)
             ->where('is_active', true)
             ->first();
@@ -81,17 +82,61 @@ class AfterActivityReportController extends Controller
         }
 
         $eligibleProposals = SubmitAfterActivityReport::reportableProposalsFor($membership->organization)
-            ->with('activityProposal.calendarActivity')
+            ->with(['activityProposal.calendarActivity', 'transitions'])
             ->get()
             ->map(fn (Document $d) => [
                 'activity_proposal_id' => $d->activityProposal->id,
                 'title' => $d->activityProposal->title,
+                // Shown on the picker row ("Held … · Approved …").
+                'approved_on' => $d->transitions
+                    ->where('to_status', DocumentStatus::Approved)
+                    ->max('created_at')?->toDateString(),
                 'activity' => $d->activityProposal->calendarActivity ? [
                     'name' => $d->activityProposal->calendarActivity->name,
                     'venue' => $d->activityProposal->calendarActivity->venue,
                     'activity_date' => $d->activityProposal->calendarActivity->activity_date->toDateString(),
                 ] : null,
             ]);
+
+        // Every approved activity of the org, so the picker can list the ones
+        // that already have a report as disabled ("Report filed"). The rule
+        // is the same one that builds $eligibleProposals above, and the
+        // submit action still enforces it.
+        $reportableDocumentIds = SubmitAfterActivityReport::reportableProposalsFor($membership->organization)
+            ->pluck('id');
+
+        $approvedActivities = Document::query()
+            ->with(['activityProposal.calendarActivity.calendar', 'transitions'])
+            ->where('form_type', FormType::ActivityProposal->value)
+            ->where('organization_id', $membership->organization_id)
+            ->where('status', DocumentStatus::Approved->value)
+            ->get()
+            ->filter(fn (Document $d) => $d->activityProposal?->calendarActivity !== null)
+            ->sortBy(function (Document $d) {
+                $activity = $d->activityProposal->calendarActivity;
+
+                return $activity?->calendar?->academic_year.'|'.$activity?->calendar?->term->value.'|'.$activity?->activity_date->toDateString().'|'.$activity?->start_time;
+            })
+            ->map(function (Document $d) use ($reportableDocumentIds) {
+                $activity = $d->activityProposal->calendarActivity;
+
+                return [
+                    'activity_proposal_id' => $d->activityProposal->id,
+                    'title' => $activity?->name ?? $d->activityProposal->title,
+                    'venue' => $activity?->venue,
+                    'activity_date' => $activity?->activity_date->toDateString(),
+                    'start_time' => $activity?->start_time,
+                    'end_time' => $activity?->end_time,
+                    'term_label' => $activity?->calendar
+                        ? $activity->calendar->term->label().', '.$activity->calendar->academic_year
+                        : null,
+                    'approved_on' => $d->transitions
+                        ->where('to_status', DocumentStatus::Approved)
+                        ->max('created_at')?->toDateString(),
+                    'report_filed' => ! $reportableDocumentIds->contains($d->id),
+                ];
+            })
+            ->values();
 
         return Inertia::render('reports/create', [
             'membership' => [
@@ -101,9 +146,12 @@ class AfterActivityReportController extends Controller
                 'organization' => [
                     'id' => $membership->organization->id,
                     'name' => $membership->organization->name,
+                    // Null for an Extra-Curricular org (no college).
+                    'school' => $membership->organization->school?->name,
                 ],
             ],
             'eligibleProposals' => $eligibleProposals,
+            'approvedActivities' => $approvedActivities,
             'attachmentSlots' => AttachmentSlots::slotsFor(FormType::AfterActivityReport),
         ]);
     }

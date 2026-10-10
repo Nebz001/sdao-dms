@@ -92,3 +92,76 @@ function RadioGroupCard({
 }
 
 export { RadioGroup, RadioGroupCard }
+
+type RadioGroupOptionProps = Omit<
+  React.ComponentProps<"input">,
+  "type" | "title"
+> & {
+  title: React.ReactNode
+  description?: React.ReactNode
+}
+
+/**
+ * A compact option card for a short either/or question: the radio dot at the
+ * start, a bold title and one muted line under it. Same native radio as
+ * RadioGroupCard (one tab stop, arrow keys, submits under `name`), without
+ * the icon tile. A disabled option stays readable, so its description can say
+ * why it cannot be picked.
+ */
+function RadioGroupOption({
+  className,
+  title,
+  description,
+  ...props
+}: RadioGroupOptionProps) {
+  const titleId = React.useId()
+  const descriptionId = React.useId()
+
+  return (
+    <label
+      data-slot="radio-group-option"
+      className={cn(
+        "group/option border-input hover:bg-accent/50 flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors",
+        "has-[:checked]:border-primary-text has-[:checked]:bg-primary/10",
+        "has-[:focus-visible]:focus-ring",
+        "has-[:disabled]:hover:bg-transparent has-[:disabled]:cursor-not-allowed has-[:disabled]:bg-muted/40",
+        className
+      )}
+    >
+      <input
+        type="radio"
+        className="sr-only"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        {...props}
+      />
+      <span
+        aria-hidden
+        className="border-input text-primary-foreground group-has-[:checked]/option:border-primary group-has-[:checked]/option:bg-primary group-has-[:disabled]/option:opacity-50 mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+      >
+        <Check
+          className="size-3 opacity-0 group-has-[:checked]/option:opacity-100"
+          strokeWidth={3}
+        />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span
+          id={titleId}
+          className="text-sm leading-snug font-semibold group-has-[:disabled]/option:text-muted-foreground"
+        >
+          {title}
+        </span>
+        {description ? (
+          <span
+            id={descriptionId}
+            className="text-muted-foreground text-xs leading-snug font-normal"
+          >
+            {description}
+          </span>
+        ) : null}
+      </span>
+    </label>
+  )
+}
+
+export { RadioGroupOption }

@@ -1,62 +1,114 @@
 import { Head, router } from '@inertiajs/react';
-import { UserRoundCog } from 'lucide-react';
+import { ArrowRight, Search, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
-import PageHeader from '@/components/page-header';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
 import PageNotice from '@/components/page-notice';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { RadioGroup, RadioGroupOption } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { useInitials } from '@/hooks/use-initials';
+import { cn } from '@/lib/utils';
 import * as officerChange from '@/routes/organizations/officer-change';
 
 type PositionOption = { value: string; label: string };
 
 type StudentResult = { id: number; name: string; email: string };
 
+type Officer = {
+    position: string;
+    position_label: string;
+    user: { id: number; name: string };
+};
+
 type Props = {
     organization: { id: number; name: string } | null;
-    currentOfficers: Array<{
-        position: string;
-        position_label: string;
-        user: { id: number; name: string };
-    }>;
+    currentOfficers: Officer[];
     pendingRequest: {
         position_label: string;
         nominee: { name: string };
     } | null;
+    /** Seats that already have a pending request, from anyone in the organization. */
+    pendingPositions?: string[];
     positions: PositionOption[];
 };
+
+/** Initials in a tinted circle; `tone` tells the two seats apart at a glance. */
+function PersonAvatar({
+    name,
+    tone = 'blue',
+}: {
+    name: string;
+    tone?: 'blue' | 'teal';
+}) {
+    const getInitials = useInitials();
+
+    return (
+        <Avatar className="size-10">
+            <AvatarFallback
+                className={cn(
+                    'text-xs font-semibold',
+                    tone === 'blue'
+                        ? 'bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300'
+                        : 'bg-teal-500/10 text-teal-700 dark:bg-teal-400/15 dark:text-teal-300',
+                )}
+            >
+                {getInitials(name)}
+            </AvatarFallback>
+        </Avatar>
+    );
+}
+
+/** The dashed stand-in for a seat nobody holds, or a person not picked yet. */
+function EmptyAvatar({ mark = '?' }: { mark?: string }) {
+    return (
+        <span
+            aria-hidden
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-dashed border-input text-sm text-muted-foreground"
+        >
+            {mark}
+        </span>
+    );
+}
 
 export default function RequestOfficerChange({
     organization,
     currentOfficers,
     pendingRequest,
+    pendingPositions = [],
     positions,
 }: Props) {
-    const [position, setPosition] = useState(positions[0]?.value ?? '');
+    const firstOpenSeat = positions.find(
+        (p) => !pendingPositions.includes(p.value),
+    );
+    const [chosenPosition, setPosition] = useState(firstOpenSeat?.value ?? '');
+    // A seat that turned pending (right after a request is filed) can no longer
+    // be the one the form sits on; fall to the first open seat.
+    const position = pendingPositions.includes(chosenPosition)
+        ? (firstOpenSeat?.value ?? '')
+        : chosenPosition;
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<StudentResult[]>([]);
     const [selected, setSelected] = useState<StudentResult | null>(null);
-    const [status, setStatus] = useState<'idle' | 'searching' | 'done'>(
-        'idle',
-    );
+    const [status, setStatus] = useState<'idle' | 'searching' | 'done'>('idle');
     const [searchFailed, setSearchFailed] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const latestQuery = useRef('');
 
     const [reason, setReason] = useState('');
     const [processing, setProcessing] = useState(false);
-    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Mirrors organizations/join/create.tsx's typeahead pattern exactly:
     // 600ms debounce, stale-response guard so a slow reply for a query the
@@ -118,199 +170,441 @@ export default function RequestOfficerChange({
         setSelected(student);
         setResults([]);
         setStatus('idle');
-        setQuery(student.name);
+        setQuery('');
+        setErrors((prev) => ({ ...prev, nominee_id: '' }));
     }
 
     if (organization === null) {
         return (
             <>
                 <Head title="Request Officer Change" />
-                <CenteredContainer maxWidth="2xl" className="space-y-6">
-                    <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
-
+                <FormShell
+                    title="Request Officer Change"
+                    subtitle="Ask SDAO to change who holds an officer position."
+                >
                     <PageNotice tone="info">
                         Only an active president or secretary of an organization
                         can request an officer change.
                     </PageNotice>
-                </CenteredContainer>
+                </FormShell>
             </>
         );
     }
 
-    if (pendingRequest) {
-        return (
-            <>
-                <Head title="Request Officer Change" />
-                <CenteredContainer maxWidth="2xl" className="space-y-6">
-                    <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
+    const holderOf = (value: string) =>
+        currentOfficers.find((officer) => officer.position === value);
+    const seat = positions.find((p) => p.value === position);
+    const currentHolder = holderOf(position);
+    const noOpenSeat = firstOpenSeat === undefined;
+    const alreadyHolds =
+        selected !== null && currentHolder?.user.id === selected.id;
+    const seatLabel = seat?.label.toLowerCase() ?? 'position';
 
-                    <PageNotice tone="info">
-                        Your request is already on its way.
-                    </PageNotice>
-                    <p className="text-sm text-muted-foreground">
-                        You have a pending request to change{' '}
-                        <strong className="text-foreground">
-                            {organization.name}
-                        </strong>
-                        &apos;s {pendingRequest.position_label} to{' '}
-                        <strong className="text-foreground">
-                            {pendingRequest.nominee.name}
-                        </strong>
-                        . An SDAO admin will approve or decline it — you&apos;ll
-                        be notified either way.
-                    </p>
-                </CenteredContainer>
-            </>
-        );
-    }
+    // The server stays the authority on every one of these rules; the page
+    // shows its message under the field it belongs to.
+    const fieldErrors = {
+        position: errors.position || undefined,
+        nominee_id:
+            errors.nominee_id ||
+            (alreadyHolds ? 'They already hold this position.' : undefined),
+        reason: errors.reason || undefined,
+    };
 
     return (
         <>
             <Head title="Request Officer Change" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Request Officer Change" subtitle="Ask SDAO to change your organization's officers" />
-
-                <PageNotice tone="info">
-                    Request a change to {organization.name}&apos;s roster. SDAO must
-                    approve it first.
-                </PageNotice>
-
-                {currentOfficers.length > 0 && (
-                    <div className="rounded-md border p-3 text-sm">
-                        <p className="mb-1 font-medium">Current officers</p>
-                        {currentOfficers.map((officer) => (
-                            <p
-                                key={officer.position}
-                                className="text-muted-foreground"
-                            >
-                                {officer.position_label}: {officer.user.name}
-                            </p>
-                        ))}
-                    </div>
+            <FormShell
+                title="Request Officer Change"
+                subtitle="Ask SDAO to change who holds an officer position."
+            >
+                {pendingRequest && (
+                    <PageNotice tone="info" title="Your request is already on its way.">
+                        You asked to change {organization.name}&apos;s{' '}
+                        {pendingRequest.position_label} to{' '}
+                        {pendingRequest.nominee.name}. An SDAO admin will
+                        approve or decline it, and you&apos;ll be notified
+                        either way.
+                    </PageNotice>
                 )}
 
-                <div className="grid gap-2">
-                    <Label htmlFor="position">Position to change</Label>
-                    <Select value={position} onValueChange={setPosition}>
-                        <SelectTrigger id="position" className="w-full">
-                            <SelectValue placeholder="Position…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {positions.map((p) => (
-                                <SelectItem key={p.value} value={p.value}>
-                                    {p.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <form
+                    noValidate
+                    onSubmit={(event) => event.preventDefault()}
+                    aria-label="Request an officer change"
+                >
+                    <FormCard>
+                        <FocusFirstError errors={fieldErrors} />
+                        <FormStrip
+                            left={
+                                <>
+                                    Requesting for{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {organization.name}
+                                    </strong>
+                                </>
+                            }
+                            right="SDAO approves this first"
+                        />
 
-                <div className="grid gap-2">
-                    <Label htmlFor="nominee-search">Nominate</Label>
-                    <Input
-                        id="nominee-search"
-                        placeholder="Search by name or email…"
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setSelected(null);
-                        }}
-                        autoComplete="off"
-                    />
-                    {query.trim() !== '' && status === 'searching' && (
-                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner className="size-3.5" /> Searching
-                            students…
-                        </p>
-                    )}
-                    {status === 'done' && searchFailed && (
-                        <PageNotice tone="destructive" urgent title="Couldn't search students just now.">
-                            Try again.
-                        </PageNotice>
-                    )}
-                    {results.length > 0 && (
-                        <div className="divide-y rounded-md border">
-                            {results.map((student) => (
-                                <button
-                                    key={student.id}
-                                    type="button"
-                                    onClick={() => selectStudent(student)}
-                                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
-                                >
-                                    <span>{student.name}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {student.email}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                        <FormSection title="Current officers">
+                            <ul className="grid gap-3 sm:grid-cols-2">
+                                {positions.map((p, index) => {
+                                    const holder = holderOf(p.value);
 
-                <div className="grid gap-2">
-                    <Label htmlFor="reason">Reason (optional)</Label>
-                    <Textarea
-                        id="reason"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="Let the admin know why, if you'd like…"
-                        rows={3}
-                    />
-                </div>
-
-                {submitError && (
-                    <PageNotice tone="destructive" urgent title={submitError} />
-                )}
-
-                <ConfirmDialog
-                    trigger={
-                        <Button
-                            disabled={!selected || !position}
-                            data-icon="inline-start"
-                        >
-                            <UserRoundCog />
-                            Send Request
-                        </Button>
-                    }
-                    title="Send this officer change request?"
-                    description={
-                        <>
-                            This goes to an SDAO admin for review.{' '}
-                            {selected?.name} will not become an officer until
-                            it&apos;s approved.
-                        </>
-                    }
-                    confirmLabel="Send Request"
-                    onConfirm={({ close, stopProcessing }) => {
-                        setProcessing(true);
-                        setSubmitError(null);
-
-                        router.post(
-                            officerChange.store().url,
-                            {
-                                position,
-                                nominee_id: selected?.id,
-                                reason: reason.trim() || undefined,
-                            },
-                            {
-                                preserveScroll: true,
-                                onSuccess: close,
-                                onError: (errors) => {
-                                    setSubmitError(
-                                        errors.nominee_id ??
-                                            errors.position ??
-                                            'Something went wrong. Please try again.',
+                                    return (
+                                        <li
+                                            key={p.value}
+                                            className={cn(
+                                                'flex items-center gap-3 rounded-lg border px-3.5 py-3',
+                                                !holder &&
+                                                    'border-dashed bg-muted/20',
+                                            )}
+                                        >
+                                            {holder ? (
+                                                <PersonAvatar
+                                                    name={holder.user.name}
+                                                    tone={index % 2 === 0 ? 'blue' : 'teal'}
+                                                />
+                                            ) : (
+                                                <EmptyAvatar mark="–" />
+                                            )}
+                                            <div className="min-w-0">
+                                                <p
+                                                    className={cn(
+                                                        'truncate text-sm font-medium',
+                                                        !holder &&
+                                                            'text-muted-foreground',
+                                                    )}
+                                                >
+                                                    {holder
+                                                        ? holder.user.name
+                                                        : 'Vacant'}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {p.label}
+                                                </p>
+                                            </div>
+                                        </li>
                                     );
-                                    stopProcessing();
-                                },
-                                onFinish: () => setProcessing(false),
-                            },
-                        );
-                    }}
-                    confirmDisabled={processing}
-                />
-            </CenteredContainer>
+                                })}
+                            </ul>
+                        </FormSection>
+
+                        <FormSection title="The change">
+                            <fieldset className="grid gap-1.5">
+                                <legend className="mb-1.5 text-sm leading-snug font-medium">
+                                    Which position?
+                                </legend>
+                                <RadioGroup className="grid-cols-1 sm:grid-cols-2">
+                                    {positions.map((p) => {
+                                        const holder = holderOf(p.value);
+                                        const isPending = pendingPositions.includes(
+                                            p.value,
+                                        );
+
+                                        return (
+                                            <RadioGroupOption
+                                                key={p.value}
+                                                name="position"
+                                                value={p.value}
+                                                checked={position === p.value}
+                                                disabled={isPending}
+                                                onChange={() => {
+                                                    setPosition(p.value);
+                                                    setErrors((prev) => ({
+                                                        ...prev,
+                                                        position: '',
+                                                        nominee_id: '',
+                                                    }));
+                                                }}
+                                                title={p.label}
+                                                description={
+                                                    isPending
+                                                        ? 'A change request is already pending for this position'
+                                                        : holder
+                                                          ? `Now held by ${holder.user.name}`
+                                                          : 'Vacant'
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </RadioGroup>
+                                {noOpenSeat && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Every position already has a pending
+                                        request. You can ask again once SDAO
+                                        decides.
+                                    </p>
+                                )}
+                                {fieldErrors.position && (
+                                    <p
+                                        aria-invalid
+                                        tabIndex={-1}
+                                        className="text-sm text-destructive"
+                                    >
+                                        {fieldErrors.position}
+                                    </p>
+                                )}
+                            </fieldset>
+
+                            <FormField
+                                id="nominee-search"
+                                label="Who should take this position?"
+                                error={fieldErrors.nominee_id}
+                            >
+                                {(aria) => (
+                                    <>
+                                        {selected ? (
+                                            <div className="flex items-center gap-3 rounded-lg border border-primary-text bg-primary/10 px-3.5 py-2.5">
+                                                <PersonAvatar name={selected.name} />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-medium">
+                                                        {selected.name}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {selected.email}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setSelected(null)}
+                                                    {...aria}
+                                                >
+                                                    <X aria-hidden />
+                                                    Change
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="relative">
+                                                <Search
+                                                    aria-hidden
+                                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                                />
+                                                <Input
+                                                    id="nominee-search"
+                                                    type="search"
+                                                    placeholder="Search by name or email"
+                                                    value={query}
+                                                    onChange={(e) =>
+                                                        setQuery(e.target.value)
+                                                    }
+                                                    autoComplete="off"
+                                                    disabled={noOpenSeat}
+                                                    className="pl-9"
+                                                    {...aria}
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div aria-live="polite" className="grid gap-2">
+                                            {!selected &&
+                                                query.trim() !== '' &&
+                                                status === 'searching' && (
+                                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <Spinner className="size-3.5" />
+                                                        Searching students…
+                                                    </p>
+                                                )}
+                                            {status === 'done' && searchFailed && (
+                                                <PageNotice
+                                                    tone="destructive"
+                                                    urgent
+                                                    title="Couldn't search students just now."
+                                                >
+                                                    Try again.
+                                                </PageNotice>
+                                            )}
+                                            {status === 'done' &&
+                                                !searchFailed &&
+                                                results.length === 0 &&
+                                                !selected &&
+                                                query.trim() !== '' && (
+                                                    <p className="rounded-md border border-dashed px-3.5 py-3 text-sm text-muted-foreground">
+                                                        No student matches
+                                                        &ldquo;{query.trim()}
+                                                        &rdquo;. Students who
+                                                        already hold a seat in
+                                                        another organization,
+                                                        accounts SDAO hasn&apos;t
+                                                        verified, and approvers
+                                                        can&apos;t be picked.
+                                                    </p>
+                                                )}
+                                        </div>
+
+                                        {!selected && results.length > 0 && (
+                                            <ul
+                                                aria-label="Matching students"
+                                                className="divide-y overflow-hidden rounded-lg border"
+                                            >
+                                                {results.map((student) => (
+                                                    <li key={student.id}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                selectStudent(student)
+                                                            }
+                                                            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-accent focus-visible:focus-ring"
+                                                        >
+                                                            <PersonAvatar
+                                                                name={student.name}
+                                                            />
+                                                            <span className="min-w-0">
+                                                                <span className="block truncate text-sm font-medium">
+                                                                    {student.name}
+                                                                </span>
+                                                                <span className="block truncate text-xs text-muted-foreground">
+                                                                    {student.email}
+                                                                </span>
+                                                            </span>
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </>
+                                )}
+                            </FormField>
+
+                            <div className="grid gap-1.5">
+                                <h3 className="text-sm leading-snug font-medium">
+                                    Preview
+                                </h3>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-dashed bg-muted/20 px-3.5 py-3">
+                                    <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
+                                        {currentHolder ? (
+                                            <PersonAvatar name={currentHolder.user.name} />
+                                        ) : (
+                                            <EmptyAvatar mark="–" />
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium">
+                                                {currentHolder
+                                                    ? currentHolder.user.name
+                                                    : 'Vacant'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Current {seatLabel}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ArrowRight
+                                        aria-label="becomes"
+                                        role="img"
+                                        className="size-4 shrink-0 text-muted-foreground max-sm:rotate-90"
+                                    />
+                                    <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
+                                        {selected ? (
+                                            <PersonAvatar name={selected.name} tone="teal" />
+                                        ) : (
+                                            <EmptyAvatar />
+                                        )}
+                                        <div className="min-w-0">
+                                            <p
+                                                className={cn(
+                                                    'truncate text-sm font-medium',
+                                                    !selected &&
+                                                        'text-muted-foreground',
+                                                )}
+                                            >
+                                                {selected
+                                                    ? selected.name
+                                                    : 'Not picked yet'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                New {seatLabel}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <FormField
+                                id="reason"
+                                label="Reason"
+                                optional
+                                error={fieldErrors.reason}
+                            >
+                                {(aria) => (
+                                    <Textarea
+                                        id="reason"
+                                        value={reason}
+                                        onChange={(e) => setReason(e.target.value)}
+                                        placeholder="Let SDAO know why, if you'd like"
+                                        rows={4}
+                                        maxLength={2000}
+                                        {...aria}
+                                    />
+                                )}
+                            </FormField>
+                        </FormSection>
+
+                        <FormFooter status="You’ll get a notification once SDAO decides.">
+                            <ConfirmDialog
+                                trigger={
+                                    <Button
+                                        type="button"
+                                        disabled={
+                                            !selected ||
+                                            !position ||
+                                            alreadyHolds ||
+                                            noOpenSeat
+                                        }
+                                        data-icon="inline-start"
+                                    >
+                                        <Send aria-hidden />
+                                        Send Request
+                                    </Button>
+                                }
+                                title="Send this officer change request?"
+                                description={
+                                    <>
+                                        This goes to an SDAO admin for review.{' '}
+                                        {selected?.name} will not become an
+                                        officer until it&apos;s approved.
+                                    </>
+                                }
+                                confirmLabel="Send Request"
+                                onConfirm={({ close, stopProcessing }) => {
+                                    setProcessing(true);
+                                    setErrors({});
+
+                                    router.post(
+                                        officerChange.store().url,
+                                        {
+                                            position,
+                                            nominee_id: selected?.id,
+                                            reason: reason.trim() || undefined,
+                                        },
+                                        {
+                                            preserveScroll: true,
+                                            onSuccess: () => {
+                                                setSelected(null);
+                                                setQuery('');
+                                                setReason('');
+                                                close();
+                                            },
+                                            onError: (serverErrors) => {
+                                                // Close the dialog so the message
+                                                // shows under its own field, not
+                                                // behind the modal.
+                                                setErrors(serverErrors);
+                                                stopProcessing();
+                                                close();
+                                            },
+                                            onFinish: () => setProcessing(false),
+                                        },
+                                    );
+                                }}
+                                confirmDisabled={processing}
+                            />
+                        </FormFooter>
+                    </FormCard>
+                </form>
+            </FormShell>
         </>
     );
 }
@@ -320,4 +614,5 @@ RequestOfficerChange.layout = {
         { title: 'My Organization' },
         { title: 'Request Officer Change' },
     ],
+    columnWidth: '3xl',
 };

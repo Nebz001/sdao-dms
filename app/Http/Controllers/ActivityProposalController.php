@@ -93,7 +93,7 @@ class ActivityProposalController extends Controller
         $user = Auth::user();
 
         $membership = OrganizationMembership::query()
-            ->with('organization')
+            ->with('organization.school')
             ->where('user_id', $user->id)
             ->where('is_active', true)
             ->first();
@@ -106,6 +106,8 @@ class ActivityProposalController extends Controller
                 'organization' => [
                     'id' => $membership->organization->id,
                     'name' => $membership->organization->name,
+                    // Null for an Extra-Curricular org (no college).
+                    'school' => $membership->organization->school?->name,
                 ],
             ] : null,
             // Term is a global, admin-controlled setting (Phase 2 item 6) —
@@ -198,9 +200,9 @@ class ActivityProposalController extends Controller
 
     /**
      * JSON list of the actor's org's Approved CalendarActivities for the
-     * on-calendar picker. Excludes any activity already locked by another
-     * active proposal (App\ActivityProposals\OnCalendarActivityLockChecker)
-     * — convenience only; the authoritative guards live in
+     * on-calendar picker. Flags (`locked`) any activity already locked by another
+     * active proposal (App\ActivityProposals\OnCalendarActivityLockChecker),
+     * so the picker shows it disabled — convenience only; the authoritative guards live in
      * StartProposalDraft and SubmitActivityProposal.
      */
     public function onCalendarActivities(OnCalendarActivityLockChecker $lockChecker): JsonResponse
@@ -216,12 +218,22 @@ class ActivityProposalController extends Controller
             return response()->json(['activities' => []]);
         }
 
+        $lockedIds = $lockChecker->lockedActivityIds();
+
+        // Locked activities stay in the list so the picker can show them
+        // disabled ("Already proposed"); the same lock rule still refuses a
+        // second proposal in StartProposalDraft and SubmitActivityProposal.
         $activities = CalendarActivity::query()
+            ->with('calendar')
             ->whereHas('calendar.document', fn ($q) => $q
                 ->where('organization_id', $membership->organization_id)
                 ->where('status', DocumentStatus::Approved->value))
-            ->whereNotIn('id', $lockChecker->lockedActivityIds())
-            ->orderBy('activity_date')
+            ->join('activity_calendars', 'activity_calendars.id', '=', 'calendar_activities.activity_calendar_id')
+            ->orderBy('activity_calendars.academic_year')
+            ->orderBy('activity_calendars.term')
+            ->orderBy('calendar_activities.activity_date')
+            ->orderBy('calendar_activities.start_time')
+            ->select('calendar_activities.*')
             ->get()
             ->map(fn ($a) => [
                 'id' => $a->id,
@@ -230,6 +242,8 @@ class ActivityProposalController extends Controller
                 'activity_date' => $a->activity_date->toDateString(),
                 'start_time' => $a->start_time,
                 'end_time' => $a->end_time,
+                'term_label' => $a->calendar->term->label().', '.$a->calendar->academic_year,
+                'locked' => in_array($a->id, $lockedIds, true),
             ]);
 
         return response()->json(['activities' => $activities]);

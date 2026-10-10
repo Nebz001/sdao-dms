@@ -2,11 +2,13 @@ import { Link, usePage } from '@inertiajs/react';
 import { ChevronLeft } from 'lucide-react';
 import { useMemo } from 'react';
 import { AppTopbar } from '@/components/app-topbar';
+import { MAX_WIDTHS } from '@/components/centered-container';
 import IdleTimeoutDialog from '@/components/idle-timeout-dialog';
 import { Toaster } from '@/components/ui/toaster';
 import { buildNavSections } from '@/lib/nav-config';
 import { buildTrail } from '@/lib/nav-trail';
 import type { PageCrumb } from '@/lib/nav-trail';
+import { cn } from '@/lib/utils';
 
 /**
  * The one layout every student page uses (see app.tsx): a top navbar with the
@@ -21,9 +23,17 @@ import type { PageCrumb } from '@/lib/nav-trail';
 export default function AppTopbarLayout({
     children,
     breadcrumbs = [],
+    columnWidth,
 }: {
     children: React.ReactNode;
     breadcrumbs?: PageCrumb[];
+    /**
+     * A page that lays its content out in a narrower centered column (the
+     * filing forms) names that column's width here, and the "Back to …" link
+     * is placed in a column of the same width so it lines up with the left
+     * edge of the content instead of the far left of the page.
+     */
+    columnWidth?: keyof typeof MAX_WIDTHS;
 }) {
     const page = usePage();
     const { auth, navCounts } = page.props;
@@ -51,14 +61,22 @@ export default function AppTopbarLayout({
                 className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8"
             >
                 {trail.parent && (
-                    <Link
-                        href={trail.parent.href}
-                        prefetch
-                        className="-mb-2 inline-flex w-fit items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:focus-ring"
+                    <div
+                        className={cn(
+                            '-mb-2',
+                            columnWidth &&
+                                `mx-auto w-full ${MAX_WIDTHS[columnWidth]}`,
+                        )}
                     >
-                        <ChevronLeft aria-hidden className="size-4" />
-                        Back to {trail.parent.title}
-                    </Link>
+                        <Link
+                            href={trail.parent.href}
+                            prefetch
+                            className="inline-flex w-fit items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:focus-ring"
+                        >
+                            <ChevronLeft aria-hidden className="size-4" />
+                            Back to {trail.parent.title}
+                        </Link>
+                    </div>
                 )}
                 {children}
             </main>

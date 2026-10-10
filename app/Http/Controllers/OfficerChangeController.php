@@ -67,6 +67,18 @@ class OfficerChangeController extends Controller
                 ])
             : [];
 
+        // Seats that already have a pending request from anyone in the org;
+        // the form disables those cards. The server still enforces one
+        // pending request per seat under the org lock.
+        $pendingPositions = $organization !== null
+            ? OfficerChangeRequest::query()
+                ->where('organization_id', $organization->id)
+                ->pending()
+                ->get()
+                ->map(fn (OfficerChangeRequest $r) => $r->position->value)
+                ->values()
+            : [];
+
         return Inertia::render('organizations/officer-change/create', [
             'organization' => $organization ? ['id' => $organization->id, 'name' => $organization->name] : null,
             'currentOfficers' => $currentOfficers,
@@ -74,6 +86,7 @@ class OfficerChangeController extends Controller
                 'position_label' => $pendingRequest->position->label(),
                 'nominee' => ['name' => $pendingRequest->nominee->name],
             ] : null,
+            'pendingPositions' => $pendingPositions,
             'positions' => collect(OfficerPosition::cases())->map(fn ($p) => [
                 'value' => $p->value,
                 'label' => $p->label(),

@@ -1,17 +1,23 @@
-import { Form, Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { Form, Head, usePage } from '@inertiajs/react';
+import { ArrowRight } from 'lucide-react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
+import { ActivityCard } from '@/components/activity-picker';
+import type {
+    AttachmentSlotDef,
+    ExistingAttachment,
+} from '@/components/attachment-slot-field';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import {
+    FocusFirstError,
+    FormCard,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
 import GeneralRevisionNotice from '@/components/general-revision-notice';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import ReportFormSections from '@/components/report-form-sections';
 import type { FlaggedRevisionProps } from '@/types';
 
 type DocumentData = { id: number; title: string };
@@ -49,15 +55,18 @@ export default function EditReport({
     flaggedComment,
     flaggedSectionComments,
 }: Props) {
-    const [chairs, setChairs] = useState<string[]>(detail?.activity_chairs?.length ? detail.activity_chairs : ['']);
+    const { auth } = usePage().props;
+    const formId = `edit-report-form-${document.id}`;
+    const flags = { flaggedSections, flaggedComment, flaggedSectionComments };
 
     return (
         <>
             <Head title="Edit After-Activity Report" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Edit & Resubmit Report" subtitle="Update the details below and resubmit for review." />
-
+            <FormShell
+                title="Edit & Resubmit Report"
+                subtitle="Update the details below and resubmit for review."
+            >
                 {flaggedSections.includes('general') && (
                     <GeneralRevisionNotice
                         sectionComment={flaggedSectionComments.general}
@@ -65,211 +74,95 @@ export default function EditReport({
                     />
                 )}
 
-                {detail?.activity && (
-                    <FlaggedSectionWrapper
-                        sectionKey="event_details"
-                        flagged={flaggedSections}
-                        comment={flaggedComment}
-                        sectionComment={flaggedSectionComments.event_details}
-                    >
-                    <div className="rounded-md border p-4 text-sm text-muted-foreground">
-                        <p>
-                            <span className="font-medium text-foreground">Name of Event:</span>{' '}
-                            {detail.activity.title} (cannot be changed)
-                        </p>
-                        {detail.activity.venue && detail.activity.activity_date && (
-                            <p>
-                                <span className="font-medium text-foreground">Date and Time of Event:</span>{' '}
-                                {detail.activity.activity_date} · {detail.activity.start_time}–{detail.activity.end_time} ·{' '}
-                                {detail.activity.venue}
-                            </p>
-                        )}
-                    </div>
-                    </FlaggedSectionWrapper>
-                )}
-
                 <Form
-                    {...AfterActivityReportController.update.form({ document: document.id })}
-                    className="space-y-6"
+                    {...AfterActivityReportController.update.form({
+                        document: document.id,
+                    })}
+                    id={formId}
                 >
                     {({ processing, errors }) => (
-                        <>
-                            <FlaggedSectionWrapper
-                                sectionKey="summary_program"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.summary_program}
-                            >
-                            <div className="space-y-6">
-                            {/* Summary */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="summary">Summary</Label>
-                                <Textarea
-                                    id="summary"
-                                    name="summary"
-                                    defaultValue={detail?.summary}
-                                    rows={5}
-                                    required
-                                />
-                                <InputError message={errors.summary} />
-                            </div>
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    auth.organization ? (
+                                        <>
+                                            Reporting for{' '}
+                                            <strong className="font-semibold text-foreground">
+                                                {auth.organization.name}
+                                            </strong>
+                                        </>
+                                    ) : (
+                                        document.title
+                                    )
+                                }
+                                right={auth.organization?.school?.name}
+                            />
 
-                            {/* Activity Chair/s */}
-                            <div className="grid gap-2">
-                                <div className="flex items-center justify-between">
-                                    <Label>Activity Chair/s</Label>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setChairs((prev) => [...prev, ''])}
+                            {detail?.activity && (
+                                <FormSection title="Which activity?">
+                                    <FlaggedSectionWrapper
+                                        sectionKey="event_details"
+                                        flagged={flaggedSections}
+                                        comment={flaggedComment}
+                                        sectionComment={
+                                            flaggedSectionComments.event_details
+                                        }
+                                        className={
+                                            flaggedSections.includes(
+                                                'event_details',
+                                            )
+                                                ? 'p-3'
+                                                : undefined
+                                        }
                                     >
-                                        + Add Chair
-                                    </Button>
-                                </div>
-                                {chairs.map((chair, i) => (
-                                    <div key={i} className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                name={`activity_chairs[${i}]`}
-                                                value={chair}
-                                                onChange={(e) =>
-                                                    setChairs((prev) => {
-                                                        const next = [...prev];
-                                                        next[i] = e.target.value;
+                                        <ActivityCard
+                                            showDate
+                                            activity={{
+                                                id: String(document.id),
+                                                title: detail.activity.title,
+                                                date: detail.activity.activity_date ?? '',
+                                                start_time: detail.activity.start_time,
+                                                end_time: detail.activity.end_time,
+                                                venue: detail.activity.venue,
+                                            }}
+                                        />
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            The activity can&apos;t be changed on a returned report.
+                                        </p>
+                                    </FlaggedSectionWrapper>
+                                </FormSection>
+                            )}
 
-                                                        return next;
-                                                    })
-                                                }
-                                                placeholder="Full name"
-                                                required
-                                            />
-                                            {chairs.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setChairs((prev) => prev.filter((_, idx) => idx !== i))}
-                                                >
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <InputError message={errors[`activity_chairs.${i}`]} />
-                                    </div>
-                                ))}
-                                <InputError message={errors.activity_chairs} />
-                            </div>
+                            <ReportFormSections
+                                errors={errors}
+                                defaults={detail ?? undefined}
+                                attachmentSlots={attachmentSlots}
+                                attachments={attachments}
+                                flags={flags}
+                            />
 
-                            {/* Prepared By */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="prepared_by">Prepared By</Label>
-                                <Input
-                                    id="prepared_by"
-                                    name="prepared_by"
-                                    defaultValue={detail?.prepared_by ?? ''}
-                                    placeholder="Full name"
-                                    required
-                                />
-                                <InputError message={errors.prepared_by} />
-                            </div>
-
-                            {/* Program */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="event_program">Program</Label>
-                                <Textarea
-                                    id="event_program"
-                                    name="event_program"
-                                    defaultValue={detail?.event_program ?? ''}
-                                    placeholder="Order of activities / program flow for the event…"
-                                    rows={4}
-                                    required
-                                />
-                                <InputError message={errors.event_program} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <FlaggedSectionWrapper
-                                sectionKey="evaluation"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.evaluation}
-                            >
-                            <div className="space-y-6">
-                            {/* % Target Participants */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="target_participants_percentage">
-                                    Activity Evaluation Report — % Target Participants
-                                </Label>
-                                <Input
-                                    id="target_participants_percentage"
-                                    type="number"
-                                    name="target_participants_percentage"
-                                    min={0}
-                                    max={100}
-                                    defaultValue={detail?.target_participants_percentage ?? undefined}
-                                    required
-                                />
-                                <InputError message={errors.target_participants_percentage} />
-                            </div>
-
-                            {/* Outcomes */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="outcomes">Outcomes</Label>
-                                <Textarea
-                                    id="outcomes"
-                                    name="outcomes"
-                                    defaultValue={detail?.outcomes ?? ''}
-                                    rows={4}
-                                />
-                                <InputError message={errors.outcomes} />
-                            </div>
-
-                            {/* Participant count */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="participant_count">Participant Count</Label>
-                                <Input
-                                    id="participant_count"
-                                    type="number"
-                                    name="participant_count"
-                                    min={0}
-                                    defaultValue={detail?.participant_count ?? undefined}
-                                />
-                                <InputError message={errors.participant_count} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <div className="space-y-6">
-                            {attachmentSlots.map((slot) => (
-                                <FlaggedSectionWrapper
-                                    key={slot.key}
-                                    sectionKey={slot.key}
-                                    flagged={flaggedSections}
-                                    comment={flaggedComment}
-                                    sectionComment={flaggedSectionComments[slot.key]}
+                            <FormFooter status="Your adviser or SDAO sees it again as soon as you resubmit.">
+                                <FormSubmitConfirm
+                                    formId={formId}
+                                    processing={processing}
+                                    title="Resubmit this report?"
+                                    description="It goes back to the approver who returned it."
+                                    confirmLabel="Save & Resubmit"
                                 >
-                                    <AttachmentSlotField
-                                        slot={slot}
-                                        existing={attachments[slot.key]}
-                                        error={errors[`attachments.${slot.key}`]}
-                                    />
-                                </FlaggedSectionWrapper>
-                            ))}
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <Button loading={processing} loadingText="Resubmitting…">Save & Resubmit</Button>
-                            </div>
-                        </>
+                                    Save &amp; Resubmit
+                                    <ArrowRight aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
 
 EditReport.layout = {
     breadcrumbs: [{ title: 'Reports' }, { title: 'Edit' }],
+    columnWidth: '3xl',
 };

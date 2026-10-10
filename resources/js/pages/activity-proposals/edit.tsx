@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { useState } from 'react';
+import { ActivityCard } from '@/components/activity-picker';
 import AttachmentSlotField from '@/components/attachment-slot-field';
 import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import CenteredContainer from '@/components/centered-container';
@@ -131,17 +132,19 @@ export default function EditActivityProposal({
                                 comment={flaggedComment}
                                 sectionComment={flaggedSectionComments.schedule_venue}
                             >
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Current Activity</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm">
-                            <p className="font-medium">{activity.name}</p>
-                            <p className="text-muted-foreground">
-                                {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <div className="space-y-2">
+                        <p className="text-sm leading-snug font-medium">Calendar activity</p>
+                        <ActivityCard
+                            activity={{
+                                id: String(activity.id ?? ''),
+                                title: activity.name,
+                                date: activity.activity_date,
+                                start_time: activity.start_time,
+                                end_time: activity.end_time,
+                                venue: activity.venue,
+                            }}
+                        />
+                    </div>
                     </FlaggedSectionWrapper>
                 )}
 

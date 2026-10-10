@@ -85,7 +85,7 @@ function lockTestProposalFor(Organization $org, User $submitter, CalendarActivit
     return $document;
 }
 
-test('an activity with an active proposal does not appear in the on-calendar picker', function (DocumentStatus $status) {
+test('an activity with an active proposal is listed but flagged locked, so the picker shows it disabled', function (DocumentStatus $status) {
     $activity = lockTestApprovedActivity($this->computingSociety);
     lockTestProposalFor($this->computingSociety, $this->studentAlpha, $activity, $status);
 
@@ -93,27 +93,29 @@ test('an activity with an active proposal does not appear in the on-calendar pic
         ->getJson(route('activity-proposals.on-calendar-activities'));
 
     $response->assertOk();
-    $ids = collect($response->json('activities'))->pluck('id');
-    expect($ids)->not->toContain($activity->id);
+    $row = collect($response->json('activities'))->firstWhere('id', $activity->id);
+    expect($row)->not->toBeNull();
+    expect($row['locked'])->toBeTrue();
+    expect($row['term_label'])->toContain('1st Term');
 })->with([
     'in review' => [DocumentStatus::InReview],
     'returned' => [DocumentStatus::Returned],
     'approved' => [DocumentStatus::Approved],
 ]);
 
-test('once the blocking proposal is Rejected, the activity becomes selectable again', function () {
+test('once the blocking proposal is Rejected, the activity is no longer locked', function () {
     $activity = lockTestApprovedActivity($this->computingSociety);
     $blocking = lockTestProposalFor($this->computingSociety, $this->studentAlpha, $activity, DocumentStatus::InReview);
 
     $before = collect($this->actingAs($this->studentAlpha)
         ->getJson(route('activity-proposals.on-calendar-activities'))
-        ->json('activities'))->pluck('id');
-    expect($before)->not->toContain($activity->id);
+        ->json('activities'))->firstWhere('id', $activity->id);
+    expect($before['locked'])->toBeTrue();
 
     $blocking->update(['status' => DocumentStatus::Rejected]);
 
     $after = collect($this->actingAs($this->studentAlpha)
         ->getJson(route('activity-proposals.on-calendar-activities'))
-        ->json('activities'))->pluck('id');
-    expect($after)->toContain($activity->id);
+        ->json('activities'))->firstWhere('id', $activity->id);
+    expect($after['locked'])->toBeFalse();
 });

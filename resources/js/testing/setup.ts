@@ -12,3 +12,6 @@ class ResizeObserverStub {
 }
 
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
+// cmdk scrolls the active row into view; jsdom has no layout, so no scrollIntoView.
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};
