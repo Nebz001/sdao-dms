@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, Info, Lock } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 import CenteredContainer from '@/components/centered-container';
@@ -104,7 +104,10 @@ export function FormStepper({
                         {position < steps.length && (
                             <span
                                 aria-hidden
-                                className="hidden h-px w-10 bg-border sm:block"
+                                className={cn(
+                                    'hidden h-px w-10 sm:block',
+                                    done ? 'bg-success' : 'bg-border',
+                                )}
                             />
                         )}
                     </li>
@@ -327,6 +330,43 @@ export function AddonInput({
                     {suffix}
                 </span>
             )}
+        </div>
+    );
+}
+
+/** A value that cannot be changed here: lock icon, a dotted box, and why. */
+export function LockedValue({
+    label,
+    value,
+    note,
+}: {
+    label: string;
+    value: string;
+    note: string;
+}) {
+    return (
+        <div className="grid gap-1.5">
+            <span className="text-sm leading-snug font-medium">{label}</span>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-sm">
+                <span>{value}</span>
+                <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock aria-hidden className="size-3.5" />
+                    {note}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+/** A tinted strip under the top strip, for one line of guidance about the whole form. */
+export function FormInfoStrip({ children }: { children: ReactNode }) {
+    return (
+        <div
+            role="status"
+            className="flex items-center gap-2 border-b bg-info/10 px-5 py-2.5 text-sm text-info-foreground sm:px-6"
+        >
+            <Info aria-hidden className="size-4 shrink-0" />
+            <p>{children}</p>
         </div>
     );
 }

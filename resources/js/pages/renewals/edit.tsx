@@ -1,15 +1,23 @@
 import { Form, Head } from '@inertiajs/react';
+import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
+import AttachmentRequirements, { requirementsSummary } from '@/components/attachment-requirements';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+    LockedValue,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
 import GeneralRevisionNotice from '@/components/general-revision-notice';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { FlaggedRevisionProps } from '@/types';
 
@@ -44,160 +52,179 @@ export default function EditRenewal({
     flaggedComment,
     flaggedSectionComments,
 }: Props) {
+    const formId = `edit-renewal-form-${document.id}`;
+    const flags = { flaggedSections, flaggedComment, flaggedSectionComments };
+    const [files, setFiles] = useState<Record<string, File | null>>({});
+
+    function flagged(key: string, children: React.ReactNode) {
+        return (
+            <FlaggedSectionWrapper
+                sectionKey={key}
+                flagged={flaggedSections}
+                comment={flaggedComment}
+                sectionComment={flaggedSectionComments[key]}
+                className={flaggedSections.includes(key) ? 'p-3' : undefined}
+            >
+                <div className="space-y-4">{children}</div>
+            </FlaggedSectionWrapper>
+        );
+    }
+
     return (
         <>
             <Head title="Edit Renewal" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Edit & Resubmit Renewal" subtitle="Update the details below and resubmit for SDAO review." />
-
-                {/* Organization Name / Type / College / Program — read-only;
-                    not editable here. Type of Organization is derived from
-                    the organization's college binding, fixed at founding, so
-                    resubmitting can no longer change it (structural fix,
-                    2026-09-09 plan). */}
-                <div className="grid gap-1 rounded-md border p-4 text-sm">
-                    <p>
-                        <span className="font-medium">Organization Name:</span> {document.organization.name}
-                    </p>
-                    {detail && (
-                        <p>
-                            <span className="font-medium">Type of Organization:</span> {detail.organization_type_label}
-                        </p>
-                    )}
-                    <p>
-                        <span className="font-medium">College:</span> {document.organization.college ?? '—'}
-                    </p>
-                    {document.organization.program && (
-                        <p>
-                            <span className="font-medium">Program:</span> {document.organization.program}
-                        </p>
-                    )}
-                </div>
-
+            <FormShell title="Edit & Resubmit Renewal" subtitle="Update the details below and resubmit for SDAO review.">
                 {flaggedSections.includes('general') && (
-                    <GeneralRevisionNotice
-                        sectionComment={flaggedSectionComments.general}
-                        comment={flaggedComment}
-                    />
+                    <GeneralRevisionNotice sectionComment={flaggedSectionComments.general} comment={flaggedComment} />
                 )}
 
-                <Form
-                    {...RenewalController.update.form({ document: document.id })}
-                    className="space-y-6"
-                >
+                <Form {...RenewalController.update.form({ document: document.id })} id={formId}>
                     {({ processing, errors }) => (
-                        <>
-                            <FlaggedSectionWrapper
-                                sectionKey="organization_details"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.organization_details}
-                            >
-                            <div className="space-y-6">
-                            {/* Date organized */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="date_organized">Date Organized</Label>
-                                <Input
-                                    id="date_organized"
-                                    type="date"
-                                    name="date_organized"
-                                    defaultValue={detail?.date_organized}
-                                    required
-                                />
-                                <InputError message={errors.date_organized} />
-                            </div>
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    <>
+                                        Renewal for{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {document.organization.name}
+                                        </strong>
+                                    </>
+                                }
+                                right={document.organization.college}
+                            />
 
-                            {/* Purpose of organization */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
-                                <Textarea
-                                    id="purpose_of_organization"
-                                    name="purpose_of_organization"
-                                    defaultValue={detail?.purpose_of_organization}
-                                    rows={4}
-                                    required
+                            <FormSection title="About the organization">
+                                {/* Name, type, college and program are fixed: the type is
+                                    derived from the college binding, so resubmitting can
+                                    no longer change it (structural fix, 2026-09-09 plan). */}
+                                <LockedValue
+                                    label="Organization name"
+                                    value={document.organization.name}
+                                    note="Can’t be changed in a renewal"
                                 />
-                                <InputError message={errors.purpose_of_organization} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <FlaggedSectionWrapper
-                                sectionKey="contact_information"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.contact_information}
-                            >
-                            <div className="space-y-6">
-                            {/* Contact person */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_person">Contact Person</Label>
-                                <Input
-                                    id="contact_person"
-                                    name="contact_person"
-                                    defaultValue={detail?.contact_person}
-                                    required
-                                />
-                                <InputError message={errors.contact_person} />
-                            </div>
-
-                            {/* Contact no. */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_no">Contact No.</Label>
-                                <Input
-                                    id="contact_no"
-                                    name="contact_no"
-                                    defaultValue={detail?.contact_no}
-                                    required
-                                />
-                                <InputError message={errors.contact_no} />
-                            </div>
-
-                            {/* Email address */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="email_address">Email Address</Label>
-                                <Input
-                                    id="email_address"
-                                    type="email"
-                                    name="email_address"
-                                    defaultValue={detail?.email_address}
-                                    required
-                                />
-                                <InputError message={errors.email_address} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <div className="space-y-6">
-                            {attachmentSlots.map((slot) => (
-                                <FlaggedSectionWrapper
-                                    key={slot.key}
-                                    sectionKey={slot.key}
-                                    flagged={flaggedSections}
-                                    comment={flaggedComment}
-                                    sectionComment={flaggedSectionComments[slot.key]}
-                                >
-                                    <AttachmentSlotField
-                                        slot={slot}
-                                        existing={attachments[slot.key]}
-                                        error={errors[`attachments.${slot.key}`]}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {detail && (
+                                        <LockedValue
+                                            label="Type of organization"
+                                            value={detail.organization_type_label}
+                                            note="Fixed"
+                                        />
+                                    )}
+                                    <LockedValue
+                                        label="College"
+                                        value={document.organization.college ?? '—'}
+                                        note="Fixed"
                                     />
-                                </FlaggedSectionWrapper>
-                            ))}
-                            </div>
+                                    {document.organization.program && (
+                                        <LockedValue label="Program" value={document.organization.program} note="Fixed" />
+                                    )}
+                                </div>
+                                {flagged(
+                                    'organization_details',
+                                    <>
+                                        <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                                            {(aria) => (
+                                                <Input
+                                                    id="date_organized"
+                                                    type="date"
+                                                    name="date_organized"
+                                                    defaultValue={detail?.date_organized}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                        <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                                            {(aria) => (
+                                                <Textarea
+                                                    id="purpose_of_organization"
+                                                    name="purpose_of_organization"
+                                                    defaultValue={detail?.purpose_of_organization}
+                                                    rows={4}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                    </>,
+                                )}
+                            </FormSection>
 
-                            <div className="flex items-center gap-4">
-                                <Button loading={processing} loadingText="Resubmitting…">Save & Resubmit</Button>
-                            </div>
-                        </>
+                            <FormSection title="Contact">
+                                {flagged(
+                                    'contact_information',
+                                    <>
+                                        <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                                            {(aria) => (
+                                                <Input
+                                                    id="contact_person"
+                                                    name="contact_person"
+                                                    defaultValue={detail?.contact_person}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                                                {(aria) => (
+                                                    <Input
+                                                        id="contact_no"
+                                                        name="contact_no"
+                                                        type="tel"
+                                                        defaultValue={detail?.contact_no}
+                                                        {...aria}
+                                                    />
+                                                )}
+                                            </FormField>
+                                            <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                                                {(aria) => (
+                                                    <Input
+                                                        id="email_address"
+                                                        name="email_address"
+                                                        type="email"
+                                                        defaultValue={detail?.email_address}
+                                                        {...aria}
+                                                    />
+                                                )}
+                                            </FormField>
+                                        </div>
+                                    </>,
+                                )}
+                            </FormSection>
+
+                            <FormSection title="Requirements" aside={requirementsSummary(attachmentSlots, files, attachments)}>
+                                <AttachmentRequirements
+                                    native
+                                    slots={attachmentSlots}
+                                    files={files}
+                                    onFileChange={(key, file) => setFiles((prev) => ({ ...prev, [key]: file }))}
+                                    existing={attachments}
+                                    errors={errors}
+                                    flags={flags}
+                                />
+                            </FormSection>
+
+                            <FormFooter status="SDAO sees it again as soon as you resubmit.">
+                                <FormSubmitConfirm
+                                    formId={formId}
+                                    processing={processing}
+                                    title="Resubmit this renewal?"
+                                    description="It goes back to the approver who returned it."
+                                    confirmLabel="Save & Resubmit"
+                                >
+                                    Save &amp; Resubmit
+                                    <ArrowRight aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
 
 EditRenewal.layout = {
     breadcrumbs: [{ title: 'Renewals' }, { title: 'Edit' }],
+    columnWidth: '3xl',
 };

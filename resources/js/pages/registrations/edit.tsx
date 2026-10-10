@@ -1,19 +1,25 @@
 import { Form, Head } from '@inertiajs/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import RegistrationController from '@/actions/App/Http/Controllers/RegistrationController';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef, ExistingAttachment} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
+import AdviserPicker from '@/components/adviser-picker';
+import type { AdviserResult } from '@/components/adviser-picker';
+import AttachmentRequirements, { requirementsSummary } from '@/components/attachment-requirements';
+import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachment-slot-field';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+    LockedValue,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
 import GeneralRevisionNotice from '@/components/general-revision-notice';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
-import { ToneBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import * as registrations from '@/routes/registrations';
 import type { FlaggedRevisionProps } from '@/types';
@@ -23,8 +29,6 @@ type DocumentData = {
     title: string;
     organization: { name: string; college: string | null; program: string | null };
 };
-
-type AdviserResult = { id: number; name: string; email: string; is_available: boolean };
 
 type DetailData = {
     organization_type_label: string;
@@ -52,298 +56,214 @@ export default function EditRegistration({
     flaggedComment,
     flaggedSectionComments,
 }: Props) {
+    const formId = `edit-registration-form-${document.id}`;
+    const flags = { flaggedSections, flaggedComment, flaggedSectionComments };
+
     // Return-for-revision preserves the ability to pick a NEW adviser (Phase
-    // 2 item 5). Left untouched, the existing adviser is kept — this is a
-    // separate, small controlled-state island alongside the rest of the
-    // uncontrolled Form fields below, submitted via a hidden input.
-    const [adviserQuery, setAdviserQuery] = useState(detail?.adviser?.name ?? '');
-    const [adviserResults, setAdviserResults] = useState<AdviserResult[]>([]);
-    const [selectedAdviserId, setSelectedAdviserId] = useState<number | null>(null);
-    // Only shown once the student actually edits the field — the initial
-    // background search against the pre-filled current adviser name must
-    // stay silent, not flash "no results"/"searching" over a valid value.
-    const [adviserTouched, setAdviserTouched] = useState(false);
-    const [adviserSearchStatus, setAdviserSearchStatus] = useState<'idle' | 'searching' | 'done'>('idle');
-    const [adviserSearchFailed, setAdviserSearchFailed] = useState(false);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const latestAdviserQuery = useRef(adviserQuery);
+    // 2 item 5). Left untouched, the existing adviser is kept: the hidden
+    // adviser_id stays empty and the server keeps the one it has.
+    const [selectedAdviser, setSelectedAdviser] = useState<AdviserResult | null>(null);
+    const [files, setFiles] = useState<Record<string, File | null>>({});
 
-    const searchAdvisers = useCallback((query: string) => {
-        if (query.trim() === '') {
-            setAdviserResults([]);
-            setAdviserSearchStatus('idle');
-            setAdviserSearchFailed(false);
-
-            return;
-        }
-
-        setAdviserSearchStatus('searching');
-        setAdviserSearchFailed(false);
-
-        fetch(registrations.adviserSearch.url({ query: { q: query } }), {
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                // Stale-response guard: ignore a slow reply for a query the
-                // student has since changed or cleared.
-                if (latestAdviserQuery.current !== query) {
-                    return;
-                }
-
-                setAdviserResults(data.advisers ?? []);
-                setAdviserSearchStatus('done');
-            })
-            .catch(() => {
-                if (latestAdviserQuery.current !== query) {
-                    return;
-                }
-
-                setAdviserSearchFailed(true);
-                setAdviserSearchStatus('done');
-            });
-    }, []);
-
-    useEffect(() => {
-        latestAdviserQuery.current = adviserQuery;
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => searchAdvisers(adviserQuery), 600);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [adviserQuery, searchAdvisers]);
+    function flagged(key: string, children: React.ReactNode) {
+        return (
+            <FlaggedSectionWrapper
+                sectionKey={key}
+                flagged={flaggedSections}
+                comment={flaggedComment}
+                sectionComment={flaggedSectionComments[key]}
+                className={flaggedSections.includes(key) ? 'p-3' : undefined}
+            >
+                <div className="space-y-4">{children}</div>
+            </FlaggedSectionWrapper>
+        );
+    }
 
     return (
         <>
             <Head title="Edit Registration" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Edit & Resubmit Registration" subtitle="Update the details below and resubmit for SDAO review." />
-
-                {/* Organization Name / Type / College / Program — read-only;
-                    not editable here. Type of Organization is derived from
-                    the organization's college binding, fixed at founding, so
-                    resubmitting can no longer change it (structural fix,
-                    2026-09-09 plan). */}
-                <div className="grid gap-1 rounded-md border p-4 text-sm">
-                    <p>
-                        <span className="font-medium">Organization Name:</span> {document.organization.name}
-                    </p>
-                    {detail && (
-                        <p>
-                            <span className="font-medium">Type of Organization:</span> {detail.organization_type_label}
-                        </p>
-                    )}
-                    <p>
-                        <span className="font-medium">College:</span> {document.organization.college ?? '—'}
-                    </p>
-                    {document.organization.program && (
-                        <p>
-                            <span className="font-medium">Program:</span> {document.organization.program}
-                        </p>
-                    )}
-                </div>
-
+            <FormShell
+                title="Edit & Resubmit Registration"
+                subtitle="Update the details below and resubmit for SDAO review."
+            >
                 {flaggedSections.includes('general') && (
-                    <GeneralRevisionNotice
-                        sectionComment={flaggedSectionComments.general}
-                        comment={flaggedComment}
-                    />
+                    <GeneralRevisionNotice sectionComment={flaggedSectionComments.general} comment={flaggedComment} />
                 )}
 
-                <Form
-                    {...RegistrationController.update.form({ document: document.id })}
-                    className="space-y-6"
-                >
+                <Form {...RegistrationController.update.form({ document: document.id })} id={formId}>
                     {({ processing, errors }) => (
-                        <>
-                            {/* Adviser (Phase 2 item 5) — untouched keeps the current adviser */}
-                            <FlaggedSectionWrapper
-                                sectionKey="adviser_selection"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.adviser_selection}
-                            >
-                            <div className="grid gap-2">
-                                <Label htmlFor="adviser">Adviser</Label>
-                                <Input
-                                    id="adviser"
-                                    placeholder="Search to change adviser…"
-                                    value={adviserQuery}
-                                    onChange={(e) => {
-                                        setAdviserQuery(e.target.value);
-                                        setSelectedAdviserId(null);
-                                        setAdviserTouched(true);
-                                    }}
-                                    autoComplete="off"
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    <>
+                                        Registration for{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {document.organization.name}
+                                        </strong>
+                                    </>
+                                }
+                                right={document.organization.college}
+                            />
+
+                            <FormSection title="About the organization">
+                                {/* Name, type, college and program are fixed at founding:
+                                    the type is derived from the college binding, so a
+                                    resubmission can no longer change it (structural fix,
+                                    2026-09-09 plan). */}
+                                <LockedValue
+                                    label="Organization name"
+                                    value={document.organization.name}
+                                    note="Can’t be changed"
                                 />
-                                <input type="hidden" name="adviser_id" value={selectedAdviserId ?? ''} />
-                                {adviserTouched && adviserQuery.trim() !== '' && adviserSearchStatus === 'searching' && (
-                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Spinner className="size-3.5" /> Searching advisers…
-                                    </p>
-                                )}
-                                {adviserTouched && adviserSearchStatus === 'done' && adviserSearchFailed && (
-                                    <PageNotice tone="destructive" urgent title="Couldn't search advisers just now.">
-                                        Try again.
-                                    </PageNotice>
-                                )}
-                                {adviserTouched &&
-                                    adviserSearchStatus === 'done' &&
-                                    !adviserSearchFailed &&
-                                    adviserResults.length === 0 &&
-                                    selectedAdviserId === null && (
-                                        <p className="text-sm text-muted-foreground">
-                                            No matching adviser found. Check the spelling, or contact SDAO if this
-                                            adviser should be listed.
-                                        </p>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {detail && (
+                                        <LockedValue
+                                            label="Type of organization"
+                                            value={detail.organization_type_label}
+                                            note="Fixed"
+                                        />
                                     )}
-                                {adviserResults.length > 0 && (
-                                    <div className="rounded-md border divide-y">
-                                        {adviserResults.map((a) => (
-                                            <button
-                                                key={a.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedAdviserId(a.id);
-                                                    setAdviserResults([]);
-                                                    setAdviserSearchStatus('idle');
-                                                    setAdviserSearchFailed(false);
-                                                    setAdviserQuery(a.name);
-                                                }}
-                                                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
-                                            >
-                                                <span>
-                                                    {a.name} <span className="text-muted-foreground">({a.email})</span>
-                                                </span>
-                                                {!a.is_available && (
-                                                    <ToneBadge tone="warning">Assigned elsewhere</ToneBadge>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                <InputError message={errors.adviser_id} />
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <FlaggedSectionWrapper
-                                sectionKey="organization_details"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.organization_details}
-                            >
-                            <div className="space-y-6">
-                            {/* Date organized */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="date_organized">Date Organized</Label>
-                                <Input
-                                    id="date_organized"
-                                    type="date"
-                                    name="date_organized"
-                                    defaultValue={detail?.date_organized}
-                                    required
-                                />
-                                <InputError message={errors.date_organized} />
-                            </div>
-
-                            {/* Purpose of organization */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
-                                <Textarea
-                                    id="purpose_of_organization"
-                                    name="purpose_of_organization"
-                                    defaultValue={detail?.purpose_of_organization}
-                                    rows={4}
-                                    required
-                                />
-                                <InputError message={errors.purpose_of_organization} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <FlaggedSectionWrapper
-                                sectionKey="contact_information"
-                                flagged={flaggedSections}
-                                comment={flaggedComment}
-                                sectionComment={flaggedSectionComments.contact_information}
-                            >
-                            <div className="space-y-6">
-                            {/* Contact person */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_person">Contact Person</Label>
-                                <Input
-                                    id="contact_person"
-                                    name="contact_person"
-                                    defaultValue={detail?.contact_person}
-                                    required
-                                />
-                                <InputError message={errors.contact_person} />
-                            </div>
-
-                            {/* Contact no. */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_no">Contact No.</Label>
-                                <Input
-                                    id="contact_no"
-                                    name="contact_no"
-                                    defaultValue={detail?.contact_no}
-                                    required
-                                />
-                                <InputError message={errors.contact_no} />
-                            </div>
-
-                            {/* Email address */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="email_address">Email Address</Label>
-                                <Input
-                                    id="email_address"
-                                    type="email"
-                                    name="email_address"
-                                    defaultValue={detail?.email_address}
-                                    required
-                                />
-                                <InputError message={errors.email_address} />
-                            </div>
-                            </div>
-                            </FlaggedSectionWrapper>
-
-                            <div className="space-y-6">
-                            {attachmentSlots.map((slot) => (
-                                <FlaggedSectionWrapper
-                                    key={slot.key}
-                                    sectionKey={slot.key}
-                                    flagged={flaggedSections}
-                                    comment={flaggedComment}
-                                    sectionComment={flaggedSectionComments[slot.key]}
-                                >
-                                    <AttachmentSlotField
-                                        slot={slot}
-                                        existing={attachments[slot.key]}
-                                        error={errors[`attachments.${slot.key}`]}
+                                    <LockedValue
+                                        label="College"
+                                        value={document.organization.college ?? '—'}
+                                        note="Fixed"
                                     />
-                                </FlaggedSectionWrapper>
-                            ))}
-                            </div>
+                                    {document.organization.program && (
+                                        <LockedValue label="Program" value={document.organization.program} note="Fixed" />
+                                    )}
+                                </div>
+                                {flagged(
+                                    'organization_details',
+                                    <>
+                                        <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                                            {(aria) => (
+                                                <Input
+                                                    id="date_organized"
+                                                    type="date"
+                                                    name="date_organized"
+                                                    defaultValue={detail?.date_organized}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                        <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                                            {(aria) => (
+                                                <Textarea
+                                                    id="purpose_of_organization"
+                                                    name="purpose_of_organization"
+                                                    defaultValue={detail?.purpose_of_organization}
+                                                    rows={4}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                    </>,
+                                )}
+                            </FormSection>
 
-                            <div className="flex items-center gap-4">
-                                <Button disabled={processing}>Save & Resubmit</Button>
-                            </div>
-                        </>
+                            <FormSection title="Adviser">
+                                {flagged(
+                                    'adviser_selection',
+                                    <FormField
+                                        id="adviser"
+                                        label="Faculty adviser"
+                                        error={errors.adviser_id}
+                                        helper="Leave it as is to keep your current adviser. SDAO will confirm it."
+                                    >
+                                        {(aria) => (
+                                            <>
+                                                <AdviserPicker
+                                                    id="adviser"
+                                                    selected={selectedAdviser}
+                                                    onSelect={setSelectedAdviser}
+                                                    current={detail?.adviser}
+                                                    invalid={Boolean(aria['aria-invalid'])}
+                                                    describedBy={aria['aria-describedby']}
+                                                />
+                                                <input type="hidden" name="adviser_id" value={selectedAdviser?.id ?? ''} />
+                                            </>
+                                        )}
+                                    </FormField>,
+                                )}
+                            </FormSection>
+
+                            <FormSection title="Contact">
+                                {flagged(
+                                    'contact_information',
+                                    <>
+                                        <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                                            {(aria) => (
+                                                <Input
+                                                    id="contact_person"
+                                                    name="contact_person"
+                                                    defaultValue={detail?.contact_person}
+                                                    {...aria}
+                                                />
+                                            )}
+                                        </FormField>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                                                {(aria) => (
+                                                    <Input
+                                                        id="contact_no"
+                                                        name="contact_no"
+                                                        type="tel"
+                                                        defaultValue={detail?.contact_no}
+                                                        {...aria}
+                                                    />
+                                                )}
+                                            </FormField>
+                                            <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                                                {(aria) => (
+                                                    <Input
+                                                        id="email_address"
+                                                        name="email_address"
+                                                        type="email"
+                                                        defaultValue={detail?.email_address}
+                                                        {...aria}
+                                                    />
+                                                )}
+                                            </FormField>
+                                        </div>
+                                    </>,
+                                )}
+                            </FormSection>
+
+                            <FormSection title="Requirements" aside={requirementsSummary(attachmentSlots, files, attachments)}>
+                                <AttachmentRequirements
+                                    native
+                                    slots={attachmentSlots}
+                                    files={files}
+                                    onFileChange={(key, file) => setFiles((prev) => ({ ...prev, [key]: file }))}
+                                    existing={attachments}
+                                    errors={errors}
+                                    flags={flags}
+                                />
+                            </FormSection>
+
+                            <FormFooter status="SDAO sees it again as soon as you resubmit.">
+                                <FormSubmitConfirm
+                                    formId={formId}
+                                    processing={processing}
+                                    title="Resubmit this registration?"
+                                    description="It goes back to the approver who returned it."
+                                    confirmLabel="Save & Resubmit"
+                                >
+                                    Save &amp; Resubmit
+                                    <ArrowRight aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
 
 EditRegistration.layout = {
-    breadcrumbs: [{ title: 'Registrations' }, { title: 'Edit' }],
+    breadcrumbs: [{ title: 'Registrations', href: registrations.index() }, { title: 'Edit' }],
+    columnWidth: '3xl',
 };

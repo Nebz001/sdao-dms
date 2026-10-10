@@ -1,12 +1,20 @@
-import { Head, router } from '@inertiajs/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
+import { Head, router, usePage } from '@inertiajs/react';
+import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import AdviserPicker from '@/components/adviser-picker';
+import type { AdviserResult } from '@/components/adviser-picker';
+import AttachmentRequirements, { requirementsSummary, uploadedCount } from '@/components/attachment-requirements';
+import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
 import PageNotice from '@/components/page-notice';
-import { ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,7 +26,6 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -33,7 +40,6 @@ import * as registrations from '@/routes/registrations';
 type OrganizationTypeOption = { value: string; label: string };
 type Program = { id: number; name: string };
 type SchoolOption = { id: number; name: string; type: string; programs: Program[] };
-type AdviserResult = { id: number; name: string; email: string; is_available: boolean };
 
 type Props = {
     canPropose: boolean;
@@ -48,6 +54,8 @@ type Props = {
 const CO_CURRICULAR = 'co_curricular';
 
 export default function CreateRegistration({ canPropose, schools, organizationTypes, attachmentSlots }: Props) {
+    const { auth, currentPeriod } = usePage().props;
+
     const [name, setName] = useState('');
     const [schoolId, setSchoolId] = useState('');
     const [programId, setProgramId] = useState('');
@@ -58,14 +66,7 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const [emailAddress, setEmailAddress] = useState('');
     const [dateOrganized, setDateOrganized] = useState('');
     const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File | null>>({});
-
-    const [adviserQuery, setAdviserQuery] = useState('');
-    const [adviserResults, setAdviserResults] = useState<AdviserResult[]>([]);
     const [selectedAdviser, setSelectedAdviser] = useState<AdviserResult | null>(null);
-    const [adviserSearchStatus, setAdviserSearchStatus] = useState<'idle' | 'searching' | 'done'>('idle');
-    const [adviserSearchFailed, setAdviserSearchFailed] = useState(false);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const latestAdviserQuery = useRef('');
 
     const [processing, setProcessing] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -74,66 +75,6 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
     const needsCollege = organizationType === CO_CURRICULAR;
     const selectedSchool = schools.find((s) => String(s.id) === schoolId);
     const needsProgram = needsCollege && selectedSchool?.type === 'regular';
-
-    const searchAdvisers = useCallback((query: string) => {
-        if (query.trim() === '') {
-            setAdviserResults([]);
-            setAdviserSearchStatus('idle');
-            setAdviserSearchFailed(false);
-
-            return;
-        }
-
-        setAdviserSearchStatus('searching');
-        setAdviserSearchFailed(false);
-
-        fetch(registrations.adviserSearch.url({ query: { q: query } }), {
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                // Stale-response guard: ignore a slow reply for a query the
-                // student has since changed or cleared.
-                if (latestAdviserQuery.current !== query) {
-                    return;
-                }
-
-                setAdviserResults(data.advisers ?? []);
-                setAdviserSearchStatus('done');
-            })
-            .catch(() => {
-                if (latestAdviserQuery.current !== query) {
-                    return;
-                }
-
-                setAdviserSearchFailed(true);
-                setAdviserSearchStatus('done');
-            });
-    }, []);
-
-    useEffect(() => {
-        latestAdviserQuery.current = adviserQuery;
-
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => searchAdvisers(adviserQuery), 600);
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [adviserQuery, searchAdvisers]);
-
-    function selectAdviser(adviser: AdviserResult) {
-        setSelectedAdviser(adviser);
-        setAdviserResults([]);
-        setAdviserSearchStatus('idle');
-        setAdviserSearchFailed(false);
-        setAdviserQuery(adviser.name);
-    }
 
     function submit() {
         setProcessing(true);
@@ -176,289 +117,292 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         return (
             <>
                 <Head title="Submit Registration" />
-                <CenteredContainer maxWidth="2xl">
-                    <p className="text-sm text-muted-foreground">
-                        You already have an active organization or an in-progress registration.
-                        You cannot propose another organization at this time.
-                    </p>
-                </CenteredContainer>
+                <FormShell
+                    title="Register a New Organization"
+                    subtitle="Start a brand-new student organization. SDAO reviews it and approves your adviser."
+                >
+                    <PageNotice tone="info">
+                        You already have an active organization or an in-progress registration. You cannot propose
+                        another organization at this time.
+                    </PageNotice>
+                </FormShell>
             </>
         );
     }
 
-    const formValid =
-        name.trim() !== '' &&
-        (!needsCollege || schoolId !== '') &&
-        (!needsProgram || programId !== '') &&
-        selectedAdviser !== null &&
-        organizationType !== '' &&
-        purposeOfOrganization.trim() !== '' &&
-        contactPerson.trim() !== '' &&
-        contactNo.trim() !== '' &&
-        emailAddress.trim() !== '' &&
-        dateOrganized !== '' &&
-        attachmentSlots.every((slot) => !slot.required || attachmentFiles[slot.key]);
+    // What is still missing before "Review and Submit" opens. The server
+    // validates everything again; this only says what is left to do.
+    const missing = [
+        name.trim() === '' && 'the organization name',
+        organizationType === '' && 'the type',
+        dateOrganized === '' && 'the date organized',
+        needsCollege && schoolId === '' && 'the college',
+        needsProgram && programId === '' && 'the program',
+        purposeOfOrganization.trim() === '' && 'the purpose',
+        selectedAdviser === null && 'an adviser',
+        contactPerson.trim() === '' && 'the contact person',
+        contactNo.trim() === '' && 'the contact number',
+        emailAddress.trim() === '' && 'the organization email',
+        attachmentSlots.some((slot) => slot.required && !attachmentFiles[slot.key]) && 'every requirement',
+    ].filter(Boolean) as string[];
+    const formValid = missing.length === 0;
+    const uploaded = uploadedCount(attachmentSlots, attachmentFiles);
 
     return (
         <>
             <Head title="Submit Registration" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Propose a New Organization" subtitle="Found a brand-new student organization. SDAO reviews and approves your choice of adviser." />
+            <FormShell
+                title="Register a New Organization"
+                subtitle="Start a brand-new student organization. SDAO reviews it and approves your adviser."
+            >
+                <FormCard>
+                    <FocusFirstError errors={errors} />
+                    <FormStrip
+                        left={
+                            <>
+                                New organization for{' '}
+                                <strong className="font-semibold text-foreground">{currentPeriod.academic_year}</strong>
+                            </>
+                        }
+                        right={`Filed by ${auth.user.first_name ?? auth.user.name}`}
+                    />
 
-                <div className="space-y-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="name">Organization Name</Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                        <InputError message={errors.name} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="organization_type">Type of Organization</Label>
-                        <Select
-                            value={organizationType}
-                            onValueChange={(value) => {
-                                setOrganizationType(value);
-
-                                // Extra-Curricular orgs are university-wide —
-                                // clear a previously-picked college/program
-                                // rather than silently submitting it.
-                                if (value !== CO_CURRICULAR) {
-                                    setSchoolId('');
-                                    setProgramId('');
-                                }
-                            }}
-                        >
-                            <SelectTrigger id="organization_type" className="w-full">
-                                <SelectValue placeholder="Select type…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {organizationTypes.map((t) => (
-                                    <SelectItem key={t.value} value={t.value}>
-                                        {t.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.organization_type} />
-                    </div>
-
-                    {needsCollege && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="college">College</Label>
-                            <Select
-                                value={schoolId}
-                                onValueChange={(value) => {
-                                    setSchoolId(value);
-                                    setProgramId('');
-                                }}
-                            >
-                                <SelectTrigger id="college" className="w-full">
-                                    <SelectValue placeholder="Select college…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {schools.map((s) => (
-                                        <SelectItem key={s.id} value={String(s.id)}>
-                                            {s.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={errors.school_id} />
-                        </div>
-                    )}
-
-                    {needsProgram && (
-                        <div className="grid gap-2">
-                            <Label htmlFor="program">Program</Label>
-                            <Select value={programId} onValueChange={setProgramId}>
-                                <SelectTrigger id="program" className="w-full">
-                                    <SelectValue placeholder="Select program…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {selectedSchool?.programs.map((p) => (
-                                        <SelectItem key={p.id} value={String(p.id)}>
-                                            {p.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={errors.program_id} />
-                        </div>
-                    )}
-
-                    {/* Adviser typeahead (Phase 2 item 5) */}
-                    <div className="grid gap-2">
-                        <Label htmlFor="adviser">Adviser</Label>
-                        <Input
-                            id="adviser"
-                            placeholder="Search adviser by name or email…"
-                            value={adviserQuery}
-                            onChange={(e) => {
-                                setAdviserQuery(e.target.value);
-                                setSelectedAdviser(null);
-                            }}
-                            autoComplete="off"
-                        />
-                        {adviserQuery.trim() !== '' && adviserSearchStatus === 'searching' && (
-                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Spinner className="size-3.5" /> Searching advisers…
-                            </p>
-                        )}
-                        {adviserSearchStatus === 'done' && adviserSearchFailed && (
-                            <PageNotice tone="destructive" urgent title="Couldn't search advisers just now.">
-                                Try again.
-                            </PageNotice>
-                        )}
-                        {adviserSearchStatus === 'done' &&
-                            !adviserSearchFailed &&
-                            adviserResults.length === 0 &&
-                            !selectedAdviser && (
-                                <p className="text-sm text-muted-foreground">
-                                    No matching adviser found. Check the spelling, or contact SDAO if this adviser
-                                    should be listed.
-                                </p>
+                    <FormSection title="About the organization">
+                        <FormField id="name" label="Organization name" error={errors.name}>
+                            {(aria) => (
+                                <Input
+                                    id="name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="e.g. Computer Science Society"
+                                    {...aria}
+                                />
                             )}
-                        {adviserResults.length > 0 && (
-                            <div className="rounded-md border divide-y">
-                                {adviserResults.map((a) => (
-                                    <button
-                                        key={a.id}
-                                        type="button"
-                                        onClick={() => selectAdviser(a)}
-                                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
+                        </FormField>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField id="organization_type" label="Type of organization" error={errors.organization_type}>
+                                {(aria) => (
+                                    <Select
+                                        value={organizationType}
+                                        onValueChange={(value) => {
+                                            setOrganizationType(value);
+
+                                            // Extra-Curricular orgs are university-wide —
+                                            // clear a previously-picked college/program
+                                            // rather than silently submitting it.
+                                            if (value !== CO_CURRICULAR) {
+                                                setSchoolId('');
+                                                setProgramId('');
+                                            }
+                                        }}
                                     >
-                                        <span>
-                                            {a.name} <span className="text-muted-foreground">({a.email})</span>
-                                        </span>
-                                        {!a.is_available && (
-                                            <ToneBadge tone="warning">Assigned elsewhere</ToneBadge>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        {selectedAdviser && !selectedAdviser.is_available && (
-                            <PageNotice
-                                tone="warning"
-                                title="This adviser is already assigned to another organization."
-                            >
-                                You may still submit, but SDAO will need a different adviser to approve this.
-                            </PageNotice>
-                        )}
-                        <InputError message={errors.adviser_id} />
-                    </div>
+                                        <SelectTrigger id="organization_type" className="w-full" {...aria}>
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {organizationTypes.map((t) => (
+                                                <SelectItem key={t.value} value={t.value}>
+                                                    {t.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </FormField>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="contact_person">Contact Person</Label>
-                        <Input
-                            id="contact_person"
-                            value={contactPerson}
-                            onChange={(e) => setContactPerson(e.target.value)}
-                            placeholder="Full name of contact officer"
-                            required
-                        />
-                        <InputError message={errors.contact_person} />
-                    </div>
+                            <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                                {(aria) => (
+                                    <Input
+                                        id="date_organized"
+                                        type="date"
+                                        value={dateOrganized}
+                                        onChange={(e) => setDateOrganized(e.target.value)}
+                                        {...aria}
+                                    />
+                                )}
+                            </FormField>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="contact_no">Contact No.</Label>
-                        <Input
-                            id="contact_no"
-                            value={contactNo}
-                            onChange={(e) => setContactNo(e.target.value)}
-                            placeholder="e.g. 09171234567"
-                            required
-                        />
-                        <InputError message={errors.contact_no} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="email_address">Email Address</Label>
-                        <Input
-                            id="email_address"
-                            type="email"
-                            value={emailAddress}
-                            onChange={(e) => setEmailAddress(e.target.value)}
-                            placeholder="organization@email.com"
-                            required
-                        />
-                        <InputError message={errors.email_address} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="date_organized">Date Organized</Label>
-                        <Input
-                            id="date_organized"
-                            type="date"
-                            value={dateOrganized}
-                            onChange={(e) => setDateOrganized(e.target.value)}
-                            required
-                        />
-                        <InputError message={errors.date_organized} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
-                        <Textarea
-                            id="purpose_of_organization"
-                            value={purposeOfOrganization}
-                            onChange={(e) => setPurposeOfOrganization(e.target.value)}
-                            placeholder="Brief description of the organization's purpose and activities…"
-                            rows={4}
-                            required
-                        />
-                        {errors.purpose_of_organization && (
-                            <InputError message={errors.purpose_of_organization} />
-                        )}
-                    </div>
-
-                    {attachmentSlots.map((slot) => (
-                        <AttachmentSlotField
-                            key={slot.key}
-                            slot={slot}
-                            error={errors[`attachments.${slot.key}`]}
-                            onFilesChange={(files) =>
-                                setAttachmentFiles((prev) => ({ ...prev, [slot.key]: files?.[0] ?? null }))
-                            }
-                        />
-                    ))}
-
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button type="button" disabled={!formValid || processing}>
-                                Review & Submit
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogTitle>Submit this organization proposal?</DialogTitle>
-                            <DialogDescription>
-                                SDAO will review <strong>{name}</strong> and your chosen adviser,{' '}
-                                <strong>{selectedAdviser?.name}</strong>. Once submitted, the organization and
-                                adviser choice are pending until SDAO approves — the adviser is only actually
-                                bound to your organization at that point, not before.
-                            </DialogDescription>
-                            <DialogFooter className="gap-2">
-                                <DialogClose asChild>
-                                    <Button type="button" variant="secondary">
-                                        Cancel
-                                    </Button>
-                                </DialogClose>
-                                <Button type="button" onClick={submit} disabled={processing}>
-                                    {processing ? (
-                                        <>
-                                            <Spinner />
-                                            {uploadProgress !== null ? `Uploading… ${uploadProgress}%` : 'Submitting…'}
-                                        </>
-                                    ) : (
-                                        'Confirm Submission'
+                            {needsCollege && (
+                                <FormField id="college" label="College" error={errors.school_id}>
+                                    {(aria) => (
+                                        <Select
+                                            value={schoolId}
+                                            onValueChange={(value) => {
+                                                setSchoolId(value);
+                                                setProgramId('');
+                                            }}
+                                        >
+                                            <SelectTrigger id="college" className="w-full" {...aria}>
+                                                <SelectValue placeholder="Select college" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {schools.map((s) => (
+                                                    <SelectItem key={s.id} value={String(s.id)}>
+                                                        {s.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     )}
+                                </FormField>
+                            )}
+
+                            {needsProgram && (
+                                <FormField id="program" label="Program" error={errors.program_id}>
+                                    {(aria) => (
+                                        <Select value={programId} onValueChange={setProgramId}>
+                                            <SelectTrigger id="program" className="w-full" {...aria}>
+                                                <SelectValue placeholder="Select program" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {selectedSchool?.programs.map((p) => (
+                                                    <SelectItem key={p.id} value={String(p.id)}>
+                                                        {p.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </FormField>
+                            )}
+                        </div>
+
+                        <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                            {(aria) => (
+                                <Textarea
+                                    id="purpose_of_organization"
+                                    value={purposeOfOrganization}
+                                    onChange={(e) => setPurposeOfOrganization(e.target.value)}
+                                    placeholder="What is the organization for, and what activities will it hold?"
+                                    rows={4}
+                                    {...aria}
+                                />
+                            )}
+                        </FormField>
+                    </FormSection>
+
+                    <FormSection title="Adviser">
+                        <FormField
+                            id="adviser"
+                            label="Faculty adviser"
+                            error={errors.adviser_id}
+                            helper="SDAO will confirm your adviser"
+                        >
+                            {(aria) => (
+                                <AdviserPicker
+                                    id="adviser"
+                                    selected={selectedAdviser}
+                                    onSelect={setSelectedAdviser}
+                                    invalid={Boolean(aria['aria-invalid'])}
+                                    describedBy={aria['aria-describedby']}
+                                />
+                            )}
+                        </FormField>
+                    </FormSection>
+
+                    <FormSection title="Contact">
+                        <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                            {(aria) => (
+                                <Input
+                                    id="contact_person"
+                                    value={contactPerson}
+                                    onChange={(e) => setContactPerson(e.target.value)}
+                                    placeholder="Full name of the officer SDAO can reach"
+                                    {...aria}
+                                />
+                            )}
+                        </FormField>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                                {(aria) => (
+                                    <Input
+                                        id="contact_no"
+                                        type="tel"
+                                        value={contactNo}
+                                        onChange={(e) => setContactNo(e.target.value)}
+                                        placeholder="e.g. 09171234567"
+                                        {...aria}
+                                    />
+                                )}
+                            </FormField>
+                            <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                                {(aria) => (
+                                    <Input
+                                        id="email_address"
+                                        type="email"
+                                        value={emailAddress}
+                                        onChange={(e) => setEmailAddress(e.target.value)}
+                                        placeholder="organization@email.com"
+                                        {...aria}
+                                    />
+                                )}
+                            </FormField>
+                        </div>
+                    </FormSection>
+
+                    <FormSection title="Requirements" aside={requirementsSummary(attachmentSlots, attachmentFiles)}>
+                        <AttachmentRequirements
+                            slots={attachmentSlots}
+                            files={attachmentFiles}
+                            onFileChange={(key, file) => setAttachmentFiles((prev) => ({ ...prev, [key]: file }))}
+                            errors={errors}
+                        />
+                    </FormSection>
+
+                    <FormFooter
+                        status={
+                            formValid
+                                ? 'You can review everything before it’s sent'
+                                : `Still needed before you can review: ${missing.join(', ')}.`
+                        }
+                    >
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button type="button" disabled={!formValid || processing}>
+                                    Review and Submit
+                                    <ArrowRight aria-hidden />
                                 </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </CenteredContainer>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>Submit this organization proposal?</DialogTitle>
+                                <DialogDescription>
+                                    SDAO will review it. The organization and your adviser choice stay pending until SDAO
+                                    approves; the adviser is only bound to your organization at that point, not before.
+                                </DialogDescription>
+                                <dl className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-4">
+                                    <dt className="text-muted-foreground">Organization</dt>
+                                    <dd className="font-medium">{name}</dd>
+                                    <dt className="text-muted-foreground">Adviser</dt>
+                                    <dd className="font-medium">{selectedAdviser?.name}</dd>
+                                    <dt className="text-muted-foreground">Requirements</dt>
+                                    <dd className="font-medium">
+                                        {uploaded} of {attachmentSlots.length} uploaded
+                                    </dd>
+                                </dl>
+                                <DialogFooter className="gap-2">
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="secondary">
+                                            Cancel
+                                        </Button>
+                                    </DialogClose>
+                                    <Button type="button" onClick={submit} disabled={processing}>
+                                        {processing ? (
+                                            <>
+                                                <Spinner />
+                                                {uploadProgress !== null ? `Uploading… ${uploadProgress}%` : 'Submitting…'}
+                                            </>
+                                        ) : (
+                                            'Confirm Submission'
+                                        )}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </FormFooter>
+                </FormCard>
+            </FormShell>
         </>
     );
 }
@@ -468,4 +412,5 @@ CreateRegistration.layout = {
         { title: 'Registrations', href: registrations.create() },
         { title: 'New Registration' },
     ],
+    columnWidth: '3xl',
 };

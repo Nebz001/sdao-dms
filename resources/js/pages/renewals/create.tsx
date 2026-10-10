@@ -1,16 +1,24 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { CalendarClock } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
-import AttachmentSlotField from '@/components/attachment-slot-field';
-import type {AttachmentSlotDef} from '@/components/attachment-slot-field';
-import CenteredContainer from '@/components/centered-container';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
+import AttachmentRequirements, { requirementsSummary, uploadedCount } from '@/components/attachment-requirements';
+import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormInfoStrip,
+    FormSection,
+    FormShell,
+    FormStrip,
+    LockedValue,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
 import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -62,6 +70,8 @@ type Props = {
     attachmentSlots: AttachmentSlotDef[];
 };
 
+const FORM_ID = 'renewal-form';
+
 export default function CreateRenewal({
     membership,
     priorRecord,
@@ -70,6 +80,8 @@ export default function CreateRenewal({
     organizationTypes,
     attachmentSlots,
 }: Props) {
+    const [files, setFiles] = useState<Record<string, File | null>>({});
+
     // Renewal is only ever eligible during 3rd-term season, and always
     // covers the year that follows the current one — mirrors
     // AcademicPeriod::nextAcademicYear() on the server.
@@ -83,161 +95,192 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <CenteredContainer maxWidth="2xl">
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <CalendarClock />
-                            </EmptyMedia>
-                            <EmptyTitle>Renewal not available yet</EmptyTitle>
-                            <EmptyDescription>
-                                {!membership
-                                    ? 'You are not bound as an officer of any organization. Contact your adviser to be bound before submitting a renewal.'
-                                    : eligibility.message}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        {membership && eligibility.status === 'already_filed' && (
-                            <Button asChild variant="outline">
-                                <Link href={renewals.index().url}>My Renewals</Link>
-                            </Button>
-                        )}
-                    </Empty>
-                </CenteredContainer>
+                <FormShell title="Renew Your Organization" subtitle="Keep your organization active for next school year. SDAO reviews it the same way as a registration.">
+                    <PageNotice
+                        tone="info"
+                        title="Renewal not available yet."
+                        action={
+                            membership && eligibility.status === 'already_filed' ? (
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href={renewals.index().url}>My Renewals</Link>
+                                </Button>
+                            ) : undefined
+                        }
+                    >
+                        {!membership
+                            ? 'You are not bound as an officer of any organization. Contact your adviser to be bound before submitting a renewal.'
+                            : eligibility.message}
+                    </PageNotice>
+                </FormShell>
             </>
         );
     }
+
+    const organization = membership.organization;
+    const uploaded = uploadedCount(attachmentSlots, files);
 
     return (
         <>
             <Head title="Submit Renewal" />
 
-            <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Organization Renewal" subtitle="Renew your organization for the coming year" />
-
-                <PageNotice tone="info">
-                    Renewing {membership.organization.name} for {coveredYear}, pre-filled
-                    from your last approved record.
-                </PageNotice>
-
-                {/* Organization Name / College / Program (Phase 2 item 7 slice 2) —
-                    read-only field-presence parity; not editable on renewal. */}
-                <div className="grid gap-1 rounded-md border p-4 text-sm">
-                    <p>
-                        <span className="font-medium">Organization Name:</span> {membership.organization.name}
-                    </p>
-                    <p>
-                        <span className="font-medium">College:</span> {membership.organization.college ?? '—'}
-                    </p>
-                    {membership.organization.program && (
-                        <p>
-                            <span className="font-medium">Program:</span> {membership.organization.program}
-                        </p>
-                    )}
-                </div>
-
-                <Form {...RenewalController.store.form()} className="space-y-6">
+            <FormShell title="Renew Your Organization" subtitle="Keep your organization active for next school year. SDAO reviews it the same way as a registration.">
+                <Form {...RenewalController.store.form()} id={FORM_ID}>
                     {({ processing, errors }) => (
-                        <>
-                            {/* Organization type */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="organization_type">Type of Organization</Label>
-                                <Select
-                                    name="organization_type"
-                                    defaultValue={priorRecord.organization_type}
-                                    required
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    <>
+                                        Renewing{' '}
+                                        <strong className="font-semibold text-foreground">{organization.name}</strong> for{' '}
+                                        <strong className="font-semibold text-foreground">{coveredYear}</strong>
+                                    </>
+                                }
+                                right={`Active for ${currentPeriod.academic_year}`}
+                            />
+                            <FormInfoStrip>
+                                We filled in last year’s details. Check them and update anything that changed.
+                            </FormInfoStrip>
+
+                            <FormSection title="About the organization">
+                                {/* Name, College and Program are fixed on a renewal
+                                    (Phase 2 item 7 slice 2): shown, never submitted. */}
+                                <LockedValue
+                                    label="Organization name"
+                                    value={organization.name}
+                                    note="Can’t be changed in a renewal"
+                                />
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <LockedValue label="College" value={organization.college ?? '—'} note="Fixed" />
+                                    {organization.program && (
+                                        <LockedValue label="Program" value={organization.program} note="Fixed" />
+                                    )}
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <FormField id="organization_type" label="Type of organization" error={errors.organization_type}>
+                                        {(aria) => (
+                                            <Select name="organization_type" defaultValue={priorRecord.organization_type}>
+                                                <SelectTrigger id="organization_type" className="w-full" {...aria}>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {organizationTypes.map((t) => (
+                                                        <SelectItem key={t.value} value={t.value}>
+                                                            {t.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </FormField>
+                                    <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                                        {(aria) => (
+                                            <Input
+                                                id="date_organized"
+                                                type="date"
+                                                name="date_organized"
+                                                defaultValue={priorRecord.date_organized}
+                                                {...aria}
+                                            />
+                                        )}
+                                    </FormField>
+                                </div>
+
+                                <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                                    {(aria) => (
+                                        <Textarea
+                                            id="purpose_of_organization"
+                                            name="purpose_of_organization"
+                                            defaultValue={priorRecord.purpose_of_organization}
+                                            rows={4}
+                                            {...aria}
+                                        />
+                                    )}
+                                </FormField>
+                            </FormSection>
+
+                            {/* No adviser section: a renewal keeps the adviser the
+                                organization already has; the form never carried an
+                                adviser field and the server takes none. */}
+
+                            <FormSection title="Contact">
+                                <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                                    {(aria) => (
+                                        <Input
+                                            id="contact_person"
+                                            name="contact_person"
+                                            defaultValue={priorRecord.contact_person}
+                                            {...aria}
+                                        />
+                                    )}
+                                </FormField>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                                        {(aria) => (
+                                            <Input
+                                                id="contact_no"
+                                                name="contact_no"
+                                                type="tel"
+                                                defaultValue={priorRecord.contact_no}
+                                                {...aria}
+                                            />
+                                        )}
+                                    </FormField>
+                                    <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                                        {(aria) => (
+                                            <Input
+                                                id="email_address"
+                                                name="email_address"
+                                                type="email"
+                                                defaultValue={priorRecord.email_address}
+                                                {...aria}
+                                            />
+                                        )}
+                                    </FormField>
+                                </div>
+                            </FormSection>
+
+                            <FormSection title="Requirements" aside={requirementsSummary(attachmentSlots, files)}>
+                                <AttachmentRequirements
+                                    native
+                                    slots={attachmentSlots}
+                                    files={files}
+                                    onFileChange={(key, file) => setFiles((prev) => ({ ...prev, [key]: file }))}
+                                    errors={errors}
+                                />
+                            </FormSection>
+
+                            <FormFooter status="You can review everything before it’s sent">
+                                <FormSubmitConfirm
+                                    formId={FORM_ID}
+                                    processing={processing}
+                                    title="Submit this renewal?"
+                                    description={
+                                        <>
+                                            SDAO reviews it the same way as a registration.
+                                            <span className="mt-3 grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm text-foreground sm:grid-cols-[auto_1fr] sm:gap-x-4">
+                                                <span className="text-muted-foreground">Organization</span>
+                                                <span className="font-medium">{organization.name}</span>
+                                                <span className="text-muted-foreground">Covers</span>
+                                                <span className="font-medium">{coveredYear}</span>
+                                                <span className="text-muted-foreground">Requirements</span>
+                                                <span className="font-medium">
+                                                    {uploaded} of {attachmentSlots.length} uploaded
+                                                </span>
+                                            </span>
+                                        </>
+                                    }
+                                    confirmLabel="Submit Renewal"
                                 >
-                                    <SelectTrigger id="organization_type" className="w-full">
-                                        <SelectValue placeholder="Select type…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {organizationTypes.map((t) => (
-                                            <SelectItem key={t.value} value={t.value}>
-                                                {t.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.organization_type} />
-                            </div>
-
-                            {/* Contact person */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_person">Contact Person</Label>
-                                <Input
-                                    id="contact_person"
-                                    name="contact_person"
-                                    defaultValue={priorRecord.contact_person}
-                                    required
-                                />
-                                <InputError message={errors.contact_person} />
-                            </div>
-
-                            {/* Contact no. */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="contact_no">Contact No.</Label>
-                                <Input
-                                    id="contact_no"
-                                    name="contact_no"
-                                    defaultValue={priorRecord.contact_no}
-                                    required
-                                />
-                                <InputError message={errors.contact_no} />
-                            </div>
-
-                            {/* Email address */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="email_address">Email Address</Label>
-                                <Input
-                                    id="email_address"
-                                    type="email"
-                                    name="email_address"
-                                    defaultValue={priorRecord.email_address}
-                                    required
-                                />
-                                <InputError message={errors.email_address} />
-                            </div>
-
-                            {/* Date organized */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="date_organized">Date Organized</Label>
-                                <Input
-                                    id="date_organized"
-                                    type="date"
-                                    name="date_organized"
-                                    defaultValue={priorRecord.date_organized}
-                                    required
-                                />
-                                <InputError message={errors.date_organized} />
-                            </div>
-
-                            {/* Purpose of organization */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="purpose_of_organization">Purpose of Organization</Label>
-                                <Textarea
-                                    id="purpose_of_organization"
-                                    name="purpose_of_organization"
-                                    defaultValue={priorRecord.purpose_of_organization}
-                                    rows={4}
-                                    required
-                                />
-                                <InputError message={errors.purpose_of_organization} />
-                            </div>
-
-                            {attachmentSlots.map((slot) => (
-                                <AttachmentSlotField
-                                    key={slot.key}
-                                    slot={slot}
-                                    error={errors[`attachments.${slot.key}`]}
-                                />
-                            ))}
-
-                            <div className="flex items-center gap-4">
-                                <Button loading={processing} loadingText="Submitting…">Submit for Review</Button>
-                            </div>
-                        </>
+                                    Review and Submit
+                                    <ArrowRight aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
@@ -247,4 +290,5 @@ CreateRenewal.layout = {
         { title: 'Renewals', href: renewals.index() },
         { title: 'New Renewal' },
     ],
+    columnWidth: '3xl',
 };

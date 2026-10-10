@@ -222,3 +222,19 @@ test('index has no oldest request and empty buckets when nothing is pending', fu
             ->where('oldest', null)
         );
 });
+
+test('the queue is sent oldest first', function () {
+    $newer = fileJoinRequest($this->itGuild);
+    $older = fileJoinRequest($this->itGuild);
+    $older->forceFill(['created_at' => now()->subDays(5)])->save();
+    $newer->forceFill(['created_at' => now()->subDay()])->save();
+
+    $this->actingAs($this->adviserTwo)
+        ->withoutVite()
+        ->get(route('review.join-requests.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('queue', 2)
+            ->where('queue.0.id', $older->id)
+            ->where('queue.1.id', $newer->id));
+});

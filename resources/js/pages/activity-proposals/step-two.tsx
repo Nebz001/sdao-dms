@@ -1,19 +1,27 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
+import { Calendar, Clock, MapPin, Plus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import CenteredContainer from '@/components/centered-container';
-import InputError from '@/components/input-error';
-import { Row } from '@/components/labeled-row';
-import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
+import ExpenseItemsEditor, { EMPTY_EXPENSE_ITEM } from '@/components/expense-items-editor';
+import type { ExpenseItem } from '@/components/expense-items-editor';
+import {
+    FocusFirstError,
+    FormCard,
+    FormField,
+    FormFooter,
+    FormSection,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
+import FormSubmitConfirm from '@/components/form-submit-confirm';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
+import { RelativeTime } from '@/components/relative-time';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { formatActivityDate, formatClockRange } from '@/lib/activity-time';
+import { formatPeso, parseAmount } from '@/lib/money';
+import { notify } from '@/lib/toast';
 import * as activityProposals from '@/routes/activity-proposals';
-
-type ExpenseItem = { material: string; quantity: string; unit_price: string };
 
 type ActivitySummary = {
     name: string;
@@ -53,37 +61,53 @@ type Props = {
     activity: ActivitySummary;
 };
 
-function rowTotal(item: ExpenseItem): number {
-    return (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+const STEPS = ['Request form', 'Narrative'];
+
+/** A small label over its value; an empty value reads "None", never a blank. */
+function SummaryItem({ label, value }: { label: string; value: string | null | undefined }) {
+    return (
+        <div className="min-w-0">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-sm font-medium break-words">{value && value.trim() !== '' ? value : 'None'}</dd>
+        </div>
+    );
 }
 
-function money(amount: number): string {
-    return amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function Chip({ icon: Icon, children }: { icon: typeof MapPin; children: string }) {
+    return (
+        <li className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs">
+            <Icon aria-hidden className="size-3.5 text-muted-foreground" />
+            {children}
+        </li>
+    );
 }
 
 export default function StepTwo({ document: doc, proposal, activity }: Props) {
+    const { auth } = usePage().props;
+    const formId = `narrative-form-${doc.id}`;
+
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
     const activityDescriptionRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+    const [savedAt, setSavedAt] = useState<string | null>(null);
+
     // Itemized expenses — a dynamic row list can't live behind a single ref
     // like the plain-text fields above, so it's state instead. A mirroring
-    // ref keeps scheduleSave()'s debounced setTimeout callback reading the
-    // latest rows rather than a stale closure over the state at the time
-    // scheduleSave was called.
+    // ref keeps the debounced save reading the latest rows rather than a
+    // stale closure over the state at the time the save was scheduled.
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(
         proposal?.expense_items && proposal.expense_items.length > 0
             ? proposal.expense_items
-            : [{ material: '', quantity: '', unit_price: '' }],
+            : [{ ...EMPTY_EXPENSE_ITEM }],
     );
     const expenseItemsRef = useRef(expenseItems);
     useEffect(() => {
         expenseItemsRef.current = expenseItems;
     }, [expenseItems]);
-
-    const expenseTotal = expenseItems.reduce((sum, item) => sum + rowTotal(item), 0);
 
     // Typed in directly by the submitting officer — not a picker sourced
     // from org membership (see ActivityProposal's responsible_persons
@@ -102,341 +126,311 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
         return decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
     }
 
+    /**
+     * Plain fetch, not router.patch — this is a debounced, idempotent
+     * background ping (see the controller's own doc comment: "never enters
+     * chain"), not a page visit. The endpoint deliberately returns raw JSON,
+     * not an Inertia response; routing it through Inertia's router
+     * previously made its client reject that response and flash its
+     * built-in "invalid response" error dialog. Same pattern as
+     * ImmediateAttachmentUpload's uploads.
+     */
+    function persist(): Promise<boolean> {
+        setSaveState('saving');
+
+        return fetch(activityProposals.draft({ document: doc.id }).url, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-XSRF-TOKEN': xsrfToken(),
+            },
+            body: JSON.stringify({
+                objectives: objectivesRef.current?.value ?? null,
+                activity_description: activityDescriptionRef.current?.value ?? null,
+                criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
+                program_flow: programFlowRef.current?.value ?? null,
+                expense_items: expenseItemsRef.current,
+                responsible_persons: responsiblePersonsRef.current,
+            }),
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('save failed');
+                }
+
+                setSavedAt(new Date().toISOString());
+                setSaveState('saved');
+
+                return true;
+            })
+            .catch(() => {
+                // Best-effort autosave — a failed ping is retried on the
+                // next keystroke or covered by the final validated
+                // "Submit for Review" action.
+                setSaveState('failed');
+
+                return false;
+            });
+    }
+
     function scheduleSave() {
         if (saveTimer.current) {
             clearTimeout(saveTimer.current);
         }
 
-        saveTimer.current = setTimeout(() => {
-            // Plain fetch, not router.patch — this is a debounced,
-            // idempotent background ping (see the controller's own doc
-            // comment: "never enters chain"), not a page visit. The
-            // endpoint deliberately returns raw JSON, not an Inertia
-            // response; routing it through Inertia's router previously
-            // made its client reject that response and flash its built-in
-            // "invalid response" error dialog. Same pattern as
-            // ImmediateAttachmentUpload's uploads.
-            fetch(activityProposals.draft({ document: doc.id }).url, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-XSRF-TOKEN': xsrfToken(),
-                },
-                body: JSON.stringify({
-                    objectives: objectivesRef.current?.value ?? null,
-                    activity_description: activityDescriptionRef.current?.value ?? null,
-                    criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
-                    program_flow: programFlowRef.current?.value ?? null,
-                    expense_items: expenseItemsRef.current,
-                    responsible_persons: responsiblePersonsRef.current,
-                }),
-            }).catch(() => {
-                // Best-effort autosave — a failed ping is silently retried
-                // on the next keystroke or covered by the final validated
-                // "Submit for Review" action.
-            });
-        }, 1500);
+        saveTimer.current = setTimeout(() => void persist(), 1500);
     }
+
+    async function saveNow() {
+        if (saveTimer.current) {
+            clearTimeout(saveTimer.current);
+        }
+
+        if (await persist()) {
+            notify.success({ title: 'Draft saved', message: 'Your narrative is saved. You can come back to it any time.' });
+        } else {
+            notify.error({ title: 'Could not save the draft', message: 'Check your connection and try again.' });
+        }
+    }
+
+    const budget = proposal?.proposed_budget ? parseAmount(proposal.proposed_budget) : null;
+    const time = activity ? formatClockRange(activity.start_time, activity.end_time) : null;
 
     return (
         <>
             <Head title={`Narrative — ${doc.title}`} />
 
-            <CenteredContainer maxWidth="xl" className="space-y-6">
-                <PageHeader title="Activity Proposal — Narrative" subtitle="Describe the activity and attach your proposal" />
-
-                <PageNotice tone="info">
-                    Narrative for {doc.title}.
-                </PageNotice>
-
-                {/* Activity summary + step-1 read-only echoes (Phase 2 item 7
-                    slice 4a — set once at step 1, not editable here). Group D
-                    item 5 — Nature/Type/Partners/SDG carried over so the
-                    student can see what they picked at step 1 while writing
-                    step 2. */}
-                {activity && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Activity</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm">
-                            <div>
-                                <p className="font-medium">{activity.name}</p>
-                                <p className="text-muted-foreground">
-                                    {activity.venue} · {activity.activity_date} · {activity.start_time}–{activity.end_time}
-                                </p>
-                            </div>
-                            <div className="grid gap-1.5">
-                                {proposal?.activity_nature_label && (
-                                    <Row label="Nature of Activity" value={proposal.activity_nature_label} />
-                                )}
-                                {proposal?.activity_type_label && (
-                                    <Row label="Type of Activity" value={proposal.activity_type_label} />
-                                )}
-                                {proposal?.partner_organizations && proposal.partner_organizations.length > 0 && (
-                                    <Row label="Partner Org(s)" value={proposal.partner_organizations.map((o) => o.name).join(', ')} />
-                                )}
-                                {proposal && proposal.target_sdg_labels.length > 0 && (
-                                    <Row label="Target SDG" value={proposal.target_sdg_labels.join(', ')} />
-                                )}
-                                {proposal?.proposed_budget && (
-                                    <Row label="Proposed Budget" value={`₱${proposal.proposed_budget}`} />
-                                )}
-                                {proposal?.budget_source_label && (
-                                    <Row label="Budget Source" value={proposal.budget_source_label} />
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Form action={activityProposals.submit({ document: doc.id }).url} method="post">
+            <FormShell
+                title="New Activity Proposal"
+                subtitle="Write the narrative. Once you submit, it goes to your adviser."
+                steps={STEPS}
+                currentStep={2}
+            >
+                <Form id={formId} action={activityProposals.submit({ document: doc.id }).url} method="post">
                     {({ processing, errors }) => (
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="objectives">Objectives</Label>
-                            <Textarea
-                                id="objectives"
-                                name="objectives"
-                                ref={objectivesRef}
-                                defaultValue={proposal?.objectives ?? ''}
-                                placeholder={'Describe the overall goal of the activity.\nList specific measurable objectives.'}
-                                rows={6}
-                                onChange={scheduleSave}
+                        <FormCard>
+                            <FocusFirstError errors={errors} />
+                            <FormStrip
+                                left={
+                                    <>
+                                        Filing for{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {auth.organization?.name}
+                                        </strong>
+                                    </>
+                                }
+                                right={auth.organization?.school?.name}
                             />
-                            <InputError message={errors.objectives} />
-                        </div>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Activity Description</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-1">
-                                    <Label htmlFor="activity_description" className="sr-only">
-                                        Activity Description
-                                    </Label>
-                                    <Textarea
-                                        id="activity_description"
-                                        name="activity_description"
-                                        ref={activityDescriptionRef}
-                                        defaultValue={proposal?.activity_description ?? ''}
-                                        rows={6}
-                                        onChange={scheduleSave}
-                                    />
-                                    <InputError message={errors.activity_description} />
-                                </div>
+                            {/* Set once at step 1, read-only here (Phase 2 item 7
+                                slice 4a). Nature, Type, Partners and SDGs carry
+                                over so the student sees what they picked while
+                                writing step 2. */}
+                            {activity && (
+                                <FormSection title="Your activity">
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold">{activity.name}</h3>
+                                        <ul className="flex flex-wrap gap-2" aria-label="When and where">
+                                            <Chip icon={MapPin}>{activity.venue}</Chip>
+                                            <Chip icon={Calendar}>{formatActivityDate(activity.activity_date)}</Chip>
+                                            {time && <Chip icon={Clock}>{time}</Chip>}
+                                        </ul>
+                                        <dl className="grid gap-x-6 gap-y-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
+                                            <SummaryItem label="Nature" value={proposal?.activity_nature_label} />
+                                            <SummaryItem label="Type" value={proposal?.activity_type_label} />
+                                            <SummaryItem
+                                                label="Partner orgs"
+                                                value={proposal?.partner_organizations?.map((o) => o.name).join(', ')}
+                                            />
+                                            <SummaryItem
+                                                label="Target SDGs"
+                                                value={proposal?.target_sdg_labels.join(', ')}
+                                            />
+                                            <SummaryItem
+                                                label="Proposed budget"
+                                                value={budget !== null ? formatPeso(budget) : null}
+                                            />
+                                            <SummaryItem label="Budget source" value={proposal?.budget_source_label} />
+                                        </dl>
+                                    </div>
+                                </FormSection>
+                            )}
 
-                                {/* Criteria/Mechanics and Program Flow are detail
-                                    under Activity Description, not equal siblings —
-                                    the left border + muted heading signal that. */}
-                                <div className="space-y-3 border-l-2 pl-4">
-                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Details</p>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="criteria_mechanics" className="text-sm font-normal text-muted-foreground">
-                                            Criteria/Mechanics
-                                        </Label>
+                            <FormSection title="Objectives">
+                                <FormField id="objectives" label="Objectives" error={errors.objectives}>
+                                    {(aria) => (
+                                        <Textarea
+                                            id="objectives"
+                                            name="objectives"
+                                            ref={objectivesRef}
+                                            defaultValue={proposal?.objectives ?? ''}
+                                            placeholder={'Describe the overall goal of the activity.\nList specific measurable objectives.'}
+                                            rows={5}
+                                            onChange={scheduleSave}
+                                            {...aria}
+                                        />
+                                    )}
+                                </FormField>
+                            </FormSection>
+
+                            <FormSection title="Activity description">
+                                <FormField id="activity_description" label="Description" error={errors.activity_description}>
+                                    {(aria) => (
+                                        <Textarea
+                                            id="activity_description"
+                                            name="activity_description"
+                                            ref={activityDescriptionRef}
+                                            defaultValue={proposal?.activity_description ?? ''}
+                                            placeholder="What will happen during the activity?"
+                                            rows={5}
+                                            onChange={scheduleSave}
+                                            {...aria}
+                                        />
+                                    )}
+                                </FormField>
+                                <FormField id="criteria_mechanics" label="Criteria/Mechanics" error={errors.criteria_mechanics}>
+                                    {(aria) => (
                                         <Textarea
                                             id="criteria_mechanics"
                                             name="criteria_mechanics"
                                             ref={criteriaMechanicsRef}
                                             defaultValue={proposal?.criteria_mechanics ?? ''}
-                                            rows={3}
+                                            placeholder="Rules, criteria for judging, or how it works"
+                                            rows={4}
                                             onChange={scheduleSave}
+                                            {...aria}
                                         />
-                                        <InputError message={errors.criteria_mechanics} />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <Label htmlFor="program_flow" className="text-sm font-normal text-muted-foreground">
-                                            Program Flow
-                                        </Label>
+                                    )}
+                                </FormField>
+                                <FormField id="program_flow" label="Program Flow" error={errors.program_flow}>
+                                    {(aria) => (
                                         <Textarea
                                             id="program_flow"
                                             name="program_flow"
                                             ref={programFlowRef}
                                             defaultValue={proposal?.program_flow ?? ''}
-                                            rows={3}
+                                            placeholder="Order of activities, from opening to closing"
+                                            rows={4}
                                             onChange={scheduleSave}
+                                            {...aria}
                                         />
-                                        <InputError message={errors.program_flow} />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    )}
+                                </FormField>
+                            </FormSection>
 
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <Label>Expenses</Label>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setExpenseItems((prev) => [...prev, { material: '', quantity: '', unit_price: '' }]);
+                            <FormSection title="Expenses" aside="List every item you’ll spend on">
+                                {proposal?.expenses && (
+                                    <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                                        Previously entered as text — re-enter it below as itemized rows: “{proposal.expenses}”
+                                    </p>
+                                )}
+                                <ExpenseItemsEditor
+                                    items={expenseItems}
+                                    onChange={(next) => {
+                                        setExpenseItems(next);
                                         scheduleSave();
                                     }}
-                                >
-                                    + Add Item
+                                    errors={errors}
+                                    budget={budget}
+                                />
+                            </FormSection>
+
+                            <FormSection title="Responsible persons">
+                                <fieldset className="grid gap-2">
+                                    <legend className="sr-only">Responsible persons</legend>
+                                    {responsiblePersons.map((name, i) => {
+                                        const error =
+                                            errors[`responsible_persons.${i}`] ??
+                                            (i === 0 ? errors.responsible_persons : undefined);
+
+                                        return (
+                                            <div key={i} className="grid gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        name={`responsible_persons[${i}]`}
+                                                        value={name}
+                                                        onChange={(e) => {
+                                                            setResponsiblePersons((prev) =>
+                                                                prev.map((current, idx) => (idx === i ? e.target.value : current)),
+                                                            );
+                                                            scheduleSave();
+                                                        }}
+                                                        placeholder="Full name"
+                                                        aria-label={`Responsible person ${i + 1}`}
+                                                        aria-invalid={error ? true : undefined}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        disabled={responsiblePersons.length === 1}
+                                                        aria-label={`Remove responsible person ${i + 1}`}
+                                                        onClick={() => {
+                                                            setResponsiblePersons((prev) => prev.filter((_, idx) => idx !== i));
+                                                            scheduleSave();
+                                                        }}
+                                                    >
+                                                        <X aria-hidden />
+                                                    </Button>
+                                                </div>
+                                                {error && <p className="text-sm text-destructive">{error}</p>}
+                                            </div>
+                                        );
+                                    })}
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto w-fit p-0"
+                                        onClick={() => {
+                                            setResponsiblePersons((prev) => [...prev, '']);
+                                            scheduleSave();
+                                        }}
+                                    >
+                                        <Plus aria-hidden />
+                                        Add another person
+                                    </Button>
+                                </fieldset>
+                                {errors.activity && <p className="text-sm text-destructive">{errors.activity}</p>}
+                            </FormSection>
+
+                            {/* Group C item 3 — all attachment slots moved to
+                                step 1; step 2 no longer collects any. */}
+
+                            <FormFooter
+                                status={
+                                    saveState === 'saving' ? (
+                                        'Saving…'
+                                    ) : saveState === 'saved' && savedAt ? (
+                                        <>
+                                            Saved as draft <RelativeTime dateString={savedAt} />
+                                        </>
+                                    ) : saveState === 'failed' ? (
+                                        'Couldn’t save just now. We’ll try again as you type.'
+                                    ) : (
+                                        'Your narrative saves as you type.'
+                                    )
+                                }
+                            >
+                                <Button type="button" variant="outline" onClick={() => void saveNow()} disabled={saveState === 'saving'}>
+                                    Save draft
                                 </Button>
-                            </div>
-                            {proposal?.expenses && (
-                                <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                                    Previously entered as text — re-enter it below as itemized rows: “{proposal.expenses}”
-                                </p>
-                            )}
-                            {expenseItems.map((item, i) => (
-                                <div key={i} className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            name={`expense_items[${i}][material]`}
-                                            value={item.material}
-                                            onChange={(e) => {
-                                                setExpenseItems((prev) => {
-                                                    const next = [...prev];
-                                                    next[i] = { ...next[i], material: e.target.value };
-
-                                                    return next;
-                                                });
-                                                scheduleSave();
-                                            }}
-                                            placeholder="Material (e.g. Tarpaulin)"
-                                            className="flex-1"
-                                        />
-                                        <Input
-                                            name={`expense_items[${i}][quantity]`}
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={item.quantity}
-                                            onChange={(e) => {
-                                                setExpenseItems((prev) => {
-                                                    const next = [...prev];
-                                                    next[i] = { ...next[i], quantity: e.target.value };
-
-                                                    return next;
-                                                });
-                                                scheduleSave();
-                                            }}
-                                            placeholder="Qty"
-                                            className="w-20"
-                                        />
-                                        <Input
-                                            name={`expense_items[${i}][unit_price]`}
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={item.unit_price}
-                                            onChange={(e) => {
-                                                setExpenseItems((prev) => {
-                                                    const next = [...prev];
-                                                    next[i] = { ...next[i], unit_price: e.target.value };
-
-                                                    return next;
-                                                });
-                                                scheduleSave();
-                                            }}
-                                            placeholder="Unit price"
-                                            className="w-28"
-                                        />
-                                        {expenseItems.length > 1 && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setExpenseItems((prev) => prev.filter((_, idx) => idx !== i));
-                                                    scheduleSave();
-                                                }}
-                                            >
-                                                Remove
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <div className="flex justify-end text-xs text-muted-foreground">
-                                        Line total: ₱{money(rowTotal(item))}
-                                    </div>
-                                    <InputError
-                                        message={
-                                            errors[`expense_items.${i}.material`] ??
-                                            errors[`expense_items.${i}.quantity`] ??
-                                            errors[`expense_items.${i}.unit_price`]
-                                        }
-                                    />
-                                </div>
-                            ))}
-                            <div className="flex items-center justify-end gap-2 border-t pt-2 text-sm">
-                                <span className="font-medium text-muted-foreground">Total</span>
-                                <span className="font-semibold tabular-nums">₱{money(expenseTotal)}</span>
-                            </div>
-                            <InputError message={errors.expense_items} />
-                        </div>
-
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <Label>Responsible Person(s)</Label>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setResponsiblePersons((prev) => [...prev, '']);
-                                        scheduleSave();
-                                    }}
+                                <FormSubmitConfirm
+                                    formId={formId}
+                                    processing={processing}
+                                    title="Submit this proposal for review?"
+                                    description="It goes to your adviser first. You can’t edit it unless an approver returns it."
+                                    confirmLabel="Submit for Review"
                                 >
-                                    + Add
-                                </Button>
-                            </div>
-                            {responsiblePersons.map((name, i) => (
-                                <div key={i} className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            name={`responsible_persons[${i}]`}
-                                            value={name}
-                                            onChange={(e) => {
-                                                setResponsiblePersons((prev) => {
-                                                    const next = [...prev];
-                                                    next[i] = e.target.value;
-
-                                                    return next;
-                                                });
-                                                scheduleSave();
-                                            }}
-                                            placeholder="Full name"
-                                        />
-                                        {responsiblePersons.length > 1 && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setResponsiblePersons((prev) => prev.filter((_, idx) => idx !== i));
-                                                    scheduleSave();
-                                                }}
-                                            >
-                                                Remove
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <InputError message={errors[`responsible_persons.${i}`]} />
-                                </div>
-                            ))}
-                            <InputError message={errors.responsible_persons} />
-                        </div>
-
-                        {/* Group C item 3 — all attachment slots moved to
-                            step 1; step 2 no longer collects any. */}
-
-                        <InputError message={errors.activity} />
-
-                        <Button type="submit" loading={processing} loadingText="Submitting…" className="w-full">
-                            Submit for Review
-                        </Button>
-                    </div>
+                                    Submit for Review
+                                    <Send aria-hidden />
+                                </FormSubmitConfirm>
+                            </FormFooter>
+                        </FormCard>
                     )}
                 </Form>
-            </CenteredContainer>
+            </FormShell>
         </>
     );
 }
@@ -446,4 +440,5 @@ StepTwo.layout = {
         { title: 'Activity Proposals', href: '/activity-proposals' },
         { title: 'Narrative' },
     ],
+    columnWidth: '3xl',
 };
