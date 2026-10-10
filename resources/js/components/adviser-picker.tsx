@@ -1,12 +1,11 @@
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import InitialsAvatar from '@/components/initials-avatar';
 import PageNotice from '@/components/page-notice';
 import { ToneBadge } from '@/components/status-badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { useInitials } from '@/hooks/use-initials';
 import * as registrations from '@/routes/registrations';
 
 export type AdviserResult = { id: number; name: string; email: string; is_available: boolean };
@@ -34,7 +33,6 @@ type Props = {
  * older query is ignored.
  */
 export default function AdviserPicker({ id, selected, onSelect, current, invalid, describedBy }: Props) {
-    const getInitials = useInitials();
     const [changing, setChanging] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<AdviserResult[]>([]);
@@ -119,11 +117,7 @@ export default function AdviserPicker({ id, selected, onSelect, current, invalid
         return (
             <div className="grid gap-2">
                 <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
-                    <Avatar className="size-9">
-                        <AvatarFallback className="bg-teal-500/10 text-xs font-semibold text-teal-700 dark:bg-teal-400/15 dark:text-teal-300">
-                            {getInitials(shown.name)}
-                        </AvatarFallback>
-                    </Avatar>
+                    <InitialsAvatar name={shown.name} className="size-9" />
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{shown.name}</p>
                         {shown.email && <p className="truncate text-xs text-muted-foreground">{shown.email}</p>}
@@ -194,11 +188,7 @@ export default function AdviserPicker({ id, selected, onSelect, current, invalid
                                 onClick={() => pick(a)}
                                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-accent focus-visible:focus-ring"
                             >
-                                <Avatar className="size-9">
-                                    <AvatarFallback className="bg-teal-500/10 text-xs font-semibold text-teal-700 dark:bg-teal-400/15 dark:text-teal-300">
-                                        {getInitials(a.name)}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <InitialsAvatar name={a.name} className="size-9" />
                                 <span className="min-w-0 flex-1">
                                     <span className="block truncate text-sm font-medium">{a.name}</span>
                                     <span className="block truncate text-xs text-muted-foreground">{a.email}</span>

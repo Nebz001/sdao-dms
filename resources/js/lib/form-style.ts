@@ -6,19 +6,18 @@ import {
     RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { TileTone } from '@/components/icon-tile';
 import type { ListFormKind } from '@/lib/student-list';
 
-/** The icon and colour each form type wears wherever it is listed. */
+/** The icon each form type wears wherever it is listed. */
 export const FORM_STYLE: Record<
     ListFormKind,
-    { icon: LucideIcon; tone: TileTone }
+    { icon: LucideIcon }
 > = {
-    registration: { icon: Building2, tone: 'orange' },
-    renewal: { icon: RefreshCw, tone: 'purple' },
-    calendar: { icon: CalendarDays, tone: 'teal' },
-    proposal: { icon: CalendarPlus, tone: 'blue' },
-    report: { icon: FileCheck, tone: 'green' },
+    registration: { icon: Building2 },
+    renewal: { icon: RefreshCw },
+    calendar: { icon: CalendarDays },
+    proposal: { icon: CalendarPlus },
+    report: { icon: FileCheck },
 };
 
 /** FormType enum value (server) to the list kind used by the client. */

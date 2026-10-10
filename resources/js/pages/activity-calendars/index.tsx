@@ -17,7 +17,6 @@ export default function ActivityCalendarsIndex({ calendars, canStart }: Props) {
             <ClientListPage
                 kind="calendar"
                 icon={CalendarDays}
-                tone="teal"
                 title="Activity Calendars"
                 subtitle="Your plan of activities for each term"
                 searchPlaceholder="Search calendars"

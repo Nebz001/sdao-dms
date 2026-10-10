@@ -1,23 +1,19 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import BlockedState from '@/components/blocked-state';
 import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
+import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { todayDateString } from '@/lib/utils';
+import * as activityCalendars from '@/routes/activity-calendars';
 
 type SdgOption = { value: string; label: string };
 
@@ -178,37 +174,33 @@ export default function CreateActivityCalendar({
         return (
             <>
                 <Head title="Submit Activity Calendar" />
-                <CenteredContainer maxWidth="3xl">
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <CalendarDays />
-                            </EmptyMedia>
-                            <EmptyTitle>
-                                Activity calendar not available
-                            </EmptyTitle>
-                            <EmptyDescription>
-                                {!membership
-                                    ? 'You are not bound as an officer of any organization. Contact your adviser before submitting a calendar.'
-                                    : eligibility?.message}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        {membership &&
-                            eligibility?.status === 'already_filed' &&
-                            eligibility.existingDocument && (
-                                <Button asChild variant="outline">
-                                    <Link
-                                        href={eligibility.existingDocument.href}
-                                    >
-                                        {eligibility.existingDocument.status ===
-                                        'returned'
-                                            ? 'Edit calendar'
-                                            : 'View calendar'}
-                                    </Link>
-                                </Button>
-                            )}
-                    </Empty>
-                </CenteredContainer>
+                {!membership ? (
+                    <NotAnOfficerBlocked action="submit an activity calendar" />
+                ) : (
+                    <BlockedState
+                        icon={CalendarDays}
+                        title="Activity calendar already filed"
+                        body={
+                            eligibility?.message ?? (
+                                <>
+                                    <strong>{membership.organization.name}</strong> already has an activity calendar for{' '}
+                                    <strong>{current_term_label}</strong>.
+                                </>
+                            )
+                        }
+                        primary={
+                            eligibility?.existingDocument
+                                ? {
+                                      label:
+                                          eligibility.existingDocument.status === 'returned'
+                                              ? 'Edit calendar'
+                                              : 'View calendar',
+                                      href: eligibility.existingDocument.href,
+                                  }
+                                : { label: 'My Activity Calendars', href: activityCalendars.index() }
+                        }
+                    />
+                )}
             </>
         );
     }
@@ -537,4 +529,5 @@ export default function CreateActivityCalendar({
 
 CreateActivityCalendar.layout = {
     breadcrumbs: [{ title: 'Activity Calendars' }, { title: 'New' }],
+    columnWidth: '3xl',
 };

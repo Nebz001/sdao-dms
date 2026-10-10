@@ -78,7 +78,6 @@ export default function RegistrationsIndex({
             <div className="flex flex-col gap-6">
                 <StudentPageHeader
                     icon={Building2}
-                    tone="orange"
                     title="Registrations"
                     subtitle="Register your organization with SDAO and check its status"
                     actions={
@@ -95,7 +94,6 @@ export default function RegistrationsIndex({
                 {neverFiled ? (
                     <ListEmptyState
                         icon={Building2}
-                        tone="orange"
                         title="No registrations yet"
                         description="Register your organization with SDAO, then follow its review here. It only takes three steps."
                         steps={[
@@ -167,7 +165,6 @@ export default function RegistrationsIndex({
                                     <DocumentRow
                                         key={row.id}
                                         icon={Building2}
-                                        tone="orange"
                                         title={row.title}
                                         supporting={
                                             <span>

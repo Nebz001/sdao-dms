@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { BRAND_TINT } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 
 /**
@@ -22,7 +23,7 @@ export default function CountBadge({
             variant={variant === 'outline' ? 'outline' : 'secondary'}
             className={cn(
                 'tabular-nums',
-                blue && 'border-transparent bg-blue-500/15 text-blue-700 dark:bg-blue-400/20 dark:text-blue-300',
+                blue && `border-transparent ${BRAND_TINT}`,
             )}
         >
             {count}

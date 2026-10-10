@@ -21,6 +21,7 @@ import {
     formatActivityDate,
     formatClockRange,
 } from '@/lib/activity-time';
+import { BRAND_TINT } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 
 export type PickerActivity = {
@@ -57,7 +58,7 @@ export function DateBadge({
             className={cn(
                 'flex size-11 shrink-0 flex-col items-center justify-center rounded-lg leading-none transition-colors',
                 active
-                    ? 'bg-blue-500/15 text-blue-700 dark:bg-blue-400/20 dark:text-blue-300'
+                    ? BRAND_TINT
                     : 'bg-muted text-muted-foreground',
                 muted && 'opacity-70',
                 className,
@@ -207,12 +208,12 @@ export default function ActivityPicker({
                 disabled={disabled}
                 onSelect={() => pick(activity)}
                 aria-describedby={disabled ? reasonId : undefined}
-                className="group gap-3 px-2 py-2 data-[selected=true]:bg-blue-500/10 dark:data-[selected=true]:bg-blue-400/10"
+                className="group gap-3 px-2 py-2 data-[selected=true]:bg-brand-soft"
             >
                 <DateBadge
                     date={activity.date}
                     muted={disabled}
-                    className="group-data-[selected=true]:bg-blue-500/15 group-data-[selected=true]:text-blue-700 dark:group-data-[selected=true]:bg-blue-400/20 dark:group-data-[selected=true]:text-blue-300"
+                    className="group-data-[selected=true]:bg-brand-soft group-data-[selected=true]:text-brand-soft-foreground"
                 />
                 <span className="min-w-0 flex-1 space-y-0.5">
                     <span className="block truncate text-sm font-semibold text-foreground">

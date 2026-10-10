@@ -23,7 +23,6 @@ export default function ActivityProposalsIndex({ proposals, canStart }: Props) {
             <ClientListPage
                 kind="proposal"
                 icon={CalendarPlus}
-                tone="blue"
                 title="Activity Proposals"
                 subtitle="Ask approval for your events and see where each one is"
                 searchPlaceholder="Search by activity name"

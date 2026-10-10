@@ -13,7 +13,6 @@ import {
 import { HUB_GROUP, OPTION_CHIP_KEY, optionMeta } from '@/lib/hub-options';
 import type { HubKey } from '@/lib/hub-options';
 import { buildNavSections } from '@/lib/nav-config';
-import { homeCardCopy } from '@/lib/student-home';
 import * as activityProposals from '@/routes/activity-proposals';
 import * as calendar from '@/routes/calendar';
 import type { NavItem } from '@/types';
@@ -62,7 +61,6 @@ export default function HubPage({
     const group = buildNavSections(auth, navCounts)
         .flatMap((section) => section.entries)
         .find((entry) => isNavGroup(entry) && entry.title === groupTitle);
-    const copy = homeCardCopy(groupTitle);
     const icon = group?.icon ?? LayoutGrid;
 
     const options: Option[] =
@@ -89,7 +87,6 @@ export default function HubPage({
         <div className="flex flex-col gap-6">
             <StudentPageHeader
                 icon={icon}
-                tone={copy?.tone ?? 'slate'}
                 title={groupTitle}
                 subtitle={SUBTITLES[hub](organizationName)}
             />
@@ -121,7 +118,7 @@ export default function HubPage({
                                 >
                                     <IconTile
                                         icon={meta.icon}
-                                        tone={meta.tone}
+                                       
                                     />
                                     <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
                                         <span className="text-base font-semibold">

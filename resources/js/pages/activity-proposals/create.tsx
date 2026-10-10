@@ -17,6 +17,7 @@ import {
 import PageNotice from '@/components/page-notice';
 import PartnerOrganizationChips from '@/components/partner-organization-chips';
 import SdgChipGroup from '@/components/sdg-chip-group';
+import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupOption } from '@/components/ui/radio-group';
@@ -194,15 +195,7 @@ export default function CreateActivityProposal({
         return (
             <>
                 <Head title="New Activity Proposal" />
-                <FormShell
-                    title="New Activity Proposal"
-                    subtitle="Fill in the request form, then write the narrative."
-                >
-                    <PageNotice tone="info">
-                        You must be an active officer of an organization to
-                        submit a proposal.
-                    </PageNotice>
-                </FormShell>
+                <NotAnOfficerBlocked action="submit an activity proposal" />
             </>
         );
     }

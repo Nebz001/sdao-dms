@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { TileTone } from '@/components/icon-tile';
 import {
     DocumentRow,
     ListCard,
@@ -8,6 +7,7 @@ import {
     ListFooter,
     ListSearch,
     NoMatches,
+    RowChip,
     StartAction,
     StatusTabs,
     useClientList,
@@ -23,6 +23,8 @@ export type ListRow = {
     status: string;
     created_at: string;
     current_approver: string | null;
+    /** "1st Term, 2026-2027" or "2026-2027": the period the document is for. */
+    period?: string | null;
 };
 
 /**
@@ -33,7 +35,6 @@ export type ListRow = {
 export default function ClientListPage<T extends ListRow>({
     kind,
     icon,
-    tone,
     title,
     subtitle,
     searchPlaceholder,
@@ -49,7 +50,6 @@ export default function ClientListPage<T extends ListRow>({
 }: {
     kind: ListFormKind;
     icon: LucideIcon;
-    tone: TileTone;
     title: string;
     subtitle: string;
     searchPlaceholder: string;
@@ -70,7 +70,7 @@ export default function ClientListPage<T extends ListRow>({
         <div className="flex flex-col gap-6">
             <StudentPageHeader
                 icon={icon}
-                tone={tone}
+               
                 title={title}
                 subtitle={subtitle}
                 actions={
@@ -87,7 +87,7 @@ export default function ClientListPage<T extends ListRow>({
             {rows.length === 0 ? (
                 <ListEmptyState
                     icon={icon}
-                    tone={tone}
+                   
                     title={empty.title}
                     description={empty.description}
                     steps={empty.steps}
@@ -130,7 +130,7 @@ export default function ClientListPage<T extends ListRow>({
                                     <DocumentRow
                                         key={row.id}
                                         icon={icon}
-                                        tone={tone}
+                                       
                                         title={row.title}
                                         supporting={
                                             <>
@@ -140,6 +140,7 @@ export default function ClientListPage<T extends ListRow>({
                                                         row.created_at,
                                                     )}
                                                 </span>
+                                                {row.period && <RowChip>{row.period}</RowChip>}
                                                 {rowChip?.(row)}
                                             </>
                                         }

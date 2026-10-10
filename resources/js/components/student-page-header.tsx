@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import IconTile from '@/components/icon-tile';
-import type { TileTone } from '@/components/icon-tile';
 
 /**
  * The header of every student hub and list page: the coloured icon tile, the
@@ -10,13 +9,11 @@ import type { TileTone } from '@/components/icon-tile';
  */
 export default function StudentPageHeader({
     icon,
-    tone,
     title,
     subtitle,
     actions,
 }: {
     icon: LucideIcon;
-    tone: TileTone;
     title: string;
     subtitle: string;
     actions?: ReactNode;
@@ -24,7 +21,7 @@ export default function StudentPageHeader({
     return (
         <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <div className="flex min-w-0 flex-1 basis-72 items-center gap-4">
-                <IconTile icon={icon} tone={tone} size="lg" />
+                <IconTile icon={icon} size="lg" />
                 <div className="min-w-0">
                     <h1 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
                         {title}

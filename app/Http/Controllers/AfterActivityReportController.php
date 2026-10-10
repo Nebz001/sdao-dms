@@ -6,6 +6,7 @@ use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Http\Requests\Reports\StoreReportRequest;
@@ -46,7 +47,7 @@ class AfterActivityReportController extends Controller
             ->get()
             ->map(fn (Document $d) => [
                 'id' => $d->id,
-                'title' => $d->title,
+                ...StudentDocumentLabel::payload($d),
                 'status' => $d->status->value,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,

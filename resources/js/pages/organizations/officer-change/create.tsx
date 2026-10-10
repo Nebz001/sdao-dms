@@ -11,14 +11,14 @@ import {
     FormShell,
     FormStrip,
 } from '@/components/form-shell';
+import InitialsAvatar from '@/components/initials-avatar';
 import PageNotice from '@/components/page-notice';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupOption } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import * as officerChange from '@/routes/organizations/officer-change';
 
@@ -43,32 +43,6 @@ type Props = {
     pendingPositions?: string[];
     positions: PositionOption[];
 };
-
-/** Initials in a tinted circle; `tone` tells the two seats apart at a glance. */
-function PersonAvatar({
-    name,
-    tone = 'blue',
-}: {
-    name: string;
-    tone?: 'blue' | 'teal';
-}) {
-    const getInitials = useInitials();
-
-    return (
-        <Avatar className="size-10">
-            <AvatarFallback
-                className={cn(
-                    'text-xs font-semibold',
-                    tone === 'blue'
-                        ? 'bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300'
-                        : 'bg-teal-500/10 text-teal-700 dark:bg-teal-400/15 dark:text-teal-300',
-                )}
-            >
-                {getInitials(name)}
-            </AvatarFallback>
-        </Avatar>
-    );
-}
 
 /** The dashed stand-in for a seat nobody holds, or a person not picked yet. */
 function EmptyAvatar({ mark = '?' }: { mark?: string }) {
@@ -178,15 +152,7 @@ export default function RequestOfficerChange({
         return (
             <>
                 <Head title="Request Officer Change" />
-                <FormShell
-                    title="Request Officer Change"
-                    subtitle="Ask SDAO to change who holds an officer position."
-                >
-                    <PageNotice tone="info">
-                        Only an active president or secretary of an organization
-                        can request an officer change.
-                    </PageNotice>
-                </FormShell>
+                <NotAnOfficerBlocked action="ask SDAO for an officer change" />
             </>
         );
     }
@@ -249,7 +215,7 @@ export default function RequestOfficerChange({
 
                         <FormSection title="Current officers">
                             <ul className="grid gap-3 sm:grid-cols-2">
-                                {positions.map((p, index) => {
+                                {positions.map((p) => {
                                     const holder = holderOf(p.value);
 
                                     return (
@@ -262,10 +228,7 @@ export default function RequestOfficerChange({
                                             )}
                                         >
                                             {holder ? (
-                                                <PersonAvatar
-                                                    name={holder.user.name}
-                                                    tone={index % 2 === 0 ? 'blue' : 'teal'}
-                                                />
+                                                <InitialsAvatar name={holder.user.name} />
                                             ) : (
                                                 <EmptyAvatar mark="–" />
                                             )}
@@ -357,7 +320,7 @@ export default function RequestOfficerChange({
                                     <>
                                         {selected ? (
                                             <div className="flex items-center gap-3 rounded-lg border border-primary-text bg-primary/10 px-3.5 py-2.5">
-                                                <PersonAvatar name={selected.name} />
+                                                <InitialsAvatar name={selected.name} />
                                                 <div className="min-w-0 flex-1">
                                                     <p className="truncate text-sm font-medium">
                                                         {selected.name}
@@ -449,9 +412,7 @@ export default function RequestOfficerChange({
                                                             }
                                                             className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-accent focus-visible:focus-ring"
                                                         >
-                                                            <PersonAvatar
-                                                                name={student.name}
-                                                            />
+                                                            <InitialsAvatar name={student.name} />
                                                             <span className="min-w-0">
                                                                 <span className="block truncate text-sm font-medium">
                                                                     {student.name}
@@ -476,7 +437,7 @@ export default function RequestOfficerChange({
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-dashed bg-muted/20 px-3.5 py-3">
                                     <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
                                         {currentHolder ? (
-                                            <PersonAvatar name={currentHolder.user.name} />
+                                            <InitialsAvatar name={currentHolder.user.name} />
                                         ) : (
                                             <EmptyAvatar mark="–" />
                                         )}
@@ -498,7 +459,7 @@ export default function RequestOfficerChange({
                                     />
                                     <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
                                         {selected ? (
-                                            <PersonAvatar name={selected.name} tone="teal" />
+                                            <InitialsAvatar name={selected.name} />
                                         ) : (
                                             <EmptyAvatar />
                                         )}

@@ -36,6 +36,8 @@ type HistoryDocument = {
     status: string;
     formType: string;
     formTypeLabel: string;
+    showFormType: boolean;
+    period: string | null;
     lastActivityAt: string;
     currentApprover: string | null;
     href: string;
@@ -99,7 +101,6 @@ export default function DocumentHistoryIndex({
             <div className="flex flex-col gap-6">
                 <StudentPageHeader
                     icon={History}
-                    tone="green"
                     title="Document History"
                     subtitle="Everything your organization has filed. All officers see the same list."
                 />
@@ -208,13 +209,11 @@ export default function DocumentHistoryIndex({
                                         <DocumentRow
                                             key={doc.id}
                                             icon={style.icon}
-                                            tone={style.tone}
                                             title={doc.title}
                                             supporting={
                                                 <>
-                                                    <RowChip>
-                                                        {doc.formTypeLabel}
-                                                    </RowChip>
+                                                    {doc.showFormType && <RowChip>{doc.formTypeLabel}</RowChip>}
+                                                    {doc.period && <RowChip>{doc.period}</RowChip>}
                                                     <span>
                                                         {formatListDate(
                                                             doc.lastActivityAt,

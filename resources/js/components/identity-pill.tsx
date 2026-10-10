@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { ToneBadge } from '@/components/status-badge';
 import { Separator } from '@/components/ui/separator';
+import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 
 /**
@@ -12,7 +13,7 @@ import { cn } from '@/lib/utils';
 type IdentityPillTone = 'brand' | 'muted' | 'warm';
 
 const TONE_STYLES: Record<IdentityPillTone, string> = {
-    brand: 'border-primary/40 bg-primary/10 text-primary-text',
+    brand: BRAND_TINT_OUTLINE,
     muted: 'border-border bg-muted/40 text-muted-foreground',
     warm: 'border-warning/40 bg-warning/10 text-warning-foreground',
 };
@@ -46,7 +47,7 @@ export default function IdentityPill({ icon: Icon, tone, label, value }: Identit
                 <>
                     <span className={cn(tone === 'muted' ? 'text-muted-foreground' : 'opacity-80')}>{label}</span>
                     <span className="sr-only">:</span>
-                    <Separator orientation="vertical" className="h-4 bg-current opacity-30" />
+                    <Separator orientation="vertical" className={cn('h-4', tone === 'brand' ? 'bg-brand-soft-border' : 'bg-current opacity-30')} />
                     <span className={cn('min-w-0 break-words', tone === 'muted' && 'text-foreground')}>{value}</span>
                 </>
             ) : (

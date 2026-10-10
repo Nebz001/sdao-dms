@@ -224,7 +224,7 @@ test('results are paginated at 20 per page, newest first', function () {
     // Force distinct, increasing timestamps so ordering is deterministic
     // rather than relying on same-second factory timestamps.
     foreach (range(1, 25) as $i) {
-        Document::factory()->create([
+        $newest = Document::factory()->create([
             'title' => "Doc {$i}",
             'submitted_by' => $founder->id,
             'status' => DocumentStatus::InReview,
@@ -241,7 +241,8 @@ test('results are paginated at 20 per page, newest first', function () {
             ->has('registrations.data', 20)
             ->where('registrations.meta.last_page', 2)
             ->where('registrations.meta.total', 25)
-            ->where('registrations.data.0.title', 'Doc 25')
+            ->where('registrations.data.0.id', $newest->id)
+            ->where('registrations.data.0.title', 'Organization Registration')
         );
 
     $this->actingAs($founder)

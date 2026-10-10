@@ -129,7 +129,7 @@ test('an officer of another organization sees none of this organization\'s docum
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
             ->where('documents.data.0.id', $own->id)
-            ->where('documents.data.0.title', 'IT Guild Doc')
+            ->where('documents.data.0.title', 'Organization Registration')
             ->where('stats.total', 1)
             ->etc()
         );
@@ -172,7 +172,7 @@ test('the form type filter narrows the result set', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
-            ->where('documents.data.0.title', 'A Renewal')
+            ->where('documents.data.0.title', 'Organization Renewal')
             ->etc()
         );
 });
@@ -195,11 +195,11 @@ test('the status filter narrows the result set, including the non-terminal statu
             ->etc()
         );
 })->with([
-    'draft' => [DocumentStatus::Draft, 'Draft Doc'],
-    'in review' => [DocumentStatus::InReview, 'In Review Doc'],
-    'returned' => [DocumentStatus::Returned, 'Returned Doc'],
-    'approved' => [DocumentStatus::Approved, 'Approved Doc'],
-    'rejected' => [DocumentStatus::Rejected, 'Rejected Doc'],
+    'draft' => [DocumentStatus::Draft, 'Activity Proposal'],
+    'in review' => [DocumentStatus::InReview, 'Organization Registration'],
+    'returned' => [DocumentStatus::Returned, 'Organization Renewal'],
+    'approved' => [DocumentStatus::Approved, 'Activity Calendar'],
+    'rejected' => [DocumentStatus::Rejected, 'After-Activity Report'],
 ]);
 
 test('an unknown form_type or status filter value is ignored rather than emptying the page', function () {
@@ -220,17 +220,18 @@ test('search matches the document title', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('documents.data', 1)
-            ->where('documents.data.0.title', 'Findable Title')
+            // The search still reads the stored title; the row shows the clean one.
+            ->where('documents.data.0.title', 'Organization Registration')
             ->etc()
         );
 });
 
 test('results are paginated at 20 per page, most recent activity first', function () {
     foreach (range(1, 25) as $i) {
-        historyDocument(FormType::OrganizationRegistration, $this->computingSociety, DocumentStatus::Approved, "Doc {$i}", $this->president)
-            // Distinct, increasing updated_at so ordering is deterministic
-            // rather than relying on same-second factory timestamps.
-            ->forceFill(['updated_at' => now()->addSeconds($i)])->save();
+        $newest = historyDocument(FormType::OrganizationRegistration, $this->computingSociety, DocumentStatus::Approved, "Doc {$i}", $this->president);
+        // Distinct, increasing updated_at so ordering is deterministic
+        // rather than relying on same-second factory timestamps.
+        $newest->forceFill(['updated_at' => now()->addSeconds($i)])->save();
     }
 
     $this->actingAs($this->president)->withoutVite()
@@ -241,7 +242,7 @@ test('results are paginated at 20 per page, most recent activity first', functio
             ->where('documents.meta.current_page', 1)
             ->where('documents.meta.last_page', 2)
             ->where('documents.meta.total', 25)
-            ->where('documents.data.0.title', 'Doc 25')
+            ->where('documents.data.0.id', $newest->id)
             ->etc()
         );
 

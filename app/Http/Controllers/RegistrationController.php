@@ -6,6 +6,7 @@ use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
@@ -17,6 +18,7 @@ use App\Models\Organization;
 use App\Models\RoleAssignment;
 use App\Models\School;
 use App\Models\User;
+use App\Organizations\OrganizationStatusResolver;
 use App\Organizations\StudentFormAvailability;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Registrations\UpdateOrganizationRegistration;
@@ -91,7 +93,7 @@ class RegistrationController extends Controller
             'registrations' => [
                 'data' => collect($documents->items())->map(fn (Document $d) => [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    ...StudentDocumentLabel::payload($d),
                     'status' => $d->status->value,
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                     'created_at' => $d->created_at,
@@ -138,12 +140,13 @@ class RegistrationController extends Controller
      * brand-new organization directly — no pre-existing org, no pre-existing
      * binding.
      */
-    public function create(): Response
+    public function create(OrganizationStatusResolver $statusResolver): Response
     {
         $canPropose = Gate::allows('propose', Organization::class);
 
         return Inertia::render('registrations/create', [
             'canPropose' => $canPropose,
+            'blocked' => $this->blockedState($statusResolver),
             'schools' => School::academicRegistrationChoices()
                 ->with('programs')
                 ->get()
@@ -159,6 +162,59 @@ class RegistrationController extends Controller
             ]),
             'attachmentSlots' => AttachmentSlots::slotsFor(FormType::OrganizationRegistration),
         ]);
+    }
+
+    /**
+     * Why this student cannot open the registration form right now, for the
+     * "blocked" card — null when they can. It only DESCRIBES the conditions
+     * the app already enforces (DocumentPolicy::propose, and the
+     * one-registration-in-flight guard in SubmitOrganizationRegistration);
+     * nothing here decides who is blocked.
+     *
+     * @return array{reason: string, organization?: string, covered_year?: string, document_id?: int, href?: string}|null
+     */
+    private function blockedState(OrganizationStatusResolver $statusResolver): ?array
+    {
+        $user = Auth::user();
+
+        if (! $user->isVerifiedAccount()) {
+            return ['reason' => 'unverified'];
+        }
+
+        $membership = $user->organizationMemberships()->active()->with('organization')->first();
+
+        if ($membership !== null) {
+            $organization = $membership->organization;
+
+            return [
+                'reason' => 'officer',
+                'organization' => $organization->name,
+                'covered_year' => $statusResolver->for($organization)->coversThroughAcademicYear,
+            ];
+        }
+
+        $inFlight = Document::query()
+            ->with('organization:id,name')
+            ->where('submitted_by', $user->id)
+            ->where('form_type', FormType::OrganizationRegistration->value)
+            ->whereIn('status', [
+                DocumentStatus::Draft->value,
+                DocumentStatus::InReview->value,
+                DocumentStatus::Returned->value,
+            ])
+            ->latest('id')
+            ->first();
+
+        if ($inFlight !== null) {
+            return [
+                'reason' => 'in_review',
+                'organization' => $inFlight->organization->name,
+                'document_id' => $inFlight->id,
+                'href' => route('registrations.show', $inFlight),
+            ];
+        }
+
+        return null;
     }
 
     public function store(StoreRegistrationRequest $request, SubmitOrganizationRegistration $action): RedirectResponse
@@ -269,7 +325,7 @@ class RegistrationController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
+            'view' => $viewData->for($document, Auth::user(), StudentDocumentLabel::title($document), [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
         ]);
     }
 

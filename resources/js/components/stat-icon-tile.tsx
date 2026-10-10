@@ -1,11 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
+import { BRAND_TINT } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 
 /** Brand tint by default; "warning" is the amber state and "alert" the red one, matching the card they sit in. */
 export type StatIconTileTone = 'default' | 'warning' | 'alert';
 
 const TONE_STYLES: Record<StatIconTileTone, string> = {
-    default: 'bg-primary/10 text-primary-text',
+    default: BRAND_TINT,
     warning: 'bg-warning/15 text-warning-foreground',
     alert: 'bg-destructive/15 text-destructive-foreground',
 };

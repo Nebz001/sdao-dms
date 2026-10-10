@@ -1,5 +1,6 @@
 import { ToneBadge } from '@/components/status-badge';
 import TagBadge from '@/components/tag-badge';
+import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 
 type FormTypeBadgeProps = {
@@ -22,7 +23,7 @@ export function FormTypeLabelBadge({ label, className }: FormTypeBadgeProps) {
     return (
         <ToneBadge
             tone="neutral"
-            className={cn('border-primary/40 bg-primary/10 text-primary-text', className)}
+            className={cn(BRAND_TINT_OUTLINE, className)}
         >
             {label}
         </ToneBadge>

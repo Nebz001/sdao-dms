@@ -23,6 +23,7 @@ import RequirementsChecklist from '@/components/requirements-checklist';
 import type { RequirementsData } from '@/components/requirements-checklist';
 import StatTile from '@/components/stat-tile';
 import { OrganizationStatusBadge, StatusBadge, ToneBadge } from '@/components/status-badge';
+import { RowChip } from '@/components/student-list';
 import SubmissionsChart from '@/components/submissions-chart';
 import type { SubmissionMonth } from '@/components/submissions-chart';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,8 @@ export type NeedsActionItem = {
     kind: string;
     title: string;
     formTypeLabel: string;
+    showFormType: boolean;
+    period: string | null;
     comment: string | null;
     returnedByName: string | null;
     returnedAt: string | null;
@@ -84,6 +87,8 @@ export type TrackerItem = {
     id: number;
     title: string;
     formTypeLabel: string;
+    showFormType: boolean;
+    period: string | null;
     status: string;
     waitingSince: string | null;
     href: string;
@@ -275,11 +280,8 @@ export default function StudentDashboard({
                                         >
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <FormTypeBadge
-                                                        label={
-                                                            item.formTypeLabel
-                                                        }
-                                                    />
+                                                    {item.showFormType && <FormTypeBadge label={item.formTypeLabel} />}
+                                                    {item.period && <RowChip>{item.period}</RowChip>}
                                                     {item.flaggedCount > 0 && (
                                                         <ToneBadge tone="warning">
                                                             {item.flaggedCount}{' '}
@@ -410,9 +412,8 @@ export default function StudentDashboard({
                                     >
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
-                                                <FormTypeBadge
-                                                    label={item.formTypeLabel}
-                                                />
+                                                {item.showFormType && <FormTypeBadge label={item.formTypeLabel} />}
+                                                {item.period && <RowChip>{item.period}</RowChip>}
                                                 <StatusBadge
                                                     status={item.status}
                                                 />

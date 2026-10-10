@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { buildNavSections } from '@/lib/nav-config';
 import { labelFor, toneFor } from '@/lib/status-tones';
 import {
@@ -52,7 +53,7 @@ function CardFace({ card }: { card: HomeCard }) {
 
     return (
         <>
-            <IconTile icon={card.icon} tone={card.tone} />
+            <IconTile icon={card.icon} />
             {card.badge !== null && (
                 <span
                     data-slot="home-card-badge"
@@ -116,12 +117,12 @@ function IdentityPills({ meta }: { meta: StudentDashboardMeta }) {
             aria-label="Your role"
         >
             <li>
-                <ToneBadge tone="info" className={pill}>
+                <ToneBadge tone="neutral" className={cn(pill, BRAND_TINT_OUTLINE)}>
                     <Users aria-hidden />
                     <span className="font-semibold">
                         {meta.officerPosition}
                     </span>
-                    <span aria-hidden className="h-3.5 w-px bg-current/30" />
+                    <span aria-hidden className="h-3.5 w-px bg-brand-soft-border" />
                     <span>{organization?.name ?? meta.organizationName}</span>
                 </ToneBadge>
             </li>

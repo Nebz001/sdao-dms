@@ -4,7 +4,6 @@ import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import IconTile from '@/components/icon-tile';
-import type { TileTone } from '@/components/icon-tile';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -163,7 +162,6 @@ export function ListCard({
  */
 export function DocumentRow({
     icon,
-    tone,
     title,
     supporting,
     status,
@@ -172,7 +170,6 @@ export function DocumentRow({
     actionHref,
 }: {
     icon: LucideIcon;
-    tone: TileTone;
     title: string;
     supporting: ReactNode;
     status: string;
@@ -183,7 +180,7 @@ export function DocumentRow({
     return (
         <li className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_13rem_5.5rem] sm:items-center sm:gap-4 sm:px-5 [&:not(:first-child)]:border-t">
             <div className="flex min-w-0 items-center gap-3">
-                <IconTile icon={icon} tone={tone} size="sm" />
+                <IconTile icon={icon} size="sm" />
                 <div className="min-w-0">
                     <p className="font-semibold max-sm:break-words sm:truncate">
                         {title}
@@ -248,7 +245,6 @@ export function NoMatches({ onClear }: { onClear: () => void }) {
  */
 export function ListEmptyState({
     icon,
-    tone,
     title,
     description,
     steps,
@@ -257,7 +253,6 @@ export function ListEmptyState({
     startLabel,
 }: {
     icon: LucideIcon;
-    tone: TileTone;
     title: string;
     description: string;
     steps: string[];
@@ -267,7 +262,7 @@ export function ListEmptyState({
 }) {
     return (
         <Card className="items-center gap-4 px-6 py-12 text-center">
-            <IconTile icon={icon} tone={tone} size="lg" />
+            <IconTile icon={icon} size="lg" />
             <div className="flex max-w-md flex-col gap-1">
                 <h2 className="text-lg font-semibold">{title}</h2>
                 <p className="text-sm text-muted-foreground">{description}</p>

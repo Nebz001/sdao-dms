@@ -17,7 +17,6 @@ export default function RenewalsIndex({ renewals, canStart }: Props) {
             <ClientListPage
                 kind="renewal"
                 icon={RefreshCw}
-                tone="purple"
                 title="Renewals"
                 subtitle="Renew your organization each school year to keep it active"
                 searchPlaceholder="Search renewals"

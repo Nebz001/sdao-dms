@@ -4,6 +4,7 @@ namespace App\Organizations;
 
 use App\Calendar\ActivityCalendarEligibilityResult;
 use App\Calendar\SubmitActivityCalendar;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
@@ -186,7 +187,7 @@ class StudentDashboardData
                     'row' => [
                         'id' => "doc-{$d->id}",
                         'kind' => 'returned',
-                        'title' => $d->title,
+                        ...StudentDocumentLabel::payload($d),
                         'formTypeLabel' => $d->form_type->label(),
                         'comment' => $returnTransition?->comment,
                         'returnedByName' => $returnTransition?->actor?->name,
@@ -212,7 +213,7 @@ class StudentDashboardData
             ->map(fn (Document $d) => [
                 'id' => "doc-{$d->id}",
                 'kind' => 'draft',
-                'title' => $d->title,
+                ...StudentDocumentLabel::payload($d),
                 'formTypeLabel' => $d->form_type->label(),
                 'comment' => null,
                 'returnedByName' => null,
@@ -247,7 +248,7 @@ class StudentDashboardData
                 return [
                     'row' => [
                         'id' => $d->id,
-                        'title' => $d->title,
+                        ...StudentDocumentLabel::payload($d),
                         'formTypeLabel' => $d->form_type->label(),
                         'status' => $d->status->value,
                         'waitingSince' => $waitingSince?->toIso8601String(),

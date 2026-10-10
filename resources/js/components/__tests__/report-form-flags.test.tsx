@@ -148,7 +148,7 @@ describe('After-Activity Report form', () => {
     it('explains when the organization has no approved activities at all', () => {
         render(<CreateReport membership={membership} eligibleProposals={[]} approvedActivities={[]} attachmentSlots={slots} />);
 
-        expect(screen.getByText('No approved activities yet.')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'No approved activities yet' })).toBeInTheDocument();
         expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     });
 

@@ -114,7 +114,7 @@ test('a student officer sees their organization\'s documents needing attention',
             ->where('approverDashboard', null)
             ->loadDeferredProps('student', fn ($reload) => $reload
                 ->where('studentNeedsAction.total', 1)
-                ->where('studentNeedsAction.items.0.title', 'Returned Renewal')
+                ->where('studentNeedsAction.items.0.title', 'Organization Renewal')
             )
         );
 });

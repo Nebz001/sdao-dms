@@ -6,6 +6,7 @@ use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\FormType;
 use App\Enums\OrganizationType;
 use App\Http\Requests\Renewals\StoreRenewalRequest;
@@ -46,7 +47,7 @@ class RenewalController extends Controller
             ->get()
             ->map(fn (Document $d) => [
                 'id' => $d->id,
-                'title' => $d->title,
+                ...StudentDocumentLabel::payload($d),
                 'status' => $d->status->value,
                 'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
                 'created_at' => $d->created_at,
@@ -187,7 +188,7 @@ class RenewalController extends Controller
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
+            'view' => $viewData->for($document, Auth::user(), StudentDocumentLabel::title($document), [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
         ]);
     }
 

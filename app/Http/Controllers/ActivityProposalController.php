@@ -12,6 +12,7 @@ use App\Approval\DocumentViewData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\ActivityNature;
 use App\Enums\ActivityType;
 use App\Enums\BudgetSource;
@@ -73,7 +74,7 @@ class ActivityProposalController extends Controller
             ->get()
             ->map(fn (Document $d) => [
                 'id' => $d->id,
-                'title' => $d->title,
+                ...StudentDocumentLabel::payload($d),
                 'status' => $d->status->value,
                 'calendar_mode' => $d->activityProposal?->calendar_mode->value,
                 'form_step' => $d->activityProposal?->form_step,

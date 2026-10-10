@@ -1,10 +1,11 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { Form, Head, usePage } from '@inertiajs/react';
+import { ArrowRight, CalendarX2 } from 'lucide-react';
 import { useState } from 'react';
 import AfterActivityReportController from '@/actions/App/Http/Controllers/AfterActivityReportController';
 import ActivityPicker from '@/components/activity-picker';
 import type { PickerActivity } from '@/components/activity-picker';
 import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import BlockedState from '@/components/blocked-state';
 import {
     FocusFirstError,
     FormCard,
@@ -17,7 +18,7 @@ import {
 import FormSubmitConfirm from '@/components/form-submit-confirm';
 import PageNotice from '@/components/page-notice';
 import ReportFormSections from '@/components/report-form-sections';
-import { Button } from '@/components/ui/button';
+import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import * as activityProposals from '@/routes/activity-proposals';
 
 type Membership = {
@@ -93,16 +94,7 @@ export default function CreateReport({
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <FormShell
-                    title="After-Activity Report"
-                    subtitle="Tell your adviser and SDAO how your approved activity went."
-                >
-                    <PageNotice tone="info">
-                        You are not bound as an officer of any organization.
-                        Contact your adviser to be bound before submitting a
-                        report.
-                    </PageNotice>
-                </FormShell>
+                <NotAnOfficerBlocked action="file an after-activity report" />
             </>
         );
     }
@@ -111,26 +103,17 @@ export default function CreateReport({
         return (
             <>
                 <Head title="Submit After-Activity Report" />
-                <FormShell
-                    title="After-Activity Report"
-                    subtitle="Tell your adviser and SDAO how your approved activity went."
-                >
-                    <PageNotice
-                        tone="info"
-                        title="No approved activities yet."
-                        action={
-                            <Button asChild variant="outline" size="sm">
-                                <Link href={activityProposals.index().url}>
-                                    View activity proposals
-                                </Link>
-                            </Button>
-                        }
-                    >
-                        {membership.organization.name} has no approved
-                        activities to report on. A report can only be filed
-                        against an approved activity proposal.
-                    </PageNotice>
-                </FormShell>
+                <BlockedState
+                    icon={CalendarX2}
+                    title="No approved activities yet"
+                    body={
+                        <>
+                            <strong>{membership.organization.name}</strong> has no approved activities to report on. A
+                            report can only be filed against an approved activity proposal.
+                        </>
+                    }
+                    primary={{ label: 'View activity proposals', href: activityProposals.index() }}
+                />
             </>
         );
     }

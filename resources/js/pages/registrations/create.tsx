@@ -1,10 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Building2, Hourglass } from 'lucide-react';
 import { useState } from 'react';
 import AdviserPicker from '@/components/adviser-picker';
 import type { AdviserResult } from '@/components/adviser-picker';
 import AttachmentRequirements, { requirementsSummary, uploadedCount } from '@/components/attachment-requirements';
 import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import BlockedState from '@/components/blocked-state';
 import {
     FocusFirstError,
     FormCard,
@@ -14,7 +15,7 @@ import {
     FormShell,
     FormStrip,
 } from '@/components/form-shell';
-import PageNotice from '@/components/page-notice';
+import { PendingVerificationBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -35,14 +36,23 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { mine } from '@/routes/organizations';
 import * as registrations from '@/routes/registrations';
 
 type OrganizationTypeOption = { value: string; label: string };
 type Program = { id: number; name: string };
 type SchoolOption = { id: number; name: string; type: string; programs: Program[] };
 
+/** Why the form cannot be opened right now; null when it can. Only describes the server's own rules. */
+type Blocked =
+    | { reason: 'unverified' }
+    | { reason: 'officer'; organization: string; covered_year: string | null }
+    | { reason: 'in_review'; organization: string; document_id: number; href: string }
+    | null;
+
 type Props = {
     canPropose: boolean;
+    blocked: Blocked;
     schools: SchoolOption[];
     organizationTypes: OrganizationTypeOption[];
     attachmentSlots: AttachmentSlotDef[];
@@ -53,7 +63,7 @@ type Props = {
 // College (and, in turn, Program) only applies to a Co-Curricular org.
 const CO_CURRICULAR = 'co_curricular';
 
-export default function CreateRegistration({ canPropose, schools, organizationTypes, attachmentSlots }: Props) {
+export default function CreateRegistration({ canPropose, blocked, schools, organizationTypes, attachmentSlots }: Props) {
     const { auth, currentPeriod } = usePage().props;
 
     const [name, setName] = useState('');
@@ -113,19 +123,11 @@ export default function CreateRegistration({ canPropose, schools, organizationTy
         );
     }
 
-    if (!canPropose) {
+    if (blocked || !canPropose) {
         return (
             <>
                 <Head title="Submit Registration" />
-                <FormShell
-                    title="Register a New Organization"
-                    subtitle="Start a brand-new student organization. SDAO reviews it and approves your adviser."
-                >
-                    <PageNotice tone="info">
-                        You already have an active organization or an in-progress registration. You cannot propose
-                        another organization at this time.
-                    </PageNotice>
-                </FormShell>
+                <RegistrationBlocked blocked={blocked} />
             </>
         );
     }
@@ -414,3 +416,41 @@ CreateRegistration.layout = {
     ],
     columnWidth: '3xl',
 };
+
+function RegistrationBlocked({ blocked }: { blocked: Blocked }) {
+    if (blocked?.reason === 'in_review') {
+        return (
+            <BlockedState
+                icon={Hourglass}
+                title="Registration in review"
+                body={
+                    <>
+                        Your registration for <strong>{blocked.organization}</strong> is still being reviewed. You can
+                        start a new one once it’s done.
+                    </>
+                }
+                primary={{ label: 'View my registration', href: blocked.href }}
+            />
+        );
+    }
+
+    if (blocked?.reason === 'officer') {
+        return (
+            <BlockedState
+                icon={Building2}
+                title="Registration not available"
+                body={
+                    <>
+                        You’re already an officer of <strong>{blocked.organization}</strong>
+                        {blocked.covered_year && <>, and it’s registered for {blocked.covered_year}</>}. You can only
+                        register one organization at a time.
+                    </>
+                }
+                secondary={{ label: 'See my registrations', href: registrations.index() }}
+                primary={{ label: 'Go to My Organization', href: mine() }}
+            />
+        );
+    }
+
+    return <PendingVerificationBlocked />;
+}

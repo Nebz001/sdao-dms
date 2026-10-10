@@ -47,7 +47,6 @@ function renderList(
         <ClientListPage
             kind="proposal"
             icon={CalendarPlus}
-            tone="blue"
             title="Activity Proposals"
             subtitle="Ask approval"
             searchPlaceholder="Search by activity name"

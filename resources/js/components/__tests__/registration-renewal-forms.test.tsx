@@ -100,6 +100,7 @@ describe('Register a New Organization', () => {
 
     const props = {
         canPropose: true,
+        blocked: null,
         schools: [{ id: 1, name: 'SACE', type: 'regular', programs: [{ id: 1, name: 'BSCS' }] }],
         organizationTypes: types,
         attachmentSlots: slots,
@@ -200,8 +201,8 @@ describe('Renew Your Organization', () => {
             />,
         );
 
-        expect(screen.getByText('Renewal not available yet.')).toBeInTheDocument();
-        expect(screen.getByText('Renewal only opens in the 3rd term.')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Renewal not open yet' })).toBeInTheDocument();
+        expect(screen.getByText(/during/)).toHaveTextContent('3rd Term');
         expect(screen.queryByLabelText('Contact person')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Review and Submit/ })).not.toBeInTheDocument();
     });

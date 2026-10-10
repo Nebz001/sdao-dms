@@ -25,12 +25,14 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { useInitials } from '@/hooks/use-initials';
+import { BRAND_TINT } from '@/lib/brand-tint';
 import { buildRequirementRows, peopleSummary } from '@/lib/org-requirements';
 import type {
     RequirementAction,
     RequirementItem,
 } from '@/lib/org-requirements';
 import { NO_SCHOOL_LABEL } from '@/lib/school';
+import { cn } from '@/lib/utils';
 import * as officerChange from '@/routes/organizations/officer-change';
 import * as registrationRoutes from '@/routes/registrations';
 import * as renewalRoutes from '@/routes/renewals';
@@ -111,7 +113,7 @@ export default function MyOrganization({
                                 src={auth?.organization?.logoUrl ?? undefined}
                                 alt=""
                             />
-                            <AvatarFallback className="rounded-xl bg-violet-500/10 text-2xl font-semibold text-violet-700 dark:bg-violet-400/15 dark:text-violet-300">
+                            <AvatarFallback className={cn('rounded-xl text-2xl font-semibold', BRAND_TINT)}>
                                 {orgMonogram(organization.name)}
                             </AvatarFallback>
                         </Avatar>
@@ -278,7 +280,7 @@ export default function MyOrganization({
                                         className="flex items-center gap-3 py-3 first:pt-0"
                                     >
                                         <Avatar className="size-10">
-                                            <AvatarFallback className="bg-indigo-500/10 text-sm font-medium text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300">
+                                            <AvatarFallback className={cn('text-sm font-medium', BRAND_TINT)}>
                                                 {getInitials(o.user.name)}
                                             </AvatarFallback>
                                         </Avatar>
@@ -386,7 +388,7 @@ export default function MyOrganization({
                             ) : (
                                 <div className="flex items-center gap-3">
                                     <Avatar className="size-10">
-                                        <AvatarFallback className="bg-teal-500/10 text-sm font-medium text-teal-700 dark:bg-teal-400/15 dark:text-teal-300">
+                                        <AvatarFallback className={cn('text-sm font-medium', BRAND_TINT)}>
                                             {getInitials(adviser.name)}
                                         </AvatarFallback>
                                     </Avatar>

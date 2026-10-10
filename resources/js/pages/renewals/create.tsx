@@ -1,9 +1,10 @@
-import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { Form, Head } from '@inertiajs/react';
+import { ArrowRight, CalendarClock, FileCheck2, FileX2 } from 'lucide-react';
 import { useState } from 'react';
 import RenewalController from '@/actions/App/Http/Controllers/RenewalController';
 import AttachmentRequirements, { requirementsSummary, uploadedCount } from '@/components/attachment-requirements';
 import type { AttachmentSlotDef } from '@/components/attachment-slot-field';
+import BlockedState from '@/components/blocked-state';
 import {
     FocusFirstError,
     FormCard,
@@ -16,8 +17,7 @@ import {
     LockedValue,
 } from '@/components/form-shell';
 import FormSubmitConfirm from '@/components/form-submit-confirm';
-import PageNotice from '@/components/page-notice';
-import { Button } from '@/components/ui/button';
+import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -27,6 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { mine } from '@/routes/organizations';
 import * as renewals from '@/routes/renewals';
 
 type OrganizationTypeOption = {
@@ -95,23 +96,11 @@ export default function CreateRenewal({
         return (
             <>
                 <Head title="Submit Renewal" />
-                <FormShell title="Renew Your Organization" subtitle="Keep your organization active for next school year. SDAO reviews it the same way as a registration.">
-                    <PageNotice
-                        tone="info"
-                        title="Renewal not available yet."
-                        action={
-                            membership && eligibility.status === 'already_filed' ? (
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href={renewals.index().url}>My Renewals</Link>
-                                </Button>
-                            ) : undefined
-                        }
-                    >
-                        {!membership
-                            ? 'You are not bound as an officer of any organization. Contact your adviser to be bound before submitting a renewal.'
-                            : eligibility.message}
-                    </PageNotice>
-                </FormShell>
+                <RenewalBlocked
+                    membership={membership}
+                    eligibility={eligibility}
+                    coveredYear={coveredYear}
+                />
             </>
         );
     }
@@ -292,3 +281,83 @@ CreateRenewal.layout = {
     ],
     columnWidth: '3xl',
 };
+
+/**
+ * The renewal form is closed for this officer. Each reason the server reports
+ * (RenewalEligibility) gets its own title and next step; none of them is a
+ * new rule, only the existing eligibility answer in words.
+ */
+function RenewalBlocked({
+    membership,
+    eligibility,
+    coveredYear,
+}: {
+    membership: Membership | null;
+    eligibility: Eligibility;
+    coveredYear: string;
+}) {
+    if (!membership) {
+        return <NotAnOfficerBlocked action="renew it" />;
+    }
+
+    const organization = membership.organization.name;
+    const goToOrganization = { label: 'Go to My Organization', href: mine() };
+
+    if (eligibility.status === 'season_closed') {
+        return (
+            <BlockedState
+                icon={CalendarClock}
+                title="Renewal not open yet"
+                body={
+                    <>
+                        You can renew <strong>{organization}</strong> during <strong>3rd Term</strong>. SDAO will notify
+                        you once renewal opens.
+                    </>
+                }
+                primary={goToOrganization}
+            />
+        );
+    }
+
+    if (eligibility.status === 'already_filed') {
+        return (
+            <BlockedState
+                icon={FileCheck2}
+                title="Renewal already filed"
+                body={
+                    <>
+                        <strong>{organization}</strong> already has a renewal for <strong>{coveredYear}</strong>. You can
+                        follow it under My Renewals.
+                    </>
+                }
+                secondary={goToOrganization}
+                primary={{ label: 'See my renewals', href: renewals.index() }}
+            />
+        );
+    }
+
+    if (eligibility.status === 'not_yet_due') {
+        return (
+            <BlockedState
+                icon={CalendarClock}
+                title="Renewal not due yet"
+                body={eligibility.message ?? <><strong>{organization}</strong> doesn’t need to renew yet.</>}
+                primary={goToOrganization}
+            />
+        );
+    }
+
+    return (
+        <BlockedState
+            icon={FileX2}
+            title="Nothing to renew yet"
+            body={
+                <>
+                    <strong>{organization}</strong> has no approved registration on record, so there is nothing to renew
+                    from. Its registration has to be approved first.
+                </>
+            }
+            primary={goToOrganization}
+        />
+    );
+}

@@ -17,7 +17,6 @@ export default function ReportsIndex({ reports, canStart }: Props) {
             <ClientListPage
                 kind="report"
                 icon={FileCheck}
-                tone="green"
                 title="After-Activity Reports"
                 subtitle="Report how each approved activity went"
                 searchPlaceholder="Search reports"

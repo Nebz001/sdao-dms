@@ -14,6 +14,7 @@ import type {
 import ApproverDashboardSkeleton from '@/components/approver-dashboard-skeleton';
 import PageNotice from '@/components/page-notice';
 import type { RequirementsData } from '@/components/requirements-checklist';
+import { PendingVerificationBlocked } from '@/components/student-blocked';
 import StudentDashboard from '@/components/student-dashboard';
 import type {
     NeedsActionData,
@@ -102,35 +103,17 @@ export default function Dashboard({
         return (
             <>
                 <Head title="Dashboard" />
-                <div className="mx-auto w-full max-w-2xl">
-                    <PageNotice
-                        tone="info"
-                        icon={Hourglass}
-                        title="Pending SDAO verification."
-                    >
-                        <p>
-                            Your account is awaiting review. Once SDAO verifies
-                            it, you&apos;ll be able to be bound as an
-                            organization officer and submit documents.
-                        </p>
-                        {pendingJoinRequest ? (
-                            <p className="mt-1">
-                                You also have a pending request to join{' '}
-                                <strong>
-                                    {pendingJoinRequest.organizationName}
-                                </strong>
-                                . It is waiting on both your account
-                                verification and the approval of its adviser or
-                                officers.
-                            </p>
-                        ) : (
-                            <p className="mt-1">
-                                There&apos;s nothing else to do right now. Check
-                                back later.
-                            </p>
-                        )}
-                    </PageNotice>
-                </div>
+                <PendingVerificationBlocked
+                    showHome={false}
+                    extra={
+                        pendingJoinRequest ? (
+                            <>
+                                Your request to join <strong>{pendingJoinRequest.organizationName}</strong> is waiting on
+                                this too.
+                            </>
+                        ) : undefined
+                    }
+                />
             </>
         );
     }

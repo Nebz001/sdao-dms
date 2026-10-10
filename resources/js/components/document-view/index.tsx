@@ -71,6 +71,8 @@ type Props = {
  * the decision stays near the top), the details, attachments and history,
  * then the approval flow and record.
  */
+const FORM_TYPE_TITLES = ['Organization Registration', 'Organization Renewal', 'Activity Calendar'];
+
 export default function DocumentView({
     view,
     documentId,
@@ -93,19 +95,25 @@ export default function DocumentView({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view.subject]);
 
+    // A form with no name of its own is titled by its type ("Activity Calendar"), so the
+    // type chip above would only repeat it.
+    const typeIsInTitle = FORM_TYPE_TITLES.includes(view.subject);
+
     return (
         <>
-            <Head title={`${view.subject} — ${view.typeLabel}`} />
+            <Head title={typeIsInTitle ? view.subject : `${view.subject} — ${view.typeLabel}`} />
 
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
                 <PageHeader
                     eyebrow={
+                        typeIsInTitle ? undefined : (
                         <Badge
                             variant="outline"
                             className="border-primary-text/40 bg-primary/15 text-[0.65rem] font-semibold tracking-wide text-primary-text uppercase"
                         >
                             {view.typeLabel}
                         </Badge>
+                        )
                     }
                     title={view.subject}
                     subtitle={

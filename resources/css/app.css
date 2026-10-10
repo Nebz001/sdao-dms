@@ -65,6 +65,9 @@
     --color-brand-accent: var(--brand-accent);
     --color-brand-tint: var(--brand-tint);
     --color-brand-edge: var(--brand-edge);
+    --color-brand-soft: var(--brand-soft);
+    --color-brand-soft-foreground: var(--brand-soft-foreground);
+    --color-brand-soft-border: var(--brand-soft-border);
 
     --color-brand-fixed: var(--brand-fixed);
     --color-brand-fixed-foreground: var(--brand-fixed-foreground);
@@ -172,6 +175,14 @@
     --brand-tint: #9ea8ee;
     /* Subtle lighter edge for filled brand buttons in dark theme. */
     --brand-edge: transparent;
+    /* The one decorative blue: icon tiles, date badges, role pills, initials.
+       A soft wash of the brand with the brand itself as the glyph/text
+       (7.5:1 on the light wash); dark theme swaps to the lighter tint of the
+       same hue (5.9:1 on its wash, over the 4.5:1 text bar). Semantic colors
+       (status badges, banners) never use these. */
+    --brand-soft: color-mix(in oklab, var(--brand) 12%, transparent);
+    --brand-soft-foreground: var(--brand);
+    --brand-soft-border: color-mix(in oklab, var(--brand) 28%, transparent);
     /* Gold: a small separate accent (the seal's monogram color). Never used
        for buttons. */
     --brand-accent: #ffd41c;
@@ -234,6 +245,9 @@
     /* Brand stays navy in dark theme. The navy alone nearly vanishes on
        zinc-900 (1.9:1), so filled brand buttons get a lighter edge. */
     --brand-edge: color-mix(in oklab, var(--brand-tint) 45%, transparent);
+    --brand-soft: color-mix(in oklab, var(--brand-tint) 16%, transparent);
+    --brand-soft-foreground: var(--brand-tint);
+    --brand-soft-border: color-mix(in oklab, var(--brand-tint) 35%, transparent);
 }
 
 /*

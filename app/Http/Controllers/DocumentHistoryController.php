@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Approval\CurrentApproverLabel;
+use App\Dashboard\StudentDocumentLabel;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Models\Document;
@@ -96,7 +97,7 @@ class DocumentHistoryController extends Controller
             'documents' => [
                 'data' => collect($documents->items())->map(fn (Document $d) => [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    ...StudentDocumentLabel::payload($d),
                     'status' => $d->status->value,
                     'formType' => $d->form_type->value,
                     'formTypeLabel' => $d->form_type->label(),

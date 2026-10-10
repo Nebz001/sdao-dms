@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Building2, Hourglass, Search } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import BlockedState from '@/components/blocked-state';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
 import PageHeader from '@/components/page-header';
@@ -9,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { dashboard } from '@/routes';
+import { mine } from '@/routes/organizations';
 import * as organizationsJoin from '@/routes/organizations/join';
 import * as registrations from '@/routes/registrations';
 
@@ -108,21 +111,18 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <CenteredContainer maxWidth="2xl" className="space-y-6">
-                    <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
-
-                    <PageNotice tone="info">
-                        Your request is already on its way.
-                    </PageNotice>
-                    <p className="text-sm text-muted-foreground">
-                        You have a pending request to join{' '}
-                        <strong className="text-foreground">
-                            {pendingRequest.organization.name}
-                        </strong>
-                        . Its adviser or an active officer will approve or
-                        decline it — you&apos;ll be notified either way.
-                    </p>
-                </CenteredContainer>
+                <BlockedState
+                    width="2xl"
+                    icon={Hourglass}
+                    title="Join request pending"
+                    body={
+                        <>
+                            Your request to join <strong>{pendingRequest.organization.name}</strong> is waiting on its
+                            adviser or an active officer. You’ll be notified once it’s decided.
+                        </>
+                    }
+                    primary={{ label: 'Back to Home', href: dashboard() }}
+                />
             </>
         );
     }
@@ -131,14 +131,13 @@ export default function JoinOrganization({
         return (
             <>
                 <Head title="Join an Organization" />
-                <CenteredContainer maxWidth="2xl" className="space-y-6">
-                    <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
-
-                    <PageNotice tone="info">
-                        You&apos;re already an active officer of an organization. A student can
-                        only belong to one organization at a time.
-                    </PageNotice>
-                </CenteredContainer>
+                <BlockedState
+                    width="2xl"
+                    icon={Building2}
+                    title="You’re already an officer"
+                    body={<>A student can only belong to one organization at a time, so you can’t join another one.</>}
+                    primary={{ label: 'Go to My Organization', href: mine() }}
+                />
             </>
         );
     }
@@ -271,4 +270,5 @@ export default function JoinOrganization({
 
 JoinOrganization.layout = {
     breadcrumbs: [{ title: 'Join an Organization' }],
+    columnWidth: '2xl',
 };

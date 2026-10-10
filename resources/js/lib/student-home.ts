@@ -1,17 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
-import type { TileTone } from '@/components/icon-tile';
 import type { NavEntry, NavItem, NavSection } from '@/types';
 import { isNavGroup } from '@/types/navigation';
 
-
-export type HomeCardTone = TileTone;
 
 export type HomeCard = {
     key: string;
     title: string;
     description: string;
     icon: LucideIcon;
-    tone: HomeCardTone;
     /** The sub pages, for the "N options" count and for search. Null on a one-page card. */
     items: NavItem[] | null;
     /** A card with several options opens its hub page; any other goes straight to its page. */
@@ -28,46 +24,38 @@ export type HomeCard = {
 const CARD_COPY: {
     title: string;
     description: string;
-    tone: HomeCardTone;
 }[] = [
     {
         title: 'Submit',
         description:
             'File a new activity proposal, after-activity report, or registration.',
-        tone: 'blue',
     },
     {
         title: 'My Documents',
         description:
             'See your drafts, submitted, returned, and approved documents.',
-        tone: 'green',
     },
     {
         title: 'Review',
         description: 'Check documents that need your sign-off as an officer.',
-        tone: 'amber',
     },
     {
         title: 'Venue Calendar',
         description: 'See which venues are free before you plan an activity.',
-        tone: 'teal',
     },
     {
         title: 'My Organization',
         description:
             'View your org profile, officers, and registration status.',
-        tone: 'purple',
     },
     {
         title: 'Request Officer Change',
         description: 'Ask SDAO to update who holds an officer position.',
-        tone: 'orange',
     },
     {
         title: 'Join an Organization',
         description:
             'Find your organization and ask its adviser or officers to let you in.',
-        tone: 'sky',
     },
 ];
 
@@ -101,7 +89,6 @@ export function buildHomeCards(sections: NavSection[]): HomeCard[] {
             title: copy.title,
             description: copy.description,
             icon: entry.icon,
-            tone: copy.tone,
         };
 
         if (isNavGroup(entry) && entry.items.length > 1 && entry.href) {

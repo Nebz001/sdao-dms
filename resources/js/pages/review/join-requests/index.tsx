@@ -6,22 +6,20 @@ import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CountBadge from '@/components/count-badge';
 import IconTile from '@/components/icon-tile';
+import InitialsAvatar from '@/components/initials-avatar';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { formatDate } from '@/components/review-queue/types';
 import { RequestStatusBadge } from '@/components/status-badge';
 import TagBadge from '@/components/tag-badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
-import { useInitials } from '@/hooks/use-initials';
 import { askedExact, askedLabel } from '@/lib/asked-time';
 import { notify } from '@/lib/toast';
-import { cn } from '@/lib/utils';
 
 type PositionOption = { value: string; label: string };
 
@@ -88,7 +86,7 @@ export default function JoinRequestsIndex({ queue, closed, positions }: Props) {
                 >
                     {queue.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-                            <IconTile icon={UserRoundCheck} tone="green" size="md" />
+                            <IconTile icon={UserRoundCheck} size="md" />
                             <div className="space-y-1">
                                 <h2 className="text-lg font-bold">No requests right now</h2>
                                 <p className="mx-auto max-w-sm text-sm text-muted-foreground">
@@ -99,12 +97,11 @@ export default function JoinRequestsIndex({ queue, closed, positions }: Props) {
                         </div>
                     ) : (
                         <ul className="divide-y">
-                            {queue.map((request, index) => (
+                            {queue.map((request) => (
                                 <RequestRow
                                     key={request.id}
                                     request={request}
                                     positions={positions}
-                                    tone={index % 2 === 0 ? 'blue' : 'teal'}
                                     showOrganization={showOrganization}
                                     busy={busy}
                                     setBusy={setBusy}
@@ -169,36 +166,22 @@ function ListCard({
 function RequestRow({
     request,
     positions,
-    tone,
     showOrganization,
     busy,
     setBusy,
 }: {
     request: JoinRequestQueueItem;
     positions: PositionOption[];
-    tone: 'blue' | 'teal';
     showOrganization: boolean;
     busy: Busy;
     setBusy: (busy: Busy) => void;
 }) {
-    const getInitials = useInitials();
     const rowBusy = busy?.id === request.id;
     const noSeat = request.open_positions.length === 0;
 
     return (
         <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
-            <Avatar className="size-10">
-                <AvatarFallback
-                    className={cn(
-                        'text-xs font-semibold',
-                        tone === 'blue'
-                            ? 'bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300'
-                            : 'bg-teal-500/10 text-teal-700 dark:bg-teal-400/15 dark:text-teal-300',
-                    )}
-                >
-                    {getInitials(request.student.name)}
-                </AvatarFallback>
-            </Avatar>
+            <InitialsAvatar name={request.student.name} />
 
             <div className="min-w-0 flex-1 basis-56">
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold">

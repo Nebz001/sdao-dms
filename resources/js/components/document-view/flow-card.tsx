@@ -2,6 +2,7 @@ import { Check, X } from 'lucide-react';
 import AccountName from '@/components/account-name';
 import { ToneBadge } from '@/components/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { cn } from '@/lib/utils';
 import { CardHeading } from './details';
 import { formatLongDate } from './format';
@@ -82,7 +83,7 @@ export default function FlowCard({ flow }: { flow: FlowNode[] }) {
                                     )}
                                     {date && <p className="text-xs text-muted-foreground">{date}</p>}
                                     {node.isYou && (
-                                        <ToneBadge tone="info" className="mt-1 self-start">
+                                        <ToneBadge tone="neutral" className={cn(BRAND_TINT_OUTLINE, 'mt-1 self-start')}>
                                             You are here
                                         </ToneBadge>
                                     )}
