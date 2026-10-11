@@ -2,6 +2,7 @@
 
 namespace App\Approval;
 
+use App\Calendar\CalendarVisibility;
 use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -306,7 +307,7 @@ class ApproverDashboardData
         /** @var Collection<int, ActivityProposal> $proposals */
         $proposals = $this->directory->remembering(fn () => ActivityProposal::query()
             ->with(['calendarActivity', 'document.organization', 'document.workflowTemplate.steps', 'document.transitions'])
-            ->whereHas('document', fn ($q) => $q->where('status', DocumentStatus::Approved->value))
+            ->whereHas('document', fn ($q) => app(CalendarVisibility::class)->restrict($q->where('status', DocumentStatus::Approved->value), $this->approver))
             ->whereHas('calendarActivity', fn ($q) => $q->whereBetween('activity_date', [$today->toDateString(), $windowEnd->toDateString()]))
             ->get()
             ->filter(fn (ActivityProposal $p) => $p->calendarActivity !== null

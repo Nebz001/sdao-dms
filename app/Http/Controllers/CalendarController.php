@@ -2,24 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Calendar\CalendarVisibility;
 use App\Enums\DocumentStatus;
 use App\Models\CalendarActivity;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CalendarController extends Controller
 {
     /**
-     * Shared venue calendar — confirmed (Approved) and tentative (InReview) activities
-     * across all orgs, for the double-booking-prevention view.
+     * Venue calendar — confirmed (Approved) and tentative (InReview) activities,
+     * limited to what the user may open (see CalendarVisibility). Conflict
+     * checking is separate and still sees every booking.
      */
-    public function index(): Response
+    public function index(CalendarVisibility $visibility): Response
     {
+        $user = Auth::user();
         $activities = CalendarActivity::query()
-            ->whereHas('calendar.document', fn ($q) => $q->whereIn('status', [
+            ->whereHas('calendar.document', fn ($q) => $visibility->restrict($q->whereIn('status', [
                 DocumentStatus::Approved->value,
                 DocumentStatus::InReview->value,
-            ]))
+            ]), $user))
             ->with('calendar.document.organization')
             ->orderBy('activity_date')
             ->orderBy('start_time')
@@ -38,6 +42,7 @@ class CalendarController extends Controller
 
         return Inertia::render('calendar/index', [
             'activities' => $activities,
+            'visibility' => $visibility->scopeFor($user),
         ]);
     }
 }
