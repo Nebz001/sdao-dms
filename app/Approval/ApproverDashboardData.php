@@ -2,6 +2,7 @@
 
 namespace App\Approval;
 
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\Role;
@@ -48,7 +49,7 @@ class ApproverDashboardData
 
     private const int COMING_UP_LIMIT = 4;
 
-    private const int RECENT_DECISIONS_LIMIT = 5;
+    private const int RECENT_DECISIONS_LIMIT = 2;
 
     /** A document at a step for this many days or more is "stalled" (warning tone). */
     private const int STALLED_AFTER_DAYS = 3;
@@ -210,7 +211,7 @@ class ApproverDashboardData
 
         /** @var Collection<int, array<string, mixed>> $rows */
         $rows = $this->directory->remembering(fn () => Document::query()
-            ->with(['organization', 'workflowTemplate.steps', 'latestTransition', 'transitions'])
+            ->with([...DocumentDisplayTitle::relations(), 'workflowTemplate.steps', 'latestTransition', 'transitions'])
             ->whereIn('id', $documentIds)
             ->where('status', DocumentStatus::InReview->value)
             ->get()
@@ -270,7 +271,7 @@ class ApproverDashboardData
     public function recentDecisions(): array
     {
         return $this->myDecisions()
-            ->with(['document:id,title,form_type,status,organization_id', 'document.organization:id,name'])
+            ->with(array_map(fn (string $relation) => "document.{$relation}", DocumentDisplayTitle::relations()))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(self::RECENT_DECISIONS_LIMIT * 5)
@@ -281,7 +282,7 @@ class ApproverDashboardData
                 'id' => $t->id,
                 'action' => $t->action->value,
                 'formTypeLabel' => $t->document->form_type->label(),
-                'documentTitle' => $t->document->title,
+                'documentTitle' => DocumentDisplayTitle::subject($t->document),
                 'organizationName' => $t->document->organization->name,
                 'whenLabel' => $this->decisionWhenLabel($t->created_at),
                 'waitingOnOrg' => $t->action === TransitionAction::Returned
@@ -308,7 +309,7 @@ class ApproverDashboardData
 
         /** @var EloquentCollection<int, Document> $pending */
         $pending = $this->queue
-            ->pendingFor($this->approver, null, ['activityProposal.calendarActivity'])
+            ->pendingFor($this->approver, null, [...DocumentDisplayTitle::relations(), 'activityProposal.calendarActivity'])
             ->filter(fn (Document $d) => $gate->allows('review', $d))
             ->values();
 
@@ -318,7 +319,7 @@ class ApproverDashboardData
 
                 return [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    'title' => DocumentDisplayTitle::subject($d),
                     'formType' => $d->form_type->value,
                     'formTypeLabel' => $d->form_type->label(),
                     'organizationName' => $d->organization->name,
@@ -418,7 +419,7 @@ class ApproverDashboardData
 
         return [
             'id' => $document->id,
-            'title' => $document->title,
+            'title' => DocumentDisplayTitle::subject($document),
             'organizationName' => $document->organization->name,
             'formTypeLabel' => $document->form_type->label(),
             'href' => DocumentUrls::pathForReviewer($document),

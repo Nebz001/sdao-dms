@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import AccountName from '@/components/account-name';
+import OrganizationBadge from '@/components/organization-badge';
 import { ActionBadge } from '@/components/status-badge';
-import TagBadge from '@/components/tag-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -78,9 +78,7 @@ export default function RecentActivityCard({ entries, viewAllHref }: RecentActiv
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                         <AccountName name={entry.actorName} nameClassName="text-sm" />
                                         <ActionBadge action={entry.badge} />
-                                        <TagBadge className="max-w-40 text-[0.7rem]" title={entry.organizationName}>
-                                            {entry.organizationName}
-                                        </TagBadge>
+                                        <OrganizationBadge name={entry.organizationName} className="max-w-40" />
                                         <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground">
                                             {formatActivityTime(entry.createdAt)}
                                         </span>

@@ -2,6 +2,7 @@
 
 namespace App\Approval;
 
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ReviewQueueFilter;
@@ -68,7 +69,7 @@ class ReviewQueueData
         $now = Date::now();
 
         return Document::query()
-            ->with(['organization.school', 'transitions', ...$this->with])
+            ->with(['organization.school', 'transitions', ...DocumentDisplayTitle::relations(), ...$this->with])
             ->where('form_type', $this->formType->value)
             ->where('status', DocumentStatus::InReview->value)
             // Defensive: a submitter-less document must never reach the queue
@@ -84,7 +85,7 @@ class ReviewQueueData
 
                 return [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    'title' => DocumentDisplayTitle::subject($d),
                     'status' => $d->status->value,
                     'current_step_position' => $d->current_step_position,
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],

@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { CalendarClock, CircleCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FormTypeLabelBadge } from '@/components/form-type-badge';
+import OrganizationBadge from '@/components/organization-badge';
 import PageHeader from '@/components/page-header';
 import PaginationFooter from '@/components/pagination-footer';
 import RemindDocumentButton from '@/components/remind-document-button';
@@ -11,7 +12,6 @@ import { SectionCard } from '@/components/review-queue/queue-tables';
 import { ToneBadge } from '@/components/status-badge';
 import StuckDocumentsStats, { pluralDays } from '@/components/stuck-documents-stats';
 import type { StuckDocumentsStatsData } from '@/components/stuck-documents-stats';
-import TagBadge from '@/components/tag-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -275,7 +275,7 @@ export default function StuckDocumentsIndex({
                                                 <p className="text-sm font-semibold break-words">
                                                     {activity.name}
                                                 </p>
-                                                <TagBadge className="mt-1 text-[0.7rem]">{activity.organizationName}</TagBadge>
+                                                <OrganizationBadge name={activity.organizationName} className="mt-1" />
                                             </div>
                                             <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
                                                 <CalendarClock className="size-4" aria-hidden />

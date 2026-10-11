@@ -1,3 +1,4 @@
+import { FileText } from 'lucide-react';
 import { ToneBadge } from '@/components/status-badge';
 import TagBadge from '@/components/tag-badge';
 import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
@@ -25,11 +26,22 @@ export function FormTypeLabelBadge({ label, className }: FormTypeBadgeProps) {
             tone="neutral"
             className={cn(BRAND_TINT_OUTLINE, className)}
         >
+            <FileText aria-hidden />
             {label}
         </ToneBadge>
     );
 }
 
+/**
+ * The form type beside a document's title: a file icon on the brand tint.
+ * Pairs with OrganizationBadge (users icon, outlined) so the two differ in
+ * both icon and style.
+ */
 export default function FormTypeBadge({ label, className }: FormTypeBadgeProps) {
-    return <TagBadge className={className}>{label}</TagBadge>;
+    return (
+        <TagBadge className={cn(BRAND_TINT_OUTLINE, 'font-medium', className)}>
+            <FileText aria-hidden />
+            {label}
+        </TagBadge>
+    );
 }

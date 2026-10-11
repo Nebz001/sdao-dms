@@ -3,6 +3,7 @@
 namespace App\Organizations;
 
 use App\Approval\ReviewQueueData;
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
@@ -139,7 +140,7 @@ class OrganizationDetailData
         $rows = Document::query()
             ->where('organization_id', $organization->id)
             ->where('status', '!=', DocumentStatus::Draft->value)
-            ->with(['registrationDetail', 'activityCalendar', 'transitions'])
+            ->with([...DocumentDisplayTitle::relations(), 'transitions'])
             ->orderByDesc('id')
             ->get()
             ->map(function (Document $d) {
@@ -147,7 +148,7 @@ class OrganizationDetailData
 
                 return [
                     'id' => $d->id,
-                    'title' => $d->title,
+                    'title' => DocumentDisplayTitle::subject($d),
                     'type' => $d->form_type->label(),
                     'period' => ['key' => $period->toString(), 'label' => $period->label()],
                     'submitted_at' => ($d->transitions->firstWhere('action', TransitionAction::Submitted)?->created_at ?? $d->created_at)->toIso8601String(),
@@ -391,9 +392,11 @@ class OrganizationDetailData
      */
     private function documentRef(Document $document): array
     {
+        $document->loadMissing(DocumentDisplayTitle::relations());
+
         return [
             'id' => $document->id,
-            'title' => $document->title,
+            'title' => DocumentDisplayTitle::subject($document),
             'type' => $document->form_type->label(),
             'status' => $document->status->value,
             'href' => $this->hrefFor($document),

@@ -21,8 +21,10 @@ import type { TrackerStep } from '@/components/approver-step-tracker';
 import DateBadge from '@/components/date-badge';
 import FormTypeBadge from '@/components/form-type-badge';
 import IdentityPill from '@/components/identity-pill';
+import OrganizationBadge from '@/components/organization-badge';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
+import type { PageNoticeTone } from '@/components/page-notice';
 import { SegmentedLegend } from '@/components/review-queue/segmented-bar';
 import StatIconTile from '@/components/stat-icon-tile';
 import type { StatIconTileTone } from '@/components/stat-icon-tile';
@@ -232,6 +234,17 @@ function StatHeader({ icon, tone, children }: { icon: LucideIcon; tone?: StatIco
     );
 }
 
+/** The banner's button takes its own banner's color; every tone the banner can be in is listed here. */
+const BANNER_BUTTON: Partial<Record<PageNoticeTone, string>> = {
+    info: 'bg-info-foreground text-background hover:bg-info-foreground/90',
+    warning: 'bg-warning-foreground text-background hover:bg-warning-foreground/90',
+    destructive: 'bg-destructive-foreground text-background hover:bg-destructive-foreground/90',
+};
+
+function bannerTone(document: NeedsReviewEntry): PageNoticeTone {
+    return document.daysUntilEvent !== null && document.daysUntilEvent < 0 ? 'warning' : 'info';
+}
+
 function ReviewBanner({ summary }: { summary: ApproverSummary }) {
     const { count, document } = summary.banner;
 
@@ -243,13 +256,16 @@ function ReviewBanner({ summary }: { summary: ApproverSummary }) {
         );
     }
 
+    const tone = bannerTone(document);
+
     return (
         <PageNotice
-            tone="info"
+            tone={tone}
             icon={Inbox}
+            className="items-center [&>svg]:translate-y-0"
             title={`You have ${plural(count, 'document')} to review.`}
             action={
-                <Button asChild>
+                <Button asChild className={BANNER_BUTTON[tone]}>
                     <Link href={document.href}>
                         Start reviewing
                         <ArrowRight data-icon="inline-end" />
@@ -318,7 +334,7 @@ function NextEventCard({ event }: { event: NeedsReviewEntry | null }) {
                             <p className="min-w-0 text-base font-semibold break-words">{event.title}</p>
                             <EventCountdownBadge days={event.daysUntilEvent} />
                         </div>
-                        <p className="text-sm text-muted-foreground">{event.organizationName}</p>
+                        <div><OrganizationBadge name={event.organizationName} /></div>
                         <p className="text-sm text-muted-foreground">Event date: {formatShortDate(event.eventDate)}</p>
                         <div className="mt-auto pt-1">
                             <CardLink href={event.href}>Review proposal</CardLink>
@@ -386,8 +402,8 @@ function NeedsReviewCard({ needsReview, reviewHref }: { needsReview: ApproverNee
                             <li key={row.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0">
                                 <div className="min-w-0 flex-1 basis-56">
                                     <p className="text-sm font-semibold break-words">{row.title}</p>
-                                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                                        <span className="break-words">{row.organizationName}</span>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                        <OrganizationBadge name={row.organizationName} />
                                         <FormTypeBadge label={row.formTypeLabel} />
                                     </div>
                                     <p className="mt-1 text-xs text-muted-foreground">
@@ -445,8 +461,8 @@ function InProgressCard({ rows, trackHref, className }: { rows: InProgressRow[];
                                     <Link href={row.href} className="text-sm font-semibold break-words hover:underline">
                                         {row.title}
                                     </Link>
-                                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                                        <span className="break-words">{row.organizationName}</span>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                        <OrganizationBadge name={row.organizationName} />
                                         <FormTypeBadge label={row.formTypeLabel} />
                                     </div>
                                 </div>
@@ -492,7 +508,7 @@ function ComingUpCard({ events }: { events: ComingUpEvent[] }) {
                                     <Link href={event.href} className="text-sm font-semibold break-words hover:underline">
                                         {event.title}
                                     </Link>
-                                    <p className="text-sm text-muted-foreground break-words">{event.organizationName}</p>
+                                    <div className="my-1"><OrganizationBadge name={event.organizationName} /></div>
                                     <p className="text-sm text-muted-foreground break-words">{event.venue}</p>
                                     <span className="sr-only">{formatShortDate(event.date)}</span>
                                 </div>
@@ -522,8 +538,8 @@ function RecentDecisionsCard({ decisions, historyHref, className }: { decisions:
                                     <Link href={entry.href} className="text-sm font-semibold break-words hover:underline">
                                         {entry.documentTitle}
                                     </Link>
-                                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                                        <span className="break-words">{entry.organizationName}</span>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                        <OrganizationBadge name={entry.organizationName} />
                                         <FormTypeBadge label={entry.formTypeLabel} />
                                     </div>
                                     {entry.waitingOnOrg && (

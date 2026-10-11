@@ -238,7 +238,7 @@ test('the banner points at the waiting document with the soonest event date', fu
     approverDashboardAs($this->adviserOne, fn ($reload) => $reload
         ->where('approverSummary.banner.count', 3)
         ->where('approverSummary.banner.document.id', $soonest->id)
-        ->where('approverSummary.banner.document.title', $soonest->title)
+        ->where('approverSummary.banner.document.title', 'Soonest')
         ->where('approverSummary.banner.document.daysUntilEvent', 3)
     );
 });
@@ -581,17 +581,14 @@ test('recent decisions show the latest outcome per document with a relative date
     $this->travelTo($now);
 
     approverDashboardAs($this->adviserOne, fn ($reload) => $reload
-        ->has('approverRecentDecisions', 3)
-        ->where('approverRecentDecisions.0.documentTitle', $resent->title)
+        ->has('approverRecentDecisions', 2)
+        ->where('approverRecentDecisions.0.documentTitle', 'Resent Decision')
         ->where('approverRecentDecisions.0.whenLabel', '1 day ago')
         ->where('approverRecentDecisions.0.waitingOnOrg', false)
-        ->where('approverRecentDecisions.1.documentTitle', $returned->title)
+        ->where('approverRecentDecisions.1.documentTitle', 'Returned Decision')
         ->where('approverRecentDecisions.1.action', 'returned')
         ->where('approverRecentDecisions.1.whenLabel', '5 days ago')
         ->where('approverRecentDecisions.1.waitingOnOrg', true)
-        ->where('approverRecentDecisions.2.action', 'approved')
-        ->where('approverRecentDecisions.2.whenLabel', DisplayTimezone::convert($now->copy()->subDays(10))->format('M j'))
-        ->where('approverRecentDecisions.2.waitingOnOrg', false)
     );
 });
 
