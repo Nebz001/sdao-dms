@@ -82,6 +82,7 @@ test('a withdrawn registration never appears in the SDAO review queue', function
 
     $this->actingAs($student)->delete(route('profile.destroy'), ['password' => 'password']);
 
+    $this->acceptPrivacyNotice();
     $response = $this->actingAs($sdaoA)->get(route('review.registrations.index'));
 
     $response->assertOk();

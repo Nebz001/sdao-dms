@@ -7,6 +7,7 @@ use App\Approval\Contracts\SubmitterNotifier;
 use App\Approval\Notifications\MailingSubmitterNotifier;
 use App\Approval\Notifications\RecordingApproverNotifier;
 use App\Enums\Role;
+use App\Http\Responses\LoginResponse;
 use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Models\Organization;
@@ -28,6 +29,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -46,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         // every consumer (DocumentPolicy, StepApproverResolver, a queue
         // controller) within that request — never leaked across requests.
         $this->app->scoped(RoleDirectory::class);
+
+        // Every login lands on the Privacy Notice first (see EnsurePrivacyNoticeAccepted).
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
     }
 
     /**

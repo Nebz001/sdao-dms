@@ -34,6 +34,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfficerChangeController;
 use App\Http\Controllers\OrganizationLogoController;
 use App\Http\Controllers\OrganizationOfficerController;
+use App\Http\Controllers\PrivacyNoticeController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
 use App\Http\Controllers\RenewalController;
@@ -61,6 +62,17 @@ Route::middleware(['guest'])->group(function () {
     Route::post('register/verify/resend', [AuthRegistrationController::class, 'resend'])
         ->middleware('throttle:email-code-resend')
         ->name('register.verify.resend');
+});
+
+// Privacy Notice — every login must accept it before anything else opens
+// (EnsurePrivacyNoticeAccepted). Outside `verified` so a user who still has
+// to verify their email can reach it too.
+Route::middleware(['auth'])->group(function () {
+    Route::get('privacy-notice', [PrivacyNoticeController::class, 'show'])->name('privacy-notice.show');
+    Route::post('privacy-notice', [PrivacyNoticeController::class, 'accept'])
+        ->middleware('throttle:20,1')
+        ->name('privacy-notice.accept');
+    Route::post('privacy-notice/decline', [PrivacyNoticeController::class, 'decline'])->name('privacy-notice.decline');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

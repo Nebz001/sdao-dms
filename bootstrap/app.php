@@ -4,6 +4,7 @@ use App\Approval\Exceptions\NoApproverForStepException;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureMobileAccess;
 use App\Http\Middleware\EnsurePasswordIsChanged;
+use App\Http\Middleware\EnsurePrivacyNoticeAccepted;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             EnsureAccountIsActive::class,
+            EnsurePrivacyNoticeAccepted::class,
             EnsurePasswordIsChanged::class,
         ]);
 

@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Support\PrivacyNotice;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Vite;
 use Laravel\Fortify\Features;
@@ -18,6 +19,22 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         Vite::useHotFile(storage_path('framework/testing-no-vite-hot'));
+
+        // Tests act as someone who already accepted the Privacy Notice, so the
+        // gate (EnsurePrivacyNoticeAccepted) does not block every other test.
+        // PrivacyNoticeGateTest starts from a session without it.
+        $this->withSession([PrivacyNotice::SESSION_KEY => PrivacyNotice::VERSION]);
+    }
+
+    /** For tests whose session was replaced (database driver, logout) after setUp. */
+    protected function acceptPrivacyNotice(): static
+    {
+        return $this->withSession([PrivacyNotice::SESSION_KEY => PrivacyNotice::VERSION]);
+    }
+
+    protected function withoutPrivacyNoticeAcceptance(): static
+    {
+        return $this->flushSession();
     }
 
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void

@@ -12,7 +12,12 @@ export function layoutKindFor(
     pageName: string,
     auth: Pick<Auth, 'user' | 'roles'> | null | undefined,
 ): LayoutKind {
-    if (pageName === 'welcome' || pageName === 'errors/error') {
+    // The privacy notice draws its own full-width page with a sticky action bar.
+    if (
+        pageName === 'welcome' ||
+        pageName === 'errors/error' ||
+        pageName === 'privacy-notice'
+    ) {
         return 'none';
     }
 

@@ -43,6 +43,9 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
         'account_status' => AccountStatus::Verified,
     ])->save();
 
+    // Registering logged the student in, which clears the notice acceptance.
+    $this->acceptPrivacyNotice();
+
     // 3. The adviser binds them as an officer through the real route.
     $this->actingAs($this->adviser)->post(route('officers.store', $this->org), [
         'user_id' => $student->id,
@@ -62,6 +65,7 @@ test('a real Fortify-authenticated, adviser-bound student gets the same auth.isA
     $this->assertAuthenticatedAs($student->fresh());
 
     // 5. Hit any page and inspect the shared auth.isActiveOfficer prop the sidebar reads.
+    $this->acceptPrivacyNotice();
     $response = $this->withoutVite()->get(route('dashboard'));
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
@@ -74,6 +78,7 @@ test('the same auth.isActiveOfficer signal appears for an equivalent seeded stud
 
     $this->actingAs($seededStudent);
 
+    $this->acceptPrivacyNotice();
     $response = $this->withoutVite()->get(route('dashboard'));
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page

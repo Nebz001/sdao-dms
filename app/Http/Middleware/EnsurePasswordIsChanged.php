@@ -28,6 +28,9 @@ class EnsurePasswordIsChanged
     public const array ALLOWED_ROUTES = [
         'password.change.edit',
         'password.change.update',
+        'privacy-notice.show',
+        'privacy-notice.accept',
+        'privacy-notice.decline',
         'logout',
     ];
 

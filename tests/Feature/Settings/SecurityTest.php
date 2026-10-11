@@ -99,6 +99,7 @@ test('password can be updated', function () {
 
 test('changing the password ends the other web sessions of the user but keeps the current one', function () {
     config(['session.driver' => 'database']);
+    $this->acceptPrivacyNotice();
 
     $user = User::factory()->create();
     $someoneElse = User::factory()->create();
@@ -132,6 +133,7 @@ test('changing the password ends the other web sessions of the user but keeps th
 
 test('a failed password change leaves the other web sessions alone', function () {
     config(['session.driver' => 'database']);
+    $this->acceptPrivacyNotice();
 
     $user = User::factory()->create();
 

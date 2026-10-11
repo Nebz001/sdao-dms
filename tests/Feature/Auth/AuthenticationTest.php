@@ -18,7 +18,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('privacy-notice.show', absolute: false));
 });
 
 test('a user with leftover two-factor data from before its removal still logs in with just email and password', function () {
@@ -39,7 +39,7 @@ test('a user with leftover two-factor data from before its removal still logs in
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('privacy-notice.show', absolute: false));
 });
 
 test('every two-factor route is gone', function () {

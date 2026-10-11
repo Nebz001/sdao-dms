@@ -480,6 +480,7 @@ test('a newly provisioned approver logs in with the one time password and is sen
     ]);
 
     $this->assertAuthenticatedAs($user);
+    $this->post(route('privacy-notice.accept'), ['agree' => true]);
     $this->get(route('dashboard'))->assertRedirect(route('password.change.edit'));
 });
 

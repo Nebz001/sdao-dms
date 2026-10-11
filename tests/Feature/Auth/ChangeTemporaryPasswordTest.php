@@ -166,6 +166,7 @@ test('the new password must follow the existing password rules', function () {
 
 test('a successful change ends the other sessions of the user but keeps the current one', function () {
     config(['session.driver' => 'database']);
+    $this->acceptPrivacyNotice();
 
     $other = User::where('email', 'sdao-b@nu-lipa.edu.ph')->firstOrFail();
 
