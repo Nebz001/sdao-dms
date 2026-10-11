@@ -22,6 +22,8 @@ type OrganizationResult = {
 type PartnerOrganizationsFieldProps = {
     initial?: PartnerOrganization[] | null;
     errors: Record<string, string>;
+    /** Called with the current rows whenever they change, for a page that tracks what was edited. */
+    onChange?: (entries: PartnerOrganization[]) => void;
 };
 
 /**
@@ -41,10 +43,20 @@ type PartnerOrganizationsFieldProps = {
  * identically before — same reason components/expense-items-table.tsx was
  * extracted for that field's pair of pages.
  */
-export default function PartnerOrganizationsField({ initial, errors }: PartnerOrganizationsFieldProps) {
+export default function PartnerOrganizationsField({
+    initial,
+    errors,
+    onChange,
+}: PartnerOrganizationsFieldProps) {
     const [entries, setEntries] = useState<PartnerOrganization[]>(
-        initial && initial.length > 0 ? initial : [{ organization_id: null, name: '' }],
+        initial && initial.length > 0
+            ? initial
+            : [{ organization_id: null, name: '' }],
     );
+
+    useEffect(() => {
+        onChange?.(entries);
+    }, [entries, onChange]);
 
     function updateEntry(index: number, next: PartnerOrganization) {
         setEntries((prev) => {
@@ -63,7 +75,12 @@ export default function PartnerOrganizationsField({ initial, errors }: PartnerOr
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setEntries((prev) => [...prev, { organization_id: null, name: '' }])}
+                    onClick={() =>
+                        setEntries((prev) => [
+                            ...prev,
+                            { organization_id: null, name: '' },
+                        ])
+                    }
                 >
                     + Add
                 </Button>
@@ -74,14 +91,19 @@ export default function PartnerOrganizationsField({ initial, errors }: PartnerOr
                     index={i}
                     value={entry}
                     onChange={(next) => updateEntry(i, next)}
-                    onRemove={() => setEntries((prev) => prev.filter((_, idx) => idx !== i))}
+                    onRemove={() =>
+                        setEntries((prev) => prev.filter((_, idx) => idx !== i))
+                    }
                     canRemove={entries.length > 1}
                     // .name covers a missing/too-long name; .organization_id
                     // covers a tampered or since-deleted id (the `exists`
                     // rule) — either can fire for the same row, never both
                     // at once in practice, so showing whichever is present
                     // is enough.
-                    error={errors[`partner_organizations.${i}.name`] ?? errors[`partner_organizations.${i}.organization_id`]}
+                    error={
+                        errors[`partner_organizations.${i}.name`] ??
+                        errors[`partner_organizations.${i}.organization_id`]
+                    }
                 />
             ))}
             <InputError message={errors.partner_organizations} />
@@ -114,7 +136,14 @@ type PartnerOrganizationRowProps = {
  * from the actual keystroke handler avoids that without needing an extra
  * "did this change come from typing or picking" flag.
  */
-function PartnerOrganizationRow({ index, value, onChange, onRemove, canRemove, error }: PartnerOrganizationRowProps) {
+function PartnerOrganizationRow({
+    index,
+    value,
+    onChange,
+    onRemove,
+    canRemove,
+    error,
+}: PartnerOrganizationRowProps) {
     const [results, setResults] = useState<OrganizationResult[]>([]);
     const [status, setStatus] = useState<'idle' | 'searching' | 'done'>('idle');
     const [searchFailed, setSearchFailed] = useState(false);
@@ -133,9 +162,17 @@ function PartnerOrganizationRow({ index, value, onChange, onRemove, canRemove, e
         setStatus('searching');
         setSearchFailed(false);
 
-        fetch(activityProposals.partnerOrganizationSearch.url({ query: { q: query } }), {
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        })
+        fetch(
+            activityProposals.partnerOrganizationSearch.url({
+                query: { q: query },
+            }),
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            },
+        )
             .then((res) => res.json())
             .then((data) => {
                 // Stale-response guard: ignore a slow reply for a query the
@@ -199,29 +236,46 @@ function PartnerOrganizationRow({ index, value, onChange, onRemove, canRemove, e
                     autoComplete="off"
                 />
                 {canRemove && (
-                    <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onRemove}
+                    >
                         Remove
                     </Button>
                 )}
             </div>
-            <input type="hidden" name={`partner_organizations[${index}][organization_id]`} value={value.organization_id ?? ''} />
+            <input
+                type="hidden"
+                name={`partner_organizations[${index}][organization_id]`}
+                value={value.organization_id ?? ''}
+            />
             {value.name.trim() !== '' && status === 'searching' && (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Spinner className="size-3.5" /> Searching organizations…
                 </p>
             )}
             {status === 'done' && searchFailed && (
-                <PageNotice tone="destructive" urgent title="Couldn't search organizations just now.">
+                <PageNotice
+                    tone="destructive"
+                    urgent
+                    title="Couldn't search organizations just now."
+                >
                     Try again.
                 </PageNotice>
             )}
-            {status === 'done' && !searchFailed && results.length === 0 && value.organization_id === null && (
-                <p className="text-sm text-muted-foreground">
-                    No matching organization found — you can still enter this as free text.
-                </p>
-            )}
+            {status === 'done' &&
+                !searchFailed &&
+                results.length === 0 &&
+                value.organization_id === null && (
+                    <p className="text-sm text-muted-foreground">
+                        No matching organization found — you can still enter
+                        this as free text.
+                    </p>
+                )}
             {results.length > 0 && (
-                <div className="rounded-md border divide-y">
+                <div className="divide-y rounded-md border">
                     {results.map((org) => (
                         <button
                             key={org.id}
@@ -232,7 +286,9 @@ function PartnerOrganizationRow({ index, value, onChange, onRemove, canRemove, e
                             <span>{org.name}</span>
                             {(org.school || org.program) && (
                                 <span className="text-xs text-muted-foreground">
-                                    {[org.school, org.program].filter(Boolean).join(' · ')}
+                                    {[org.school, org.program]
+                                        .filter(Boolean)
+                                        .join(' · ')}
                                 </span>
                             )}
                         </button>

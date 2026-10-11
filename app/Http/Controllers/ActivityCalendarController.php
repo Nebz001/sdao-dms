@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
+use App\Approval\FixDraft;
+use App\Approval\FixResendData;
 use App\Approval\SectionFlags;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
@@ -218,6 +220,7 @@ class ActivityCalendarController extends Controller
             // "activity_{index}", one per row at the time of the return that
             // put this document in its current Returned state.
             'flaggedSections' => $flaggedSections,
+            'fix' => FixResendData::for($document),
         ]);
     }
 
@@ -230,6 +233,8 @@ class ActivityCalendarController extends Controller
             document: $document,
             activities: $request->input('activities'),
         );
+
+        FixDraft::forget($document);
 
         $flash = FlashToast::make('Activity calendar resubmitted', 'SDAO has your changes and will review them again.');
 

@@ -15,6 +15,8 @@ type Props = {
     /** Content of the button that opens the dialog. */
     children: ReactNode;
     triggerDisabled?: boolean;
+    /** Id of text that says why the button is disabled, so a screen reader hears it with the button. */
+    triggerDescribedBy?: string;
 };
 
 /**
@@ -32,6 +34,7 @@ export default function FormSubmitConfirm({
     confirmLabel,
     children,
     triggerDisabled,
+    triggerDescribedBy,
 }: Props) {
     const [open, setOpen] = useState(false);
     const actions = useRef<ConfirmActions | null>(null);
@@ -50,7 +53,7 @@ export default function FormSubmitConfirm({
             open={open}
             onOpenChange={setOpen}
             trigger={
-                <Button type="button" disabled={triggerDisabled}>
+                <Button type="button" disabled={triggerDisabled} aria-describedby={triggerDescribedBy}>
                     {children}
                 </Button>
             }

@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import * as track from '@/routes/track';
 import type { NavEntry, NavItem, NavSection } from '@/types';
 import { isNavGroup } from '@/types/navigation';
 
@@ -174,56 +175,34 @@ export function greetingFor(now: Date = new Date()): string {
     return 'Good evening';
 }
 
-export type BannerState = {
-    kind: 'caught-up' | 'needs-action';
+/**
+ * Pages the home search can open that are not a home card (no card was added
+ * for them). A page is matched on its title or any of its keywords.
+ */
+export type SearchPage = {
     title: string;
-    description: string;
+    href: NavItem['href'];
+    keywords: string[];
 };
 
-/**
- * The status banner's words. `needsActionTotal` counts returned documents and
- * unfinished drafts; `inChainTotal` is the tracker's total, which also lists
- * returned documents, so those are taken out to count only what is actually
- * waiting on an approver.
- */
-export function bannerState({
-    needsActionTotal,
-    returnedCount,
-    draftCount,
-    inChainTotal,
-}: {
-    needsActionTotal: number;
-    returnedCount: number;
-    draftCount: number;
-    inChainTotal: number;
-}): BannerState {
-    const moving = Math.max(0, inChainTotal - returnedCount);
-    const chain =
-        moving === 0
-            ? 'No documents are moving through the approval chain.'
-            : `${pluralize(moving, 'document')} ${moving === 1 ? 'is' : 'are'} moving through the approval chain.`;
+export const SEARCH_PAGES: SearchPage[] = [
+    {
+        title: 'Track Documents',
+        href: track.index(),
+        keywords: ['routing', 'approval chain', 'approval steps', 'where is my document', 'status'],
+    },
+];
 
-    if (needsActionTotal === 0) {
-        return {
-            kind: 'caught-up',
-            title: 'You’re all caught up',
-            description: `Nothing needs your action. ${chain}`,
-        };
+export function matchingPages(query: string, pages: SearchPage[] = SEARCH_PAGES): SearchPage[] {
+    const needle = query.trim().toLowerCase();
+
+    if (needle === '') {
+        return [];
     }
 
-    const parts: string[] = [];
-
-    if (returnedCount > 0) {
-        parts.push(`${returnedCount} returned for revision`);
-    }
-
-    if (draftCount > 0) {
-        parts.push(pluralize(draftCount, 'unfinished draft'));
-    }
-
-    return {
-        kind: 'needs-action',
-        title: `${pluralize(needsActionTotal, 'document')} ${needsActionTotal === 1 ? 'needs' : 'need'} your action`,
-        description: `${parts.length > 0 ? `${parts.join(' and ')}. ` : ''}${chain}`,
-    };
+    return pages.filter(
+        (page) =>
+            page.title.toLowerCase().includes(needle) ||
+            page.keywords.some((keyword) => keyword.toLowerCase().includes(needle)),
+    );
 }

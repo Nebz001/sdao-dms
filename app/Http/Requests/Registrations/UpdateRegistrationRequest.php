@@ -5,12 +5,15 @@ namespace App\Http\Requests\Registrations;
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
 use App\Enums\Role;
+use App\Http\Requests\Concerns\FillsLockedFields;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateRegistrationRequest extends FormRequest
 {
+    use FillsLockedFields;
+
     public function authorize(): bool
     {
         return true; // Authorization handled in controller via policy.

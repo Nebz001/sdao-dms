@@ -4,11 +4,14 @@ namespace App\Http\Requests\Renewals;
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
+use App\Http\Requests\Concerns\FillsLockedFields;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateRenewalRequest extends FormRequest
 {
+    use FillsLockedFields;
+
     public function authorize(): bool
     {
         return true; // Authorization handled in controller via policy.

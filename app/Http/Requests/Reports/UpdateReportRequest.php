@@ -4,11 +4,14 @@ namespace App\Http\Requests\Reports;
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
+use App\Http\Requests\Concerns\FillsLockedFields;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateReportRequest extends FormRequest
 {
+    use FillsLockedFields;
+
     public function authorize(): bool
     {
         return true; // Authorization handled in controller via policy.

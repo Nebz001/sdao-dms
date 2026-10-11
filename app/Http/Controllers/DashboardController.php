@@ -6,6 +6,7 @@ use App\Approval\ApproverDashboardData;
 use App\Enums\Role;
 use App\Models\OrganizationJoinRequest;
 use App\Organizations\StudentDashboardData;
+use App\Organizations\StudentTrackData;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -84,6 +85,8 @@ class DashboardController extends Controller
             $data['studentQuickSubmit'] = Inertia::defer(fn () => $student->quickSubmit(), 'student');
             $data['studentUpcoming'] = Inertia::defer(fn () => $student->upcomingActivities(), 'student');
             $data['studentSubmissions'] = Inertia::defer(fn () => $student->submissionsOverTime(), 'student');
+            // The home banner: counted from the same documents the Track Documents page lists.
+            $data['studentTrackSummary'] = Inertia::defer(fn () => app(StudentTrackData::class)->summary($user), 'student');
         }
 
         if ($reviewsProposals) {

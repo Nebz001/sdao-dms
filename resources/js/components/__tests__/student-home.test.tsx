@@ -2,20 +2,16 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-    NeedsActionData,
-    StudentDashboardMeta,
-    StudentKpis,
-    TrackerData,
-} from '@/components/student-dashboard';
+import type { StudentDashboardMeta } from '@/components/student-dashboard';
 import StudentHome, { HomeStatusBanner } from '@/components/student-home';
 import { buildNavSections } from '@/lib/nav-config';
 import {
-    bannerState,
     buildHomeCards,
     filterHomeCards,
     greetingFor,
 } from '@/lib/student-home';
+import { bannerFor } from '@/lib/track';
+import type { TrackSummary } from '@/lib/track';
 
 const pageMock = vi.hoisted(() => ({ props: {} as Record<string, unknown> }));
 
@@ -278,84 +274,119 @@ describe('StudentHome page', () => {
 });
 
 describe('status banner', () => {
-    const kpis = (needsRevision: number) =>
-        ({ needsRevision: { count: needsRevision, href: '#' } }) as StudentKpis;
-    const tracker = (total: number): TrackerData => ({ total, items: [] });
-    const needsAction = (total: number): NeedsActionData => ({
-        total,
-        items: [],
+    const base: TrackSummary = {
+        returned: 0,
+        drafts: 0,
+        moving: 0,
+        approved: 0,
+        approvedYear: 0,
+        stopped: 0,
+        total: 0,
+        movingByStep: [],
+    };
+    const summary = (overrides: Partial<TrackSummary>): TrackSummary => ({ ...base, ...overrides });
+    const href = () => screen.getByRole('link').getAttribute('href');
+
+    it('is orange when something needs action, opens the Needs your action tab, and counts what is moving', () => {
+        render(<HomeStatusBanner summary={summary({ returned: 1, moving: 1, total: 2 })} />);
+
+        expect(screen.getByText('1 document needs your action')).toBeInTheDocument();
+        expect(
+            screen.getByText('1 returned for revision. 1 document is moving through the approval chain.'),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'action');
+        expect(href()).toContain('/track?tab=action');
+        expect(screen.getByRole('link', { name: /Track my documents/ })).toBeInTheDocument();
     });
 
-    it('says caught up and counts documents in the chain, singular', () => {
+    it('counts returned documents and unfinished drafts together, in the plural', () => {
+        render(<HomeStatusBanner summary={summary({ returned: 2, drafts: 1, moving: 3, total: 6 })} />);
+
+        expect(screen.getByText('3 documents need your action')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                '2 returned for revision. 1 unfinished draft. 3 documents are moving through the approval chain.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('is NU blue when documents are moving and nothing needs action, naming where each one is', () => {
         render(
             <HomeStatusBanner
-                needsAction={needsAction(0)}
-                tracker={tracker(1)}
-                kpis={kpis(0)}
-                trackHref="/document-history"
+                summary={summary({
+                    moving: 2,
+                    total: 2,
+                    movingByStep: [
+                        { label: 'College Dean', count: 1 },
+                        { label: 'SDAO', count: 1 },
+                    ],
+                })}
             />,
         );
 
-        expect(screen.getByText('You’re all caught up')).toBeInTheDocument();
+        expect(screen.getByText('2 documents are moving')).toBeInTheDocument();
         expect(
-            screen.getByText(
-                'Nothing needs your action. 1 document is moving through the approval chain.',
-            ),
+            screen.getByText('Nothing needs your action. 1 is with the College Dean, 1 is with SDAO.'),
         ).toBeInTheDocument();
-        expect(
-            screen.getByRole('link', { name: /Track my documents/ }),
-        ).toHaveAttribute('href', '/document-history');
+        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'moving');
+        expect(href()).toContain('/track?tab=moving');
     });
 
-    it('uses the plural for several documents', () => {
-        expect(
-            bannerState({
-                needsActionTotal: 0,
-                returnedCount: 0,
-                draftCount: 0,
-                inChainTotal: 3,
-            }).description,
-        ).toBe(
-            'Nothing needs your action. 3 documents are moving through the approval chain.',
-        );
-    });
-
-    it('warns with the count when something needs action, never the caught up message', () => {
-        render(
+    it('gets the singular right for one moving document and for several at one step', () => {
+        const { unmount } = render(
             <HomeStatusBanner
-                needsAction={needsAction(3)}
-                tracker={tracker(3)}
-                kpis={kpis(2)}
-                trackHref="/document-history"
+                summary={summary({ moving: 1, total: 1, movingByStep: [{ label: 'Adviser', count: 1 }] })}
             />,
         );
+        expect(screen.getByText('1 document is moving')).toBeInTheDocument();
+        unmount();
 
-        expect(
-            screen.getByText('3 documents need your action'),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByText(
-                '2 returned for revision and 1 unfinished draft. 1 document is moving through the approval chain.',
-            ),
-        ).toBeInTheDocument();
-        expect(
-            screen.queryByText('You’re all caught up'),
-        ).not.toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute(
-            'data-state',
-            'needs-action',
+        render(
+            <HomeStatusBanner
+                summary={summary({ moving: 3, total: 3, movingByStep: [{ label: 'SDAO', count: 3 }] })}
+            />,
         );
+        expect(screen.getByText('Nothing needs your action. 3 are with SDAO.')).toBeInTheDocument();
     });
 
-    it('gets the singular right for one document needing action', () => {
-        expect(
-            bannerState({
-                needsActionTotal: 1,
-                returnedCount: 1,
-                draftCount: 0,
-                inChainTotal: 1,
-            }).title,
-        ).toBe('1 document needs your action');
+    it('is green when everything is approved, and opens the Approved tab', () => {
+        render(<HomeStatusBanner summary={summary({ approved: 4, approvedYear: 4, total: 4 })} />);
+
+        expect(screen.getByText('All documents approved')).toBeInTheDocument();
+        expect(screen.getByText('You’re all caught up. 4 documents approved this term.')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'approved');
+        expect(screen.getByRole('link', { name: /See document routing/ })).toBeInTheDocument();
+        expect(href()).toContain('/track?tab=approved');
+    });
+
+    it('says one approved document in the singular', () => {
+        render(<HomeStatusBanner summary={summary({ approved: 1, approvedYear: 1, total: 1 })} />);
+
+        expect(screen.getByText('You’re all caught up. 1 document approved this term.')).toBeInTheDocument();
+    });
+
+    it('is a quiet gray banner with a Go to Submit button when nothing was ever filed', () => {
+        render(<HomeStatusBanner summary={summary({})} />);
+
+        expect(screen.getByText('No documents yet')).toBeInTheDocument();
+        expect(screen.getByText('Your documents will show up here once you submit one.')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'empty');
+        expect(href()).toContain('/submit');
+        expect(screen.getByRole('link', { name: /Go to Submit/ })).toBeInTheDocument();
+    });
+
+    it('still renders, quietly, when the only documents were stopped', () => {
+        render(<HomeStatusBanner summary={summary({ stopped: 2, total: 2 })} />);
+
+        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'quiet');
+        expect(href()).toContain('/track');
+    });
+
+    it('picks the state in order: action beats moving beats approved', () => {
+        expect(bannerFor(summary({ returned: 1, moving: 2, approvedYear: 3, total: 6 })).kind).toBe('action');
+        expect(bannerFor(summary({ moving: 2, approvedYear: 3, total: 5 })).kind).toBe('moving');
+        expect(bannerFor(summary({ approvedYear: 3, total: 3 })).kind).toBe('approved');
+        expect(bannerFor(summary({})).kind).toBe('empty');
     });
 });
 

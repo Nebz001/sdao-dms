@@ -43,4 +43,37 @@ function PopoverContent({
   )
 }
 
-export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor }
+/**
+ * A small pointer on the edge of the card toward its anchor, drawn with the
+ * card's own border and background. Radix turns it around when the card flips
+ * to the other side of the anchor.
+ */
+function PopoverArrow({
+  className,
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Arrow>) {
+  return (
+    <PopoverPrimitive.Arrow asChild {...props}>
+      <svg
+        data-slot="popover-arrow"
+        aria-hidden
+        width={16}
+        height={8}
+        viewBox="0 0 20 10"
+        preserveAspectRatio="none"
+        className={cn("overflow-visible", className)}
+      >
+        <rect x={1} y={-1.5} width={18} height={1.5} className="fill-popover" />
+        <path d="M0 0 L10 10 L20 0 Z" className="fill-popover" />
+        <path
+          d="M0 0 L10 10 L20 0"
+          fill="none"
+          strokeWidth={1.25}
+          className="stroke-border"
+        />
+      </svg>
+    </PopoverPrimitive.Arrow>
+  )
+}
+
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor, PopoverArrow }

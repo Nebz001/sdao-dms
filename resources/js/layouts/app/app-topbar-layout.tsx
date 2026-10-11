@@ -24,6 +24,7 @@ export default function AppTopbarLayout({
     children,
     breadcrumbs = [],
     columnWidth,
+    trailParent,
 }: {
     children: React.ReactNode;
     breadcrumbs?: PageCrumb[];
@@ -34,6 +35,8 @@ export default function AppTopbarLayout({
      * edge of the content instead of the far left of the page.
      */
     columnWidth?: keyof typeof MAX_WIDTHS;
+    /** Where the user came from, for a page that can be reached from more than one list. */
+    trailParent?: PageCrumb & { href: NonNullable<PageCrumb['href']> };
 }) {
     const page = usePage();
     const { auth, navCounts } = page.props;
@@ -43,8 +46,9 @@ export default function AppTopbarLayout({
                 buildNavSections(auth, navCounts),
                 page.url,
                 breadcrumbs,
+                trailParent,
             ),
-        [auth, navCounts, page.url, breadcrumbs],
+        [auth, navCounts, page.url, breadcrumbs, trailParent],
     );
 
     return (

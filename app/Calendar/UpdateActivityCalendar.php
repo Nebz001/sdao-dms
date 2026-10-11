@@ -4,6 +4,7 @@ namespace App\Calendar;
 
 use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
+use App\Approval\ReturnedEditLock;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverGuard;
@@ -79,6 +80,15 @@ class UpdateActivityCalendar
                     ->get()
                     ->map(fn (CalendarActivity $row) => FieldChangeSet::snapshot($row, $rowDefs))
                     ->all();
+
+            // Fix and Resend: unflagged rows must come back identical, flagged
+            // rows must differ, and no row may be added or removed. Checked
+            // against the stored rows before anything is deleted.
+            $lock = ReturnedEditLock::for($document);
+            $lock?->assertCalendarRows(
+                $calendar->activities()->get()->map(fn (CalendarActivity $row) => FieldChangeSet::snapshot($row, $rowDefs))->all(),
+                ReturnedEditLock::snapshotPostedRows($activities),
+            );
 
             // Replace all child activities
             CalendarActivity::where('activity_calendar_id', $calendar->id)->delete();

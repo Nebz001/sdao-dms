@@ -4,22 +4,19 @@ import {
     CircleCheck,
     Clock,
     ExternalLink,
+    FilePlus2,
     GraduationCap,
     LayoutGrid,
     Search,
     TriangleAlert,
     Users,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import IconTile from '@/components/icon-tile';
 import { ToneBadge } from '@/components/status-badge';
-import type {
-    NeedsActionData,
-    StudentDashboardMeta,
-    StudentKpis,
-    TrackerData,
-} from '@/components/student-dashboard';
+import type { StudentDashboardMeta } from '@/components/student-dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -31,18 +28,22 @@ import {
 } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
+import { BRAND_TINT, BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { buildNavSections } from '@/lib/nav-config';
 import { labelFor, toneFor } from '@/lib/status-tones';
 import {
-    bannerState,
     buildHomeCards,
     filterHomeCards,
     greetingFor,
+    matchingPages,
     pluralize,
 } from '@/lib/student-home';
 import type { HomeCard } from '@/lib/student-home';
+import { bannerFor } from '@/lib/track';
+import type { BannerKind, TrackSummary } from '@/lib/track';
 import { cn } from '@/lib/utils';
+import * as hubs from '@/routes/hubs';
+import * as track from '@/routes/track';
 
 const CARD_FACE =
     'group relative flex h-full w-full flex-col gap-4 rounded-xl border border-card-border bg-card p-6 text-left text-card-foreground shadow-sm transition-colors hover:border-foreground/30 focus-visible:focus-ring';
@@ -160,65 +161,73 @@ export function HomeStatusBannerSkeleton() {
     );
 }
 
+const BANNER_STYLES: Record<
+    BannerKind,
+    { card: string; tile: string; button: string; icon: LucideIcon }
+> = {
+    action: {
+        card: 'border-warning/50 bg-warning/5',
+        tile: 'bg-warning/15 text-warning-foreground',
+        button: 'border-warning/60 text-warning-foreground hover:bg-warning/10 hover:text-warning-foreground',
+        icon: TriangleAlert,
+    },
+    moving: {
+        card: 'border-brand-soft-border bg-brand-soft',
+        tile: BRAND_TINT,
+        button: 'border-brand-soft-border text-brand-soft-foreground hover:bg-brand-soft hover:text-brand-soft-foreground',
+        icon: Clock,
+    },
+    approved: {
+        card: 'border-success/40 bg-success/5',
+        tile: 'bg-success/15 text-success-foreground',
+        button: 'border-success/50 text-success-foreground hover:bg-success/10 hover:text-success-foreground',
+        icon: CircleCheck,
+    },
+    quiet: {
+        card: 'border-border bg-muted/30',
+        tile: 'bg-muted text-muted-foreground',
+        button: 'border-input text-foreground',
+        icon: Clock,
+    },
+    empty: {
+        card: 'border-border bg-muted/30',
+        tile: 'bg-muted text-muted-foreground',
+        button: 'border-input text-foreground',
+        icon: FilePlus2,
+    },
+};
+
 /**
- * One wide card: caught up, or a warning with the count when something needs
- * the student (returned documents, unfinished drafts). Fed by the same
- * deferred data the old Needs Your Action and In Progress sections used.
+ * One wide card that is always on the home page, so an officer can always get
+ * to the routing page: orange when something needs them, NU blue while
+ * documents are moving, green when everything is approved, gray when nothing
+ * has been filed (its button goes to Submit instead). The words come from the
+ * real counts (lib/track.ts), with the singular and plural worked out.
  */
-export function HomeStatusBanner({
-    needsAction,
-    tracker,
-    kpis,
-    trackHref,
-}: {
-    needsAction: NeedsActionData;
-    tracker: TrackerData;
-    kpis: StudentKpis;
-    trackHref: string;
-}) {
-    const returnedCount = Math.min(kpis.needsRevision.count, needsAction.total);
-    const state = bannerState({
-        needsActionTotal: needsAction.total,
-        returnedCount,
-        draftCount: needsAction.total - returnedCount,
-        inChainTotal: tracker.total,
-    });
-    const warning = state.kind === 'needs-action';
-    const Icon = warning ? TriangleAlert : CircleCheck;
+export function HomeStatusBanner({ summary }: { summary: TrackSummary }) {
+    const banner = bannerFor(summary);
+    const style = BANNER_STYLES[banner.kind];
+    const Icon = style.icon;
+    const href = banner.tab === null ? hubs.submit() : track.index({ query: { tab: banner.tab } });
 
     return (
-        <Card
-            data-state={state.kind}
-            role="status"
-            className={cn(warning && 'border-warning/50 bg-warning/5')}
-        >
+        <Card data-state={banner.kind} role="status" className={cn(style.card)}>
             <CardContent className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex min-w-0 items-center gap-4">
                     <span
                         aria-hidden
-                        className={cn(
-                            'flex size-10 shrink-0 items-center justify-center rounded-lg',
-                            warning
-                                ? 'bg-warning/15 text-warning-foreground'
-                                : 'bg-success/10 text-success-foreground',
-                        )}
+                        className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', style.tile)}
                     >
                         <Icon className="size-5" />
                     </span>
-                    <div>
-                        <p className="font-semibold">{state.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                            {state.description}
-                        </p>
+                    <div className="min-w-0">
+                        <p className="font-semibold">{banner.title}</p>
+                        <p className="text-sm text-muted-foreground">{banner.description}</p>
                     </div>
                 </div>
-                <Button
-                    asChild
-                    variant="link"
-                    className="px-0 text-primary-text"
-                >
-                    <Link href={trackHref} prefetch>
-                        Track my documents
+                <Button asChild variant="outline" className={cn('w-full sm:w-auto', style.button)}>
+                    <Link href={href} prefetch>
+                        {banner.button}
                         <ChevronRight data-icon="inline-end" />
                     </Link>
                 </Button>
@@ -252,6 +261,8 @@ export default function StudentHome({
         () => filterHomeCards(cards, query),
         [cards, query],
     );
+    // Pages with no card of their own (Track Documents) are found here too, for officers.
+    const pages = useMemo(() => (meta ? matchingPages(query) : []), [meta, query]);
 
     return (
         <div className="flex flex-col gap-8">
@@ -306,6 +317,21 @@ export default function StudentHome({
                         `${pluralize(visibleCards.length, 'result')} for ${query.trim()}`}
                 </p>
 
+                {pages.length > 0 && (
+                    <ul aria-label="Pages" className="flex flex-wrap gap-2">
+                        {pages.map((page) => (
+                            <li key={page.title}>
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href={page.href} prefetch>
+                                        {page.title}
+                                        <ChevronRight data-icon="inline-end" />
+                                    </Link>
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
                 {visibleCards.length > 0 ? (
                     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {visibleCards.map((card) => (
@@ -314,7 +340,7 @@ export default function StudentHome({
                             </li>
                         ))}
                     </ul>
-                ) : (
+                ) : pages.length > 0 ? null : (
                     <Empty className="border">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

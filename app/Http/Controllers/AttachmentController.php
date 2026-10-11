@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Approval\ReturnedEditLock;
 use App\Attachments\AttachmentSlot;
 use App\Attachments\AttachmentSlots;
 use App\Attachments\AttachmentStorage;
@@ -43,6 +44,15 @@ class AttachmentController extends Controller
 
         $slot = $this->resolveSlot($document, $request->string('slot_key')->toString());
 
+        // Fix and Resend: on a returned document only a flagged slot may change.
+        // A real 422: the web app turns a ValidationException into a redirect, which
+        // an upload's fetch would follow and misread as success.
+        try {
+            ReturnedEditLock::for($document)?->assertSlotEditable($slot->key);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        }
+
         $attachment = $attachmentStorage->store(
             document: $document,
             slotKey: $slot->key,
@@ -61,9 +71,15 @@ class AttachmentController extends Controller
         ], 201);
     }
 
-    public function destroy(DocumentAttachment $attachment, AttachmentStorage $attachmentStorage): HttpResponse
+    public function destroy(DocumentAttachment $attachment, AttachmentStorage $attachmentStorage): HttpResponse|JsonResponse
     {
         $this->authorizeMutation($attachment->document);
+
+        try {
+            ReturnedEditLock::for($attachment->document)?->assertSlotEditable($attachment->slot_key);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        }
 
         $attachmentStorage->delete($attachment);
 

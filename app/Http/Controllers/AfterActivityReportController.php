@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
+use App\Approval\FixDraft;
+use App\Approval\FixResendData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Dashboard\StudentDocumentLabel;
@@ -267,6 +269,7 @@ class AfterActivityReportController extends Controller
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
+            'fix' => FixResendData::for($document),
         ]);
     }
 
@@ -286,6 +289,8 @@ class AfterActivityReportController extends Controller
             targetParticipantsPercentage: $request->integer('target_participants_percentage'),
             attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::AfterActivityReport),
         );
+
+        FixDraft::forget($document);
 
         return redirect()->route('reports.show', $document)
             ->with('flash', FlashToast::make('Report resubmitted', 'The reviewer who returned it will look at your changes again.'));

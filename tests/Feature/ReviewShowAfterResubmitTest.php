@@ -41,13 +41,16 @@ test('the proposal review page and its poll reload return 200 after a return and
     app(ApprovalEngine::class)->returnForRevision($doc, $adviser, 'Fix it.', ['schedule_venue', 'budget'], ['budget' => 'Too high']);
     $doc->refresh();
 
+    // Only the flagged budget and schedule change; the narrative goes back as it was.
+    $stored = $doc->activityProposal()->first();
+
     app(ResubmitActivityProposal::class)->execute($student, $doc, [
-        'objectives' => 'Goal',
-        'activity_description' => 'Description',
-        'criteria_mechanics' => 'Criteria',
-        'program_flow' => 'Flow',
+        'objectives' => $stored->objectives,
+        'activity_description' => $stored->activity_description,
+        'criteria_mechanics' => $stored->criteria_mechanics,
+        'program_flow' => $stored->program_flow,
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
-        'responsible_persons' => ['Person'],
+        'responsible_persons' => $stored->responsible_persons,
         'proposed_budget' => '5000',
         'title' => 'Coding Night',
         'venue' => 'Main Gymnasium',
@@ -97,7 +100,7 @@ test('the calendar review page returns 200 after repeated returns and resubmits'
             document: $doc,
             activities: [
                 ['name' => 'Orientation', 'venue' => "Auditorium {$round}", 'activity_date' => '2026-09-15', 'start_time' => '09:00', 'end_time' => '12:00'],
-                ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => '2026-10-01', 'start_time' => '08:00', 'end_time' => '17:00'],
+                ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => '2026-10-01', 'start_time' => '08:00', 'end_time' => '17:00', 'description' => "Round {$round}"],
             ],
         );
         $doc->refresh();

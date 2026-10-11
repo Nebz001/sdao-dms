@@ -392,6 +392,36 @@ keys), not just a comment string. Section definitions per form type:
 - **After-Activity Report:** Event Details, Summary/Program, Evaluation,
   Attachments, General
 
+### Fix and Resend — a returned document is locked to what was flagged
+
+While a document is Returned, only what the approver flagged can change, and
+every flagged item must actually change before it can be resent. This is
+enforced on the server (`App\Approval\ReturnedEditLock`, called by the five
+resubmit actions and by the standalone upload endpoint), never only by hiding
+inputs. It reads the existing flag data (`SectionFlags::currentlyFlagged`, the
+`SectionFields` registry, `AttachmentSlots`); there is no second flag system.
+
+- **The unit is the flagged section** (every field in it), one attachment slot,
+  or, for an Activity Calendar, one activity row. A section counts as fixed when
+  at least one of its fields differs (trimmed, formatted like the revision
+  history); a slot needs a real new upload.
+- **Nothing fixable flagged** (no flags, only "General", or sections with
+  nothing to edit: a renewal's Adviser Selection, a report's Event Details, an
+  on-calendar proposal's Schedule & Venue) means `ReturnedEditLock::for()` is
+  null and the whole form stays editable exactly as before.
+- **A locked change is a 422 message** (`locked` and `flagged` errors), after the
+  write and inside the resubmit transaction, so a refusal rolls everything back;
+  uploads to a locked slot are refused before anything is stored. The resubmit
+  requests fill locked fields they were not sent from what is stored
+  (`FillsLockedFields`), so the page only posts flagged fields.
+- **Save draft** (`documents.fix-draft`) keeps flagged values in the cache for 30
+  days (`FixDraft`, no table) and never touches the document, so the returned
+  version stays the baseline. Files are not drafted. The proposal autosave only
+  ever worked on Drafts and still does.
+- **The edit pages are the Fix and Resend pages** (`fix` prop from
+  `FixResendData`); the resend label and role come from the step the document
+  resumes at, so a resubmit still goes where it always did.
+
 ### Approver remarks — approve-time remarks and after-the-fact remarks
 
 Two separate things; neither changes routing, status, or any printed form.

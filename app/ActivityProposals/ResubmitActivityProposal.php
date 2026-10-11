@@ -4,6 +4,8 @@ namespace App\ActivityProposals;
 
 use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
+use App\Approval\FieldDefinition;
+use App\Approval\ReturnedEditLock;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverGuard;
@@ -118,32 +120,47 @@ class ResubmitActivityProposal
         // resubmit action's own attachment-presence snapshot.
         $hadAttachmentsBefore = FieldChangeSet::snapshotAttachmentPresence($document, $flagged);
 
-        // For off-calendar, optionally update the CalendarActivity details first.
-        if ($isOffCalendar) {
-            $activity = $proposal->calendarActivity;
-
-            if ($activity !== null && $this->hasActivityUpdate($data)) {
-                $activity->update(array_filter([
-                    'name' => $data['title'] ?? $activity->name,
-                    'venue' => $data['venue'] ?? $activity->venue,
-                    'activity_date' => $data['activity_date'] ?? $activity->activity_date->toDateString(),
-                    'start_time' => $data['start_time'] ?? $activity->start_time,
-                    'end_time' => $data['end_time'] ?? $activity->end_time,
-                ], fn ($v) => $v !== null));
-
-                $activity->refresh();
-            }
-
-            // Hard-block: re-check against Approved slots (exclude self — document is Returned).
-            if ($activity !== null) {
-                $this->guardConfirmedConflicts($activity, $document->id);
-            }
-        }
+        // Fix and Resend: only flagged items may change, and each must. The
+        // before-snapshot covers EVERY tracked field and runs before either
+        // model is written; everything below (the calendar activity too) sits
+        // in one transaction, so a refusal undoes all of it.
+        $lock = ReturnedEditLock::for($document);
+        $lock?->assertUploadsAllowed($attachmentFiles);
+        $lockDefs = $lock?->allDefs() ?? [];
+        $scheduleKeys = collect(SectionFields::definitionsFor(FormType::ActivityProposal, 'schedule_venue'))->pluck('key')->all();
+        $lockProposalDefs = array_values(array_filter($lockDefs, fn (FieldDefinition $def) => ! in_array($def->key, $scheduleKeys, true)));
+        $lockActivityDefs = array_values(array_filter($lockDefs, fn (FieldDefinition $def) => in_array($def->key, $scheduleKeys, true)));
+        $lockBefore = $lock === null ? [] : array_merge(
+            FieldChangeSet::snapshot($proposal, $lockProposalDefs),
+            FieldChangeSet::snapshot($proposal->calendarActivity, $lockActivityDefs),
+        );
 
         $document = DB::transaction(function () use (
             $actor, $document, $proposal, $data, $flagged, $proposalDefs, $activityDefs, $oldValues, $trackAnything,
-            $attachmentFiles, $hadAttachmentsBefore,
+            $attachmentFiles, $hadAttachmentsBefore, $isOffCalendar, $lock, $lockBefore, $lockProposalDefs, $lockActivityDefs,
         ) {
+            // For off-calendar, optionally update the CalendarActivity details first.
+            if ($isOffCalendar) {
+                $activity = $proposal->calendarActivity;
+
+                if ($activity !== null && $this->hasActivityUpdate($data)) {
+                    $activity->update(array_filter([
+                        'name' => $data['title'] ?? $activity->name,
+                        'venue' => $data['venue'] ?? $activity->venue,
+                        'activity_date' => $data['activity_date'] ?? $activity->activity_date->toDateString(),
+                        'start_time' => $data['start_time'] ?? $activity->start_time,
+                        'end_time' => $data['end_time'] ?? $activity->end_time,
+                    ], fn ($v) => $v !== null));
+
+                    $activity->refresh();
+                }
+
+                // Hard-block: re-check against Approved slots (exclude self — document is Returned).
+                if ($activity !== null) {
+                    $this->guardConfirmedConflicts($activity, $document->id);
+                }
+            }
+
             $proposal->update([
                 'objectives' => $data['objectives'],
                 // Group E backlog — Activity Description restored.
@@ -172,6 +189,15 @@ class ResubmitActivityProposal
             if (isset($data['title'])) {
                 $proposal->update(['title' => $data['title']]);
             }
+
+            $lock?->assertChanges(
+                $lockBefore,
+                array_merge(
+                    FieldChangeSet::snapshot($proposal->fresh(), $lockProposalDefs),
+                    FieldChangeSet::snapshot($proposal->calendarActivity?->fresh(), $lockActivityDefs),
+                ),
+                $attachmentFiles,
+            );
 
             // Step-1 attachments (Group C item 3) — only newly re-uploaded
             // slots are in $attachmentFiles; untouched slots from the

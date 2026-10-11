@@ -8,12 +8,15 @@ use App\Enums\ActivityType;
 use App\Enums\BudgetSource;
 use App\Enums\FormType;
 use App\Enums\Sdg;
+use App\Http\Requests\Concerns\FillsLockedFields;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateActivityProposalRequest extends FormRequest
 {
+    use FillsLockedFields;
+
     public function authorize(): bool
     {
         return true;

@@ -4,6 +4,7 @@ use App\ActivityProposals\ResubmitActivityProposal;
 use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\Approval\ApprovalEngine;
+use App\Approval\FieldChangeSet;
 use App\Attachments\AttachmentStorage;
 use App\Calendar\SubmitActivityCalendar;
 use App\Calendar\UpdateActivityCalendar;
@@ -23,6 +24,7 @@ use App\Registrations\UpdateOrganizationRegistration;
 use App\Reports\UpdateAfterActivityReport;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -49,8 +51,15 @@ function fcResubmitTransition(Document $document): DocumentTransition
         ->firstOrFail();
 }
 
-/** @param  array<int, string>  $flagged */
-function fcReturnedRegistration(array $flagged): Document
+/**
+ * A returned registration whose required attachments are already on file (the
+ * Fix and Resend rule: a resubmit may only touch what was flagged, so the
+ * other slots must already be filled).
+ *
+ * @param  array<int, string>  $flagged
+ * @param  array<int, string>  $withoutSlots  slots to leave empty
+ */
+function fcReturnedRegistration(array $flagged, array $withoutSlots = []): Document
 {
     $engine = app(ApprovalEngine::class);
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
@@ -74,12 +83,35 @@ function fcReturnedRegistration(array $flagged): Document
         'date_organized' => '2020-06-01',
     ]);
 
+    app(AttachmentStorage::class)->storeMany($doc, array_diff_key(registrationAttachmentFiles(), array_flip($withoutSlots)), $student);
+
     $engine->submit($doc, $student);
     $doc->refresh();
     $engine->returnForRevision($doc, $sdaoA, 'Please revise.', $flagged);
     $doc->refresh();
 
     return $doc;
+}
+
+/**
+ * What a returned proposal currently stores for the required narrative fields,
+ * so a resubmit that only means to change one thing can send the rest back
+ * exactly as they are (anything else would be a change to a locked field).
+ *
+ * @return array<string, mixed>
+ */
+function fcStoredProposalData(Document $document): array
+{
+    $proposal = $document->activityProposal()->first();
+
+    return [
+        'objectives' => $proposal->objectives,
+        'activity_description' => $proposal->activity_description,
+        'criteria_mechanics' => $proposal->criteria_mechanics,
+        'program_flow' => $proposal->program_flow,
+        'expense_items' => $proposal->expense_items,
+        'responsible_persons' => $proposal->responsible_persons,
+    ];
 }
 
 // ── (a) exactly the flagged section's fields, nothing else ─────────────────
@@ -95,7 +127,6 @@ test('registration resubmit captures old and new values for exactly the flagged 
         contactNo: '09179999999',
         emailAddress: 'new@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: registrationAttachmentFiles(),
     );
 
     $changes = fcResubmitTransition($doc)->field_changes;
@@ -120,7 +151,7 @@ test('registration resubmit captures old and new values for exactly the flagged 
 
 // ── (b) unchanged-but-flagged reports changed: false ───────────────────────
 
-test('a flagged field the student did not touch is recorded with changed false', function () {
+test('a field the student left alone inside a flagged section is recorded with changed false', function () {
     $doc = fcReturnedRegistration(['contact_information', 'organization_details']);
 
     $this->updateRegistration->execute(
@@ -133,12 +164,11 @@ test('a flagged field the student did not touch is recorded with changed false',
         // byte-identical here — the value that would false-positive if the
         // after-side were built from the raw request payload rather than a
         // re-read through the same casts.
-        purposeOfOrganization: 'Original purpose.',
+        purposeOfOrganization: 'A rewritten purpose.',
         contactPerson: 'New Person',
         contactNo: '09170000000',
         emailAddress: 'old@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: registrationAttachmentFiles(),
     );
 
     $changes = fcResubmitTransition($doc)->field_changes;
@@ -148,7 +178,8 @@ test('a flagged field the student did not touch is recorded with changed false',
     expect($details['organization_type']['old'])->toBe(OrganizationType::CoCurricular->label());
     expect($details['organization_type']['old'])->toBe($details['organization_type']['new']);
     expect($details['date_organized']['changed'])->toBeFalse();
-    expect($details['purpose_of_organization']['changed'])->toBeFalse();
+    // A flagged section needs ONE changed field to count as fixed; the others in it can stay.
+    expect($details['purpose_of_organization']['changed'])->toBeTrue();
 
     // The contact section did change — proving the false above is a real
     // comparison, not a broken diff that reports everything unchanged.
@@ -195,12 +226,8 @@ test('off-calendar proposal resubmit merges CalendarActivity and ActivityProposa
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
-        'objectives' => 'Overall Goal',
-        'activity_description' => 'Activity Description',
-        'criteria_mechanics' => 'Criteria',
-        'program_flow' => 'Program flow',
+        ...fcStoredProposalData($doc),
         'expense_items' => [['material' => 'Venue', 'quantity' => '1', 'unit_price' => '5000']],
-        'responsible_persons' => ['Responsible Person'],
         'proposed_budget' => '5000',
         'title' => 'Coding Night',
         'venue' => 'Main Gymnasium',
@@ -255,12 +282,8 @@ test('schedule_venue is skipped for an on-calendar proposal, whose date and venu
     $doc->refresh();
 
     $resubmit->execute($this->student, $doc, [
+        ...fcStoredProposalData($doc),
         'objectives' => 'Sharper overall goal',
-        'activity_description' => 'Sharper activity description',
-        'criteria_mechanics' => 'Criteria',
-        'program_flow' => 'Program flow',
-        'expense_items' => [],
-        'responsible_persons' => ['Responsible Person'],
     ]);
 
     $changes = fcResubmitTransition($doc)->field_changes;
@@ -299,8 +322,8 @@ test('calendar resubmit produces a positional diff per flagged activity row', fu
         activities: [
             // Row 0: venue changed, everything else identical.
             ['name' => 'Orientation', 'venue' => 'Auditorium', 'activity_date' => '2026-09-15', 'start_time' => '09:00', 'end_time' => '12:00'],
-            // Row 1: unchanged.
-            ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => '2026-10-01', 'start_time' => '08:00', 'end_time' => '17:00'],
+            // Row 1: only the description changed.
+            ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => '2026-10-01', 'start_time' => '08:00', 'end_time' => '17:00', 'description' => 'Now with prizes.'],
         ],
     );
 
@@ -317,13 +340,13 @@ test('calendar resubmit produces a positional diff per flagged activity row', fu
     expect($row0['venue']['changed'])->toBeTrue();
     expect($row0['name']['changed'])->toBeFalse();
 
-    // A flagged section where nothing changed still appears, with every row
-    // marked unchanged — that is the "student ignored the flag" signal.
-    expect(collect($changes['activity_1']['fields'])->pluck('changed')->unique()->all())
-        ->toBe([false]);
+    // A flagged row only needs one changed field; the rest are recorded as unchanged.
+    $row1 = collect($changes['activity_1']['fields'])->keyBy('key');
+    expect($row1['description']['changed'])->toBeTrue();
+    expect($row1['name']['changed'])->toBeFalse();
 });
 
-test('calendar resubmit that deletes a flagged row records it as removed instead of crashing', function () {
+test('calendar resubmit that deletes a row is refused, since a flagged row can only be fixed, not dropped', function () {
     $submit = app(SubmitActivityCalendar::class);
     $update = app(UpdateActivityCalendar::class);
 
@@ -339,19 +362,28 @@ test('calendar resubmit that deletes a flagged row records it as removed instead
     $this->engine->returnForRevision($doc, $this->sdaoA, 'Drop the second one.', ['activity_1']);
     $doc->refresh();
 
-    // The student deletes the flagged row: index 1 no longer exists after.
-    $update->execute(
+    expect(fn () => $update->execute(
         actor: $this->student,
         document: $doc,
         activities: [
             ['name' => 'Orientation', 'venue' => 'Gymnasium', 'activity_date' => '2026-09-15', 'start_time' => '09:00', 'end_time' => '12:00'],
         ],
+    ))->toThrow(ValidationException::class);
+
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
+    expect($doc->activityCalendar->activities()->count())->toBe(2);
+});
+
+test('the calendar diff still records a row that is missing from the new set as removed', function () {
+    // Unreachable through the resubmit action now (it refuses a missing row),
+    // but the builder stays defensive about the count mismatch.
+    $changes = FieldChangeSet::buildForCalendar(
+        ['activity_1'],
+        [['name' => 'Orientation'], ['name' => 'Hackathon']],
+        [['name' => 'Orientation']],
     );
 
-    $changes = fcResubmitTransition($doc)->field_changes;
-
     expect($changes['activity_1']['status'])->toBe('removed');
-
     $row = collect($changes['activity_1']['fields'])->keyBy('key');
     expect($row['name']['old'])->toBe('Hackathon');
     expect($row['name']['new'])->toBeNull();
@@ -400,10 +432,9 @@ test('field_changes is null when only truly field-less sections were flagged', f
 // ── (g) a flagged attachment slot gets a status marker, not a field diff ───
 
 test('a flagged attachment slot with no prior file is recorded as added', function () {
-    // fcReturnedRegistration() never stores any attachment before returning
-    // the document, so by_laws has no prior file — the student's first
-    // upload for it on resubmit is "added", not "replaced".
-    $doc = fcReturnedRegistration(['by_laws']);
+    // by_laws has no file yet, so the student's first upload for it on
+    // resubmit is "added", not "replaced". Every other slot is already filled.
+    $doc = fcReturnedRegistration(['by_laws'], withoutSlots: ['by_laws']);
 
     $this->updateRegistration->execute(
         actor: $this->student,
@@ -413,7 +444,7 @@ test('a flagged attachment slot with no prior file is recorded as added', functi
         contactNo: '09170000000',
         emailAddress: 'old@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: registrationAttachmentFiles(),
+        attachmentFiles: array_intersect_key(registrationAttachmentFiles(), ['by_laws' => true]),
     );
 
     $changes = fcResubmitTransition($doc)->field_changes;
@@ -425,13 +456,6 @@ test('a flagged attachment slot with no prior file is recorded as added', functi
 
 test('a flagged attachment slot with a prior file is recorded as replaced when a new one is uploaded', function () {
     $doc = fcReturnedRegistration(['by_laws']);
-    app(AttachmentStorage::class)->store(
-        $doc,
-        'by_laws',
-        UploadedFile::fake()->create('old-by-laws.pdf', 100, 'application/pdf'),
-        $this->student,
-        multiple: false,
-    );
 
     $this->updateRegistration->execute(
         actor: $this->student,
@@ -441,7 +465,7 @@ test('a flagged attachment slot with a prior file is recorded as replaced when a
         contactNo: '09170000000',
         emailAddress: 'old@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: registrationAttachmentFiles(),
+        attachmentFiles: array_intersect_key(registrationAttachmentFiles(), ['by_laws' => true]),
     );
 
     $changes = fcResubmitTransition($doc)->field_changes;
@@ -449,20 +473,10 @@ test('a flagged attachment slot with a prior file is recorded as replaced when a
     expect($changes['by_laws']['status'])->toBe('replaced');
 });
 
-test('a flagged attachment slot the student never touched is recorded as unchanged', function () {
+test('a flagged attachment slot the student never touched is refused, so it can never be recorded as unchanged', function () {
     $doc = fcReturnedRegistration(['by_laws']);
-    app(AttachmentStorage::class)->store(
-        $doc,
-        'by_laws',
-        UploadedFile::fake()->create('existing-by-laws.pdf', 100, 'application/pdf'),
-        $this->student,
-        multiple: false,
-    );
 
-    $filesWithoutByLaws = registrationAttachmentFiles();
-    unset($filesWithoutByLaws['by_laws']);
-
-    $this->updateRegistration->execute(
+    expect(fn () => $this->updateRegistration->execute(
         actor: $this->student,
         document: $doc,
         purposeOfOrganization: 'Original purpose.',
@@ -470,12 +484,9 @@ test('a flagged attachment slot the student never touched is recorded as unchang
         contactNo: '09170000000',
         emailAddress: 'old@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: $filesWithoutByLaws,
-    );
+    ))->toThrow(ValidationException::class, 'By-Laws (needs a new file)');
 
-    $changes = fcResubmitTransition($doc)->field_changes;
-
-    expect($changes['by_laws']['status'])->toBe('unchanged');
+    expect($doc->refresh()->status)->toBe(DocumentStatus::Returned);
 });
 
 test('a flagged multi-file attachment slot with new uploads is recorded as added, never replaced', function () {
@@ -520,10 +531,18 @@ test('a flagged multi-file attachment slot with new uploads is recorded as added
     $this->engine->returnForRevision($reportDoc, User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail(), 'Add more photos.', ['photos']);
     $reportDoc->refresh();
 
+    $stored = $reportDoc->afterActivityReport()->first();
+
     $update->execute(
         actor: $this->student,
         document: $reportDoc,
-        summary: 'Summary',
+        summary: $stored->summary,
+        outcomes: $stored->outcomes,
+        participantCount: $stored->participant_count,
+        activityChairs: $stored->activity_chairs,
+        preparedBy: $stored->prepared_by,
+        eventProgram: $stored->event_program,
+        targetParticipantsPercentage: $stored->target_participants_percentage,
         attachmentFiles: ['photos' => [UploadedFile::fake()->create('extra.jpg', 200, 'image/jpeg')]],
     );
 
@@ -557,7 +576,6 @@ test('HTTP: the review show page exposes field_changes on the resubmit history e
         contactNo: '09170000000',
         emailAddress: 'old@nu-lipa.edu.ph',
         dateOrganized: '2020-06-01',
-        attachmentFiles: registrationAttachmentFiles(),
     );
 
     // Newest first: Resubmitted, Returned, Submitted → the resubmit is history index 0.

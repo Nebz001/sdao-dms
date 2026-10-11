@@ -52,6 +52,8 @@ export function buildTrail(
     sections: NavSection[],
     url: string,
     pageCrumbs: PageCrumb[] = [],
+    /** A page reached from somewhere other than its own list (Fix and Resend) names that place here. */
+    parent?: Crumb & { href: BreadcrumbItem['href'] },
 ): Trail {
     const home: Crumb = { title: 'Home', href: dashboard() };
     const path = pathOf(url);
@@ -88,6 +90,10 @@ export function buildTrail(
         }
 
         return finish([home, { title: pageTitle ?? 'Page' }]);
+    }
+
+    if (parent && pageTitle) {
+        return finish([home, parent, { title: pageTitle }]);
     }
 
     const group = owners.get(item);

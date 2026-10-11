@@ -9,6 +9,8 @@ use App\ActivityProposals\SubmitActivityProposal;
 use App\ActivityProposals\UpdateProposalDraft;
 use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
+use App\Approval\FixDraft;
+use App\Approval\FixResendData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
@@ -426,6 +428,7 @@ class ActivityProposalController extends Controller
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
+            'fix' => FixResendData::for($document),
         ]);
     }
 
@@ -553,6 +556,8 @@ class ActivityProposalController extends Controller
             data: $request->validated(),
             attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::ActivityProposal, step: 1),
         );
+
+        FixDraft::forget($document);
 
         $flash = FlashToast::make('Proposal resubmitted', 'It returns to the approver who asked for the changes.');
 

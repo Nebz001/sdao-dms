@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
+use App\Approval\FixDraft;
+use App\Approval\FixResendData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Dashboard\StudentDocumentLabel;
@@ -229,6 +231,7 @@ class RenewalController extends Controller
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
+            'fix' => FixResendData::for($document),
         ]);
     }
 
@@ -246,6 +249,8 @@ class RenewalController extends Controller
             dateOrganized: $request->string('date_organized')->toString(),
             attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRenewal),
         );
+
+        FixDraft::forget($document);
 
         return redirect()->route('renewals.show', $document)
             ->with('flash', FlashToast::make('Renewal resubmitted', 'SDAO has your changes and will review them again.'));

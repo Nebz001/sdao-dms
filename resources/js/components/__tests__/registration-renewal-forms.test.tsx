@@ -7,6 +7,7 @@ import CreateRegistration from '@/pages/registrations/create';
 import EditRegistration from '@/pages/registrations/edit';
 import CreateRenewal from '@/pages/renewals/create';
 import EditRenewal from '@/pages/renewals/edit';
+import { fixItem, makeFix } from './fix-fixtures';
 
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
@@ -14,6 +15,7 @@ vi.mock('@inertiajs/react', () => ({
         <a href={typeof href === 'string' ? href : (href as { url: string }).url}>{children}</a>
     ),
     router: { post: vi.fn() },
+    setLayoutProps: vi.fn(),
     Form: ({
         children,
         ...rest
@@ -227,18 +229,17 @@ describe('resubmitting a returned registration or renewal', () => {
     const attachments = {
         by_laws: [{ id: 4, original_filename: 'Bylaws_v1.pdf', download_url: '/d', preview_url: '/p', size: 1200 }],
     };
-    const flags = {
-        flaggedSections: ['contact_information', 'by_laws', 'adviser_selection'],
-        flaggedComment: 'Please fix these.',
-        flaggedSectionComments: {
-            contact_information: 'The email bounced.',
-            by_laws: 'Wrong version.',
-            adviser_selection: 'Pick someone else.',
-        },
-    };
+    const fix = makeFix(
+        [
+            fixItem('contact_information', 'Contact Information', 'The email bounced.'),
+            fixItem('by_laws', 'By-Laws', 'Wrong version.', 'file'),
+            fixItem('adviser_selection', 'Adviser Selection', 'Pick someone else.'),
+        ],
+        { formLabel: 'Registration' },
+    );
     const org = { name: 'CA Org', college: 'SHS', program: null };
 
-    it('highlights the flagged sections and the flagged requirement row on a registration', async () => {
+    it('opens the flagged sections and the flagged requirement on a registration, and locks the rest', async () => {
         render(
             <EditRegistration
                 document={{ id: 3, title: 'Reg', organization: org }}
@@ -253,27 +254,27 @@ describe('resubmitting a returned registration or renewal', () => {
                 }}
                 attachmentSlots={slots}
                 attachments={attachments}
-                {...flags}
+                fix={fix}
             />,
         );
 
         expect(screen.getByText('The email bounced.')).toBeInTheDocument();
         expect(screen.getByText('Pick someone else.')).toBeInTheDocument();
 
-        // The comment sits on the By-Laws row, not on its neighbours.
-        const byLaws = screen.getByText('By-Laws').closest('li')!;
+        // The comment sits on the By-Laws item, not on its neighbours, which are locked.
+        const byLaws = screen.getByRole('group', { name: /By-Laws/ });
         expect(within(byLaws).getByText('Wrong version.')).toBeInTheDocument();
         expect(within(byLaws).getByText('Bylaws_v1.pdf')).toBeInTheDocument();
-        expect(within(byLaws).getByRole('button', { name: 'Replace By-Laws' })).toBeInTheDocument();
+        expect(within(byLaws).getByRole('button', { name: 'Choose a new file for By-Laws' })).toBeInTheDocument();
         const letter = screen.getByText('Letter of Intent').closest('li')!;
         expect(within(letter).queryByText('Wrong version.')).not.toBeInTheDocument();
 
         // The adviser on file shows as the picked row until it is changed.
         expect(screen.getByText('Old Adviser')).toBeInTheDocument();
-        expect(screen.getByText('1 of 3 uploaded · PDF up to 10 MB each')).toBeInTheDocument();
+        expect(screen.getByText('2 of 3 locked')).toBeInTheDocument();
     });
 
-    it('highlights the flagged sections and the flagged requirement row on a renewal', () => {
+    it('opens the flagged sections and the flagged requirement on a renewal, and locks the rest', () => {
         render(
             <EditRenewal
                 document={{ id: 3, title: 'Ren', organization: org }}
@@ -287,14 +288,14 @@ describe('resubmitting a returned registration or renewal', () => {
                 }}
                 attachmentSlots={slots}
                 attachments={attachments}
-                {...flags}
+                fix={fix}
             />,
         );
 
         expect(screen.getByText('The email bounced.')).toBeInTheDocument();
-        const byLaws = screen.getByText('By-Laws').closest('li')!;
+        const byLaws = screen.getByRole('group', { name: /By-Laws/ });
         expect(within(byLaws).getByText('Wrong version.')).toBeInTheDocument();
-        expect(screen.getAllByText('Flagged for revision').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getAllByText('Needs a change').length).toBeGreaterThanOrEqual(1);
     });
 
 });

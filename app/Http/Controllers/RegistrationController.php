@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Approval\CurrentApproverLabel;
 use App\Approval\DocumentViewData;
+use App\Approval\FixDraft;
+use App\Approval\FixResendData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
 use App\Dashboard\StudentDocumentLabel;
@@ -367,6 +369,7 @@ class RegistrationController extends Controller
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
             'flaggedSections' => $flaggedSections,
+            'fix' => FixResendData::for($document),
         ]);
     }
 
@@ -385,6 +388,8 @@ class RegistrationController extends Controller
             attachmentFiles: AttachmentSlots::extractUploadedFiles($request, FormType::OrganizationRegistration),
             adviserId: $request->filled('adviser_id') ? $request->integer('adviser_id') : null,
         );
+
+        FixDraft::forget($document);
 
         return redirect()->route('registrations.show', $document)
             ->with('flash', FlashToast::make('Registration resubmitted', 'SDAO has your changes and will review them again.'));

@@ -24,6 +24,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\DocumentRemarkController;
+use App\Http\Controllers\FixDraftController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\JoinOrganizationController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationReviewController;
 use App\Http\Controllers\RenewalController;
 use App\Http\Controllers\RenewalReviewController;
+use App\Http\Controllers\TrackDocumentsController;
 use Illuminate\Support\Facades\Route;
 
 // Guests see the public landing page (including a preview of upcoming
@@ -68,6 +70,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/submit', [HubController::class, 'submit'])->name('hubs.submit');
     Route::get('/my-documents', [HubController::class, 'myDocuments'])->name('hubs.my-documents');
     Route::get('/review', [HubController::class, 'review'])->name('hubs.review');
+
+    // Student officers — where each of their organization's documents is in its approval chain (read only).
+    Route::get('/track', [TrackDocumentsController::class, 'index'])->name('track.index');
+    Route::post('/documents/{document}/fix-draft', [FixDraftController::class, 'store'])->middleware('throttle:60,1')->name('documents.fix-draft');
 
     // Attachments (Phase 2 item 8) — generic across every form type.
     // store/destroy are Mode B (attach-to-existing-document, e.g. Activity

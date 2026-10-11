@@ -31,6 +31,7 @@ import StudentHome, {
 } from '@/components/student-home';
 import type { SubmissionMonth } from '@/components/submissions-chart';
 import { Button } from '@/components/ui/button';
+import type { TrackSummary } from '@/lib/track';
 import { dashboard } from '@/routes';
 import * as calendar from '@/routes/calendar';
 import * as organizationsJoin from '@/routes/organizations/join';
@@ -44,6 +45,7 @@ type Props = {
     studentKpis?: StudentKpis;
     studentNeedsAction?: NeedsActionData;
     studentTracker?: TrackerData;
+    studentTrackSummary?: TrackSummary;
     studentRequirements?: RequirementsData;
     studentQuickSubmit?: QuickSubmitTile[];
     studentUpcoming?: UpcomingData;
@@ -65,11 +67,7 @@ const STUDENT_DEFERRED_KEYS = [
     'studentSubmissions',
 ];
 
-const HOME_BANNER_KEYS = [
-    'studentNeedsAction',
-    'studentTracker',
-    'studentKpis',
-];
+const HOME_BANNER_KEYS = ['studentTrackSummary'];
 
 const APPROVER_DEFERRED_KEYS = [
     'approverSummary',
@@ -86,6 +84,7 @@ export default function Dashboard({
     studentKpis,
     studentNeedsAction,
     studentTracker,
+    studentTrackSummary,
     studentRequirements,
     studentQuickSubmit,
     studentUpcoming,
@@ -152,13 +151,8 @@ export default function Dashboard({
                 data={HOME_BANNER_KEYS}
                 fallback={<HomeStatusBannerSkeleton />}
             >
-                {studentNeedsAction && studentTracker && studentKpis ? (
-                    <HomeStatusBanner
-                        needsAction={studentNeedsAction}
-                        tracker={studentTracker}
-                        kpis={studentKpis}
-                        trackHref={studentDashboard.historyHref}
-                    />
+                {studentTrackSummary ? (
+                    <HomeStatusBanner summary={studentTrackSummary} />
                 ) : (
                     <HomeStatusBannerSkeleton />
                 )}

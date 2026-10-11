@@ -4,6 +4,7 @@ namespace App\Registrations;
 
 use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
+use App\Approval\ReturnedEditLock;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverGuard;
@@ -65,6 +66,12 @@ class UpdateOrganizationRegistration
             // field belonging to a flagged section, before the overwrite
             // below. Skipped entirely when the return carried no flags.
             $flagged = SectionFlags::currentlyFlagged($document);
+
+            // Fix and Resend: only flagged items may change, and each must.
+            $lock = ReturnedEditLock::for($document);
+            $lock?->assertUploadsAllowed($attachmentFiles);
+            $lockDefs = $lock?->allDefs() ?? [];
+            $lockBefore = $lock === null ? [] : FieldChangeSet::snapshot($document->registrationDetail, $lockDefs);
             $trackedFields = $flagged === []
                 ? []
                 : SectionFields::definitionsForSections($document->form_type, $flagged);
@@ -111,6 +118,8 @@ class UpdateOrganizationRegistration
             }
 
             $document->registrationDetail()->update($updates);
+
+            $lock?->assertChanges($lockBefore, FieldChangeSet::snapshot($document->registrationDetail()->first(), $lockDefs), $attachmentFiles);
 
             // Phase 2 item 8 — only newly re-uploaded slots are in
             // $attachmentFiles; untouched slots from the original submission

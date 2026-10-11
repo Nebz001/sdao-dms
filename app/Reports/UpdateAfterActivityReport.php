@@ -4,6 +4,7 @@ namespace App\Reports;
 
 use App\Approval\ApprovalEngine;
 use App\Approval\FieldChangeSet;
+use App\Approval\ReturnedEditLock;
 use App\Approval\SectionFields;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverGuard;
@@ -64,6 +65,12 @@ class UpdateAfterActivityReport
             // CalendarActivity with zero editable fields, so flagging it
             // produces no diff by design.
             $flagged = SectionFlags::currentlyFlagged($document);
+
+            // Fix and Resend: only flagged items may change, and each must.
+            $lock = ReturnedEditLock::for($document);
+            $lock?->assertUploadsAllowed($attachmentFiles);
+            $lockDefs = $lock?->allDefs() ?? [];
+            $lockBefore = $lock === null ? [] : FieldChangeSet::snapshot($document->afterActivityReport, $lockDefs);
             $trackedFields = $flagged === []
                 ? []
                 : SectionFields::definitionsForSections($document->form_type, $flagged);
@@ -88,6 +95,8 @@ class UpdateAfterActivityReport
                 'event_program' => $eventProgram,
                 'target_participants_percentage' => $targetParticipantsPercentage,
             ]);
+
+            $lock?->assertChanges($lockBefore, FieldChangeSet::snapshot($document->afterActivityReport()->first(), $lockDefs), $attachmentFiles);
 
             // Phase 2 item 8 — only newly re-uploaded slots are in
             // $attachmentFiles; untouched slots from the original submission

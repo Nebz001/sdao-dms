@@ -194,16 +194,21 @@ test('resubmit preserves untouched attachment slots and replaces a flagged one',
 
     $originalRequestLetter = $document->attachments()->where('slot_key', 'request_letter')->firstOrFail();
 
-    $this->engine->returnForRevision($document, $this->adviser, 'Please update the request letter.', flaggedSections: ['request_letter']);
-    $document->refresh();
-
-    $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $document), [
-        'objectives' => 'Overall Goal',
+    // A real submitted proposal always carries the narrative; the locked part of the
+    // resubmit is validated like any other, so give it something valid to keep.
+    $document->activityProposal->update([
         'activity_description' => 'Activity Description',
         'criteria_mechanics' => 'Criteria',
         'program_flow' => 'Program flow',
         'expense_items' => [['material' => 'Expenses', 'quantity' => '1', 'unit_price' => '100.00']],
         'responsible_persons' => ['Responsible Person'],
+    ]);
+
+    $this->engine->returnForRevision($document, $this->adviser, 'Please update the request letter.', flaggedSections: ['request_letter']);
+    $document->refresh();
+
+    // Only the flagged request letter is sent; the Fix and Resend page posts nothing else.
+    $response = $this->actingAs($this->student)->put(route('activity-proposals.update', $document), [
         'attachments' => [
             'request_letter' => UploadedFile::fake()->create('new-request-letter.pdf', 100, 'application/pdf'),
         ],
