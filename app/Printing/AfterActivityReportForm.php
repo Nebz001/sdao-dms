@@ -5,6 +5,7 @@ namespace App\Printing;
 use App\Enums\TransitionAction;
 use App\Models\CalendarActivity;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use App\Support\DisplayTimezone;
 use Carbon\Carbon;
 
@@ -17,8 +18,15 @@ use Carbon\Carbon;
  * prose labels, not checklists — only "attachment present/absent" is
  * derivable for Photos/Evaluation Form/Attendance Sheet.
  */
-class AfterActivityReportForm implements PrintableForm
+class AfterActivityReportForm implements HasPrintAppendices, PrintableForm
 {
+    /** Photo cell box (mm): two fit across the letter page's content width. */
+    private const float PHOTO_MAX_WIDTH_MM = 88;
+
+    private const float PHOTO_MAX_HEIGHT_MM = 100;
+
+    public function __construct(private PrintAttachmentLoader $loader) {}
+
     /**
      * Timestamps are stored/cast in UTC; the office and every approver are
      * Asia/Manila. See OrganizationApplicationForm's identical constant.
@@ -92,6 +100,48 @@ class AfterActivityReportForm implements PrintableForm
             'has_evaluation_form' => $document->attachments->contains('slot_key', 'evaluation_form'),
             'has_attendance_sheet' => $document->attachments->contains('slot_key', 'attendance_sheet'),
         ];
+    }
+
+    /**
+     * Photos printed as real images in a 2-up grid. Read separately from
+     * data() because it fetches bytes from storage.
+     *
+     * @return array{photos: array<int, array<string, mixed>>}
+     */
+    public function assets(Document $document): array
+    {
+        $document->loadMissing('attachments');
+
+        return [
+            'photos' => $document->attachments
+                ->where('slot_key', 'photos')
+                ->map(fn (DocumentAttachment $photo) => $this->loader->resolve($photo, self::PHOTO_MAX_WIDTH_MM, self::PHOTO_MAX_HEIGHT_MM))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * Letters are fixed per slot, so "see Appendix B" never shifts when the
+     * evaluation form is absent.
+     *
+     * @return array<int, PrintAppendix>
+     */
+    public function appendices(Document $document): array
+    {
+        $document->loadMissing('attachments');
+
+        $appendices = [];
+
+        foreach (['evaluation_form' => ['A', 'Sample Evaluation Form'], 'attendance_sheet' => ['B', 'Attendance Sheet']] as $slot => [$letter, $title]) {
+            $attachment = $document->attachments->firstWhere('slot_key', $slot);
+
+            if ($attachment !== null) {
+                $appendices[] = new PrintAppendix($letter, $title, $attachment);
+            }
+        }
+
+        return $appendices;
     }
 
     private function eventDateAndTime(?CalendarActivity $activity): ?string

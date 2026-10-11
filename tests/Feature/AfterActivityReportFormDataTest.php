@@ -208,7 +208,7 @@ test('Date Submitted uses the latest submitted-or-resubmitted transition, not th
 
 // ── Photos: list filenames, don't embed ──────────────────────────────────
 
-test('Photos lists uploaded filenames under the heading rather than embedding images', function () {
+test('data() keeps the Photos filenames; the images themselves are embedded via assets()', function () {
     $proposal = printFormApprovedProposal($this->org, $this->studentAlpha);
     $doc = afterActivityReportPrintDocument($proposal, $this->studentAlpha);
 

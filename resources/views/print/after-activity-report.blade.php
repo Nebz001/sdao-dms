@@ -41,12 +41,26 @@
     <div>{{ $program }}</div>
 
     <div class="h2">Photos</div>
-    @if (count($photo_filenames) > 0)
-        <ul class="indent">
-            @foreach ($photo_filenames as $filename)
-                <li>{{ $filename }}</li>
+    @if (count($photos) > 0)
+        <table style="margin-top: 3pt;">
+            @foreach (array_chunk($photos, 2) as $row)
+                <tr style="page-break-inside: avoid;">
+                    @foreach ($row as $photo)
+                        <td style="width: 50%; text-align: center; padding: 4pt;">
+                            @if ($photo['kind'] === 'image')
+                                <img src="{{ $photo['src'] }}" style="width: {{ $photo['width'] }}pt; height: {{ $photo['height'] }}pt;">
+                                <div class="muted-note" style="font-size: 6.5pt; margin-top: 2pt;">{{ $photo['filename'] }}</div>
+                            @else
+                                <div class="muted-note">File could not be loaded: {{ $photo['filename'] }}</div>
+                            @endif
+                        </td>
+                    @endforeach
+                    @if (count($row) < 2)
+                        <td style="width: 50%;"></td>
+                    @endif
+                </tr>
             @endforeach
-        </ul>
+        </table>
     @else
         {{-- No attachment slot backs a pasted poster/photo printout — blank
              area for a physically pasted printout, matching the template's
@@ -58,11 +72,11 @@
     <div class="muted-note">To include the percentage of the target participants and sample evaluation form used.</div>
     <div>
         % Target Participants: {{ $target_participants_percentage !== null ? $target_participants_percentage.'%' : '' }}<br>
-        Sample Evaluation Form: {{ $has_evaluation_form ? 'Attached.' : '' }}
+        Sample Evaluation Form: {{ $has_evaluation_form ? 'Attached (see Appendix A).' : '' }}
     </div>
 
     <div class="h2">Attachment</div>
-    <div>Attendance Sheet: {{ $has_attendance_sheet ? 'Attached.' : '' }}</div>
+    <div>Attendance Sheet: {{ $has_attendance_sheet ? 'Attached (see Appendix B).' : '' }}</div>
 
     <x-print.document-footer-note />
 

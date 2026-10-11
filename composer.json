@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4.1",
+        "ext-gd": "*",
         "barryvdh/laravel-dompdf": "^3.1.2",
         "fakerphp/faker": "^1.24",
         "inertiajs/inertia-laravel": "^3.0",
@@ -20,7 +21,9 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "league/flysystem-aws-s3-v3": "^3.0",
-        "resend/resend-php": "^1.10"
+        "resend/resend-php": "^1.10",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.6"
     },
     "require-dev": {
         "larastan/larastan": "^3.9",

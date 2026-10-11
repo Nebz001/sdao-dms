@@ -20,7 +20,7 @@ class PrintableForms
             // Needs RoleDirectory autowired — resolved via the container
             // rather than manually instantiated.
             FormType::ActivityProposal => app(ActivityProposalForm::class),
-            FormType::AfterActivityReport => new AfterActivityReportForm,
+            FormType::AfterActivityReport => app(AfterActivityReportForm::class),
             FormType::ActivityCalendar => new ActivityCalendarForm,
         };
     }

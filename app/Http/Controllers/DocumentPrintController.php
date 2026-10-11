@@ -29,6 +29,9 @@ class DocumentPrintController extends Controller
 
         abort_unless($form !== null, 404);
 
-        return $render->execute($document, $form)->stream($form->filename($document).'.pdf');
+        return response($render->output($document, $form), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$form->filename($document).'.pdf"',
+        ]);
     }
 }
