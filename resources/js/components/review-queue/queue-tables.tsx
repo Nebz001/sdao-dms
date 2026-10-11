@@ -84,6 +84,8 @@ export function PendingTable({
     showStep = false,
     flagOverdue = false,
     showCollege = false,
+    count,
+    footer,
 }: {
     rows: QueueRow[];
     /** Omit when the queue has no page-specific column (activity proposals show the step instead). */
@@ -99,6 +101,10 @@ export function PendingTable({
     flagOverdue?: boolean;
     /** Shows each row's college (the row's `extra`) under the organization name. */
     showCollege?: boolean;
+    /** The tab's full total when `rows` is only one page of it. */
+    count?: number;
+    /** Pagination, rendered inside the card under the rows. */
+    footer?: React.ReactNode;
 }) {
     const columns: DataColumn<QueueRow>[] = [
         ...(showActivity
@@ -194,7 +200,7 @@ export function PendingTable({
     ];
 
     return (
-        <SectionCard title={title} count={rows.length} aside="Oldest first">
+        <SectionCard title={title} count={count ?? rows.length} aside="Oldest first">
             {rows.length === 0 ? (
                 <Empty>
                     <EmptyHeader>
@@ -208,12 +214,15 @@ export function PendingTable({
                     </EmptyHeader>
                 </Empty>
             ) : (
-                <DataTable
-                    rows={rows}
-                    columns={columns}
-                    rowKey={(r) => r.id}
-                    roomy={showActivity}
-                />
+                <div className="flex flex-col gap-4">
+                    <DataTable
+                        rows={rows}
+                        columns={columns}
+                        rowKey={(r) => r.id}
+                        roomy={showActivity}
+                    />
+                    {footer}
+                </div>
             )}
         </SectionCard>
     );
@@ -227,6 +236,8 @@ export function RecentDecisionsTable({
     showActivity = false,
     showDecidedBy = true,
     showCollege = false,
+    count,
+    footer,
 }: {
     rows: RecentDecision[];
     title?: string;
@@ -237,6 +248,10 @@ export function RecentDecisionsTable({
     showDecidedBy?: boolean;
     /** Shows each row's college under the organization name. */
     showCollege?: boolean;
+    /** Shows a count badge by the title (the tab's full total). */
+    count?: number;
+    /** Pagination, rendered inside the card under the rows. */
+    footer?: React.ReactNode;
 }) {
     const columns: DataColumn<RecentDecision>[] = [
         ...(showActivity
@@ -312,7 +327,7 @@ export function RecentDecisionsTable({
     ];
 
     return (
-        <SectionCard title={title} aside={aside}>
+        <SectionCard title={title} count={count} aside={aside}>
             {rows.length === 0 ? (
                 showActivity ? (
                     <Empty>
@@ -330,12 +345,15 @@ export function RecentDecisionsTable({
                     </p>
                 )
             ) : (
-                <DataTable
-                    rows={rows}
-                    columns={columns}
-                    rowKey={(r) => r.id}
-                    roomy={showActivity}
-                />
+                <div className="flex flex-col gap-4">
+                    <DataTable
+                        rows={rows}
+                        columns={columns}
+                        rowKey={(r) => r.id}
+                        roomy={showActivity}
+                    />
+                    {footer}
+                </div>
             )}
         </SectionCard>
     );

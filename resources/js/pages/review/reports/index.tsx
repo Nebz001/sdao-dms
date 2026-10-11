@@ -11,6 +11,7 @@ const config: ReviewQueueConfig = {
     typeLabel: 'After-activity report',
     emptyDescription: 'Submitted after-activity reports will show up here as soon as a student org sends one in.',
     showRoute: (id) => reviewReports.show(id).url,
+    indexUrl: (filter) => (filter === null ? reviewReports.index().url : reviewReports.index({ query: { filter } }).url),
 };
 
 export default function ReviewReportsIndex(props: ReviewQueuePageProps) {

@@ -51,6 +51,8 @@ export type ReviewQueueConfig = {
     typeLabel: string;
     emptyDescription: string;
     showRoute: ShowRoute;
+    /** The page's own URL for a tab (`?filter=`); null is the Pending tab. */
+    indexUrl?: (filter: string | null) => string;
 };
 
 export function formatDate(iso: string): string {

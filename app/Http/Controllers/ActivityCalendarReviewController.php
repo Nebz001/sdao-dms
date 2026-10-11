@@ -13,6 +13,7 @@ use App\Http\Requests\Review\ReviewActionRequest;
 use App\Models\Document;
 use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -22,7 +23,7 @@ class ActivityCalendarReviewController extends Controller
 {
     use HandlesReviewActions;
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $queue = new ReviewQueueData(
             FormType::ActivityCalendar,
@@ -31,14 +32,13 @@ class ActivityCalendarReviewController extends Controller
             ['activityCalendar'],
         );
 
-        // Stats and recent decisions are deferred (skeletons on the page);
-        // the pending rows stay immediate. Authorization lives in
+        // Stats are deferred (skeletons on the page);
+        // the tab rows stay immediate. Authorization lives in
         // ReviewQueueData (review / reviewView abilities).
         return Inertia::render('review/activity-calendars/index', [
-            'queue' => $queue->queue(),
+            ...$queue->tabbedProps($request, Auth::user()),
             'extraColumnLabel' => 'Period',
             'stats' => Inertia::defer(fn () => $queue->stats(Auth::user()), 'queue-insights'),
-            'recent' => Inertia::defer(fn () => $queue->recent(Auth::user()), 'queue-insights'),
         ]);
     }
 

@@ -11,6 +11,7 @@ const config: ReviewQueueConfig = {
     typeLabel: 'Activity calendar',
     emptyDescription: 'Submitted activity calendars will show up here as soon as a student org sends one in.',
     showRoute: (id) => reviewActivityCalendars.show(id).url,
+    indexUrl: (filter) => (filter === null ? reviewActivityCalendars.index().url : reviewActivityCalendars.index({ query: { filter } }).url),
 };
 
 export default function ReviewActivityCalendarsIndex(props: ReviewQueuePageProps) {

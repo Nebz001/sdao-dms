@@ -86,6 +86,7 @@ test('the deferred props resolve on the index page', function () {
         ->assertInertia(fn ($page) => $page
             ->missing('stats')
             ->reloadOnly('stats', fn ($stats) => $stats->where('stats.decided.returned', 1)->etc())
-            ->reloadOnly('recent', fn ($recent) => $recent->has('recent', 1)->etc())
+            ->has('rows', 0)
+            ->where('tabCounts.returned', 1)
         );
 });

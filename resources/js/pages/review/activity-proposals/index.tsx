@@ -1,6 +1,7 @@
-import { Deferred, Head, Link } from '@inertiajs/react';
-import CountBadge from '@/components/count-badge';
+import { Deferred, Head } from '@inertiajs/react';
 import PageHeader from '@/components/page-header';
+import QueueFilterTabs from '@/components/review-queue/filter-tabs';
+import type { QueueFilter } from '@/components/review-queue/filter-tabs';
 import {
     PendingTable,
     RecentDecisionsSkeleton,
@@ -20,11 +21,10 @@ import type {
     RecentDecision,
     ReviewQueueConfig,
 } from '@/components/review-queue/types';
-import { Button } from '@/components/ui/button';
 import { useDocumentUpdates } from '@/hooks/use-document-updates';
 import * as reviewActivityProposals from '@/routes/review/activity-proposals';
 
-type Filter = 'overdue' | 'approved' | 'returned' | 'decided' | null;
+type Filter = QueueFilter;
 
 /**
  * Live tabs carry full queue rows with `decision: null`; history tabs carry
@@ -58,18 +58,6 @@ type Props = {
     stats?: QueueStats;
     recent?: RecentDecision[];
 };
-
-const FILTER_TABS: Array<{
-    value: Filter;
-    label: string;
-    count?: keyof Props['tabCounts'];
-}> = [
-    { value: null, label: 'Pending', count: 'pending' },
-    { value: 'overdue', label: 'Overdue', count: 'overdue' },
-    { value: 'approved', label: 'Approved', count: 'approved' },
-    { value: 'returned', label: 'Returned', count: 'returned' },
-    { value: 'decided', label: 'All decisions' },
-];
 
 function tabHref(value: Filter): string {
     return value === null
@@ -166,37 +154,12 @@ export default function ReviewActivityProposalsIndex({
                     )}
                 </div>
 
-                <nav
-                    aria-label="Filter proposals"
-                    className="flex flex-wrap gap-1.5"
-                >
-                    {FILTER_TABS.map((tab) => {
-                        const active = tab.value === filter;
-
-                        return (
-                            <Button
-                                key={tab.label}
-                                asChild
-                                size="sm"
-                                variant={active ? 'secondary' : 'ghost'}
-                            >
-                                <Link
-                                    href={tabHref(tab.value)}
-                                    aria-current={active ? 'page' : undefined}
-                                >
-                                    {tab.label}
-                                    {tab.count && (
-                                        <CountBadge
-                                            count={tabCounts[tab.count]}
-                                            variant="outline"
-                                        />
-                                    )}
-                                </Link>
-                            </Button>
-                        );
-                    })}
-                </nav>
-
+                <QueueFilterTabs
+                    label="Filter proposals"
+                    filter={filter}
+                    counts={tabCounts}
+                    hrefFor={tabHref}
+                />
                 {isHistory ? (
                     <RecentDecisionsTable
                         rows={decisions}

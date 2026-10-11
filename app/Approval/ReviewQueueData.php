@@ -4,6 +4,7 @@ namespace App\Approval;
 
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
+use App\Enums\ReviewQueueFilter;
 use App\Enums\TransitionAction;
 use App\Models\Document;
 use App\Models\DocumentTransition;
@@ -11,6 +12,8 @@ use App\Models\User;
 use App\Support\CurrentPeriod;
 use Carbon\CarbonInterface;
 use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
@@ -39,6 +42,8 @@ class ReviewQueueData
     private const int RECENT_DAYS = 30;
 
     private const int RECENT_LIMIT = 10;
+
+    private const int PAGE_SIZE = 10;
 
     private const int SPARKLINE_WEEKS = 8;
 
@@ -185,6 +190,85 @@ class ReviewQueueData
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Everything the tabbed queue pages need, shared so the four pages cannot
+     * drift: the full pending list (for the stat cards), the tab counts, and
+     * the one page of rows the selected tab shows.
+     *
+     * Pending and Overdue narrow the live queue. Approved, Returned and
+     * All decisions are the decisions this academic year that the actor may
+     * see (same `reviewView` boundary as the old "Recently decided" table, but
+     * for the whole year, not 30 days and 10 rows). Approved is the final
+     * approval (a Completed transition); Rejected shows only under All
+     * decisions, like Activity Proposals.
+     *
+     * @return array<string, mixed>
+     */
+    public function tabbedProps(Request $request, User $actor): array
+    {
+        $filter = ReviewQueueFilter::tryFrom((string) $request->query('filter', ''));
+        $pending = $this->queue();
+        $overdue = $pending->where('tier', 'overdue')->values();
+
+        [$yearStart, $yearEnd] = CurrentPeriod::get()->academicYearRange();
+        $decisions = $this->visibleTransitions(
+            $actor,
+            [TransitionAction::Completed, TransitionAction::Returned, TransitionAction::Rejected],
+            $yearStart,
+            $yearEnd,
+        )->sort(fn (DocumentTransition $a, DocumentTransition $b) => [$b->created_at, $b->id] <=> [$a->created_at, $a->id])->values();
+
+        $countOf = fn (TransitionAction $a) => $decisions->where('action', $a)->count();
+
+        if ($filter?->isHistory()) {
+            $actions = array_map(
+                fn (TransitionAction $a) => $a === TransitionAction::Approved ? TransitionAction::Completed : $a,
+                $filter->actions(),
+            );
+            $rows = $decisions
+                ->filter(fn (DocumentTransition $t) => in_array($t->action, $actions, true))
+                ->map(fn (DocumentTransition $t) => [
+                    'id' => $t->id,
+                    'organization' => $t->document->organization->name,
+                    'college' => $t->document->organization->school?->name,
+                    'result' => $t->action === TransitionAction::Completed ? 'approved' : $t->action->value,
+                    'decided_at' => $t->created_at->toIso8601String(),
+                    'decided_by' => $t->actor?->name,
+                    'href' => route($this->showRoute, $t->document_id),
+                ])
+                ->values();
+        } else {
+            $rows = $filter === ReviewQueueFilter::Overdue ? $overdue : $pending;
+        }
+
+        $page = max(1, (int) $request->query('page', 1));
+        $paginator = new LengthAwarePaginator(
+            $rows->forPage($page, self::PAGE_SIZE)->values(),
+            $rows->count(),
+            self::PAGE_SIZE,
+            $page,
+            ['path' => $request->url(), 'query' => array_filter(['filter' => $filter?->value])],
+        );
+
+        return [
+            'queue' => $pending,
+            'filter' => $filter?->value,
+            'filterLabel' => $filter?->label(),
+            'academicYear' => CurrentPeriod::get()->academicYear,
+            'tabCounts' => [
+                'pending' => $pending->count(),
+                'overdue' => $overdue->count(),
+                'approved' => $countOf(TransitionAction::Completed),
+                'returned' => $countOf(TransitionAction::Returned),
+            ],
+            'rows' => $paginator->items(),
+            'pagination' => [
+                'meta' => ['from' => $paginator->firstItem(), 'to' => $paginator->lastItem(), 'total' => $paginator->total()],
+                'links' => ['prev' => $paginator->previousPageUrl(), 'next' => $paginator->nextPageUrl()],
+            ],
+        ];
     }
 
     /**

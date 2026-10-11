@@ -11,6 +11,7 @@ const config: ReviewQueueConfig = {
     typeLabel: 'Registration',
     emptyDescription: 'Submitted registrations will show up here as soon as a student org sends one in.',
     showRoute: (id) => reviewRegistrations.show(id).url,
+    indexUrl: (filter) => (filter === null ? reviewRegistrations.index().url : reviewRegistrations.index({ query: { filter } }).url),
 };
 
 export default function ReviewRegistrationsIndex(props: ReviewQueuePageProps) {

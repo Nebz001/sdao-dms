@@ -96,7 +96,7 @@ describe('the one NU blue tint', () => {
                 <DateBadge date="2026-10-28" />
             </>,
         );
-        const [active, inactive] = Array.from(container.querySelectorAll('span[aria-hidden]'));
+        const [active, inactive] = Array.from(container.querySelectorAll('[aria-hidden]'));
 
         expect(active).toHaveClass('bg-brand-soft', 'text-brand-soft-foreground');
         expect(inactive).toHaveClass('bg-muted');

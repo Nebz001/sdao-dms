@@ -11,6 +11,7 @@ const config: ReviewQueueConfig = {
     typeLabel: 'Renewal',
     emptyDescription: 'Submitted renewals will show up here as soon as a student org sends one in.',
     showRoute: (id) => reviewRenewals.show(id).url,
+    indexUrl: (filter) => (filter === null ? reviewRenewals.index().url : reviewRenewals.index({ query: { filter } }).url),
 };
 
 export default function ReviewRenewalsIndex(props: ReviewQueuePageProps) {
