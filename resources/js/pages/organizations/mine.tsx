@@ -126,7 +126,7 @@ export default function MyOrganization({
                             <ul className="flex flex-wrap items-center gap-2">
                                 {showSchool && (
                                     <li>
-                                        <TagBadge className="h-7 gap-1.5 px-3 text-sm">
+                                        <TagBadge className="min-h-7 gap-1.5 px-3 py-1 text-sm leading-snug">
                                             <GraduationCap aria-hidden />
                                             {[
                                                 organization.school,
@@ -139,7 +139,7 @@ export default function MyOrganization({
                                 )}
                                 {coversThroughAcademicYear !== null && (
                                     <li>
-                                        <TagBadge className="h-7 gap-1.5 px-3 text-sm">
+                                        <TagBadge className="min-h-7 gap-1.5 px-3 py-1 text-sm leading-snug">
                                             <ShieldCheck aria-hidden />
                                             Covered through{' '}
                                             <span className="font-medium">
@@ -149,7 +149,7 @@ export default function MyOrganization({
                                     </li>
                                 )}
                                 <li>
-                                    <TagBadge className="h-7 gap-1.5 px-3 text-sm">
+                                    <TagBadge className="min-h-7 gap-1.5 px-3 py-1 text-sm leading-snug">
                                         <Users aria-hidden />
                                         {peopleSummary(
                                             officers.length,
@@ -203,7 +203,7 @@ export default function MyOrganization({
                                     <li key={item.key}>
                                         <ToneBadge
                                             tone="success"
-                                            className="h-8 gap-2 px-3 text-sm tracking-normal normal-case"
+                                            className="min-h-8 gap-2 px-3 py-1 text-sm leading-snug tracking-normal normal-case"
                                         >
                                             <Check aria-hidden />
                                             {item.label}

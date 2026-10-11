@@ -289,6 +289,14 @@
         @apply border-border;
     }
 
+    /* A bare `grid` has one `auto` column, which grows to its widest child's
+       min-content, so a long file name, email or card pushes past the
+       container. Default it to a shrinkable column; any grid-cols-* utility
+       (higher layer) still wins. */
+    :where(.grid) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     /* 17px root: every rem-based size (text, spacing, icons) scales together. */
     html {
         font-size: 106.25%;

@@ -1,6 +1,7 @@
 import { ChevronDown, Clock, MapPin } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import SharedDateBadge from '@/components/date-badge';
 import { Button } from '@/components/ui/button';
 import {
     Command,
@@ -17,7 +18,6 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-    dateBadgeParts,
     formatActivityDate,
     formatClockRange,
 } from '@/lib/activity-time';
@@ -50,25 +50,17 @@ export function DateBadge({
     muted?: boolean;
     className?: string;
 }) {
-    const { month, day } = dateBadgeParts(date);
-
     return (
-        <span
+        <SharedDateBadge
+            iso={date}
             aria-hidden
             className={cn(
-                'flex size-11 shrink-0 flex-col items-center justify-center rounded-lg leading-none transition-colors',
-                active
-                    ? BRAND_TINT
-                    : 'bg-muted text-muted-foreground',
+                'transition-colors',
+                active ? BRAND_TINT : 'bg-muted text-muted-foreground',
                 muted && 'opacity-70',
                 className,
             )}
-        >
-            <span className="text-[0.625rem] font-semibold tracking-wide">
-                {month}
-            </span>
-            <span className="text-lg font-bold">{day}</span>
-        </span>
+        />
     );
 }
 
@@ -83,7 +75,7 @@ function ActivityMeta({
     const time = formatClockRange(activity.start_time, activity.end_time);
 
     return (
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             {showDate && <span>Held {formatActivityDate(activity.date)}</span>}
             {time && (
                 <span className="flex items-center gap-1">
@@ -92,9 +84,9 @@ function ActivityMeta({
                 </span>
             )}
             {activity.venue && (
-                <span className="flex min-w-0 items-center gap-1">
-                    <MapPin aria-hidden className="size-3.5 shrink-0" />
-                    <span className="truncate">{activity.venue}</span>
+                <span className="flex min-w-0 items-start gap-1">
+                    <MapPin aria-hidden className="mt-px size-3.5 shrink-0" />
+                    <span className="min-w-0 break-words">{activity.venue}</span>
                 </span>
             )}
         </span>
@@ -119,10 +111,15 @@ export function ActivityCard({
     changeRef?: React.Ref<HTMLButtonElement>;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
+        <div className="flex w-full max-w-full min-w-0 items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
             <DateBadge date={activity.date} active />
             <div className="min-w-0 flex-1 space-y-0.5">
-                <p className="truncate text-sm font-semibold">{activity.title}</p>
+                <p
+                    className="text-sm font-semibold break-words"
+                    title={activity.title}
+                >
+                    {activity.title}
+                </p>
                 <ActivityMeta activity={activity} showDate={showDate} />
             </div>
             {onChange && (
@@ -131,6 +128,7 @@ export function ActivityCard({
                     type="button"
                     variant="link"
                     size="sm"
+                    className="shrink-0"
                     onClick={onChange}
                     aria-label={`Change activity, currently ${activity.title}`}
                 >
@@ -241,7 +239,7 @@ export default function ActivityPicker({
     }
 
     return (
-        <div className="grid gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverAnchor asChild>
                     <div>

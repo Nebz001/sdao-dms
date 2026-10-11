@@ -115,8 +115,8 @@ export default function AdviserPicker({ id, selected, onSelect, current, invalid
         const unavailable = selected !== null && !selected.is_available;
 
         return (
-            <div className="grid gap-2">
-                <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                <div className="flex w-full max-w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5">
                     <InitialsAvatar name={shown.name} className="size-9" />
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{shown.name}</p>
@@ -128,6 +128,7 @@ export default function AdviserPicker({ id, selected, onSelect, current, invalid
                         variant="link"
                         size="sm"
                         onClick={startChange}
+                        className="shrink-0"
                         aria-label={`Change adviser, currently ${shown.name}`}
                     >
                         Change
@@ -143,7 +144,7 @@ export default function AdviserPicker({ id, selected, onSelect, current, invalid
     }
 
     return (
-        <div className="grid gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
             <div className="relative">
                 <Search
                     aria-hidden

@@ -209,13 +209,15 @@ export function FormField({
     const helperId = helper ? `${id}-helper` : undefined;
     const errorId = error ? `${id}-error` : undefined;
     const helperNode = helper ? (
-        <p id={helperId} className="text-xs text-muted-foreground">
+        <p id={helperId} className="text-xs text-muted-foreground break-words">
             {helper}
         </p>
     ) : null;
 
     return (
-        <div className={cn('grid gap-1.5', className)}>
+        <div
+            className={cn('grid grid-cols-[minmax(0,1fr)] gap-1.5', className)}
+        >
             <Label htmlFor={id} className="leading-snug">
                 {label}
                 {optional && (
@@ -345,10 +347,10 @@ export function LockedValue({
     note: string;
 }) {
     return (
-        <div className="grid gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
             <span className="text-sm leading-snug font-medium">{label}</span>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-sm">
-                <span>{value}</span>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-sm">
+                <span className="min-w-0 break-words">{value}</span>
                 <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <Lock aria-hidden className="size-3.5" />
                     {note}

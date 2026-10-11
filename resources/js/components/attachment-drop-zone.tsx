@@ -161,11 +161,11 @@ export default function AttachmentDropZone({
             error={shownError}
         >
             {(aria) => (
-                <div className="grid gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
                     {existing.map((file) => (
                         <div
                             key={file.id}
-                            className="flex items-center gap-3 rounded-lg border border-success/50 bg-success/10 px-3.5 py-3"
+                            className="flex min-w-0 items-center gap-3 rounded-lg border border-success/50 bg-success/10 px-3.5 py-3"
                         >
                             <FileCheck2
                                 aria-hidden
@@ -184,7 +184,7 @@ export default function AttachmentDropZone({
                     {files.map((file, index) => (
                         <div
                             key={`${file.name}-${index}`}
-                            className="flex items-center gap-3 rounded-lg border border-success/50 bg-success/10 px-3.5 py-3"
+                            className="flex min-w-0 items-center gap-3 rounded-lg border border-success/50 bg-success/10 px-3.5 py-3"
                         >
                             <span
                                 aria-hidden
@@ -193,7 +193,10 @@ export default function AttachmentDropZone({
                                 <FileCheck2 className="size-4" />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
+                                <p
+                                    className="truncate text-sm font-medium"
+                                    title={file.name}
+                                >
                                     {file.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -204,6 +207,7 @@ export default function AttachmentDropZone({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
+                                className="shrink-0"
                                 onClick={() => remove(index)}
                                 aria-label={`Remove ${file.name}`}
                             >

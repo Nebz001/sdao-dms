@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 type DateBadgeProps = {
@@ -28,20 +29,28 @@ function splitDate(iso: string): { month: string; day: number } {
  * The month-over-day tile that anchors a row in an activity list (landing
  * page "Next up", dashboard "Coming up"). Read as plain text, so it needs no extra label.
  */
-export default function DateBadge({ iso, className }: DateBadgeProps) {
+export default function DateBadge({
+    iso,
+    className,
+    ...props
+}: DateBadgeProps & Omit<ComponentProps<'div'>, 'className'>) {
     const { month, day } = splitDate(iso);
 
     return (
         <div
             className={cn(
-                'flex size-12 shrink-0 flex-col items-center justify-center rounded-md bg-brand-fixed text-brand-fixed-foreground',
+                'flex size-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md bg-brand-fixed leading-none text-brand-fixed-foreground',
                 className,
             )}
+            {...props}
         >
-            <span className="text-[0.625rem] font-semibold tracking-wide uppercase">
+            {/* Tracking is tuned so a 3-letter month is as wide as a 2-digit
+                day; the left padding cancels the trailing letter-space so
+                both lines centre on the same axis. */}
+            <span className="pl-[0.08em] text-[0.6875rem] font-semibold tracking-[0.08em] uppercase">
                 {month}
             </span>
-            <span className="text-xl leading-none font-bold">{day}</span>
+            <span className="text-xl font-bold tabular-nums">{day}</span>
         </div>
     );
 }

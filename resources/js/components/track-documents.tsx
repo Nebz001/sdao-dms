@@ -391,7 +391,7 @@ function StepDetail({
                 align="center"
                 sideOffset={10}
                 collisionPadding={12}
-                className="w-80 p-0"
+                className="w-80 max-w-[calc(100vw-1.5rem)] p-0"
                 // The step itself is not "outside": pressing or focusing it must not dismiss its own card.
                 onInteractOutside={(event) => {
                     if (event.target instanceof Node && stepRef.current?.contains(event.target)) {

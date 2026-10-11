@@ -121,9 +121,9 @@ export default function OfficersIndex({ organization, memberships, students, sea
                             memberships.map((m) => (
                                 <div
                                     key={m.id}
-                                    className="flex items-center justify-between gap-4 py-3"
+                                    className="flex items-center justify-between gap-3 py-3"
                                 >
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <AccountName name={m.user.name} nameClassName="font-medium" />
                                         <p className="sm:truncate max-sm:break-words text-sm text-muted-foreground">
                                             {m.user.email} · {m.position_label} · {m.academic_year}
@@ -131,7 +131,7 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                     </div>
                                     <ConfirmDialog
                                         trigger={
-                                            <Button size="sm" variant="outline">
+                                            <Button size="sm" variant="outline" className="shrink-0">
                                                 End seat
                                             </Button>
                                         }

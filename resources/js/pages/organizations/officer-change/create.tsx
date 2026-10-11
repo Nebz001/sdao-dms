@@ -319,10 +319,10 @@ export default function RequestOfficerChange({
                                 {(aria) => (
                                     <>
                                         {selected ? (
-                                            <div className="flex items-center gap-3 rounded-lg border border-primary-text bg-primary/10 px-3.5 py-2.5">
+                                            <div className="flex w-full max-w-full min-w-0 items-center gap-3 rounded-lg border border-primary-text bg-primary/10 px-3.5 py-2.5">
                                                 <InitialsAvatar name={selected.name} />
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium">
+                                                    <p className="truncate text-sm font-medium" title={selected.name}>
                                                         {selected.name}
                                                     </p>
                                                     <p className="truncate text-xs text-muted-foreground">
@@ -333,6 +333,7 @@ export default function RequestOfficerChange({
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
+                                                    className="shrink-0"
                                                     onClick={() => setSelected(null)}
                                                     {...aria}
                                                 >
