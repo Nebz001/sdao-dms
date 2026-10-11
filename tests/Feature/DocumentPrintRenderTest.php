@@ -95,3 +95,54 @@ test('a maximum-length purpose of organization still renders successfully', func
     $response->assertOk();
     expect(str_starts_with($response->getContent(), '%PDF'))->toBeTrue();
 });
+
+test('every printable form uses the shared logo and footer note partials', function () {
+    foreach (['organization-application', 'activity-proposal', 'activity-calendar', 'after-activity-report'] as $view) {
+        $source = file_get_contents(resource_path("views/print/{$view}.blade.php"));
+
+        expect($source)->toContain('<x-print.document-logo')
+            ->and($source)->toContain('<x-print.document-footer-note')
+            ->and($source)->not->toContain('>NU Lipa<');
+    }
+});
+
+test('the shared header is the embedded PNG logo and the footer note is body-size italic', function () {
+    expect(is_file(public_path('print/nulp-logo-light-bg.png')))->toBeTrue();
+
+    $logo = (string) view('components.print.document-logo');
+    $note = (string) view('components.print.document-footer-note');
+
+    expect($logo)->toContain('src="data:image/png;base64,')->not->toContain('http');
+    expect($note)->toContain('<strong>Note:</strong>')
+        ->toContain('<em>This document does not require an electronic signature')
+        ->toContain('font-size: inherit')
+        ->toContain('border-top');
+});
+
+test('a printed registration embeds the logo image and sets the note in italics', function () {
+    $doc = Document::create([
+        'form_type' => FormType::OrganizationRegistration,
+        'variant' => null,
+        'title' => "Organization Registration — {$this->org->name}",
+        'status' => DocumentStatus::Draft,
+        'current_step_position' => null,
+        'organization_id' => $this->org->id,
+        'workflow_template_id' => null,
+        'submitted_by' => $this->studentAlpha->id,
+    ]);
+    OrganizationRegistrationDetail::create([
+        'document_id' => $doc->id,
+        'organization_type' => OrganizationType::CoCurricular->value,
+        'purpose_of_organization' => 'To advance the field.',
+        'contact_person' => 'Contact Person',
+        'contact_no' => '09170000000',
+        'email_address' => 'contact@example.test',
+        'date_organized' => '2020-06-01',
+        'adviser_id' => null,
+    ]);
+
+    $pdf = $this->actingAs($this->studentAlpha)->get(route('documents.print', $doc))->assertOk()->getContent();
+
+    expect(preg_match('/\/Subtype\s*\/Image/', $pdf))->toBe(1)
+        ->and($pdf)->toContain('Helvetica-Oblique');
+});

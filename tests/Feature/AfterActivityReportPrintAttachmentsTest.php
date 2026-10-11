@@ -279,3 +279,10 @@ test('print authorization is unchanged for a user with no access', function () {
 
     $this->actingAs($outsider)->get(route('documents.print', $this->report))->assertForbidden();
 });
+
+test('a printed report embeds the logo image and sets the note in italics', function () {
+    $pdf = printedReport($this->report, $this->student);
+
+    expect(printImageCount($pdf))->toBeGreaterThanOrEqual(1)
+        ->and($pdf)->toContain('Helvetica-Oblique');
+});

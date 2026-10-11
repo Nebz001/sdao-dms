@@ -146,19 +146,11 @@
          Page 2+ — Proposal narrative
          ============================================================ --}}
 
-    <table class="letterhead page-break">
-        <colgroup>
-            <col style="width: 11%">
-            <col style="width: 89%">
-        </colgroup>
+    <x-print.document-logo :page-break="true" />
+
+    <table class="letterhead">
         <tr>
-            <td class="logo-cell">
-                @if ($logo_path)
-                    <img src="{{ $logo_path }}" alt="NU Lipa">
-                @endif
-            </td>
             <td>
-                <div class="org-line" style="text-transform:none">NU Lipa</div>
                 <div class="org-line" style="text-transform:none">{{ $rso_name }}</div>
                 <div class="org-line" style="text-transform:none">{{ $school_name }}</div>
                 @if ($program_name)

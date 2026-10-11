@@ -3,19 +3,11 @@
 @section('content')
 
     {{-- Letterhead --}}
+    <x-print.document-logo />
+
     <table class="letterhead">
-        <colgroup>
-            <col style="width: 11%">
-            <col style="width: 89%">
-        </colgroup>
         <tr>
-            <td class="logo-cell">
-                @if ($logo_path)
-                    <img src="{{ $logo_path }}" alt="NU Lipa">
-                @endif
-            </td>
             <td>
-                <div class="org-line">NU Lipa</div>
                 <div class="org-line">Student Development</div>
                 <div class="org-line">and Activities Office</div>
             </td>
