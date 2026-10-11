@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 /**
  * Read model behind the approver dashboard (every approver except SDAO,
@@ -128,7 +129,7 @@ class ApproverDashboardData
      * they all derive from the same pending set.
      *
      * @return array{
-     *     banner: array{count: int, document: array<string, mixed>|null},
+     *     banner: array{tone: string, icon: string, title: string, subtitle: string, buttonLabel: string, href: string},
      *     waiting: array{count: int, oldestDays: int|null, byType: array<int, array{formType: string, label: string, count: int}>},
      *     nextEvent: array<string, mixed>|null,
      *     reviewed: array{approved: int, returned: int, rejected: int, total: int},
@@ -137,8 +138,6 @@ class ApproverDashboardData
     public function summary(): array
     {
         $entries = $this->needsReviewEntries();
-        $soonest = $entries->first(fn (array $e) => $e['daysUntilEvent'] !== null);
-
         $nextEvent = $entries
             ->filter(fn (array $e) => $e['daysUntilEvent'] !== null
                 && $e['daysUntilEvent'] >= 0
@@ -148,12 +147,7 @@ class ApproverDashboardData
         $countsByType = $entries->countBy('formType');
 
         return [
-            'banner' => [
-                'count' => $entries->count(),
-                // Documents sort soonest-event-first, so the first one with an
-                // event date is the soonest; with none dated, the oldest wait.
-                'document' => $soonest ?? $entries->first(),
-            ],
+            'banner' => $this->homeBanner($entries),
             'waiting' => [
                 'count' => $entries->count(),
                 'oldestDays' => $entries->isEmpty() ? null : (int) $entries->max('daysWithYou'),
@@ -168,6 +162,77 @@ class ApproverDashboardData
             ],
             'nextEvent' => $nextEvent,
             'reviewed' => $this->reviewedThisTerm(),
+        ];
+    }
+
+    /**
+     * The one banner at the top of the home page, picked in priority order:
+     * red when something has waited past the overdue threshold, orange when
+     * anything is waiting, green when nothing is. (There is no blue state for
+     * approvers: a waiting document is always theirs to act on.)
+     *
+     * @param  Collection<int, array<string, mixed>>  $entries  needsReviewEntries()
+     * @return array{tone: string, icon: string, title: string, subtitle: string, buttonLabel: string, href: string}
+     */
+    private function homeBanner(Collection $entries): array
+    {
+        $overdue = $entries->filter(fn (array $e) => $e['daysWithYou'] > ApproverQueue::OVERDUE_AFTER_DAYS)->values();
+        $passed = fn (Collection $rows): int => $rows->filter(fn (array $e) => $e['daysUntilEvent'] !== null && $e['daysUntilEvent'] < 0)->count();
+
+        if ($overdue->isNotEmpty()) {
+            $oldest = $overdue->sortByDesc('daysWithYou')->first();
+            $sameQueue = $overdue->pluck('formType')->unique()->count() === 1 && $oldest['formType'] === FormType::ActivityProposal->value;
+            $passedCount = $passed($overdue);
+
+            return [
+                'tone' => 'red',
+                'icon' => 'alert-circle',
+                'title' => $overdue->count().' '.Str::plural('document', $overdue->count()).' waiting over '.ApproverQueue::OVERDUE_AFTER_DAYS.' days',
+                'subtitle' => "{$oldest['title']} has waited {$oldest['daysWithYou']} days. The officers cannot move on until you decide."
+                    .($passedCount > 0 ? ' '.$passedCount.' '.($passedCount === 1 ? 'has' : 'have').' an event date that already passed.' : ''),
+                'buttonLabel' => 'Review now',
+                'href' => $sameQueue && $overdue->count() > 1
+                    ? route('review.activity-proposals.index', ['filter' => 'overdue'])
+                    : $oldest['href'],
+            ];
+        }
+
+        if ($entries->isNotEmpty()) {
+            $oldestDays = (int) $entries->max('daysWithYou');
+            $byType = $entries->countBy('formType')
+                ->map(fn (int $count, string $type) => $count.' '.Str::lower(Str::plural(FormType::from($type)->label(), $count)))
+                ->values()
+                ->implode(', ');
+            $passedCount = $passed($entries);
+            $types = $entries->pluck('formType')->unique();
+
+            return [
+                'tone' => 'orange',
+                'icon' => 'inbox',
+                'title' => $entries->count().' '.Str::plural('document', $entries->count()).' waiting for your review',
+                'subtitle' => "{$byType}. The oldest arrived ".match (true) {
+                    $oldestDays === 0 => 'today',
+                    $oldestDays === 1 => 'yesterday',
+                    default => "{$oldestDays} days ago",
+                }.'.'.($passedCount > 0 ? ' '.$passedCount.' '.($passedCount === 1 ? 'has' : 'have').' an event date that already passed.' : ''),
+                'buttonLabel' => 'Open review queue',
+                'href' => $types->count() === 1
+                    ? route(FormType::from($types->first())->reviewIndexRouteName())
+                    : route('hubs.review'),
+            ];
+        }
+
+        $decided = $this->reviewedThisTerm()['total'];
+
+        return [
+            'tone' => 'green',
+            'icon' => 'check-circle',
+            'title' => "You're all caught up",
+            'subtitle' => 'No documents waiting for you.'.($decided > 0
+                ? ' You decided on '.$decided.' '.Str::plural('document', $decided).' this term.'
+                : ''),
+            'buttonLabel' => 'See recent decisions',
+            'href' => route('review.activity-proposals.index', ['filter' => 'decided']),
         ];
     }
 

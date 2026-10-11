@@ -20,11 +20,11 @@ import ApproverStepTracker from '@/components/approver-step-tracker';
 import type { TrackerStep } from '@/components/approver-step-tracker';
 import DateBadge from '@/components/date-badge';
 import FormTypeBadge from '@/components/form-type-badge';
+import HomeBanner from '@/components/home-banner';
+import type { HomeBannerData } from '@/components/home-banner';
 import IdentityPill from '@/components/identity-pill';
 import OrganizationBadge from '@/components/organization-badge';
 import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
-import type { PageNoticeTone } from '@/components/page-notice';
 import { SegmentedLegend } from '@/components/review-queue/segmented-bar';
 import StatIconTile from '@/components/stat-icon-tile';
 import type { StatIconTileTone } from '@/components/stat-icon-tile';
@@ -73,7 +73,7 @@ export type NeedsReviewEntry = {
 };
 
 export type ApproverSummary = {
-    banner: { count: number; document: NeedsReviewEntry | null };
+    banner: HomeBannerData;
     waiting: {
         count: number;
         oldestDays: number | null;
@@ -166,23 +166,6 @@ function withYouLabel(days: number): string {
     return days === 0 ? 'With you today' : `With you ${plural(days, 'day')}`;
 }
 
-/** The banner's second sentence: when the soonest event is, or how long it has waited if it has none. */
-function bannerDetail(document: NeedsReviewEntry): string {
-    if (document.daysUntilEvent === null) {
-        return `It has been with you ${document.daysWithYou === 0 ? 'since today' : `for ${plural(document.daysWithYou, 'day')}`}.`;
-    }
-
-    if (document.daysUntilEvent < 0) {
-        return 'Its event date has already passed.';
-    }
-
-    if (document.daysUntilEvent === 0) {
-        return 'Its event is today.';
-    }
-
-    return `Its event is in ${plural(document.daysUntilEvent, 'day')}.`;
-}
-
 function EventCountdownBadge({ days }: { days: number }) {
     const soon = days <= 7;
 
@@ -234,48 +217,8 @@ function StatHeader({ icon, tone, children }: { icon: LucideIcon; tone?: StatIco
     );
 }
 
-/** The banner's button takes its own banner's color; every tone the banner can be in is listed here. */
-const BANNER_BUTTON: Partial<Record<PageNoticeTone, string>> = {
-    info: 'bg-info-foreground text-background hover:bg-info-foreground/90',
-    warning: 'bg-warning-foreground text-background hover:bg-warning-foreground/90',
-    destructive: 'bg-destructive-foreground text-background hover:bg-destructive-foreground/90',
-};
-
-function bannerTone(document: NeedsReviewEntry): PageNoticeTone {
-    return document.daysUntilEvent !== null && document.daysUntilEvent < 0 ? 'warning' : 'info';
-}
-
 function ReviewBanner({ summary }: { summary: ApproverSummary }) {
-    const { count, document } = summary.banner;
-
-    if (count === 0 || document === null) {
-        return (
-            <PageNotice tone="success" title="You're all caught up.">
-                Nothing is waiting at your step. New documents appear here as soon as they reach you.
-            </PageNotice>
-        );
-    }
-
-    const tone = bannerTone(document);
-
-    return (
-        <PageNotice
-            tone={tone}
-            icon={Inbox}
-            className="items-center [&>svg]:translate-y-0"
-            title={`You have ${plural(count, 'document')} to review.`}
-            action={
-                <Button asChild className={BANNER_BUTTON[tone]}>
-                    <Link href={document.href}>
-                        Start reviewing
-                        <ArrowRight data-icon="inline-end" />
-                    </Link>
-                </Button>
-            }
-        >
-            Start with <span className="font-medium text-foreground">{document.title}</span>. {bannerDetail(document)}
-        </PageNotice>
-    );
+    return <HomeBanner {...summary.banner} />;
 }
 
 function WaitingCard({ waiting }: { waiting: ApproverSummary['waiting'] }) {

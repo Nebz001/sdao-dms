@@ -294,7 +294,7 @@ describe('status banner', () => {
         expect(
             screen.getByText('1 returned for revision. 1 document is moving through the approval chain.'),
         ).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'action');
+        expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'orange');
         expect(href()).toContain('/track?tab=action');
         expect(screen.getByRole('link', { name: /Track my documents/ })).toBeInTheDocument();
     });
@@ -328,7 +328,7 @@ describe('status banner', () => {
         expect(
             screen.getByText('Nothing needs your action. 1 is with the College Dean, 1 is with SDAO.'),
         ).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'moving');
+        expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'blue');
         expect(href()).toContain('/track?tab=moving');
     });
 
@@ -354,7 +354,7 @@ describe('status banner', () => {
 
         expect(screen.getByText('All documents approved')).toBeInTheDocument();
         expect(screen.getByText('You’re all caught up. 4 documents approved this term.')).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'approved');
+        expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'green');
         expect(screen.getByRole('link', { name: /See document routing/ })).toBeInTheDocument();
         expect(href()).toContain('/track?tab=approved');
     });
@@ -365,20 +365,20 @@ describe('status banner', () => {
         expect(screen.getByText('You’re all caught up. 1 document approved this term.')).toBeInTheDocument();
     });
 
-    it('is a quiet gray banner with a Go to Submit button when nothing was ever filed', () => {
+    it('is a gray banner with a Start a proposal button when nothing was ever filed', () => {
         render(<HomeStatusBanner summary={summary({})} />);
 
-        expect(screen.getByText('No documents yet')).toBeInTheDocument();
-        expect(screen.getByText('Your documents will show up here once you submit one.')).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'empty');
-        expect(href()).toContain('/submit');
-        expect(screen.getByRole('link', { name: /Go to Submit/ })).toBeInTheDocument();
+        expect(screen.getByText('No documents yet this term')).toBeInTheDocument();
+        expect(screen.getByText('Start with an activity proposal. You can track it here once it is sent.')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'gray');
+        expect(href()).toContain('/activity-proposals/create');
+        expect(screen.getByRole('link', { name: /Start a proposal/ })).toBeInTheDocument();
     });
 
     it('still renders, quietly, when the only documents were stopped', () => {
         render(<HomeStatusBanner summary={summary({ stopped: 2, total: 2 })} />);
 
-        expect(screen.getByRole('status')).toHaveAttribute('data-state', 'quiet');
+        expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'gray');
         expect(href()).toContain('/track');
     });
 

@@ -1,12 +1,13 @@
-import { Deferred, Head, Link, usePage } from '@inertiajs/react';
+import { Deferred, Head, usePage } from '@inertiajs/react';
 import { Hourglass, Inbox, Undo2, UserRoundSearch, UserX } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import HomeBanner from '@/components/home-banner';
+import type { HomeBannerData } from '@/components/home-banner';
 import OldestInReviewCard from '@/components/oldest-in-review-card';
 import type { OldestDocument } from '@/components/oldest-in-review-card';
 import OrgComplianceCard, { academicYearLabel } from '@/components/org-compliance-card';
 import type { OrgCompliance } from '@/components/org-compliance-card';
 import PageHeader from '@/components/page-header';
-import PageNotice from '@/components/page-notice';
 import ProposalFunnelCard from '@/components/proposal-funnel-chart';
 import type { FunnelVariant } from '@/components/proposal-funnel-chart';
 import RecentActivityCard from '@/components/recent-activity-card';
@@ -41,7 +42,6 @@ const TILE_TONES: Record<Tile['hintTone'], StatIconTileTone> = {
     destructive: 'alert',
 };
 
-type UpcomingAlert = { count: number; names: string[]; href: string };
 
 type Tile = {
     key: string;
@@ -53,7 +53,7 @@ type Tile = {
 };
 
 type Props = {
-    upcomingAlert: UpcomingAlert | null;
+    homeBanner: HomeBannerData;
     tiles: Tile[];
     stuckByApprover: StuckByApprover;
     waitingSplit: WaitingSplit;
@@ -67,7 +67,7 @@ type Props = {
 };
 
 export default function AdminDashboard({
-    upcomingAlert,
+    homeBanner,
     tiles,
     stuckByApprover,
     waitingSplit,
@@ -91,27 +91,7 @@ export default function AdminDashboard({
                     subtitle="Everything happening across SDAO this academic year"
                 />
 
-                {upcomingAlert && (
-                    <PageNotice
-                        tone="destructive"
-                        urgent
-                        title={
-                            upcomingAlert.count === 1
-                                ? '1 activity happens within 7 days and is still not approved.'
-                                : `${upcomingAlert.count} activities happen within 7 days and are still not approved.`
-                        }
-                        action={
-                            <Link
-                                href={upcomingAlert.href}
-                                className="text-sm font-medium text-destructive-foreground hover:underline"
-                            >
-                                Open these {upcomingAlert.count}
-                            </Link>
-                        }
-                    >
-                        {upcomingAlert.names.join(', ')}
-                    </PageNotice>
-                )}
+                <HomeBanner {...homeBanner} />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 sm:max-lg:[&>*:last-child]:col-span-2">
                     {tiles.map((tile) => (

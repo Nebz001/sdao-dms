@@ -62,6 +62,18 @@ enum FormType: string
         };
     }
 
+    /** Route name of this form type's approver-facing review queue. */
+    public function reviewIndexRouteName(): string
+    {
+        return match ($this) {
+            self::OrganizationRegistration => 'review.registrations.index',
+            self::OrganizationRenewal => 'review.renewals.index',
+            self::ActivityCalendar => 'review.activity-calendars.index',
+            self::ActivityProposal => 'review.activity-proposals.index',
+            self::AfterActivityReport => 'review.reports.index',
+        };
+    }
+
     /**
      * Route name of this form type's approver-facing "show" page, which also
      * serves as the read-only record once a document is terminal.

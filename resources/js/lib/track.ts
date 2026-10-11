@@ -1,3 +1,4 @@
+import type { HomeBannerIcon, HomeBannerTone } from '@/components/home-banner';
 import { pluralize } from '@/lib/student-home';
 
 export type TrackStepState = 'done' | 'current' | 'returned' | 'rejected' | 'upcoming';
@@ -67,6 +68,8 @@ export type BannerKind = 'action' | 'moving' | 'approved' | 'quiet' | 'empty';
 
 export type TrackBanner = {
     kind: BannerKind;
+    tone: HomeBannerTone;
+    icon: HomeBannerIcon;
     title: string;
     description: string;
     button: string;
@@ -102,6 +105,8 @@ export function bannerFor(summary: TrackSummary): TrackBanner {
 
         return {
             kind: 'action',
+            tone: 'orange',
+            icon: 'warning',
             title: `${pluralize(needs, 'document')} ${needs === 1 ? 'needs' : 'need'} your action`,
             description: parts.join(' '),
             button: 'Track my documents',
@@ -114,6 +119,8 @@ export function bannerFor(summary: TrackSummary): TrackBanner {
 
         return {
             kind: 'moving',
+            tone: 'blue',
+            icon: 'clock',
             title: `${pluralize(summary.moving, 'document')} ${isAre(summary.moving)} moving`,
             description: `Nothing needs your action.${where ? ` ${where}.` : ''}`,
             button: 'Track my documents',
@@ -124,6 +131,8 @@ export function bannerFor(summary: TrackSummary): TrackBanner {
     if (summary.approvedYear > 0) {
         return {
             kind: 'approved',
+            tone: 'green',
+            icon: 'check-circle',
             title: 'All documents approved',
             description:
                 summary.approved > 0
@@ -137,6 +146,8 @@ export function bannerFor(summary: TrackSummary): TrackBanner {
     if (summary.total > 0) {
         return {
             kind: 'quiet',
+            tone: 'gray',
+            icon: 'clock',
             title: 'Nothing is moving',
             description: 'None of your documents is waiting on anyone. You can still see how each one went.',
             button: 'Track my documents',
@@ -146,9 +157,11 @@ export function bannerFor(summary: TrackSummary): TrackBanner {
 
     return {
         kind: 'empty',
-        title: 'No documents yet',
-        description: 'Your documents will show up here once you submit one.',
-        button: 'Go to Submit',
+        tone: 'gray',
+        icon: 'file-plus',
+        title: 'No documents yet this term',
+        description: 'Start with an activity proposal. You can track it here once it is sent.',
+        button: 'Start a proposal',
         tab: null,
     };
 }

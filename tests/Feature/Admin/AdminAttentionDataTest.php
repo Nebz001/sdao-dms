@@ -440,6 +440,35 @@ test('the dashboard has no alert when nothing upcoming is unapproved', function 
         ->assertInertia(fn ($page) => $page->where('upcomingAlert', null));
 });
 
+test('the home banner is green when nothing is waiting, orange for SDAO work, and red once a document has been stuck over 5 days', function () {
+    $banner = fn () => $this->actingAs($this->sdaoA)->withoutVite()->get(route('admin.dashboard.index'));
+
+    $banner()->assertInertia(fn ($page) => $page
+        ->where('homeBanner.tone', 'green')
+        ->where('homeBanner.title', 'All clear')
+        ->where('homeBanner.buttonLabel', 'Open activity log')
+        ->where('homeBanner.href', route('admin.activity.index'))
+    );
+
+    $registration = attentionRegistration($this->org, $this->engine, $this->studentAlpha);
+
+    $banner()->assertInertia(fn ($page) => $page
+        ->where('homeBanner.tone', 'orange')
+        ->where('homeBanner.title', '1 item waiting for SDAO')
+        ->where('homeBanner.subtitle', '1 organization registration to review.')
+        ->where('homeBanner.href', route('review.registrations.index'))
+    );
+
+    $this->travelTo(now()->addDays(6));
+
+    $banner()->assertInertia(fn ($page) => $page
+        ->where('homeBanner.tone', 'red')
+        ->where('homeBanner.title', '1 document is stuck in routing')
+        ->where('homeBanner.subtitle', 'Waiting over 5 days: 1 with SDAO.')
+        ->where('homeBanner.href', route('admin.stuck-documents.index', ['waiting_on' => 'approver']))
+    );
+});
+
 test('the proposal funnel counts proposals that cleared each step of their own chain, plus approved', function () {
     $adviser = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
 

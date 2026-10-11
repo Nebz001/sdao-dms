@@ -230,20 +230,36 @@ test('extra role pills appear only for another role assignment or an active offi
         ->assertInertia(fn ($page) => $page->has('approverDashboard.extraRoles', 1));
 });
 
-test('the banner points at the waiting document with the soonest event date', function () {
+test('the home banner is orange with a count by type when documents are waiting', function () {
     approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(20), 'Far Off');
-    $soonest = approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(3), 'Soonest');
+    approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(3), 'Soonest');
     approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(9), 'In Between');
 
     approverDashboardAs($this->adviserOne, fn ($reload) => $reload
-        ->where('approverSummary.banner.count', 3)
-        ->where('approverSummary.banner.document.id', $soonest->id)
-        ->where('approverSummary.banner.document.title', 'Soonest')
-        ->where('approverSummary.banner.document.daysUntilEvent', 3)
+        ->where('approverSummary.banner.tone', 'orange')
+        ->where('approverSummary.banner.icon', 'inbox')
+        ->where('approverSummary.banner.title', '3 documents waiting for your review')
+        ->where('approverSummary.banner.subtitle', '3 activity proposals. The oldest arrived today.')
+        ->where('approverSummary.banner.buttonLabel', 'Open review queue')
+        ->where('approverSummary.banner.href', route('review.activity-proposals.index'))
     );
 });
 
-test('a waiting document with no event date goes last, and the banner falls back to it when nothing has a date', function () {
+test('the home banner turns red, naming the oldest document, once one has waited over 3 days', function () {
+    $this->travelTo(now()->subDays(5));
+    approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(60), 'Old One');
+    $this->travelBack();
+    approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(60), 'New One');
+
+    approverDashboardAs($this->adviserOne, fn ($reload) => $reload
+        ->where('approverSummary.banner.tone', 'red')
+        ->where('approverSummary.banner.title', '1 document waiting over 3 days')
+        ->where('approverSummary.banner.subtitle', 'Old One has waited 5 days. The officers cannot move on until you decide.')
+        ->where('approverSummary.banner.buttonLabel', 'Review now')
+    );
+});
+
+test('a waiting document with no event date goes last', function () {
     $dated = approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(5), 'Dated');
     $undated = approverDashboardOnCalendarProposal($this->org, $this->studentAlpha, approverDashboardManilaDate(5), 'Undated');
     ActivityProposal::where('document_id', $undated->id)->update(['calendar_activity_id' => null]);
@@ -253,13 +269,11 @@ test('a waiting document with no event date goes last, and the banner falls back
         ->where('approverNeedsReview.rows.1.id', $undated->id)
         ->where('approverNeedsReview.rows.1.eventDate', null)
         ->where('approverNeedsReview.rows.1.daysUntilEvent', null)
-        ->where('approverSummary.banner.document.id', $dated->id)
     );
 
     ActivityProposal::where('document_id', $dated->id)->update(['calendar_activity_id' => null]);
 
     approverDashboardAs($this->adviserOne, fn ($reload) => $reload
-        ->where('approverSummary.banner.document.daysUntilEvent', null)
         ->where('approverSummary.nextEvent', null)
     );
 });
@@ -594,8 +608,10 @@ test('recent decisions show the latest outcome per document with a relative date
 
 test('every card has an empty state for an approver with nothing waiting, in progress or decided', function () {
     approverDashboardAs($this->deanCcit, fn ($reload) => $reload
-        ->where('approverSummary.banner.count', 0)
-        ->where('approverSummary.banner.document', null)
+        ->where('approverSummary.banner.tone', 'green')
+        ->where('approverSummary.banner.title', "You're all caught up")
+        ->where('approverSummary.banner.subtitle', 'No documents waiting for you.')
+        ->where('approverSummary.banner.buttonLabel', 'See recent decisions')
         ->where('approverSummary.waiting.count', 0)
         ->where('approverSummary.waiting.oldestDays', null)
         ->where('approverSummary.nextEvent', null)

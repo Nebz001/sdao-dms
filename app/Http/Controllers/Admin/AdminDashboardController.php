@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Dashboard\AdminAttentionData;
+use App\Dashboard\AdminHomeBanner;
 use App\Dashboard\OrgComplianceData;
 use App\Dashboard\ProposalFunnelData;
 use App\Dashboard\RecentActivityFeed;
@@ -38,6 +39,7 @@ class AdminDashboardController extends Controller
         WeeklySubmissions $weekly,
         RecentActivityFeed $recentActivity,
         OrgComplianceData $orgCompliance,
+        AdminHomeBanner $homeBanner,
     ): Response {
         // Not sent as a page prop: the current period is a globally shared
         // prop (HandleInertiaRequests::share()) driving the navbar chips.
@@ -45,6 +47,7 @@ class AdminDashboardController extends Controller
         [$yearStart, $yearEnd] = $period->academicYearRange();
 
         return Inertia::render('admin/dashboard', [
+            'homeBanner' => $homeBanner->payload(),
             'upcomingAlert' => $this->upcomingAlert($attention),
             'tiles' => $attention->tiles(),
             'stuckByApprover' => $attention->stuckByApprover(),
