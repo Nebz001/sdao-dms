@@ -17,4 +17,6 @@ export type VenueBooking = {
     status: string;
     organization: string;
     document_id: number;
+    /** Whether the viewer may open this activity's document; the "View proposal" button is hidden when false. */
+    can_view_proposal: boolean;
 };

@@ -110,21 +110,24 @@ function calendarNames($response): array
     return collect($response->viewData('page')['props']['activities'])->pluck('name')->sort()->values()->all();
 }
 
-test('an officer sees only their own organization on the calendar and can open every item', function () {
+function calendarButtons($response): array
+{
+    return collect($response->viewData('page')['props']['activities'])->pluck('can_view_proposal', 'name')->all();
+}
+
+test('everyone sees every activity, but an officer gets the View proposal button only on their own organization', function () {
     $own = seedCalendarActivity('Auditorium', '2026-09-10', '13:00', '15:00', DocumentStatus::Approved, 'Own Event');
     $other = seedCalendarActivity('Gymnasium', '2026-09-11', '09:00', '11:00', DocumentStatus::Approved, 'Other Org Event', 'Computing Society');
 
     $response = $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))->assertOk();
 
-    expect(calendarNames($response))->toBe(['Own Event'])
-        ->and($response->viewData('page')['props']['visibility'])->toBe('organization');
+    expect(calendarButtons($response))->toBe(['Own Event' => true, 'Other Org Event' => false]);
 
     $this->actingAs($this->user)->withoutVite()->get(route('activity-calendars.show', $own))->assertOk();
-    // A pasted link to another organization's document still gets the 403 fallback.
     $this->actingAs($this->user)->withoutVite()->get(route('activity-calendars.show', $other))->assertForbidden();
 });
 
-test('an approver sees only the activities they personally approved and can open every item', function () {
+test('an approver sees every activity, with the button only where they approved the document', function () {
     $adviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
     $approved = seedCalendarActivity('Auditorium', '2026-09-10', '13:00', '15:00', DocumentStatus::Approved, 'Approved By Me');
     $tentative = seedCalendarActivity('Gymnasium', '2026-09-11', '09:00', '11:00', DocumentStatus::InReview, 'Passed By Me');
@@ -134,29 +137,21 @@ test('an approver sees only the activities they personally approved and can open
 
     $response = $this->actingAs($adviser)->withoutVite()->get(route('calendar.index'))->assertOk();
 
-    expect(calendarNames($response))->toBe(['Approved By Me', 'Passed By Me'])
-        ->and($response->viewData('page')['props']['visibility'])->toBe('approved');
+    expect(calendarButtons($response))->toBe(['Approved By Me' => true, 'Passed By Me' => true, 'Never Mine' => false]);
 
     $this->actingAs($adviser)->withoutVite()->get(route('review.activity-calendars.show', $approved))->assertOk();
     $this->actingAs($adviser)->withoutVite()->get(route('review.activity-calendars.show', $tentative))->assertOk();
     $this->actingAs($adviser)->withoutVite()->get(route('review.activity-calendars.show', $never))->assertForbidden();
 });
 
-test('SDAO still sees every organization on the calendar', function () {
+test('SDAO sees every activity with the button on all of them', function () {
     $sdao = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
-    seedCalendarActivity('Auditorium', '2026-09-10', '13:00', '15:00', DocumentStatus::Approved, 'IT Event');
+    $it = seedCalendarActivity('Auditorium', '2026-09-10', '13:00', '15:00', DocumentStatus::Approved, 'IT Event');
     seedCalendarActivity('Gymnasium', '2026-09-11', '09:00', '11:00', DocumentStatus::InReview, 'CS Event', 'Computing Society');
 
     $response = $this->actingAs($sdao)->withoutVite()->get(route('calendar.index'))->assertOk();
 
-    expect(calendarNames($response))->toBe(['CS Event', 'IT Event'])
-        ->and($response->viewData('page')['props']['visibility'])->toBe('all');
-});
+    expect(calendarButtons($response))->toBe(['IT Event' => true, 'CS Event' => true]);
 
-test('an approver who approved nothing sees an empty calendar', function () {
-    $dean = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
-    seedCalendarActivity('Auditorium', '2026-09-10', '13:00', '15:00', DocumentStatus::Approved, 'Not Mine');
-
-    $this->actingAs($dean)->withoutVite()->get(route('calendar.index'))
-        ->assertInertia(fn ($page) => $page->has('activities', 0)->where('visibility', 'approved'));
+    $this->actingAs($sdao)->withoutVite()->get(route('review.activity-calendars.show', $it))->assertOk();
 });

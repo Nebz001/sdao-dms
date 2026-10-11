@@ -22,7 +22,11 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import VenueBookingRow from '@/components/venue-booking-row';
-import { OrganizationFilter } from '@/components/venue-calendar-filter';
+import {
+    OrganizationFilter,
+    ScopeToggle,
+} from '@/components/venue-calendar-filter';
+import type { ActivityScope } from '@/components/venue-calendar-filter';
 import {
     CalendarSkeleton,
     ComingUpCard,
@@ -51,25 +55,6 @@ import type { VenueBooking } from '@/types/venue-calendar';
 type Props = {
     /** Undefined only while the bookings are still loading. */
     activities?: VenueBooking[];
-    /** What the server limited this user's calendar to. */
-    visibility: CalendarVisibility;
-};
-
-type CalendarVisibility = 'all' | 'organization' | 'approved' | 'none';
-
-const SUBTITLES: Record<CalendarVisibility, string> = {
-    all: 'Confirmed and tentative venue bookings across all organizations. Venue names must be spelled the same way for conflicts to be caught.',
-    organization:
-        'Confirmed and tentative venue bookings for your organization. Venue names must be spelled the same way for conflicts to be caught.',
-    approved: 'Confirmed and tentative venue bookings for the activities you approved.',
-    none: 'Venue bookings you can open appear here.',
-};
-
-const EMPTY_MONTH: Record<CalendarVisibility, string> = {
-    all: 'No activities this month',
-    organization: 'No activities for your organization this month',
-    approved: 'No activities you approved this month',
-    none: 'No activities to show this month',
 };
 
 /**
@@ -78,22 +63,24 @@ const EMPTY_MONTH: Record<CalendarVisibility, string> = {
  * "Coming up" card; the venue-grouped list stays available as a secondary
  * view. Read-only: this page displays existing bookings only.
  *
- * The server only sends what this user may open (CalendarVisibility), so
- * every booking here has a link that works. The organization filter is only
- * offered to SDAO, who sees every organization, and lives in the query string
- * (`?org=<name>`). Conflict checking happens on the server against all
- * bookings and never sees this filter.
+ * The activity filter (own organization / one organization / everything) is
+ * display-only and lives in the query string (`?scope=mine` for officers,
+ * `?org=<name>` for everyone else). Conflict checking happens on the server
+ * against all bookings and never sees this filter.
  */
-export default function CalendarIndex({ activities, visibility }: Props) {
+export default function CalendarIndex({ activities }: Props) {
     useDocumentUpdates(['activities']);
 
     const page = usePage();
     const auth = page.props.auth;
     const pageUrl = page.url;
     const isOfficer = auth?.isActiveOfficer ?? false;
+    const ownOrganization = auth?.organization?.name ?? null;
 
     const query = new URLSearchParams(pageUrl.split('?')[1] ?? '');
-    const organizationFilter = visibility === 'all' ? query.get('org') : null;
+    const scope: ActivityScope =
+        isOfficer && query.get('scope') === 'mine' ? 'mine' : 'all';
+    const organizationFilter = !isOfficer ? query.get('org') : null;
 
     const [view, setView] = useState<'month' | 'list'>('month');
     const [{ year, month }, setYearMonth] = useState(currentYearMonth());
@@ -115,20 +102,22 @@ export default function CalendarIndex({ activities, visibility }: Props) {
         [allActivities],
     );
 
-    const filterActive = organizationFilter !== null;
+    const filterActive = scope === 'mine' || organizationFilter !== null;
 
     // One filtered list feeds the grid, the selected-day card, Coming up and
     // the List view, so they always agree.
     const filteredActivities = useMemo(
         () =>
             filterBookings(allActivities, {
-                scope: 'all',
-                ownOrganization: null,
+                scope,
+                ownOrganization,
                 organization: organizationFilter,
                 venue: selectedVenue,
             }),
         [
             allActivities,
+            scope,
+            ownOrganization,
             organizationFilter,
             selectedVenue,
         ],
@@ -167,12 +156,19 @@ export default function CalendarIndex({ activities, visibility }: Props) {
 
     const selectedDayBookings = bookingsByDate[selectedDate] ?? [];
 
-    function updateFilter(next: { org?: string | null }) {
+    function updateFilter(next: {
+        scope?: ActivityScope;
+        org?: string | null;
+    }) {
         const [path, search = ''] = pageUrl.split('?');
         const params = new URLSearchParams(search);
 
         params.delete('scope');
         params.delete('org');
+
+        if (next.scope === 'mine') {
+            params.set('scope', 'mine');
+        }
 
         if (next.org) {
             params.set('org', next.org);
@@ -210,9 +206,14 @@ export default function CalendarIndex({ activities, visibility }: Props) {
         }
     }
 
-    // The server only sends bookings the user can open: officers open their
-    // own organization's document, every other role the review screen.
+    // The calendar lists every activity, but the server says which documents
+    // this user may open (can_view_proposal). Not allowed means no button at
+    // all, never a disabled one or a link to the 403 page.
     function proposalHref(booking: VenueBooking): string | null {
+        if (!booking.can_view_proposal) {
+            return null;
+        }
+
         return isOfficer
             ? showActivityCalendar.url(booking.document_id)
             : reviewActivityCalendar.url(booking.document_id);
@@ -242,14 +243,18 @@ export default function CalendarIndex({ activities, visibility }: Props) {
         </Select>
     );
 
-    const activityFilter =
-        visibility === 'all' ? (
-            <OrganizationFilter
-                organizations={organizations}
-                value={organizationFilter}
-                onChange={(next) => updateFilter({ org: next })}
-            />
-        ) : null;
+    const activityFilter = isOfficer ? (
+        <ScopeToggle
+            value={scope}
+            onChange={(next) => updateFilter({ scope: next })}
+        />
+    ) : (
+        <OrganizationFilter
+            organizations={organizations}
+            value={organizationFilter}
+            onChange={(next) => updateFilter({ org: next })}
+        />
+    );
 
     const noMatchEmpty = (
         <Empty>
@@ -279,7 +284,7 @@ export default function CalendarIndex({ activities, visibility }: Props) {
                     <div className="min-w-0 flex-1 basis-80">
                         <PageHeader
                             title="Venue Calendar"
-                            subtitle={SUBTITLES[visibility]}
+                            subtitle="Confirmed and tentative venue bookings across all organizations. Venue names must be spelled the same way for conflicts to be caught."
                         />
                     </div>
                     <ToggleGroup
@@ -384,7 +389,7 @@ export default function CalendarIndex({ activities, visibility }: Props) {
                                                             <CalendarX2 />
                                                         </EmptyMedia>
                                                         <EmptyTitle>
-                                                            {EMPTY_MONTH[visibility]}
+                                                            No bookings this month
                                                         </EmptyTitle>
                                                         <EmptyDescription>
                                                             Use the arrows to look at another month.

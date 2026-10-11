@@ -15,6 +15,7 @@ function booking(overrides: Partial<VenueBooking>): VenueBooking {
         status: 'approved',
         organization: 'Robotics Guild',
         document_id: 1,
+        can_view_proposal: true,
         ...overrides,
     };
 }

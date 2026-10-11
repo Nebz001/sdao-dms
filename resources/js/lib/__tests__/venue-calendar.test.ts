@@ -20,6 +20,7 @@ function booking(overrides: Partial<VenueBooking>): VenueBooking {
         status: 'approved',
         organization: 'CODECS',
         document_id: 1,
+        can_view_proposal: true,
         ...overrides,
     };
 }
