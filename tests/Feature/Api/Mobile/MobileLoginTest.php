@@ -96,6 +96,19 @@ test('an approver on a non-staff email domain cannot log in', function () {
     ])->assertStatus(403);
 });
 
+test('an SDAO admin can log in with a Gmail account', function () {
+    $admin = User::where('email', 'sdao-a@nu-lipa.edu.ph')->firstOrFail();
+    $admin->forceFill(['email' => 'sdao-admin@gmail.com'])->save();
+
+    $this->postJson('/api/mobile/login', [
+        'email' => $admin->email,
+        'password' => 'ict@1234',
+        'device_name' => 'Test Phone',
+    ])
+        ->assertOk()
+        ->assertJsonStructure(['token']);
+});
+
 test('leftover two-factor data on an approver account does not block mobile login', function () {
     // Regression guard for the 2FA removal, mobile-API side — mirrors the
     // web-login equivalent in AuthenticationTest.php.
