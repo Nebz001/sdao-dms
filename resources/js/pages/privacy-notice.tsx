@@ -527,10 +527,10 @@ export default function PrivacyNotice({ version }: Props) {
                                                 SDAO Office
                                             </span>
                                             <ContactRow icon={MapPin}>
-                                                [SDAO OFFICE LOCATION]
+                                                SDAO Office
                                             </ContactRow>
                                             <ContactRow icon={Mail}>
-                                                [SDAO EMAIL]
+                                                sdao@nu-lipa.edu.ph
                                             </ContactRow>
                                             <ContactRow icon={Info}>
                                                 For wrong account or
