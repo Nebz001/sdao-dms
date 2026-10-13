@@ -20,13 +20,13 @@ final readonly class OrganizationRequirements
         public bool $adviserBound,
         public bool $hasPresident,
         public bool $hasSecretary,
-        public bool $renewalFiledForNextYear,
+        public bool $renewalFiledThisTerm,
     ) {}
 
     /**
      * All the requirements that gate "fully in good standing" — everything
-     * except renewalFiledForNextYear, which is only meaningful during
-     * renewal season and is surfaced separately (see toArray()'s note).
+     * except renewalFiledThisTerm, which is only meaningful while a
+     * renewal is due and is surfaced separately (see toArray()'s note).
      */
     public function isComplete(): bool
     {
@@ -46,7 +46,7 @@ final readonly class OrganizationRequirements
             ['key' => 'adviser_bound', 'label' => 'Adviser bound', 'met' => $this->adviserBound],
             ['key' => 'president_bound', 'label' => 'Active president', 'met' => $this->hasPresident],
             ['key' => 'secretary_bound', 'label' => 'Active secretary', 'met' => $this->hasSecretary],
-            ['key' => 'renewal_filed', 'label' => 'Renewal filed for next year', 'met' => $this->renewalFiledForNextYear],
+            ['key' => 'renewal_filed', 'label' => 'Renewal filed this term', 'met' => $this->renewalFiledThisTerm],
         ];
     }
 }

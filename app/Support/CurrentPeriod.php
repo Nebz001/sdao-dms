@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Date;
  * Typed accessor for the global, admin-controlled "current academic period"
  * setting — the single source of truth for both the current term and the
  * current academic year (replaces the old, year-blind App\Support\CurrentTerm).
- * SDAO sets this system-wide via the settings screen; setting the term to 3rd
- * is what opens organization renewal season (App\Renewals\OpenRenewalSeason).
+ * SDAO sets this system-wide via the settings screen; moving forward to a new
+ * term is what opens that term's renewal round (App\Renewals\OpenRenewalSeason).
  *
  * Changing the current period never rewrites an already-stamped document's own
  * copy of the period it was submitted/approved under — each document keeps

@@ -184,7 +184,6 @@ class HandleInertiaRequests extends Middleware
             'term' => $period->term->value,
             'term_label' => $period->term->label(),
             'label' => $period->label(),
-            'is_renewal_season' => $period->isRenewalSeason(),
         ];
     }
 

@@ -3,8 +3,8 @@
 
 Hi {{ $recipientName }},
 
-SDAO has opened the 3rd Term renewal season. Your organization's registration
-must be renewed to remain active for **{{ $coveredYear }}**.
+SDAO has opened renewal for **{{ $termLabel }}**. Your organization's registration
+must be renewed to remain active.
 
 <x-mail::button :url="$renewUrl">
 Submit Renewal

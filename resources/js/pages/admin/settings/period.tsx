@@ -38,7 +38,6 @@ type CurrentPeriod = {
     academic_year: string;
     term: string;
     label: string;
-    is_renewal_season: boolean;
 };
 
 type Props = {
@@ -46,7 +45,8 @@ type Props = {
     terms: TermOption[];
     academicYears: AcademicYearOption[];
     suggestedAcademicYearOnWrap: string;
-    renewalNoticeRecipientCount: number;
+    /** Officers emailed if the period moves to "year:term"; 0 when nobody would be. */
+    renewalNoticeRecipientCounts: Record<string, number>;
 };
 
 export default function CurrentPeriodSettings({
@@ -54,7 +54,7 @@ export default function CurrentPeriodSettings({
     terms,
     academicYears,
     suggestedAcademicYearOnWrap,
-    renewalNoticeRecipientCount,
+    renewalNoticeRecipientCounts,
 }: Props) {
     const [pendingTerm, setPendingTerm] = useState(current.term);
     const [pendingYear, setPendingYear] = useState(current.academic_year);
@@ -82,18 +82,19 @@ export default function CurrentPeriodSettings({
 
     const termLabel = (value: string) => terms.find((t) => t.value === value)?.label ?? value;
     const hasChange = pendingTerm !== current.term || pendingYear !== current.academic_year;
-    const opensRenewalSeason = pendingTerm === 'third_term' && current.term !== 'third_term';
     const pendingIsEarlier =
         (terms.find((t) => t.value === pendingTerm)?.order ?? 0) < (terms.find((t) => t.value === current.term)?.order ?? 0) &&
         pendingYear === current.academic_year;
     const movesBackwards = pendingYear < current.academic_year || pendingIsEarlier;
+    const opensRenewalRound = hasChange && !movesBackwards;
+    const renewalNoticeRecipientCount = renewalNoticeRecipientCounts[`${pendingYear}:${pendingTerm}`] ?? 0;
 
     return (
         <>
             <Head title="Current Period" />
 
             <CenteredContainer maxWidth="2xl" className="space-y-6">
-                <PageHeader title="Current Period" subtitle="The single, system-wide academic term and year new Activity Calendar submissions are filed under. Setting the term to 3rd opens organization renewal season and notifies every organization whose renewal is due. Changing the period never alters documents already submitted — each keeps the period it was submitted or approved under, permanently." />
+                <PageHeader title="Current Period" subtitle="The single, system-wide academic term and year new Activity Calendar submissions are filed under. Moving forward to a new term opens renewal for that term and notifies every organization that has not renewed yet. Changing the period never alters documents already submitted — each keeps the period it was submitted or approved under, permanently." />
 
                 <Card>
                     <CardHeader>
@@ -162,13 +163,13 @@ export default function CurrentPeriodSettings({
                                         period) are not affected.
                                     </span>
                                     </DialogDescription>
-                                {(opensRenewalSeason || movesBackwards) && (
+                                {(opensRenewalRound || movesBackwards) && (
                                     <div className="flex flex-col gap-2">
-                                        {opensRenewalSeason && (
-                                            <PageNotice tone="info" title="This opens renewal season.">
+                                        {opensRenewalRound && (
+                                            <PageNotice tone="info" title="This opens renewal for the new term.">
                                                 {renewalNoticeRecipientCount > 0
                                                     ? `${renewalNoticeRecipientCount} officer(s) will be emailed that renewal is now due.`
-                                                    : 'No organizations currently appear to be due.'}
+                                                    : 'No officers will be emailed: no organization is due, or this term was already announced.'}
                                             </PageNotice>
                                         )}
                                         {movesBackwards && (

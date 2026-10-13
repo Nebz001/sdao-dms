@@ -55,7 +55,7 @@ type Props = {
     };
     status: string;
     renewalDue: boolean;
-    coversThroughAcademicYear: string | null;
+    coveredThrough: string | null;
     requirements: RequirementItem[];
     officers: OfficerEntry[];
     adviser: Adviser | null;
@@ -80,7 +80,7 @@ function actionHref(target: RequirementAction['target']): string {
 export default function MyOrganization({
     organization,
     status,
-    coversThroughAcademicYear,
+    coveredThrough,
     renewalDue,
     requirements,
     officers,
@@ -92,7 +92,7 @@ export default function MyOrganization({
         requirements,
         renewalDue,
         organization.name,
-        coversThroughAcademicYear,
+        coveredThrough,
     );
     const percent = rows.total === 0 ? 0 : (rows.doneCount / rows.total) * 100;
     const showSchool =
@@ -137,13 +137,13 @@ export default function MyOrganization({
                                         </TagBadge>
                                     </li>
                                 )}
-                                {coversThroughAcademicYear !== null && (
+                                {coveredThrough !== null && (
                                     <li>
                                         <TagBadge className="min-h-7 gap-1.5 px-3 py-1 text-sm leading-snug">
                                             <ShieldCheck aria-hidden />
                                             Covered through{' '}
                                             <span className="font-medium">
-                                                {coversThroughAcademicYear}
+                                                {coveredThrough}
                                             </span>
                                         </TagBadge>
                                     </li>

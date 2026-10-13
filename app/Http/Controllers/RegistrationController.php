@@ -173,7 +173,7 @@ class RegistrationController extends Controller
      * one-registration-in-flight guard in SubmitOrganizationRegistration);
      * nothing here decides who is blocked.
      *
-     * @return array{reason: string, organization?: string, covered_year?: string, document_id?: int, href?: string}|null
+     * @return array{reason: string, organization?: string, covered_through?: string, document_id?: int, href?: string}|null
      */
     private function blockedState(OrganizationStatusResolver $statusResolver): ?array
     {
@@ -191,7 +191,7 @@ class RegistrationController extends Controller
             return [
                 'reason' => 'officer',
                 'organization' => $organization->name,
-                'covered_year' => $statusResolver->for($organization)->coversThroughAcademicYear,
+                'covered_through' => $statusResolver->for($organization)->coveredThrough?->label(),
             ];
         }
 

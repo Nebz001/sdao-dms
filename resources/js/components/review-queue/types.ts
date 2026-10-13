@@ -3,6 +3,8 @@ export type WaitTier = 'fresh' | 'aging' | 'overdue';
 export type QueueRow = {
     id: number;
     title: string;
+    /** Renewals only: the term it was filed for. */
+    term?: string | null;
     organization: { id: number; name: string };
     /** ISO timestamp the document entered the approver's queue. */
     submitted_at: string;
@@ -30,6 +32,8 @@ export type RecentDecision = {
     organization: string;
     /** Set where the document has its own name (activity proposals). */
     title?: string;
+    /** Renewals only: the term it was filed for. */
+    term?: string | null;
     /** The organization's college, when the page shows it as a sub-line. */
     college?: string | null;
     result: 'approved' | 'returned' | 'rejected';

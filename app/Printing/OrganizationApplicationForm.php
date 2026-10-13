@@ -140,6 +140,9 @@ class OrganizationApplicationForm implements PrintableForm
             'is_new' => ! $isRenewal,
             'is_renewal' => $isRenewal,
             'academic_year' => $detail->academic_year ?? AcademicYear::forDate($document->created_at),
+            // Renewals are filed every term, so the printout also names the
+            // term it was filed for. A registration has none to show here.
+            'term_label' => $isRenewal ? $detail->term?->label() : null,
             'organization_name' => $organization->name,
             'college' => $organization->school?->name,
             'program' => $organization->program?->name,

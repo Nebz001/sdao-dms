@@ -78,11 +78,11 @@ test('an activity calendar is titled by its form type, drops the chip, and shows
     ]);
 });
 
-test('a registration and a renewal are titled by their form type and badged with the year they are FOR', function () {
+test('a registration and a renewal are titled by their form type and badged with the year or term they are FOR', function () {
     $registration = labelDocument(FormType::OrganizationRegistration, $this->org, 'Organization Registration — PICE (2026-2027)');
     OrganizationRegistrationDetail::factory()->create(['document_id' => $registration->id, 'covers_academic_year' => '2026-2027']);
     $renewal = labelDocument(FormType::OrganizationRenewal, $this->org, 'Organization Renewal — PICE (2027-2028)');
-    OrganizationRegistrationDetail::factory()->create(['document_id' => $renewal->id, 'covers_academic_year' => '2027-2028']);
+    OrganizationRegistrationDetail::factory()->create(['document_id' => $renewal->id, 'academic_year' => '2026-2027', 'term' => Term::SecondTerm, 'covers_academic_year' => '2026-2027']);
 
     expect(StudentDocumentLabel::payload($registration->fresh()))->toBe([
         'title' => 'Organization Registration',
@@ -92,7 +92,7 @@ test('a registration and a renewal are titled by their form type and badged with
     expect(StudentDocumentLabel::payload($renewal->fresh()))->toBe([
         'title' => 'Organization Renewal',
         'showFormType' => false,
-        'period' => '2027-2028',
+        'period' => '2nd Term, 2026-2027',
     ]);
 });
 
@@ -128,17 +128,17 @@ describe('student lists use it', function () {
 
     test('the renewals list and document history send the clean title, chip flag and period', function () {
         $renewal = labelDocument(FormType::OrganizationRenewal, $this->csOrg, 'Organization Renewal — Computing Society (2027-2028)');
-        OrganizationRegistrationDetail::factory()->create(['document_id' => $renewal->id, 'covers_academic_year' => '2027-2028']);
+        OrganizationRegistrationDetail::factory()->create(['document_id' => $renewal->id, 'academic_year' => '2026-2027', 'term' => Term::SecondTerm, 'covers_academic_year' => '2026-2027']);
 
         $this->actingAs($this->student)->get(route('renewals.index'))->assertOk()->assertInertia(fn ($page) => $page
             ->where('renewals.0.title', 'Organization Renewal')
             ->where('renewals.0.showFormType', false)
-            ->where('renewals.0.period', '2027-2028'));
+            ->where('renewals.0.period', '2nd Term, 2026-2027'));
 
         $this->actingAs($this->student)->get(route('document-history.index'))->assertOk()->assertInertia(fn ($page) => $page
             ->where('documents.data', fn ($rows) => collect($rows)->contains(fn ($row) => $row['title'] === 'Organization Renewal'
                 && $row['showFormType'] === false
-                && $row['period'] === '2027-2028')));
+                && $row['period'] === '2nd Term, 2026-2027')));
     });
 
     test('the proposals list sends only the activity name as the title', function () {

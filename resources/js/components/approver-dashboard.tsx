@@ -29,6 +29,7 @@ import { SegmentedLegend } from '@/components/review-queue/segmented-bar';
 import StatIconTile from '@/components/stat-icon-tile';
 import type { StatIconTileTone } from '@/components/stat-icon-tile';
 import { ActionBadge, ToneBadge } from '@/components/status-badge';
+import TermBadge from '@/components/term-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,6 +66,8 @@ export type NeedsReviewEntry = {
     title: string;
     formType: string;
     formTypeLabel: string;
+    /** Renewals only: the term it was filed for. */
+    termLabel?: string | null;
     organizationName: string;
     eventDate: string | null;
     daysUntilEvent: number | null;
@@ -90,6 +93,7 @@ export type InProgressRow = {
     title: string;
     organizationName: string;
     formTypeLabel: string;
+    termLabel?: string | null;
     href: string;
     steps: TrackerStep[];
     trackerLabel: string;
@@ -111,6 +115,7 @@ export type RecentDecision = {
     id: number;
     action: string;
     formTypeLabel: string;
+    termLabel?: string | null;
     documentTitle: string;
     organizationName: string;
     whenLabel: string;
@@ -347,7 +352,8 @@ function NeedsReviewCard({ needsReview, reviewHref }: { needsReview: ApproverNee
                                     <p className="text-sm font-semibold break-words">{row.title}</p>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                         <OrganizationBadge name={row.organizationName} />
-                                        <FormTypeBadge label={row.formTypeLabel} />
+                                        {row.title !== row.formTypeLabel && <FormTypeBadge label={row.formTypeLabel} />}
+                                        {row.termLabel && <TermBadge label={row.termLabel} />}
                                     </div>
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         {row.eventDate ? `Event date: ${formatShortDate(row.eventDate)}` : 'No event date'}
@@ -406,7 +412,8 @@ function InProgressCard({ rows, trackHref, className }: { rows: InProgressRow[];
                                     </Link>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                         <OrganizationBadge name={row.organizationName} />
-                                        <FormTypeBadge label={row.formTypeLabel} />
+                                        {row.title !== row.formTypeLabel && <FormTypeBadge label={row.formTypeLabel} />}
+                                        {row.termLabel && <TermBadge label={row.termLabel} />}
                                     </div>
                                 </div>
                                 <ApproverStepTracker steps={row.steps} label={row.trackerLabel} />
@@ -483,7 +490,8 @@ function RecentDecisionsCard({ decisions, historyHref, className }: { decisions:
                                     </Link>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                         <OrganizationBadge name={entry.organizationName} />
-                                        <FormTypeBadge label={entry.formTypeLabel} />
+                                        {entry.documentTitle !== entry.formTypeLabel && <FormTypeBadge label={entry.formTypeLabel} />}
+                                        {entry.termLabel && <TermBadge label={entry.termLabel} />}
                                     </div>
                                     {entry.waitingOnOrg && (
                                         <p className="mt-1 text-xs text-muted-foreground">Waiting for the org to fix and resend</p>

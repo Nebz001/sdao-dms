@@ -245,6 +245,20 @@ test('academic year is read from the stored column on a renewal', function () {
     expect(dataFor($doc)['academic_year'])->toBe('2025-2026');
 });
 
+test('a renewal prints the term it was filed for, a registration prints none', function () {
+    $renewal = printableDocument($this->org, $this->studentAlpha, $this->adviserOne, FormType::OrganizationRenewal, [
+        'academic_year' => '2025-2026',
+        'term' => 'second_term',
+    ]);
+    expect(dataFor($renewal)['term_label'])->toBe('2nd Term');
+
+    $registrationOrg = Organization::factory()->create();
+    $registration = printableDocument($registrationOrg, $this->studentAlpha, $this->adviserOne, FormType::OrganizationRegistration, [
+        'term' => 'second_term',
+    ]);
+    expect(dataFor($registration)['term_label'])->toBeNull();
+});
+
 test('academic year on a registration is derived from the document\'s created_at, not the current date', function () {
     $septemberDoc = printableDocument($this->org, $this->studentAlpha, $this->adviserOne);
     $septemberDoc->forceFill(['created_at' => '2026-09-01'])->save();

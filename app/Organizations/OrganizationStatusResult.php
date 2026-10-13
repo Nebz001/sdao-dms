@@ -4,6 +4,7 @@ namespace App\Organizations;
 
 use App\Enums\OrganizationStatus;
 use App\Renewals\RenewalEligibilityResult;
+use App\Support\AcademicPeriod;
 
 /**
  * The result of OrganizationStatusResolver::for()/forMany() — the single
@@ -15,7 +16,7 @@ final readonly class OrganizationStatusResult
     public function __construct(
         public OrganizationStatus $status,
         public bool $renewalDue,
-        public ?string $coversThroughAcademicYear,
+        public ?AcademicPeriod $coveredThrough,
         public OrganizationRequirements $requirements,
         public RenewalEligibilityResult $eligibility,
     ) {}

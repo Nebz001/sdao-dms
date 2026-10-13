@@ -86,6 +86,7 @@ class ReviewQueueData
                 return [
                     'id' => $d->id,
                     'title' => DocumentDisplayTitle::subject($d),
+                    'term' => DocumentDisplayTitle::termLabel($d),
                     'status' => $d->status->value,
                     'current_step_position' => $d->current_step_position,
                     'organization' => ['id' => $d->organization->id, 'name' => $d->organization->name],
@@ -180,6 +181,7 @@ class ReviewQueueData
             ->map(fn (DocumentTransition $t) => [
                 'id' => $t->id,
                 'organization' => $t->document->organization->name,
+                'term' => DocumentDisplayTitle::termLabel($t->document),
                 'college' => $t->document->organization->school?->name,
                 'result' => match ($t->action) {
                     TransitionAction::Completed => 'approved',
@@ -233,6 +235,7 @@ class ReviewQueueData
                 ->map(fn (DocumentTransition $t) => [
                     'id' => $t->id,
                     'organization' => $t->document->organization->name,
+                    'term' => DocumentDisplayTitle::termLabel($t->document),
                     'college' => $t->document->organization->school?->name,
                     'result' => $t->action === TransitionAction::Completed ? 'approved' : $t->action->value,
                     'decided_at' => $t->created_at->toIso8601String(),

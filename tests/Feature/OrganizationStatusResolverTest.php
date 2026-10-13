@@ -27,8 +27,8 @@ use Tests\Fixtures\TestIdentitySeeder;
  * Inactive) and the orthogonal `renewalDue` flag. Covers the status
  * predicate itself plus the three decisions recorded in the Stage 2 plan:
  * (1) Active needs only ONE active officer, (2) a Rejected renewal is never
- * in flight, (3) coversAcademicYearOrLater() and
- * hasNonRejectedRenewalForExactYear() are deliberately different checks.
+ * in flight, (3) isCovered() and hasNonRejectedRenewalForPeriod() are
+ * deliberately different checks.
  */
 beforeEach(function () {
     $this->seed([TestIdentitySeeder::class, WorkflowTemplateSeeder::class, MembershipSeeder::class]);
@@ -66,15 +66,14 @@ function resolverOpenRenewalSeason(): void
 
 /**
  * Submits and dual-approves a registration for the given org, then stamps
- * its coverage — defaulting to the real approve-time rule (current
- * academic year, or current+grace during renewal season) unless
- * $coversAcademicYear overrides it, which is how tests simulate a lapsed
- * or already-graced coverage year without waiting real terms out. Mirrors
+ * its period — defaulting to the real approve-time rule (the current
+ * period) unless $stampedAt overrides it, which is how tests simulate an
+ * org approved or renewed in an earlier term without waiting real terms out. Mirrors
  * SubmitOrganizationRenewalTest's submitAndApproveRegistrationFor(), kept
  * as a separate, uniquely-named copy since Pest requires globally-unique
  * top-level function names across all Feature test files.
  */
-function resolverApproveRegistrationFor(User $actor, Organization $org, ?string $coversAcademicYear = null): Document
+function resolverApproveRegistrationFor(User $actor, Organization $org, ?AcademicPeriod $stampedAt = null): Document
 {
     $document = Document::create([
         'form_type' => FormType::OrganizationRegistration,
@@ -109,12 +108,11 @@ function resolverApproveRegistrationFor(User $actor, Organization $org, ?string 
     $engine->approve($document, $sdaoB);
     $document->refresh();
 
-    $period = CurrentPeriod::get();
+    $period = $stampedAt ?? CurrentPeriod::get();
     $document->registrationDetail->update([
         'academic_year' => $period->academicYear,
         'term' => $period->term->value,
-        'covers_academic_year' => $coversAcademicYear
-            ?? ($period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear),
+        'covers_academic_year' => $period->academicYear,
     ]);
 
     return $document;
@@ -150,7 +148,7 @@ test('an org that was never approved and has nothing in flight resolves Inactive
 });
 
 test('an org whose coverage has lapsed, with nothing currently in flight, resolves NeedsRenewal', function () {
-    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, coversAcademicYear: '2029-2030');
+    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, new AcademicPeriod('2029-2030', Term::SecondTerm));
 
     $result = $this->resolver->for($this->itGuild);
 
@@ -158,7 +156,7 @@ test('an org whose coverage has lapsed, with nothing currently in flight, resolv
 });
 
 test('PendingReview outranks NeedsRenewal — a lapsed org with a renewal already in flight is PendingReview', function () {
-    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, coversAcademicYear: '2029-2030');
+    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, new AcademicPeriod('2029-2030', Term::SecondTerm));
     resolverOpenRenewalSeason();
 
     $renewal = $this->renewalAction->execute(
@@ -178,29 +176,42 @@ test('PendingReview outranks NeedsRenewal — a lapsed org with a renewal alread
     expect($result->status)->toBe(OrganizationStatus::PendingReview);
 });
 
-test('coverage is a >= match — an org already graced through next year still reads Active this year', function () {
-    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, coversAcademicYear: '2031-2032');
+test('coverage runs through the term after the one the org renewed in — an org renewed last term still reads Active', function () {
+    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, new AcademicPeriod('2029-2030', Term::ThirdTerm));
 
     $result = $this->resolver->for($this->itGuild, new AcademicPeriod('2030-2031', Term::FirstTerm));
 
     expect($result->status)->toBe(OrganizationStatus::Active);
     expect($result->requirements->coverageCurrent)->toBeTrue();
+    expect($result->coveredThrough->toString())->toBe('2030-2031:first_term');
+});
+
+test('skipping one term only flags the org — it stays Active, and needs renewal only after missing a whole term', function () {
+    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, new AcademicPeriod('2030-2031', Term::FirstTerm));
+
+    // The next term: not renewed yet, so flagged due — but still Active.
+    $secondTerm = $this->resolver->for($this->itGuild, new AcademicPeriod('2030-2031', Term::SecondTerm));
+    expect($secondTerm->renewalDue)->toBeTrue();
+    expect($secondTerm->status)->toBe(OrganizationStatus::Active);
+
+    // A whole term went by without a renewal.
+    $thirdTerm = $this->resolver->for($this->itGuild, new AcademicPeriod('2030-2031', Term::ThirdTerm));
+    expect($thirdTerm->renewalDue)->toBeTrue();
+    expect($thirdTerm->status)->toBe(OrganizationStatus::NeedsRenewal);
 });
 
 /**
- * Decision 3, pinned: coversAcademicYearOrLater() and
- * hasNonRejectedRenewalForExactYear() answer different questions and must
- * never be merged. This is the case AdminDashboardController::orgCompliance()
- * got wrong before this stage: an org covered ONLY via an approved
- * REGISTRATION (never a renewal) must still read as covered by the
- * resolver's check, while the renewal-only uniqueness guard correctly sees
- * no renewal at all.
+ * Decision 3, pinned: isCovered() and hasNonRejectedRenewalForPeriod()
+ * answer different questions and must never be merged. An org covered ONLY
+ * via an approved REGISTRATION (never a renewal) must still read as covered
+ * by the resolver's check, while the renewal-only uniqueness guard
+ * correctly sees no renewal at all.
  */
-test('coverage sourced from an approved registration is recognized by coversAcademicYearOrLater, unlike the renewal-only exact-year guard', function () {
-    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild, coversAcademicYear: '2030-2031');
+test('coverage sourced from an approved registration is recognized by isCovered, unlike the renewal-only term guard', function () {
+    resolverApproveRegistrationFor($this->studentBeta, $this->itGuild);
 
-    expect($this->resolver->coversAcademicYearOrLater($this->itGuild, '2030-2031'))->toBeTrue();
-    expect($this->renewalAction->hasNonRejectedRenewalForExactYear($this->itGuild, '2030-2031'))->toBeFalse();
+    expect($this->resolver->isCovered($this->itGuild))->toBeTrue();
+    expect($this->renewalAction->hasNonRejectedRenewalForPeriod($this->itGuild, CurrentPeriod::get()))->toBeFalse();
 
     $result = $this->resolver->for($this->itGuild);
     expect($result->status)->toBe(OrganizationStatus::Active);
@@ -212,19 +223,19 @@ test('renewalDue always agrees with SubmitOrganizationRenewal::eligibilityFor()-
         ->toBe($this->renewalAction->eligibilityFor($this->itGuild)->isEligible())
         ->toBeFalse();
 
-    // Approved, but season closed (still 1st term).
+    // Approved this very term, so already covered (still 1st term).
     resolverApproveRegistrationFor($this->studentBeta, $this->itGuild);
     expect($this->resolver->for($this->itGuild)->renewalDue)
         ->toBe($this->renewalAction->eligibilityFor($this->itGuild)->isEligible())
         ->toBeFalse();
 
-    // Season opens — now genuinely eligible.
+    // A later term opens — now genuinely eligible.
     resolverOpenRenewalSeason();
     expect($this->resolver->for($this->itGuild)->renewalDue)
         ->toBe($this->renewalAction->eligibilityFor($this->itGuild)->isEligible())
         ->toBeTrue();
 
-    // Already filed this year — no longer due.
+    // Already filed this term — no longer due.
     $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
@@ -238,7 +249,7 @@ test('renewalDue always agrees with SubmitOrganizationRenewal::eligibilityFor()-
     expect($this->resolver->for($this->itGuild)->renewalDue)
         ->toBe($this->renewalAction->eligibilityFor($this->itGuild)->isEligible())
         ->toBeFalse();
-    expect($this->resolver->for($this->itGuild)->eligibility->status)->toBe(RenewalEligibility::AlreadyFiledThisYear);
+    expect($this->resolver->for($this->itGuild)->eligibility->status)->toBe(RenewalEligibility::AlreadyFiledThisTerm);
 });
 
 /**
@@ -277,11 +288,11 @@ test('a secretary alone (no active president) is also sufficient for Active', fu
  * with the resolver-level assertion that a rejected renewal doesn't drag
  * the org's status down to PendingReview either.
  */
-test('a rejected renewal does not read as in flight and does not block a fresh renewal for the same year', function () {
+test('a rejected renewal does not read as in flight and does not block a fresh renewal for the same term', function () {
     expect(DocumentStatus::Rejected->isInFlight())->toBeFalse();
 
     resolverApproveRegistrationFor($this->studentBeta, $this->itGuild);
-    resolverOpenRenewalSeason();
+    resolverSetPeriod('2030-2031', Term::SecondTerm);
 
     $renewal = $this->renewalAction->execute(
         actor: $this->studentBeta,
@@ -304,7 +315,7 @@ test('a rejected renewal does not read as in flight and does not block a fresh r
     expect($result->status)->not->toBe(OrganizationStatus::PendingReview);
     expect($result->status)->toBe(OrganizationStatus::Active);
 
-    // And a fresh renewal for the SAME covered year is not blocked.
+    // And a fresh renewal for the SAME term is not blocked.
     $secondRenewal = $this->renewalAction->execute(
         actor: $this->studentBeta,
         organization: $this->itGuild,
@@ -318,7 +329,7 @@ test('a rejected renewal does not read as in flight and does not block a fresh r
     expect($secondRenewal->status)->toBe(DocumentStatus::InReview);
     expect($secondRenewal->id)->not->toBe($renewal->id);
 
-    // The org's registration coverage (this academic year) never lapsed in
+    // The org's registration coverage never lapsed in
     // this scenario, so it correctly stays Active even with a renewal now
     // genuinely in flight — `covered` short-circuits before `inFlight` is
     // even considered. See the separate "PendingReview outranks

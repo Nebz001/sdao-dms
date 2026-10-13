@@ -3,8 +3,6 @@
 namespace App\Dashboard;
 
 use App\Enums\DocumentStatus;
-use App\Enums\OrganizationStatus;
-use App\Enums\RenewalEligibility;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Organizations\OrganizationStatusResolver;
@@ -14,13 +12,11 @@ use App\Support\AcademicPeriod;
  * The Organization compliance card: how many approved organizations are
  * covered, and which ones have documents still open.
  *
- * "Covered" follows the renewal season, using the resolver's own coverage and
- * eligibility facts (never a second definition of who is due):
- *   - outside 3rd term: covered for the CURRENT academic year;
- *   - in 3rd term (renewal season): covered for NEXT year, either because the
- *     registration's grace already reaches it or because a renewal has been
- *     filed (RenewalEligibility::AlreadyFiledThisYear).
- * Only organizations that have been approved at least once are counted.
+ * "Renewed" means the organization has nothing left to do for the CURRENT
+ * term, using the resolver's own eligibility fact (never a second definition
+ * of who is due): it filed a renewal this term, or was approved this term.
+ * Organizations that have not are the ones flagged "Not yet renewed" — they
+ * are only flagged, never blocked. Only organizations that have been approved at least once are counted.
  */
 class OrgComplianceData
 {
@@ -30,19 +26,15 @@ class OrgComplianceData
     public function __construct(private readonly OrganizationStatusResolver $statusResolver) {}
 
     /**
-     * @return array{renewalSeason: bool, targetYear: string, done: int, total: int, pendingTotal: int, pending: array<int, array{organizationId: int, organizationName: string, count: int, href: string}>, viewAllHref: string}
+     * @return array{termLabel: string, done: int, total: int, pendingTotal: int, pending: array<int, array{organizationId: int, organizationName: string, count: int, href: string}>, viewAllHref: string}
      */
     public function forPeriod(AcademicPeriod $period): array
     {
         $organizations = Organization::query()->get(['id', 'name']);
         $results = $this->statusResolver->forMany($organizations, $period);
 
-        $renewalSeason = $period->isRenewalSeason();
-        $targetYear = $renewalSeason ? $period->nextAcademicYear() : $period->academicYear;
-
         $approved = $results->filter(fn ($result) => $result->eligibility->priorRecord !== null);
-        $done = $approved->filter(fn ($result) => $result->eligibility->status === RenewalEligibility::AlreadyFiledThisYear
-            || ($result->coversThroughAcademicYear !== null && $result->coversThroughAcademicYear >= $targetYear));
+        $done = $approved->reject(fn ($result) => $result->renewalDue);
 
         $pending = Document::query()
             ->with('organization:id,name')
@@ -58,8 +50,7 @@ class OrgComplianceData
             ->values();
 
         return [
-            'renewalSeason' => $renewalSeason,
-            'targetYear' => $targetYear,
+            'termLabel' => $period->label(),
             'done' => $done->count(),
             'total' => $approved->count(),
             'pendingTotal' => $pending->count(),
@@ -67,6 +58,7 @@ class OrgComplianceData
                 ...$row,
                 'href' => route('admin.organizations.index', ['search' => $row['organizationName']]),
             ])->all(),
-            'viewAllHref' => route('admin.organizations.index', $renewalSeason ? [] : ['status' => OrganizationStatus::NeedsRenewal->value]),        ];
+            'viewAllHref' => route('admin.organizations.index', ['renewal' => 'due']),
+        ];
     }
 }

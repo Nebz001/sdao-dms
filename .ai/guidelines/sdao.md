@@ -128,7 +128,7 @@ These are product rules, not suggestions. Do not "simplify" them away.
    immediately — build this as part of the engine now, not later. Only the
    delivery channel (personal email via a transactional email provider) is
    deferred to the auth slice; the notification trigger itself is not deferred.
-   This is how "no follow-ups" is enforced. The renewal-season broadcast
+   This is how "no follow-ups" is enforced. The per-term renewal broadcast
    (below) is the second notification trigger in the system, alongside this
    one — both use the same mail+database channel pattern.
 
@@ -187,29 +187,34 @@ Key model facts note.)
   dean — it has a single principal.
 - An organization belongs to one program within a regular school, OR directly
   to Senior High School (which has no programs).
-- Organization renewal happens at most once per academic year, and only during
-  the **3rd-term renewal season**. Renewal is not submittable in 1st or 2nd
-  term. A renewal filed in 3rd term of academic year X covers X+1. A
-  registration approved during 3rd term of X covers BOTH X and X+1 (grace) —
-  this is what stops a newly founded org from being asked to renew in the
-  season it was just approved in. Renewal does NOT start from scratch — it
-  carries forward the organization's previous data. Every prior record is
-  preserved (one record per covered year), never deleted or overwritten.
+- Organization renewal happens **every term** (1st, 2nd and 3rd), at most once
+  per term: one non-rejected renewal per organization per (academic year,
+  term) — a Rejected one frees the slot. Renewal can be filed at any point in
+  the term; there is no deadline inside the system. A registration approved
+  during a term already covers that term (grace), which is what stops a newly
+  founded org from being asked to renew in the term it was just approved in.
+  Renewal does NOT start from scratch — it carries forward the organization's
+  previous data. Every prior record is preserved (one record per term),
+  never deleted or overwritten. An org that has not renewed is only flagged
+  (`renewalDue`, the "Not yet renewed" list); it is never blocked from
+  submitting other documents.
 - **Organization activity status**, derived (not stored as a single column):
-  **Active** (covered for the current academic year, has an active
-  president/secretary), **Needs Renewal** (coverage has lapsed), **Pending
-  Review** (not covered, but has a registration/renewal in flight), or
-  **Inactive** (never approved with nothing in flight, or covered but with no
-  active officers). Orthogonally, `renewalDue` is true during 3rd term for an
-  org that hasn't filed for next year yet — a `renewalDue` org is normally
-  ALSO Active, since that is the entire point of renewal season; the two are
-  not mutually exclusive. `renewalDue` for an org must always agree with
-  whether that org can currently submit a renewal — the same predicate, never
-  two competing ones.
+  **Active** (covered for the current term, has an active president/secretary),
+  **Needs Renewal** (coverage has lapsed), **Pending Review** (not covered, but
+  has a registration/renewal in flight), or **Inactive** (never approved with
+  nothing in flight, or covered but with no active officers). "Covered" means
+  the most recent APPROVED registration/renewal was stamped in the current
+  term or the term just before it — so an org that skips one term is only
+  flagged and stays Active, and lapses to Needs Renewal after missing a whole
+  term. Orthogonally, `renewalDue` is true for an org that has not renewed
+  for the current term yet — a `renewalDue` org is normally ALSO Active; the
+  two are not mutually exclusive. `renewalDue` for an org must always agree
+  with whether that org can currently submit a renewal — the same predicate
+  (`SubmitOrganizationRenewal::eligibilityFor()`), never two competing ones.
 - **Stamp-timing asymmetry (deliberate, do not unify):** a registration's
-  covered-year is stamped at APPROVE time (it records when the org became
-  active); a renewal's covered-year is stamped at SUBMIT time (it is the
-  uniqueness key preventing a duplicate filing, and must exist while the
+  period (academic year + term) is stamped at APPROVE time (it records when
+  the org became active); a renewal's period is stamped at SUBMIT time (it is
+  the uniqueness key preventing a duplicate filing, and must exist while the
   renewal is still in review).
 - Activity proposal is a SINGLE submission in TWO steps: (1) request form,
   (2) proposal narrative + attachments. Routing begins after step 2.
@@ -231,7 +236,7 @@ Key model facts note.)
   (a validation rule, not a table constraint).
 - On officer turnover, the adviser invites the new officers; old memberships
   are deactivated, never hard-deleted — retained for document history
-  (consistent with the renewal "preserve per covered year" rule).
+  (consistent with the renewal "preserve one record per term" rule).
 
 ## Document status model
 
@@ -476,12 +481,12 @@ always use the current period automatically; existing, already-submitted
 documents retain the period they were submitted (or, for registrations,
 approved) under, and are never changed by a later period update.
 
-**Setting the term to 3rd opens organization renewal season.** This is the
-signal that renewal is now due: it notifies the active officers of every
-organization whose renewal is genuinely due (see the renewal-cadence rule
-above), once per academic year — an admin correcting 3rd → 2nd → 3rd within
-the same year must not re-notify. Advancing to 1st term (a new academic year)
-closes the window again until 3rd term comes round the following year.
+**Moving the period forward to a new term opens that term's renewal round.**
+This is the signal that renewal is now due: it notifies the active officers of
+every organization whose renewal is genuinely due (see the renewal-cadence rule
+above), once per period — the announced periods are remembered, so an admin
+correcting 2nd → 1st → 2nd must not re-notify, and a move backwards never
+notifies.
 
 ### Real names for provisioned roles
 SDAO members are Carl Justin Magpantay and Zaira Joy Enayo (already used).

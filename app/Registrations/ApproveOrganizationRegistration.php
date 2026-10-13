@@ -136,14 +136,13 @@ class ApproveOrganizationRegistration
 
                 // Stamped at APPROVE time (not submit time), unlike a renewal —
                 // this records when the org actually became active, not when the
-                // form happened to be filed. A registration approved during 3rd
-                // term (renewal season) gets grace: it covers both the current
-                // year AND next year, so the org isn't asked to renew days after
-                // being founded — see SubmitOrganizationRenewal::eligibilityFor().
+                // form happened to be filed. A registration approved during a term
+                // already covers that term, so the org isn't asked to renew days
+                // after being founded — see SubmitOrganizationRenewal::eligibilityFor().
                 $document->registrationDetail->update([
                     'academic_year' => $period->academicYear,
                     'term' => $period->term->value,
-                    'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
+                    'covers_academic_year' => $period->academicYear,
                 ]);
             }
         });

@@ -70,6 +70,7 @@ class DocumentArchiveController extends Controller
                 'data' => collect($documents->items())->map(fn (Document $d) => [
                     'id' => $d->id,
                     'title' => DocumentDisplayTitle::subject($d),
+                    'term' => DocumentDisplayTitle::termLabel($d),
                     'status' => $d->status->value,
                     'form_type' => $d->form_type->value,
                     'form_type_label' => $d->form_type->label(),

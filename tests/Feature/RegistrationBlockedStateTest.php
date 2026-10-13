@@ -42,14 +42,14 @@ test('an unverified student is blocked as unverified', function () {
         ->where('blocked.reason', 'unverified'));
 });
 
-test('an active officer is blocked as an officer, with the organization and the year it covers', function () {
+test('an active officer is blocked as an officer, with the organization and the term it is covered through', function () {
     $officer = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 
     registrationCreatePage($officer)->assertOk()->assertInertia(fn ($page) => $page
         ->where('canPropose', false)
         ->where('blocked.reason', 'officer')
         ->where('blocked.organization', 'Computing Society')
-        ->has('blocked.covered_year'));
+        ->has('blocked.covered_through'));
 });
 
 test('a student with a registration still in review is blocked, linking to that document', function () {

@@ -46,7 +46,7 @@ type SchoolOption = { id: number; name: string; type: string; programs: Program[
 /** Why the form cannot be opened right now; null when it can. Only describes the server's own rules. */
 type Blocked =
     | { reason: 'unverified' }
-    | { reason: 'officer'; organization: string; covered_year: string | null }
+    | { reason: 'officer'; organization: string; covered_through: string | null }
     | { reason: 'in_review'; organization: string; document_id: number; href: string }
     | null;
 
@@ -442,7 +442,7 @@ function RegistrationBlocked({ blocked }: { blocked: Blocked }) {
                 body={
                     <>
                         You’re already an officer of <strong>{blocked.organization}</strong>
-                        {blocked.covered_year && <>, and it’s registered for {blocked.covered_year}</>}. You can only
+                        {blocked.covered_through && <>, and it’s covered through {blocked.covered_through}</>}. You can only
                         register one organization at a time.
                     </>
                 }

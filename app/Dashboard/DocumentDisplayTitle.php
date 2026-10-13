@@ -31,14 +31,14 @@ class DocumentDisplayTitle
 
     /**
      * for() without the "{Form type}: " prefix, for rows that already show the
-     * form type in a badge of their own (a renewal reads as its coverage, a
+     * form type in a badge of their own (a renewal reads as its term, a
      * calendar as its term).
      */
     public static function bareTitle(Document $document): string
     {
         $subject = match ($document->form_type) {
             FormType::OrganizationRegistration => $document->organization?->name,
-            FormType::OrganizationRenewal => self::coverageLabel($document->registrationDetail?->covers_academic_year),
+            FormType::OrganizationRenewal => $document->registrationDetail?->period()?->label(),
             FormType::ActivityCalendar => $document->activityCalendar?->term->label(),
             FormType::ActivityProposal => $document->activityProposal?->title,
             FormType::AfterActivityReport => $document->afterActivityReport?->activityProposal?->title,
@@ -50,13 +50,16 @@ class DocumentDisplayTitle
     /**
      * The document's own title with no form type prefix and no "(Org)" suffix,
      * for rows that already show the form type and organization in their own
-     * badge and column. Registration and renewal have no better title than the
-     * organization's name; a calendar reads as its term and year.
+     * badge and column. A registration has no better title than the
+     * organization's name; a calendar reads as its term and year; a renewal is
+     * just "Organization Renewal", with its term shown by the row's term
+     * badge (see termLabel()) — never the stored "Form — Org (Term)" string.
      */
     public static function subject(Document $document): string
     {
         $subject = match ($document->form_type) {
-            FormType::OrganizationRegistration, FormType::OrganizationRenewal => $document->organization?->name,
+            FormType::OrganizationRegistration => $document->organization?->name,
+            FormType::OrganizationRenewal => $document->form_type->label(),
             FormType::ActivityCalendar => $document->activityCalendar === null
                 ? null
                 : "{$document->activityCalendar->term->label()}, {$document->activityCalendar->academic_year}",
@@ -65,6 +68,20 @@ class DocumentDisplayTitle
         };
 
         return $subject ?? self::strippedStoredTitle($document);
+    }
+
+    /**
+     * The term a renewal was filed for ("2nd Term, 2026-2027"), for the term
+     * badge beside the organization and form type badges. Null for every other
+     * form type, whose own title or period already says it.
+     */
+    public static function termLabel(Document $document): ?string
+    {
+        if ($document->form_type !== FormType::OrganizationRenewal) {
+            return null;
+        }
+
+        return $document->registrationDetail?->period()?->label();
     }
 
     /** The approver-facing show page for any document that has ever been submitted. */

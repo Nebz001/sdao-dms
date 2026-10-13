@@ -20,12 +20,12 @@ use Inertia\Response;
 /**
  * Admin screen for the global "current academic period" setting. Only this
  * screen changes it; every other read goes through App\Support\CurrentPeriod.
- * Setting the term to 3rd opens organization renewal season and notifies the
+ * Moving forward to a new term opens that term's renewal round and notifies the
  * officers of every organization whose renewal is due (App\Renewals\OpenRenewalSeason).
  */
 class CurrentPeriodController extends Controller
 {
-    public function edit(SubmitOrganizationRenewal $renewalAction, OrganizationMembershipService $membershipService): Response
+    public function edit(SubmitOrganizationRenewal $renewalAction, OrganizationMembershipService $membershipService, OpenRenewalSeason $openRenewalSeason): Response
     {
         $current = CurrentPeriod::get();
 
@@ -34,7 +34,6 @@ class CurrentPeriodController extends Controller
                 'academic_year' => $current->academicYear,
                 'term' => $current->term->value,
                 'label' => $current->label(),
-                'is_renewal_season' => $current->isRenewalSeason(),
             ],
             'terms' => collect(Term::cases())->map(fn (Term $t) => [
                 'value' => $t->value,
@@ -43,7 +42,7 @@ class CurrentPeriodController extends Controller
             ]),
             'academicYears' => $this->nearbyAcademicYears($current->startYear()),
             'suggestedAcademicYearOnWrap' => $current->next()->academicYear,
-            'renewalNoticeRecipientCount' => $this->previewRenewalRecipientCount($current, $renewalAction, $membershipService),
+            'renewalNoticeRecipientCounts' => $this->previewRenewalRecipientCounts($current, $renewalAction, $membershipService, $openRenewalSeason),
         ]);
     }
 
@@ -59,9 +58,7 @@ class CurrentPeriodController extends Controller
         $message = "The period is now {$new->label()}. Documents already submitted or approved are unchanged.";
 
         if ($notifiedCount > 0) {
-            $message .= " Renewal season opened — {$notifiedCount} organization(s) notified that renewal is now due.";
-        } elseif ($new->isRenewalSeason() && ! $previous->isRenewalSeason()) {
-            $message .= ' Renewal season opened — no organizations are currently due.';
+            $message .= " Renewal opened for {$new->label()} — {$notifiedCount} organization(s) notified that renewal is now due.";
         }
 
         return redirect()->route('admin.settings.period.edit')->with('flash', FlashToast::make('Current period updated', $message));
@@ -87,36 +84,41 @@ class CurrentPeriodController extends Controller
     }
 
     /**
-     * Previews how many OFFICERS would be emailed if SDAO picked 3rd term of
-     * the CURRENT academic year right now — the ordinary "advance within this
-     * year" case the settings screen defaults to. Does not mutate any state;
-     * evaluates SubmitOrganizationRenewal::eligibilityFor() against a
+     * Previews how many OFFICERS would be emailed for each period SDAO is
+     * likely to move to next: the terms of the current year and the 1st term
+     * of the following year, keyed by the period string. Does not mutate any
+     * state; evaluates SubmitOrganizationRenewal::eligibilityFor() against a
      * hypothetical period rather than the real stored one, purely so the
      * confirm dialog can name a number before the admin commits. Mirrors
-     * OpenRenewalSeason's own recipient computation.
+     * OpenRenewalSeason's own recipient computation. A period that was
+     * already announced, or that is not ahead of the current one, notifies
+     * nobody, so it reads 0.
+     *
+     * @return array<string, int>
      */
-    private function previewRenewalRecipientCount(
+    private function previewRenewalRecipientCounts(
         AcademicPeriod $current,
         SubmitOrganizationRenewal $renewalAction,
         OrganizationMembershipService $membershipService,
-    ): int {
-        if ($current->isRenewalSeason()) {
-            // Already on 3rd term — saving 3rd term again does not re-open
-            // the season (OpenRenewalSeason only fires on entry into it).
-            return 0;
-        }
+        OpenRenewalSeason $openRenewalSeason,
+    ): array {
+        $candidates = collect(Term::cases())
+            ->map(fn (Term $term) => new AcademicPeriod($current->academicYear, $term))
+            ->push(new AcademicPeriod($current->nextAcademicYear(), Term::FirstTerm));
 
-        $hypothetical = new AcademicPeriod($current->academicYear, Term::ThirdTerm);
+        return $candidates->mapWithKeys(function (AcademicPeriod $candidate) use ($current, $renewalAction, $membershipService, $openRenewalSeason) {
+            if (! $candidate->isAfter($current) || $openRenewalSeason->wasAnnounced($candidate)) {
+                return [$candidate->toString() => 0];
+            }
 
-        $dueOrganizationIds = Organization::query()
-            ->get(['id'])
-            ->filter(fn (Organization $org) => $renewalAction->eligibilityFor($org, $hypothetical)->status === RenewalEligibility::Eligible)
-            ->pluck('id');
+            $dueOrganizationIds = Organization::query()
+                ->get(['id'])
+                ->filter(fn (Organization $org) => $renewalAction->eligibilityFor($org, $candidate)->status === RenewalEligibility::Eligible)
+                ->pluck('id');
 
-        if ($dueOrganizationIds->isEmpty()) {
-            return 0;
-        }
-
-        return $membershipService->activeOfficersForOrganizations($dueOrganizationIds)->count();
+            return [$candidate->toString() => $dueOrganizationIds->isEmpty()
+                ? 0
+                : $membershipService->activeOfficersForOrganizations($dueOrganizationIds)->count()];
+        })->all();
     }
 }

@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import AccountName from '@/components/account-name';
+import TermBadge from '@/components/term-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,6 +133,20 @@ export function PendingTable({
                 />
             ),
         },
+        ...(rows.some((r) => r.term)
+            ? [
+                  {
+                      key: 'term',
+                      header: 'Term',
+                      cell: (r: QueueRow) =>
+                          r.term ? (
+                              <TermBadge label={r.term} />
+                          ) : (
+                              <span className="text-muted-foreground">—</span>
+                          ),
+                  },
+              ]
+            : []),
         ...(extraColumnLabel
             ? [
                   {
@@ -279,6 +294,20 @@ export function RecentDecisionsTable({
                 />
             ),
         },
+        ...(rows.some((r) => r.term)
+            ? [
+                  {
+                      key: 'term',
+                      header: 'Term',
+                      cell: (r: RecentDecision) =>
+                          r.term ? (
+                              <TermBadge label={r.term} />
+                          ) : (
+                              <span className="text-muted-foreground">—</span>
+                          ),
+                  },
+              ]
+            : []),
         {
             key: 'result',
             header: 'Result',

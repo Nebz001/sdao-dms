@@ -59,7 +59,7 @@ class MyOrganizationController extends Controller
             ],
             'status' => $result->status->value,
             'renewalDue' => $result->renewalDue,
-            'coversThroughAcademicYear' => $result->coversThroughAcademicYear,
+            'coveredThrough' => $result->coveredThrough?->label(),
             'requirements' => $result->requirements->toArray(),
             'officers' => $officers,
             'adviser' => $adviser !== null

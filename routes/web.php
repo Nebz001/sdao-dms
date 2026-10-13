@@ -285,8 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // is its "View all activity" destination for genuine browsing.
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
-        // SDAO admin — global settings: the current academic period. Setting
-        // the term to 3rd opens organization renewal season.
+        // SDAO admin — global settings: the current academic period. Moving
+        // forward to a new term opens that term's renewal round.
         Route::get('/settings/period', [CurrentPeriodController::class, 'edit'])->name('settings.period.edit');
         Route::put('/settings/period', [CurrentPeriodController::class, 'update'])->name('settings.period.update');
 

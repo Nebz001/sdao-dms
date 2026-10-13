@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\User;
 use App\Support\AcademicYear;
+use App\Support\CurrentPeriod;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -283,13 +284,37 @@ test('org compliance counts covered approved organizations and lists the top org
         ->get(route('admin.dashboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('orgCompliance.renewalSeason', false)
+            ->where('orgCompliance.termLabel', CurrentPeriod::get()->label())
             ->where('orgCompliance.total', 1)
             ->where('orgCompliance.done', 0)
             ->where('orgCompliance.pendingTotal', 1)
             ->where('orgCompliance.pending.0.organizationName', 'Computing Society')
             ->where('orgCompliance.pending.0.count', 1)
-            ->where('orgCompliance.viewAllHref', route('admin.organizations.index', ['status' => 'needs_renewal']))
+            ->where('orgCompliance.viewAllHref', route('admin.organizations.index', ['renewal' => 'due']))
+        );
+});
+
+test('org compliance counts an organization as renewed once it was approved this term, and flags the rest', function () {
+    $period = CurrentPeriod::get();
+    $approved = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $this->org->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $approved->id,
+        'academic_year' => $period->academicYear,
+        'term' => $period->term->value,
+        'covers_academic_year' => $period->academicYear,
+    ]);
+    adminDashboardLapsedRegistration($this->itGuild);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.dashboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('orgCompliance.total', 2)
+            ->where('orgCompliance.done', 1)
         );
 });
 

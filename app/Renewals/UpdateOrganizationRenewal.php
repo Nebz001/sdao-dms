@@ -85,8 +85,8 @@ class UpdateOrganizationRenewal
             // academic_year, term, and covers_academic_year are intentionally
             // NOT included: they are set once at creation
             // (SubmitOrganizationRenewal) and must never change across the
-            // return/resubmit cycle — covers_academic_year in particular is
-            // the uniqueness key hasNonRejectedRenewalForExactYear() matches on.
+            // return/resubmit cycle — academic_year and term in particular are
+            // the uniqueness key hasNonRejectedRenewalForPeriod() matches on.
             // organization_type is likewise excluded — it is computed from
             // the org's school_id once at creation and never written again
             // (structural fix, 2026-09-09 plan).

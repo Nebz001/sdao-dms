@@ -165,7 +165,7 @@ class RenewalController extends Controller
         return Inertia::render('renewals/show', [
             'document' => [
                 'id' => $document->id,
-                'title' => $document->title,
+                'title' => StudentDocumentLabel::title($document),
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
                 'submitted_by' => $document->submitted_by,
@@ -187,10 +187,11 @@ class RenewalController extends Controller
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
                 'academic_year' => $detail->academic_year,
+                'term_label' => $detail->term?->label(),
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'view' => $viewData->for($document, Auth::user(), StudentDocumentLabel::title($document), [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
+            'view' => $viewData->for($document, Auth::user(), StudentDocumentLabel::title($document), [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Term', 'value' => $detail?->period()?->label()]]),
         ]);
     }
 
@@ -208,7 +209,7 @@ class RenewalController extends Controller
             'flaggedSectionComments' => SectionFlags::currentSectionComments($document),
             'document' => [
                 'id' => $document->id,
-                'title' => $document->title,
+                'title' => StudentDocumentLabel::title($document),
                 'organization' => [
                     'name' => $document->organization->name,
                     // Field-presence parity (Phase 2 item 7 slice 2).

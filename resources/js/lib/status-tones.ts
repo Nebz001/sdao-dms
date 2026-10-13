@@ -74,9 +74,8 @@ const TABLE: Record<StatusDomain, Record<string, Entry>> = {
     // App\Enums\RenewalEligibility, plus the organization "renewal due" flag
     renewal: {
         eligible: { tone: 'success', label: 'Renewal open' },
-        already_filed: { tone: 'info', label: 'Already filed' },
+        already_filed: { tone: 'info', label: 'Already filed this term' },
         not_yet_due: { tone: 'neutral', label: 'Not yet due' },
-        season_closed: { tone: 'neutral', label: 'Season closed' },
         no_prior_record: { tone: 'neutral', label: 'No prior record' },
         due: { tone: 'warning', label: 'Renewal due' },
     },

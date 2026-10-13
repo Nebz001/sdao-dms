@@ -100,8 +100,7 @@ describe('OldestInReviewCard', () => {
 
 describe('OrgComplianceCard', () => {
     const base = {
-        renewalSeason: false,
-        targetYear: '2026-2027',
+        termLabel: '2nd Term, 2026-2027',
         done: 18,
         total: 24,
         pendingTotal: 6,
@@ -112,7 +111,7 @@ describe('OrgComplianceCard', () => {
     it('shows the renewed count, a meter and the pending rows', () => {
         render(<OrgComplianceCard data={base} />);
 
-        expect(screen.getByText('Renewed this academic year')).toBeInTheDocument();
+        expect(screen.getByText('Renewed for 2nd Term, 2026-2027')).toBeInTheDocument();
         expect(screen.getByText('18 / 24')).toBeInTheDocument();
         expect(screen.getByRole('meter')).toHaveAttribute('aria-valuenow', '75');
         expect(screen.getByText('ORGANIZATIONS WITH PENDING ITEMS'.toLowerCase(), { exact: false })).toBeInTheDocument();
@@ -121,17 +120,10 @@ describe('OrgComplianceCard', () => {
         expect(screen.queryByRole('status')).toBeNull();
     });
 
-    it('makes renewal season prominent and measures against next year', () => {
-        render(<OrgComplianceCard data={{ ...base, renewalSeason: true, targetYear: '2027-2028' }} />);
-
-        expect(screen.getByRole('status')).toHaveTextContent('Renewal season is open. Organizations can renew for A.Y. 2027 to 2028 now.');
-        expect(screen.getByText('Renewed for A.Y. 2027 to 2028')).toBeInTheDocument();
-    });
-
     it('keeps the old All caught up message inside the card when everyone is covered', () => {
         render(<OrgComplianceCard data={{ ...base, done: 24, pending: [], pendingTotal: 0 }} />);
 
-        expect(screen.getByText('All caught up. Every organization has renewed for A.Y. 2026 to 2027.')).toBeInTheDocument();
+        expect(screen.getByText('All caught up. Every organization has renewed for 2nd Term, 2026-2027.')).toBeInTheDocument();
         expect(screen.getByText(/Nothing pending/)).toBeInTheDocument();
     });
 });

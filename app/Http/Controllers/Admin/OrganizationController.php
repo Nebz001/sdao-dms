@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Approval\ReviewQueueData;
 use App\Dashboard\AdminAttentionData;
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
@@ -15,7 +16,6 @@ use App\Models\Organization;
 use App\Models\School;
 use App\Organizations\OrganizationDetailData;
 use App\Organizations\OrganizationStatusResolver;
-use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -49,6 +49,9 @@ class OrganizationController extends Controller
         // `adviser=none` is the dashboard tile's destination: approved
         // organizations with no adviser bound. Any other value is ignored.
         $withoutAdviser = $request->string('adviser')->toString() === 'none';
+        // `renewal=due` lists organizations that have not renewed for the
+        // current term yet (the same renewalDue flag shown on each row).
+        $notYetRenewed = $request->string('renewal')->toString() === 'due';
 
         // The stat cards describe every organization, so status is resolved
         // for all of them once; search / adviser narrow only the rows.
@@ -72,6 +75,9 @@ class OrganizationController extends Controller
         $filtered = $organizations
             ->when($status, fn (Collection $orgs) => $orgs->filter(
                 fn (Organization $org) => $statuses->get($org->id)?->status->value === $status
+            ))
+            ->when($notYetRenewed, fn (Collection $orgs) => $orgs->filter(
+                fn (Organization $org) => $statuses->get($org->id)?->renewalDue === true
             ))
             ->values();
 
@@ -114,6 +120,7 @@ class OrganizationController extends Controller
             'filters' => [
                 'status' => $status,
                 'adviser' => $withoutAdviser ? 'none' : null,
+                'renewal' => $notYetRenewed ? 'due' : null,
                 'search' => $search,
             ],
             // Values only — the client labels them with statusLabel() from
@@ -190,7 +197,7 @@ class OrganizationController extends Controller
             'furthestBehind' => $furthestBehind,
             'oldestPending' => $this->oldestPending($statuses),
             'renewalDue' => $statuses->filter(fn ($result) => $result->renewalDue)->count(),
-            'renewalWindow' => $this->renewalWindow(),
+            'renewalTerm' => CurrentPeriod::get()->label(),
         ];
     }
 
@@ -234,7 +241,8 @@ class OrganizationController extends Controller
 
         return [
             'id' => $document->id,
-            'title' => $document->title,
+            'title' => DocumentDisplayTitle::subject($document),
+            'term' => DocumentDisplayTitle::termLabel($document),
             'organization' => ['id' => $document->organization->id, 'name' => $document->organization->name],
             'submitted_at' => $oldest['since']->toIso8601String(),
             'waiting_days' => $days,
@@ -242,28 +250,6 @@ class OrganizationController extends Controller
             'extra' => $document->organization->school?->name ?? School::NONE_LABEL,
             'noun' => $isRenewal ? 'renewal' : 'registration',
             'href' => route($isRenewal ? 'review.renewals.show' : 'review.registrations.show', $document->id),
-        ];
-    }
-
-    /**
-     * Renewal season is 3rd term (AcademicPeriod::isRenewalSeason()); the
-     * months come from the term calendar in AcademicPeriod (still marked
-     * PROVISIONAL there). There are no per-organization due dates.
-     *
-     * @return array{open: bool, closes: string|null, nextOpens: string}
-     */
-    private function renewalWindow(): array
-    {
-        $period = CurrentPeriod::get();
-        $open = $period->isRenewalSeason();
-
-        // The next 3rd term: this academic year's if it has not started, else the following year's.
-        $nextYear = $open ? $period->nextAcademicYear() : $period->academicYear;
-
-        return [
-            'open' => $open,
-            'closes' => $open ? $period->termRange()[1]->subDay()->format('F Y') : null,
-            'nextOpens' => (new AcademicPeriod($nextYear, Term::ThirdTerm))->termRange()[0]->format('F Y'),
         ];
     }
 }

@@ -336,7 +336,7 @@ test('row titles drop the form type prefix and the organization suffix', functio
                 $titles = collect($rows)->pluck('title', 'id');
 
                 return $titles[$registration->id] === 'Computing Society'
-                    && $titles[$renewal->id] === 'Computing Society'
+                    && $titles[$renewal->id] === 'Organization Renewal'
                     // No proposal row: falls back to the stored title, stripped.
                     && $titles[$orphanProposal->id] === 'Career Fair';
             })

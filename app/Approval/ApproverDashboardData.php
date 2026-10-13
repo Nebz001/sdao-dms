@@ -348,6 +348,7 @@ class ApproverDashboardData
                 'action' => $t->action->value,
                 'formTypeLabel' => $t->document->form_type->label(),
                 'documentTitle' => DocumentDisplayTitle::subject($t->document),
+                'termLabel' => DocumentDisplayTitle::termLabel($t->document),
                 'organizationName' => $t->document->organization->name,
                 'whenLabel' => $this->decisionWhenLabel($t->created_at),
                 'waitingOnOrg' => $t->action === TransitionAction::Returned
@@ -385,6 +386,7 @@ class ApproverDashboardData
                 return [
                     'id' => $d->id,
                     'title' => DocumentDisplayTitle::subject($d),
+                    'termLabel' => DocumentDisplayTitle::termLabel($d),
                     'formType' => $d->form_type->value,
                     'formTypeLabel' => $d->form_type->label(),
                     'organizationName' => $d->organization->name,
@@ -485,6 +487,7 @@ class ApproverDashboardData
         return [
             'id' => $document->id,
             'title' => DocumentDisplayTitle::subject($document),
+            'termLabel' => DocumentDisplayTitle::termLabel($document),
             'organizationName' => $document->organization->name,
             'formTypeLabel' => $document->form_type->label(),
             'href' => DocumentUrls::pathForReviewer($document),

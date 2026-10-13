@@ -18,7 +18,7 @@ export default function RenewalsIndex({ renewals, canStart }: Props) {
                 kind="renewal"
                 icon={RefreshCw}
                 title="Renewals"
-                subtitle="Renew your organization each school year to keep it active"
+                subtitle="Renew your organization each term to keep it active"
                 searchPlaceholder="Search renewals"
                 startLabel="Start a Renewal"
                 startHref={renewalRoutes.create().url}

@@ -68,9 +68,10 @@ type OrganizationStats = {
     furthestBehind: { name: string; met: number; total: number } | null;
     /** The longest-waiting registration or renewal in SDAO's queue, if any. */
     oldestPending: QueueRow | null;
-    /** Organizations that can file a renewal right now (3rd term only). */
+    /** Organizations that have not renewed for the current term yet. */
     renewalDue: number;
-    renewalWindow: { open: boolean; closes: string | null; nextOpens: string };
+    /** The current term, e.g. "2nd Term, 2026-2027". */
+    renewalTerm: string;
 };
 
 /** Row links and wording come from each row; these are the registration defaults. */
@@ -98,6 +99,7 @@ type Props = {
     };
     filters: {
         status: string | null;
+        renewal: string | null;
         search: string;
     };
     statuses: StatusOption[];
@@ -106,6 +108,7 @@ type Props = {
 };
 
 const ALL_STATUSES = 'all';
+const NOT_YET_RENEWED = 'due';
 
 /** Green when complete or nearly, amber part-way; zero has no fill to color. */
 function requirementsFill(met: number, total: number): string {
@@ -141,7 +144,7 @@ function StatusCell({ org }: { org: OrganizationRow }) {
 }
 
 function StatCards({ stats }: { stats: OrganizationStats }) {
-    const { furthestBehind, renewalWindow } = stats;
+    const { furthestBehind, renewalTerm } = stats;
 
     return (
         <>
@@ -203,12 +206,12 @@ function StatCards({ stats }: { stats: OrganizationStats }) {
                     )}
                 </p>
             </StatCard>
-            <StatCard icon={RefreshCw} title="Next renewal">
+            <StatCard icon={RefreshCw} title="Not yet renewed">
                 <StatValue>{stats.renewalDue}</StatValue>
                 <p className="mt-auto text-sm text-muted-foreground">
-                    {stats.renewalDue > 0 && renewalWindow.closes
-                        ? `Renewal window runs through ${renewalWindow.closes}`
-                        : `No org is due for renewal. Next renewal window opens ${renewalWindow.nextOpens}`}
+                    {stats.renewalDue > 0
+                        ? `Organizations that have not renewed for ${renewalTerm} yet`
+                        : `Every organization has renewed for ${renewalTerm}`}
                 </p>
             </StatCard>
         </>
@@ -221,7 +224,7 @@ function StatCardsSkeleton() {
             <StatCardSkeleton icon={Building2} title="Total organizations" />
             <StatCardSkeleton icon={Clock} title="Oldest pending review" />
             <StatCardSkeleton icon={ListChecks} title="Missing requirements" />
-            <StatCardSkeleton icon={RefreshCw} title="Next renewal" />
+            <StatCardSkeleton icon={RefreshCw} title="Not yet renewed" />
         </>
     );
 }
@@ -281,6 +284,7 @@ export default function OrganizationsIndex({
     stats,
 }: Props) {
     const [status, setStatus] = useState(filters.status ?? ALL_STATUSES);
+    const [renewal, setRenewal] = useState(filters.renewal ?? ALL_STATUSES);
     const [search, setSearch] = useState(filters.search);
     const [loading, setLoading] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -318,6 +322,10 @@ export default function OrganizationsIndex({
                 params.status = status;
             }
 
+            if (renewal !== ALL_STATUSES) {
+                params.renewal = renewal;
+            }
+
             if (search.trim() !== '') {
                 params.search = search.trim();
             }
@@ -330,12 +338,16 @@ export default function OrganizationsIndex({
                 clearTimeout(debounceTimer.current);
             }
         };
-    }, [status, search]);
+    }, [status, renewal, search]);
 
-    const hasFilters = status !== ALL_STATUSES || search.trim() !== '';
+    const hasFilters =
+        status !== ALL_STATUSES ||
+        renewal !== ALL_STATUSES ||
+        search.trim() !== '';
 
     function clearFilters() {
         setStatus(ALL_STATUSES);
+        setRenewal(ALL_STATUSES);
         setSearch('');
     }
 
@@ -396,6 +408,26 @@ export default function OrganizationsIndex({
                                             {statusLabel(s.value)}
                                         </SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="organizations-renewal">Renewal</Label>
+                            <Select value={renewal} onValueChange={setRenewal}>
+                                <SelectTrigger
+                                    id="organizations-renewal"
+                                    className="w-full sm:w-60"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL_STATUSES}>
+                                        All organizations
+                                    </SelectItem>
+                                    <SelectItem value={NOT_YET_RENEWED}>
+                                        Not yet renewed this term
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -30,7 +30,6 @@ use App\Registrations\ApproveOrganizationRegistration;
 use App\Registrations\SubmitOrganizationRegistration;
 use App\Renewals\SubmitOrganizationRenewal;
 use App\Reports\SubmitAfterActivityReport;
-use App\Support\AcademicPeriod;
 use App\Support\CurrentPeriod;
 use App\Support\PersonName;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -104,9 +103,25 @@ class DemoDataSeeder extends Seeder
         $this->resolveFixedApprovers();
 
         $accounts = $this->seedAccounts();
-        $orgs = $this->foundOrganizations($accounts);
-        $this->bindSecretaries($orgs, $accounts);
-        $this->seedRegistrationStatusSpread($accounts);
+
+        // Organizations are founded (registrations approved) in the term
+        // BEFORE the current one: a registration approved this term already
+        // covers it, so a renewal could not be filed for it yet. Backdating
+        // the founding lets the renewal spread below happen in the real
+        // current term. Restored straight after, and this never fires the
+        // renewal notification (only CurrentPeriodController's real update()
+        // flow does that, via OpenRenewalSeason).
+        $currentPeriod = CurrentPeriod::get();
+        CurrentPeriod::set($currentPeriod->previous());
+
+        try {
+            $orgs = $this->foundOrganizations($accounts);
+            $this->bindSecretaries($orgs, $accounts);
+            $this->seedRegistrationStatusSpread($accounts);
+        } finally {
+            CurrentPeriod::set($currentPeriod);
+        }
+
         $this->seedRenewalStatusSpread($orgs);
         $calendarActivities = $this->seedActivityCalendars($orgs);
         $proposals = $this->seedActivityProposals($orgs, $calendarActivities);
@@ -469,23 +484,10 @@ class DemoDataSeeder extends Seeder
      */
     private function seedRenewalStatusSpread(array $orgs): void
     {
-        // Renewal is only submittable during 3rd-term renewal season.
-        // Foundings above ran under whatever period SettingsSeeder left in
-        // place (normally 1st term), so opening 3rd term of that SAME
-        // academic year here is enough for these orgs to be due — no grace
-        // applies, since they weren't founded during 3rd term. Restored
-        // afterward so the finished demo dataset lands in an ordinary,
-        // season-closed baseline for QA, and so this never fires the
-        // renewal-window notification (only CurrentPeriodController's real
-        // update() flow does that, via OpenRenewalSeason).
-        $originalPeriod = CurrentPeriod::get();
-        CurrentPeriod::set(new AcademicPeriod($originalPeriod->academicYear, Term::ThirdTerm));
-
-        try {
-            $this->seedRenewalDocuments($orgs);
-        } finally {
-            CurrentPeriod::set($originalPeriod);
-        }
+        // Renewals are filed in the real current term (the organizations were
+        // founded in the term before it, see run()). Organizations with no
+        // renewal here are simply "not yet renewed" for this term.
+        $this->seedRenewalDocuments($orgs);
     }
 
     /**
@@ -1177,8 +1179,11 @@ class DemoDataSeeder extends Seeder
             'email_address' => $actor->email,
             'date_organized' => '2024-08-15',
             'adviser_id' => $adviserId,
-            'academic_year' => $formType === FormType::OrganizationRenewal ? $academicYear : null,
-            'term' => $formType === FormType::OrganizationRenewal ? $period->term->value : null,
+            // A draft has not been filed for any term yet: a renewal is only
+            // stamped (academic_year + term) when it is submitted, so this one
+            // must not count as "renewed this term".
+            'academic_year' => null,
+            'term' => null,
         ]);
 
         return $document;

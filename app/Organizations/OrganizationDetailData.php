@@ -27,9 +27,8 @@ use Illuminate\Support\Facades\Gate;
  * memberships, role assignments). Each public method backs one deferred
  * section of the page.
  *
- * There are no per-organization due dates or stored renewal-window dates:
- * "renewal window" months come from the term calendar in AcademicPeriod
- * (renewal season is 3rd term).
+ * There are no per-organization due dates: organizations renew every term,
+ * with no deadline inside it.
  */
 class OrganizationDetailData
 {
@@ -76,15 +75,17 @@ class OrganizationDetailData
         $memberships = OrganizationMembership::query()->active()->where('organization_id', $organization->id)->with('user:id,name')->get()->keyBy(fn ($m) => $m->position->value);
         $adviser = $organization->adviser()->with('user:id,name')->first();
 
-        $renewalForNextYear = Document::query()
+        $renewalThisTerm = Document::query()
             ->where('organization_id', $organization->id)
             ->where('form_type', FormType::OrganizationRenewal->value)
             ->where('status', '!=', DocumentStatus::Rejected->value)
-            ->whereHas('registrationDetail', fn ($q) => $q->where('covers_academic_year', CurrentPeriod::get()->nextAcademicYear()))
+            ->whereHas('registrationDetail', fn ($q) => $q
+                ->where('academic_year', CurrentPeriod::get()->academicYear)
+                ->where('term', CurrentPeriod::get()->term->value))
             ->latest('id')
             ->first();
 
-        return collect($result->requirements->toArray())->map(function (array $item) use ($organization, $memberships, $adviser, $renewalForNextYear) {
+        return collect($result->requirements->toArray())->map(function (array $item) use ($organization, $memberships, $adviser, $renewalThisTerm) {
             $document = null;
             $detail = null;
             $detailNote = null;
@@ -111,7 +112,7 @@ class OrganizationDetailData
                     $date = $membership?->started_at ?? $membership?->created_at;
                     break;
                 case 'renewal_filed':
-                    $document = $renewalForNextYear;
+                    $document = $renewalThisTerm;
                     $date = $document ? $this->approvedAt($document) : null;
                     $detail = $document && $date === null ? 'Filed, '.str_replace('_', ' ', $document->status->value) : null;
                     break;
@@ -256,8 +257,7 @@ class OrganizationDetailData
             OrganizationStatus::PendingReview => $this->pendingBanner($organization),
             OrganizationStatus::NeedsRenewal => [
                 'type' => 'needs_renewal',
-                'coveredThrough' => $result->coversThroughAcademicYear,
-                'window' => $this->renewalWindow($result->coversThroughAcademicYear),
+                'coveredThrough' => $result->coveredThrough?->label(),
                 'outstanding' => collect($result->requirements->toArray())->where('met', false)->pluck('label')->values()->all(),
             ],
             OrganizationStatus::Inactive => $this->inactiveBanner($organization, $result),
@@ -321,31 +321,14 @@ class OrganizationDetailData
     {
         $eligibility = $result->eligibility;
 
+        $term = $eligibility->currentPeriod->label();
+
         return match ($eligibility->status) {
-            RenewalEligibility::Eligible => ['value' => 'Open now', 'note' => 'Window runs through '.$this->renewalWindow($result->coversThroughAcademicYear)['label']],
-            RenewalEligibility::AlreadyFiledThisYear => ['value' => 'Filed', 'note' => 'Covers '.$eligibility->currentPeriod->nextAcademicYear()],
+            RenewalEligibility::Eligible => ['value' => 'Due now', 'note' => "Not yet renewed for {$term}"],
+            RenewalEligibility::AlreadyFiledThisTerm => ['value' => 'Filed', 'note' => "Renewed for {$term}"],
             RenewalEligibility::NoPriorRecord => ['value' => 'Not yet', 'note' => 'No approved registration'],
-            default => ['value' => $this->renewalWindow($result->coversThroughAcademicYear)['label'], 'note' => 'Next renewal window opens'],
+            RenewalEligibility::NotYetDue => ['value' => 'Covered', 'note' => "Approved during {$term}"],
         };
-    }
-
-    /**
-     * The renewal window relevant to an organization: the one open now (label
-     * is when it closes) or the next one to open (label is when it opens).
-     *
-     * @return array{open: bool, label: string}
-     */
-    private function renewalWindow(?string $coversThrough): array
-    {
-        $period = CurrentPeriod::get();
-
-        if ($period->isRenewalSeason()) {
-            return ['open' => true, 'label' => $period->termRange()[1]->subDay()->format('F Y')];
-        }
-
-        $year = max($coversThrough ?? $period->academicYear, $period->academicYear);
-
-        return ['open' => false, 'label' => (new AcademicPeriod($year, Term::ThirdTerm))->termRange()[0]->format('F Y')];
     }
 
     private function approvedRegistration(Organization $organization): ?Document
@@ -397,6 +380,7 @@ class OrganizationDetailData
         return [
             'id' => $document->id,
             'title' => DocumentDisplayTitle::subject($document),
+            'term' => DocumentDisplayTitle::termLabel($document),
             'type' => $document->form_type->label(),
             'status' => $document->status->value,
             'href' => $this->hrefFor($document),

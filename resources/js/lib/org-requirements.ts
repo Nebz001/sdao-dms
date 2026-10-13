@@ -26,7 +26,7 @@ const DONE_LABELS: Record<string, string> = {
     adviser_bound: 'Adviser assigned',
     president_bound: 'Active president',
     secretary_bound: 'Active secretary',
-    renewal_filed: 'Renewal filed for next year',
+    renewal_filed: 'Renewal filed this term',
 };
 
 /**
@@ -40,7 +40,7 @@ export function buildRequirementRows(
     requirements: RequirementItem[],
     renewalDue: boolean,
     organizationName: string,
-    coversThroughAcademicYear: string | null,
+    coveredThrough: string | null,
 ): RequirementRows {
     const applicable = requirements.filter(
         (item) => item.key !== 'renewal_filed' || renewalDue,
@@ -89,10 +89,10 @@ export function buildRequirementRows(
             default:
                 return {
                     key: item.key,
-                    title: 'File a renewal for next year',
-                    description: coversThroughAcademicYear
-                        ? `Keeps ${organizationName} active after ${coversThroughAcademicYear}`
-                        : `Keeps ${organizationName} active next year`,
+                    title: 'File a renewal for this term',
+                    description: coveredThrough
+                        ? `Keeps ${organizationName} active after ${coveredThrough}`
+                        : `Keeps ${organizationName} active this term`,
                     action: { label: 'Start renewal', target: 'renewal' },
                 };
         }

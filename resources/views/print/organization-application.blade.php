@@ -41,7 +41,7 @@
                 <x-print.checkbox :checked="$is_renewal" label="RENEWAL" />
             </td>
             <td class="label-col">Academic Year</td>
-            <td>{{ $academic_year }}</td>
+            <td>{{ $academic_year }}@if ($term_label), {{ $term_label }}@endif</td>
         </tr>
     </table>
 

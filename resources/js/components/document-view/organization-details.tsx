@@ -12,8 +12,9 @@ export type OrganizationDetail = {
     email_address: string;
     date_organized: string | null;
     adviser: { name: string } | null;
-    /** Renewals only: the academic year the filing covers. */
+    /** Renewals only: the academic year and term the filing was made for. */
     academic_year?: string | null;
+    term_label?: string | null;
 } | null;
 
 export type OrganizationSummary = {
@@ -59,6 +60,9 @@ export default function OrganizationDetails({
                     <DetailField label="Academic year">
                         {detail.academic_year}
                     </DetailField>
+                )}
+                {detail?.term_label && (
+                    <DetailField label="Term">{detail.term_label}</DetailField>
                 )}
                 <DetailField label="Date organized">
                     {formatLongDate(detail?.date_organized)}

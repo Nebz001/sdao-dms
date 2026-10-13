@@ -40,7 +40,7 @@ const OPTION_META: Record<string, OptionMeta> = {
     'Submit/Renewal': {
         icon: RefreshCw,
         description:
-            'Renew your organization each school year to keep it active.',
+            'Renew your organization each term to keep it active.',
     },
     'Submit/Activity Calendar': {
         icon: CalendarDays,

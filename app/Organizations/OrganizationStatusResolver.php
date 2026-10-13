@@ -28,7 +28,8 @@ use Illuminate\Support\Collection;
  *
  * Status predicate, evaluated in this order:
  *
- *   covered    = coversAcademicYearOrLater($org, $period->academicYear)
+ *   covered    = isCovered($org): the most recent APPROVED registration or
+ *                renewal was stamped in this term or the one before it
  *   hasOfficer = ANY active OrganizationMembership (president OR secretary —
  *                one is enough; see the docblock on that check below)
  *   inFlight   = a registration-or-renewal Document with
@@ -127,25 +128,23 @@ class OrganizationStatusResolver
     }
 
     /**
-     * "Is this org in good standing for year Y or later, right now?" —
-     * approved registration OR renewal, `covers_academic_year >= Y`. This is
-     * a DIFFERENT question from SubmitOrganizationRenewal::
-     * hasNonRejectedRenewalForExactYear() ("has this exact year already been
-     * claimed by a renewal?") and the two must never be merged — see that
-     * method's docblock for the full reasoning.
+     * "Is this org in good standing right now?" — its most recent APPROVED
+     * registration or renewal was stamped in the current term or the one
+     * before it. So an org that skips one term is only flagged (renewalDue)
+     * and stays Active; it lapses to Needs Renewal after missing a whole
+     * term. This is a DIFFERENT question from
+     * SubmitOrganizationRenewal::hasNonRejectedRenewalForPeriod() ("has this
+     * exact term already been claimed by a renewal?") and the two must never
+     * be merged — see that method's docblock.
      *
      * Uses the most-recent Approved record (via eligibilityFor(), which
-     * already computes it) rather than scanning every approved record ever:
-     * coverage carries forward from the most recent approval, exactly as
-     * SubmitOrganizationRenewal::mostRecentApprovedRecord()'s docblock
-     * establishes for renewal chaining.
+     * already computes it) rather than scanning every approved record ever.
      */
-    public function coversAcademicYearOrLater(Organization $organization, string $academicYear, ?AcademicPeriod $asOf = null): bool
+    public function isCovered(Organization $organization, ?AcademicPeriod $asOf = null): bool
     {
-        return $this->yearAtLeast(
-            $this->renewals->eligibilityFor($organization, $asOf)->coversThroughAcademicYear,
-            $academicYear,
-        );
+        $period = $asOf ?? CurrentPeriod::get();
+
+        return $this->coversPeriod($this->renewals->eligibilityFor($organization, $period)->coveredThrough, $period);
     }
 
     /**
@@ -180,8 +179,8 @@ class OrganizationStatusResolver
     ): OrganizationStatusResult {
         $eligibility = $this->renewals->eligibilityFor($organization, $period);
 
-        $coversThrough = $eligibility->coversThroughAcademicYear;
-        $covered = $this->yearAtLeast($coversThrough, $period->academicYear);
+        $coveredThrough = $eligibility->coveredThrough;
+        $covered = $this->coversPeriod($coveredThrough, $period);
         $everApproved = $eligibility->priorRecord !== null;
         $inFlight = $inFlightOrgIds->contains($organization->id);
 
@@ -199,11 +198,10 @@ class OrganizationStatusResolver
             default => OrganizationStatus::Inactive,
         };
 
-        // In renewal season, AlreadyFiledThisYear from eligibilityFor()
-        // already means a non-rejected renewal exists for next year — no
-        // need for a second hasNonRejectedRenewalForExactYear() query here.
-        $renewalFiledForNextYear = $period->isRenewalSeason()
-            && $eligibility->status === RenewalEligibility::AlreadyFiledThisYear;
+        // AlreadyFiledThisTerm from eligibilityFor() already means a
+        // non-rejected renewal exists for this term — no need for a second
+        // hasNonRejectedRenewalForPeriod() query here.
+        $renewalFiledThisTerm = $eligibility->status === RenewalEligibility::AlreadyFiledThisTerm;
 
         $requirements = new OrganizationRequirements(
             registrationApproved: $approvedRegistrationOrgIds->contains($organization->id),
@@ -211,20 +209,20 @@ class OrganizationStatusResolver
             adviserBound: $adviserBoundOrgIds->contains($organization->id),
             hasPresident: $hasPresident,
             hasSecretary: $hasSecretary,
-            renewalFiledForNextYear: $renewalFiledForNextYear,
+            renewalFiledThisTerm: $renewalFiledThisTerm,
         );
 
         return new OrganizationStatusResult(
             status: $status,
             renewalDue: $eligibility->isEligible(),
-            coversThroughAcademicYear: $coversThrough,
+            coveredThrough: $coveredThrough,
             requirements: $requirements,
             eligibility: $eligibility,
         );
     }
 
-    private function yearAtLeast(?string $coversThrough, string $academicYear): bool
+    private function coversPeriod(?AcademicPeriod $coveredThrough, AcademicPeriod $period): bool
     {
-        return $coversThrough !== null && $coversThrough >= $academicYear;
+        return $coveredThrough !== null && ! $period->isAfter($coveredThrough);
     }
 }

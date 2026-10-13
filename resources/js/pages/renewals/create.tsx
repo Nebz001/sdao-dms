@@ -52,7 +52,7 @@ type PriorRecord = {
 } | null;
 
 type Eligibility = {
-    status: 'eligible' | 'no_prior_record' | 'season_closed' | 'not_yet_due' | 'already_filed' | null;
+    status: 'eligible' | 'no_prior_record' | 'not_yet_due' | 'already_filed' | null;
     message: string | null;
 };
 
@@ -83,15 +83,6 @@ export default function CreateRenewal({
 }: Props) {
     const [files, setFiles] = useState<Record<string, File | null>>({});
 
-    // Renewal is only ever eligible during 3rd-term season, and always
-    // covers the year that follows the current one — mirrors
-    // AcademicPeriod::nextAcademicYear() on the server.
-    const coveredYear = (() => {
-        const startYear = parseInt(currentPeriod.academic_year.split('-')[0], 10);
-
-        return `${startYear + 1}-${startYear + 2}`;
-    })();
-
     if (!membership || eligibility.status !== 'eligible' || !priorRecord) {
         return (
             <>
@@ -99,7 +90,7 @@ export default function CreateRenewal({
                 <RenewalBlocked
                     membership={membership}
                     eligibility={eligibility}
-                    coveredYear={coveredYear}
+                    termLabel={currentPeriod.label}
                 />
             </>
         );
@@ -112,7 +103,7 @@ export default function CreateRenewal({
         <>
             <Head title="Submit Renewal" />
 
-            <FormShell title="Renew Your Organization" subtitle="Keep your organization active for next school year. SDAO reviews it the same way as a registration.">
+            <FormShell title="Renew Your Organization" subtitle="Keep your organization active this term. SDAO reviews it the same way as a registration.">
                 <Form {...RenewalController.store.form()} id={FORM_ID}>
                     {({ processing, errors }) => (
                         <FormCard>
@@ -122,13 +113,13 @@ export default function CreateRenewal({
                                     <>
                                         Renewing{' '}
                                         <strong className="font-semibold text-foreground">{organization.name}</strong> for{' '}
-                                        <strong className="font-semibold text-foreground">{coveredYear}</strong>
+                                        <strong className="font-semibold text-foreground">{currentPeriod.label}</strong>
                                     </>
                                 }
-                                right={`Active for ${currentPeriod.academic_year}`}
+                                right="Renewal every term"
                             />
                             <FormInfoStrip>
-                                We filled in last year’s details. Check them and update anything that changed.
+                                We filled in your last approved details. Check them and update anything that changed.
                             </FormInfoStrip>
 
                             <FormSection title="About the organization">
@@ -251,8 +242,8 @@ export default function CreateRenewal({
                                             <span className="mt-3 grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm text-foreground sm:grid-cols-[auto_1fr] sm:gap-x-4">
                                                 <span className="text-muted-foreground">Organization</span>
                                                 <span className="font-medium">{organization.name}</span>
-                                                <span className="text-muted-foreground">Covers</span>
-                                                <span className="font-medium">{coveredYear}</span>
+                                                <span className="text-muted-foreground">Term</span>
+                                                <span className="font-medium">{currentPeriod.label}</span>
                                                 <span className="text-muted-foreground">Requirements</span>
                                                 <span className="font-medium">
                                                     {uploaded} of {attachmentSlots.length} uploaded
@@ -290,11 +281,11 @@ CreateRenewal.layout = {
 function RenewalBlocked({
     membership,
     eligibility,
-    coveredYear,
+    termLabel,
 }: {
     membership: Membership | null;
     eligibility: Eligibility;
-    coveredYear: string;
+    termLabel: string;
 }) {
     if (!membership) {
         return <NotAnOfficerBlocked action="renew it" />;
@@ -303,22 +294,6 @@ function RenewalBlocked({
     const organization = membership.organization.name;
     const goToOrganization = { label: 'Go to My Organization', href: mine() };
 
-    if (eligibility.status === 'season_closed') {
-        return (
-            <BlockedState
-                icon={CalendarClock}
-                title="Renewal not open yet"
-                body={
-                    <>
-                        You can renew <strong>{organization}</strong> during <strong>3rd Term</strong>. SDAO will notify
-                        you once renewal opens.
-                    </>
-                }
-                primary={goToOrganization}
-            />
-        );
-    }
-
     if (eligibility.status === 'already_filed') {
         return (
             <BlockedState
@@ -326,7 +301,7 @@ function RenewalBlocked({
                 title="Renewal already filed"
                 body={
                     <>
-                        <strong>{organization}</strong> already has a renewal for <strong>{coveredYear}</strong>. You can
+                        <strong>{organization}</strong> already has a renewal for <strong>{termLabel}</strong>. You can
                         follow it under My Renewals.
                     </>
                 }

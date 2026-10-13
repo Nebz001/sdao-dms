@@ -1,12 +1,10 @@
 import { Link } from '@inertiajs/react';
 import MeterBar from '@/components/meter-bar';
-import PageNotice from '@/components/page-notice';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export type OrgCompliance = {
-    renewalSeason: boolean;
-    /** The academic year the meter is measured against, e.g. "2027-2028". */
-    targetYear: string;
+    /** The term the meter is measured against, e.g. "2nd Term, 2026-2027". */
+    termLabel: string;
     done: number;
     total: number;
     pendingTotal: number;
@@ -21,13 +19,11 @@ export function academicYearLabel(academicYear: string): string {
 
 /**
  * Organization compliance: how many approved organizations are covered, and
- * which have documents still open. Outside renewal season the meter is
- * measured against the current academic year; in 3rd term it switches to next
- * year and a notice makes the season hard to miss.
+ * which have documents still open. Organizations renew every term, so the
+ * meter is always measured against the current term.
  */
 export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
     const percent = data.total > 0 ? Math.round((data.done / data.total) * 100) : 0;
-    const year = academicYearLabel(data.targetYear);
     const allDone = data.total > 0 && data.done === data.total;
 
     return (
@@ -35,19 +31,13 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
             <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <div className="grid gap-1.5">
                     <CardTitle role="heading" aria-level={2} className="text-base">Organization compliance</CardTitle>
-                    <CardDescription>Renewal opens when the term is set to 3rd</CardDescription>
+                    <CardDescription>Organizations renew every term</CardDescription>
                 </div>
                 <Link href={data.viewAllHref} className="shrink-0 text-sm text-primary-text hover:underline">
                     View all
                 </Link>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-                {data.renewalSeason && (
-                    <PageNotice tone="warning" title="Renewal season is open.">
-                        Organizations can renew for A.Y. {year} now.
-                    </PageNotice>
-                )}
-
                 <div>
                     {data.total === 0 ? (
                         <p className="text-sm text-muted-foreground">
@@ -57,7 +47,7 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
                         <>
                             <div className="flex items-baseline justify-between gap-3 text-sm">
                                 <span>
-                                    {data.renewalSeason ? `Renewed for A.Y. ${year}` : 'Renewed this academic year'}
+                                    Renewed for {data.termLabel}
                                 </span>
                                 <span className="font-semibold tabular-nums">
                                     {data.done} / {data.total}
@@ -66,12 +56,12 @@ export default function OrgComplianceCard({ data }: { data: OrgCompliance }) {
                             <MeterBar
                                 value={percent}
                                 tone="success"
-                                label={`${data.done} of ${data.total} organizations covered for A.Y. ${year}`}
+                                label={`${data.done} of ${data.total} organizations renewed for ${data.termLabel}`}
                                 className="mt-2"
                             />
                             {allDone && (
                                 <p className="mt-2 text-xs text-muted-foreground">
-                                    All caught up. Every organization has renewed for A.Y. {year}.
+                                    All caught up. Every organization has renewed for {data.termLabel}.
                                 </p>
                             )}
                         </>

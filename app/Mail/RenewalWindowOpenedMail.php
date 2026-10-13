@@ -12,8 +12,8 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Queued to active officers of every organization whose renewal just came
- * due, the moment SDAO advances the current term to 3rd
- * (App\Renewals\OpenRenewalSeason) — the renewal-season equivalent of
+ * due, the moment SDAO moves the current period to a new term
+ * (App\Renewals\OpenRenewalSeason) — the renewal-round equivalent of
  * JoinRequestReceivedMail's hand-off. Dispatched via ->queue() so a
  * mail-provider failure never blocks the term change itself; $tries/backoff()
  * retry a transient failure before giving up to failed_jobs.
@@ -52,7 +52,7 @@ class RenewalWindowOpenedMail extends Mailable
             markdown: 'mail.renewal-window-opened',
             with: [
                 'recipientName' => $this->recipient->name,
-                'coveredYear' => $this->period->nextAcademicYear(),
+                'termLabel' => $this->period->label(),
                 'renewUrl' => route('renewals.create'),
             ],
         );
@@ -65,6 +65,6 @@ class RenewalWindowOpenedMail extends Mailable
      */
     public function subjectLine(): string
     {
-        return "Organization renewal is now open for {$this->period->nextAcademicYear()}";
+        return "Organization renewal is now open for {$this->period->label()}";
     }
 }

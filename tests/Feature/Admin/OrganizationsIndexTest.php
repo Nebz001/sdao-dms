@@ -1,14 +1,17 @@
 <?php
 
 use App\Approval\ApprovalEngine;
+use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\OrganizationStatus;
 use App\Enums\Role;
+use App\Models\Document;
 use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\OrganizationRegistrationDetail;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Support\CurrentPeriod;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -87,6 +90,33 @@ test('the status filter narrows the list to matching organizations only', functi
         );
 });
 
+test('the renewal filter lists only organizations that have not renewed this term', function () {
+    $period = CurrentPeriod::get();
+    $org = Organization::where('name', 'Computing Society')->firstOrFail();
+    $approved = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $org->id,
+        'status' => DocumentStatus::Approved,
+    ]);
+    // Approved in an earlier term, so it is due this one.
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $approved->id,
+        'academic_year' => $period->previous()->academicYear,
+        'term' => $period->previous()->term->value,
+        'covers_academic_year' => $period->previous()->academicYear,
+    ]);
+
+    $this->actingAs($this->sdaoA)->withoutVite()
+        ->get(route('admin.organizations.index', ['renewal' => 'due']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('organizations.data', 1)
+            ->where('organizations.data.0.name', 'Computing Society')
+            ->where('organizations.data.0.renewalDue', true)
+            ->where('filters.renewal', 'due')
+        );
+});
+
 test('the name search filter narrows the list', function () {
     $this->actingAs($this->sdaoA)->withoutVite()
         ->get(route('admin.organizations.index', ['search' => 'Computing Society']))
@@ -112,7 +142,7 @@ test('the stat cards cover every organization, whatever the status or search fil
                 ->has('stats.furthestBehind.name')
                 ->where('stats.oldestPending', null)
                 ->where('stats.renewalDue', 0)
-                ->has('stats.renewalWindow.nextOpens')
+                ->has('stats.renewalTerm')
             )
         );
 });

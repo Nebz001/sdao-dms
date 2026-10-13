@@ -122,7 +122,7 @@ function submitAndApproveRegistrationFor(User $actor, Organization $org, array $
     $document->registrationDetail->update([
         'academic_year' => $period->academicYear,
         'term' => $period->term->value,
-        'covers_academic_year' => $period->isRenewalSeason() ? $period->nextAcademicYear() : $period->academicYear,
+        'covers_academic_year' => $period->academicYear,
     ]);
 
     return $document;
@@ -176,7 +176,7 @@ test('unaffiliated user cannot submit a renewal even with a prior approved regis
     ))->toThrow(AuthorizationException::class);
 });
 
-test('affiliated officer can submit a renewal once renewal season opens', function () {
+test('affiliated officer can submit a renewal in a later term than the one the org was approved in', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();
     $p = renewalPayload();
@@ -196,8 +196,7 @@ test('affiliated officer can submit a renewal once renewal season opens', functi
     expect($renewal->form_type)->toBe(FormType::OrganizationRenewal);
     expect($renewal->registrationDetail->academic_year)->toBe('2030-2031');
     expect($renewal->registrationDetail->term)->toBe(Term::ThirdTerm);
-    // A renewal filed during 3rd term of an academic year covers the NEXT one.
-    expect($renewal->registrationDetail->covers_academic_year)->toBe('2031-2032');
+    expect($renewal->registrationDetail->covers_academic_year)->toBe('2030-2031');
 });
 
 // ── organization_type derivation (structural fix, 2026-09-09 plan) ─────────
@@ -209,7 +208,7 @@ test('affiliated officer can submit a renewal once renewal season opens', functi
 // ExtraCurricularRenewalTest for the HTTP-level replacement coverage proving
 // the derivation itself is correct in both directions.
 
-test('a second renewal for the same covered year is blocked while the first is non-rejected', function () {
+test('a second renewal for the same term is blocked while the first is non-rejected', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();
     $p = renewalPayload();
@@ -237,7 +236,7 @@ test('a second renewal for the same covered year is blocked while the first is n
     ))->toThrow(ValidationException::class);
 });
 
-test('a rejected renewal frees the slot — a new renewal for the same covered year is allowed', function () {
+test('a rejected renewal frees the slot — a new renewal for the same term is allowed', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();
     $p = renewalPayload();
@@ -315,7 +314,7 @@ test('renewal coverage is unchanged after a renewal is returned for revision and
     );
 
     $originalCoverage = $renewal->registrationDetail->covers_academic_year;
-    expect($originalCoverage)->toBe('2031-2032');
+    expect($originalCoverage)->toBe('2030-2031');
 
     $this->engine->returnForRevision($renewal, $this->sdaoA, 'Please fix contact info.');
     $renewal->refresh();
@@ -350,7 +349,7 @@ test('renewing an already-renewed org carries forward from the most recent renew
         'contactPerson' => 'Original Registration Person',
     ]);
 
-    openRenewalSeason(); // 2024-2025, 3rd term -> covers 2025-2026
+    openRenewalSeason(); // 2024-2025, 3rd term
 
     $renewalAY1 = $this->renewalAction->execute(
         actor: $this->studentAlpha,
@@ -387,28 +386,31 @@ test('renewing an already-renewed org carries forward from the most recent renew
         );
 });
 
-// ── Renewal season: 3rd-term gate, grace, and coverage rollover ──────────
+// ── Renewal every term: open in every term, grace for the founding term ──
 
-test('renewal is refused while the term is 1st or 2nd — season closed', function () {
+test('renewal is open in every term after the one the organization was approved in', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
 
-    // Still 1st term (from beforeEach) — season is closed.
-    $eligibility = $this->renewalAction->eligibilityFor($this->org);
-    expect($eligibility->status)->toBe(RenewalEligibility::SeasonClosed);
-    expect($eligibility->message())->toContain('opens during 3rd Term');
+    // Still the 1st term the org was approved in — already covered.
+    expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::NotYetDue);
 
     setPeriod('2030-2031', Term::SecondTerm);
-    expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::SeasonClosed);
+    expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::Eligible);
+
+    setPeriod('2030-2031', Term::ThirdTerm);
+    expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::Eligible);
+
+    setPeriod('2031-2032', Term::FirstTerm);
+    expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::Eligible);
 });
 
-test('an organization approved DURING 3rd term is not yet due — grace', function () {
+test('an organization approved during a term is not yet due in that same term — grace', function () {
     setPeriod('2030-2031', Term::ThirdTerm);
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
 
-    // Still the same season the org was just founded in.
     $eligibility = $this->renewalAction->eligibilityFor($this->org);
     expect($eligibility->status)->toBe(RenewalEligibility::NotYetDue);
-    expect($eligibility->message())->toContain('already covered for 2031-2032');
+    expect($eligibility->message())->toContain('already covered for this term');
 
     expect(fn () => $this->renewalAction->execute(
         actor: $this->studentAlpha,
@@ -420,17 +422,13 @@ test('an organization approved DURING 3rd term is not yet due — grace', functi
         dateOrganized: '2020-06-01',
         attachmentFiles: renewalAttachmentFiles(),
     ))->toThrow(ValidationException::class);
-});
 
-test('an organization approved in 1st term of the same year can renew once season opens', function () {
-    // beforeEach leaves the period at (2030-2031, 1st term).
-    submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
-    openRenewalSeason();
-
+    // The very next term it is due.
+    setPeriod('2031-2032', Term::FirstTerm);
     expect($this->renewalAction->eligibilityFor($this->org)->status)->toBe(RenewalEligibility::Eligible);
 });
 
-test('filing a second renewal in the same season reports AlreadyFiledThisYear with the covered year named', function () {
+test('filing a second renewal in the same term reports AlreadyFiledThisTerm with the term named', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();
     $p = renewalPayload();
@@ -447,11 +445,37 @@ test('filing a second renewal in the same season reports AlreadyFiledThisYear wi
     );
 
     $eligibility = $this->renewalAction->eligibilityFor($this->org);
-    expect($eligibility->status)->toBe(RenewalEligibility::AlreadyFiledThisYear);
-    expect($eligibility->message())->toBe('A renewal covering 2031-2032 has already been filed for this organization.');
+    expect($eligibility->status)->toBe(RenewalEligibility::AlreadyFiledThisTerm);
+    expect($eligibility->message())->toBe('A renewal for 3rd Term, 2030-2031 has already been filed for this organization.');
 });
 
-test('after renewing, advancing to next years 1st term closes the season and the org stays covered', function () {
+test('an organization renews again in the next term — one non-rejected renewal per term', function () {
+    submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
+    $p = renewalPayload();
+    $file = fn () => $this->renewalAction->execute(
+        actor: $this->studentAlpha,
+        organization: $this->org,
+        purposeOfOrganization: $p['purposeOfOrganization'],
+        contactPerson: $p['contactPerson'],
+        contactNo: $p['contactNo'],
+        emailAddress: $p['emailAddress'],
+        dateOrganized: $p['dateOrganized'],
+        attachmentFiles: renewalAttachmentFiles(),
+    );
+
+    setPeriod('2030-2031', Term::SecondTerm);
+    $second = $file();
+    expect($second->registrationDetail->term)->toBe(Term::SecondTerm);
+    expect($second->title)->toContain('2nd Term, 2030-2031');
+    expect($file)->toThrow(ValidationException::class);
+
+    setPeriod('2030-2031', Term::ThirdTerm);
+    $third = $file();
+    expect($third->registrationDetail->term)->toBe(Term::ThirdTerm);
+    expect($third->id)->not->toBe($second->id);
+});
+
+test('after renewing, the next term is due again and the org stays covered through it', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
     openRenewalSeason();
     $p = renewalPayload();
@@ -475,13 +499,12 @@ test('after renewing, advancing to next years 1st term closes the season and the
     setPeriod('2031-2032', Term::FirstTerm);
 
     $eligibility = $this->renewalAction->eligibilityFor($this->org);
-    expect($eligibility->status)->toBe(RenewalEligibility::SeasonClosed);
-    expect($eligibility->coversThroughAcademicYear)->toBe('2031-2032');
+    expect($eligibility->status)->toBe(RenewalEligibility::Eligible);
+    expect($eligibility->coveredThrough->toString())->toBe('2031-2032:first_term');
 });
 
-test('renewals/create renders a season-closed empty state instead of the form', function () {
+test('renewals/create tells an organization approved this term that it is already covered', function () {
     submitAndApproveRegistrationFor($this->studentAlpha, $this->org);
-    // Still 1st term — season closed.
 
     $this->actingAs($this->studentAlpha)
         ->withoutVite()
@@ -489,7 +512,7 @@ test('renewals/create renders a season-closed empty state instead of the form', 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('renewals/create')
-            ->where('eligibility.status', 'season_closed')
-            ->where('eligibility.message', fn ($message) => str_contains($message, 'opens during 3rd Term'))
+            ->where('eligibility.status', 'not_yet_due')
+            ->where('eligibility.message', fn ($message) => str_contains($message, 'already covered for this term'))
         );
 });

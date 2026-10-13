@@ -2,18 +2,22 @@
 
 use App\ActivityProposals\StartProposalDraft;
 use App\Calendar\SubmitActivityCalendar;
+use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
 use App\Enums\Term;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\OrganizationRegistrationDetail;
 use App\Models\Setting;
 use App\Models\User;
+use App\Notifications\RenewalWindowOpenedNotification;
 use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
 use App\Support\CurrentPeriod;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -194,12 +198,12 @@ test('an SDAO member can update the current period via the settings screen', fun
             ->has('terms')
             ->has('academicYears')
             ->has('suggestedAcademicYearOnWrap')
-            ->has('renewalNoticeRecipientCount')
+            ->has('renewalNoticeRecipientCounts')
         );
 
     $current = CurrentPeriod::get();
 
-    // Advancing to 2nd term does not open renewal season — no notification copy.
+    // Nobody is due in this fixture, so no renewal-notification copy.
     $response = $this->actingAs($this->sdaoA)->put(route('admin.settings.period.update'), [
         'term' => Term::SecondTerm->value,
         'academic_year' => $current->academicYear,
@@ -212,25 +216,84 @@ test('an SDAO member can update the current period via the settings screen', fun
         ->assertSessionHas('flash', fn ($flash) => str_starts_with(
             $flash['message'],
             "The period is now {$newLabel}. Documents already submitted or approved are unchanged.",
-        ) && ! str_contains($flash['message'], 'Renewal season opened'));
+        ) && ! str_contains($flash['message'], 'Renewal opened'));
 
     expect(CurrentPeriod::get()->term)->toBe(Term::SecondTerm);
     Notification::assertNothingSent();
 });
 
-test('setting the term to 3rd opens renewal season and the flash names the recipient count', function () {
-    Notification::fake();
+/**
+ * An approved registration for Computing Society stamped at the current
+ * period, so the org is covered now and comes due in the term after it.
+ */
+function approvedRegistrationStampedNow(Organization $org): void
+{
+    $period = CurrentPeriod::get();
 
-    $current = CurrentPeriod::get();
-    setCurrentTerm(Term::SecondTerm);
-
-    $response = $this->actingAs($this->sdaoA)->put(route('admin.settings.period.update'), [
-        'term' => Term::ThirdTerm->value,
-        'academic_year' => $current->academicYear,
+    $document = Document::factory()->create([
+        'form_type' => FormType::OrganizationRegistration,
+        'organization_id' => $org->id,
+        'status' => DocumentStatus::Approved,
     ]);
 
+    OrganizationRegistrationDetail::factory()->create([
+        'document_id' => $document->id,
+        'academic_year' => $period->academicYear,
+        'term' => $period->term->value,
+        'covers_academic_year' => $period->academicYear,
+    ]);
+}
+
+function movePeriodTo(Term $term, ?string $academicYear = null): TestResponse
+{
+    return test()->actingAs(test()->sdaoA)->put(route('admin.settings.period.update'), [
+        'term' => $term->value,
+        'academic_year' => $academicYear ?? CurrentPeriod::get()->academicYear,
+    ]);
+}
+
+test('moving forward to any term opens renewal and notifies the officers of organizations that have not renewed', function () {
+    Notification::fake();
+    setCurrentTerm(Term::FirstTerm);
+    approvedRegistrationStampedNow($this->org);
+
+    $response = movePeriodTo(Term::SecondTerm);
+
     $response->assertRedirect(route('admin.settings.period.edit'))
-        ->assertSessionHas('flash', fn ($flash) => str_contains($flash['message'], 'Renewal season opened'));
+        ->assertSessionHas('flash', fn ($flash) => str_contains($flash['message'], 'Renewal opened for 2nd Term')
+            && str_contains($flash['message'], '1 organization(s) notified'));
+
+    Notification::assertSentTo($this->studentAlpha, RenewalWindowOpenedNotification::class);
+
+    // The 3rd term opens a round of its own.
+    movePeriodTo(Term::ThirdTerm);
+    Notification::assertSentToTimes($this->studentAlpha, RenewalWindowOpenedNotification::class, 2);
+});
+
+test('a term is announced once — correcting the period backwards and forwards again does not re-notify', function () {
+    Notification::fake();
+    setCurrentTerm(Term::FirstTerm);
+    approvedRegistrationStampedNow($this->org);
+
+    movePeriodTo(Term::SecondTerm);
+    movePeriodTo(Term::FirstTerm);   // a backwards correction announces nothing
+    movePeriodTo(Term::SecondTerm);  // already announced
+
+    Notification::assertSentToTimes($this->studentAlpha, RenewalWindowOpenedNotification::class, 1);
+});
+
+test('the settings screen previews how many officers each forward term would email', function () {
+    setCurrentTerm(Term::FirstTerm);
+    approvedRegistrationStampedNow($this->org);
+    $year = CurrentPeriod::get()->academicYear;
+
+    $this->actingAs($this->sdaoA)
+        ->withoutVite()
+        ->get(route('admin.settings.period.edit'))
+        ->assertInertia(fn ($page) => $page
+            ->where("renewalNoticeRecipientCounts.{$year}:first_term", 0)
+            ->where("renewalNoticeRecipientCounts.{$year}:second_term", fn ($count) => $count >= 1)
+        );
 });
 
 test('academic_year must be two consecutive years', function () {

@@ -2,7 +2,6 @@
 
 namespace App\Renewals;
 
-use App\Enums\Term;
 use App\Models\Setting;
 use App\Notifications\RenewalWindowOpenedNotification;
 use App\Organizations\OrganizationMembershipService;
@@ -13,14 +12,15 @@ use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 /**
- * Fires when SDAO advances the current term to 3rd — the trigger for
- * organization renewal season (decision: renewal is gated to 3rd term, not
- * re-opened on every term change). Notifies active officers of every
- * organization whose renewal is genuinely due, once per academic year: an
- * admin correcting 3rd -> 2nd -> 3rd within the same year must not
- * re-broadcast (guarded by the `renewal_notice_sent_for` setting, which this
- * class exclusively owns — same one-key-per-owner convention as
- * App\Support\CurrentPeriod).
+ * Fires when SDAO moves the current period forward to a new term — the
+ * trigger for that term's renewal round (every term, 1st/2nd/3rd, is a
+ * renewal term). Notifies active officers of every organization whose renewal
+ * is genuinely due, once per period and only on a forward move: an admin
+ * correcting 2nd -> 1st -> 2nd must not re-broadcast (guarded by the
+ * `renewal_notice_sent_for` setting, which holds the list of announced
+ * periods as JSON and which
+ * this class exclusively owns — same one-key-per-owner convention as
+ * AppSupportCurrentPeriod).
  *
  * Recipient computation delegates to
  * OrganizationStatusResolver::organizationIdsWithRenewalDue(), which itself
@@ -50,7 +50,7 @@ class OpenRenewalSeason
         $dueOrganizationIds = $this->statusResolver->organizationIdsWithRenewalDue($new);
 
         if ($dueOrganizationIds->isEmpty()) {
-            $this->markSent($new->academicYear);
+            $this->markSent($new);
 
             return 0;
         }
@@ -69,26 +69,48 @@ class OpenRenewalSeason
             }
         }
 
-        $this->markSent($new->academicYear);
+        $this->markSent($new);
 
         return $dueOrganizationIds->count();
     }
 
     /**
-     * Fires only on entry into 3rd term (not a re-save of an already-3rd
-     * term, and not a move to 1st/2nd), and only once per academic year.
+     * Fires only when the period moves FORWARD (a backwards correction or a
+     * re-save of the same term never announces anything), and only once per
+     * period.
      */
     private function shouldOpen(AcademicPeriod $previous, AcademicPeriod $new): bool
     {
-        if ($previous->term === Term::ThirdTerm || $new->term !== Term::ThirdTerm) {
-            return false;
-        }
-
-        return Setting::query()->where('key', self::SENT_FOR_KEY)->value('value') !== $new->academicYear;
+        return $new->isAfter($previous) && ! $this->wasAnnounced($new);
     }
 
-    private function markSent(string $academicYear): void
+    /**
+     * Whether officers were already told about this period's renewal round.
+     */
+    public function wasAnnounced(AcademicPeriod $period): bool
     {
-        Setting::query()->updateOrCreate(['key' => self::SENT_FOR_KEY], ['value' => $academicYear]);
+        return in_array($period->toString(), $this->announcedPeriods(), true);
+    }
+
+    /**
+     * The setting holds a JSON list of period strings. A value from before
+     * renewal went per-term (a bare academic year) is not valid JSON, so it
+     * reads as "nothing announced yet".
+     *
+     * @return list<string>
+     */
+    private function announcedPeriods(): array
+    {
+        $decoded = json_decode((string) Setting::query()->where('key', self::SENT_FOR_KEY)->value('value'), true);
+
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    private function markSent(AcademicPeriod $period): void
+    {
+        Setting::query()->updateOrCreate(
+            ['key' => self::SENT_FOR_KEY],
+            ['value' => json_encode([...$this->announcedPeriods(), $period->toString()])],
+        );
     }
 }

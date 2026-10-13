@@ -11,8 +11,8 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Fired to the active officers of every organization whose renewal just came
- * due, the moment SDAO advances the current term to 3rd
- * (App\Renewals\OpenRenewalSeason) — the renewal-season equivalent of
+ * due, the moment SDAO moves the current period to a new term
+ * (App\Renewals\OpenRenewalSeason) — the renewal-round equivalent of
  * invariant #9's approver hand-off. See ApproverHandOffNotification's
  * docblock for the mail/database channel split.
  */
@@ -64,7 +64,7 @@ class RenewalWindowOpenedNotification extends Notification implements ShouldQueu
         return [
             'kind' => 'renewal_window_opened',
             'title' => $mail->subjectLine(),
-            'body' => "Renewal is now open for {$this->period->nextAcademicYear()}.",
+            'body' => "Renewal is now open for {$this->period->label()}.",
             // Relative — NotificationPresenter::toRelativePath() requires it
             // for Inertia's XHR router.visit() to follow the link.
             'url' => route('renewals.create', absolute: false),

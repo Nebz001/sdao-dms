@@ -10,7 +10,8 @@ use InvalidArgumentException;
 /**
  * A single (academic year, term) point in time — the unit the admin-controlled
  * "current period" setting (App\Support\CurrentPeriod) advances one at a time,
- * and the unit organization renewal seasons and coverage are measured in.
+ * and the unit organization renewal and coverage are measured in (every term
+ * is a renewal term).
  *
  * Comparison is over the integer tuple [startYear, term->order()], never over
  * the canonical string — see isAfter()/isBefore(). The canonical string form
@@ -132,17 +133,22 @@ final readonly class AcademicPeriod
     }
 
     /**
-     * True only for 3rd term — the single named place the renewal-season rule
-     * is stated, so it stays greppable rather than re-derived at call sites.
+     * The period just before this one — 1st term steps back into the 3rd
+     * term of the previous academic year.
      */
-    public function isRenewalSeason(): bool
+    public function previous(): self
     {
-        return $this->term === Term::ThirdTerm;
+        if ($this->term === Term::FirstTerm) {
+            $startYear = $this->startYear();
+
+            return new self(($startYear - 1).'-'.$startYear, Term::ThirdTerm);
+        }
+
+        return new self($this->academicYear, $this->term === Term::ThirdTerm ? Term::SecondTerm : Term::FirstTerm);
     }
 
     /**
-     * The academic year a renewal filed during this period's 3rd-term season
-     * would cover, e.g. "2026-2027" -> "2027-2028".
+     * The academic year after this period's, e.g. "2026-2027" -> "2027-2028".
      */
     public function nextAcademicYear(): string
     {

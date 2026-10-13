@@ -26,7 +26,7 @@ vi.mock('@inertiajs/react', () => ({
     usePage: () => ({
         props: {
             auth: { user: { id: 1, name: 'Btan Gomez', first_name: 'Btan', last_name: 'Gomez' } },
-            currentPeriod: { academic_year: '2026-2027', term: 'third_term', term_label: '3rd Term', label: '3rd Term, 2026-2027', is_renewal_season: true },
+            currentPeriod: { academic_year: '2026-2027', term: 'third_term', term_label: '3rd Term', label: '3rd Term, 2026-2027' },
         },
     }),
 }));
@@ -182,12 +182,12 @@ describe('Renew Your Organization', () => {
         attachmentSlots: slots,
     };
 
-    it('opens the form pre-filled, with the name locked and the strip for the coming year', () => {
+    it('opens the form pre-filled, with the name locked and the strip for the current term', () => {
         render(<CreateRenewal {...base} eligibility={{ status: 'eligible', message: null }} />);
 
-        expect(screen.getByText(/Renewing/)).toHaveTextContent('Renewing CA Org for 2027-2028');
-        expect(screen.getByText('Active for 2026-2027')).toBeInTheDocument();
-        expect(screen.getByText(/We filled in last year/)).toBeInTheDocument();
+        expect(screen.getByText(/Renewing/)).toHaveTextContent('Renewing CA Org for 3rd Term, 2026-2027');
+        expect(screen.getByText('Renewal every term')).toBeInTheDocument();
+        expect(screen.getByText(/We filled in your last approved details/)).toBeInTheDocument();
         expect(screen.getByText('Can’t be changed in a renewal')).toBeInTheDocument();
         expect(screen.getByLabelText('Contact person')).toHaveValue('Carl Andrew');
         expect(screen.getByLabelText('Purpose')).toHaveValue('Grow skills.');
@@ -195,16 +195,16 @@ describe('Renew Your Organization', () => {
         expect(screen.queryByRole('heading', { name: 'Adviser' })).not.toBeInTheDocument();
     });
 
-    it('shows a clear message, and no form, when renewal is not open', () => {
+    it('shows a clear message, and no form, when the organization is already covered this term', () => {
         render(
             <CreateRenewal
                 {...base}
-                eligibility={{ status: 'season_closed', message: 'Renewal only opens in the 3rd term.' }}
+                eligibility={{ status: 'not_yet_due', message: 'CA Org is already covered for this term.' }}
             />,
         );
 
-        expect(screen.getByRole('heading', { name: 'Renewal not open yet' })).toBeInTheDocument();
-        expect(screen.getByText(/during/)).toHaveTextContent('3rd Term');
+        expect(screen.getByRole('heading', { name: 'Renewal not due yet' })).toBeInTheDocument();
+        expect(screen.getByText(/already covered for this term/)).toBeInTheDocument();
         expect(screen.queryByLabelText('Contact person')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Review and Submit/ })).not.toBeInTheDocument();
     });
@@ -218,7 +218,7 @@ describe('Renew Your Organization', () => {
 
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).getByText('CA Org')).toBeInTheDocument();
-        expect(within(dialog).getByText('2027-2028')).toBeInTheDocument();
+        expect(within(dialog).getByText('3rd Term, 2026-2027')).toBeInTheDocument();
         expect(within(dialog).getByText('1 of 3 uploaded')).toBeInTheDocument();
     });
 });

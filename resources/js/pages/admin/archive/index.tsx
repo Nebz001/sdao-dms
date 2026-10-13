@@ -12,6 +12,7 @@ import type { DataColumn } from '@/components/review-queue/data-table';
 import { SectionCard } from '@/components/review-queue/queue-tables';
 import { formatDate } from '@/components/review-queue/types';
 import { StatusBadge } from '@/components/status-badge';
+import TermBadge from '@/components/term-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -38,6 +39,8 @@ type FormTypeOption = { value: string; label: string };
 type ArchivedDocument = {
     id: number;
     title: string;
+    /** Renewals only: the term it was filed for. */
+    term: string | null;
     status: string;
     form_type: string;
     form_type_label: string;
@@ -179,7 +182,11 @@ export default function DocumentArchiveIndex({
             cell: (d) => (
                 <div className="flex flex-col items-start gap-1.5">
                     <FormTypeLabelBadge label={d.form_type_label} />
-                    <span className="font-semibold">{d.title}</span>
+                    {d.title === d.form_type_label ? (
+                        d.term && <TermBadge label={d.term} />
+                    ) : (
+                        <span className="font-semibold">{d.title}</span>
+                    )}
                 </div>
             ),
         },
@@ -220,7 +227,11 @@ export default function DocumentArchiveIndex({
             cell: (d) => (
                 <RowViewButton
                     href={d.href}
-                    label={`${d.form_type_label}: ${d.title}`}
+                    label={
+                        d.title === d.form_type_label
+                            ? [d.form_type_label, d.term].filter(Boolean).join(': ')
+                            : `${d.form_type_label}: ${d.title}`
+                    }
                 />
             ),
         },

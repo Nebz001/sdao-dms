@@ -18,9 +18,9 @@ use App\Support\AcademicPeriod;
  *    organization, never a dash.
  *  - form type chip: kept for proposals and reports; dropped for the others,
  *    whose title already says it.
- *  - period badge: "1st Term, 2026-2027" for calendars and proposals; the
- *    academic year the document is FOR ("2026-2027") for registrations and
- *    renewals (a renewal filed now covers next year).
+ *  - period badge: "1st Term, 2026-2027" for calendars, proposals and
+ *    renewals (the term a renewal was filed for); the academic year the
+ *    document is FOR ("2026-2027") for registrations.
  *
  * The stored title is never read, changed or parsed. The admin and approver
  * side keeps DocumentDisplayTitle.
@@ -78,8 +78,8 @@ class StudentDocumentLabel
             FormType::ActivityProposal => self::termLabel($document->activityProposal?->calendarActivity?->calendar),
             FormType::OrganizationRegistration => $document->registrationDetail?->covers_academic_year
                 ?? AcademicPeriod::forDate($document->created_at)->academicYear,
-            FormType::OrganizationRenewal => $document->registrationDetail?->covers_academic_year
-                ?? AcademicPeriod::forDate($document->created_at)->nextAcademicYear(),
+            FormType::OrganizationRenewal => ($document->registrationDetail?->period()
+                ?? AcademicPeriod::forDate($document->created_at))->label(),
             FormType::AfterActivityReport => null,
         };
     }

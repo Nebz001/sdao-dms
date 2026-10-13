@@ -105,17 +105,17 @@ describe('blocked pages', () => {
             expect(link('View my registration')).toHaveAttribute('href', '/registrations/7');
         });
 
-        it('is "not available" for an officer, with the registered year and two next steps', () => {
+        it('is "not available" for an officer, with the covered-through term and two next steps', () => {
             render(
                 <CreateRegistration
                     {...baseRegistration}
                     canPropose={false}
-                    blocked={{ reason: 'officer', organization: 'CA Org', covered_year: '2026-2027' }}
+                    blocked={{ reason: 'officer', organization: 'CA Org', covered_through: '2nd Term, 2026-2027' }}
                 />,
             );
 
             expect(screen.getByRole('heading', { name: 'Registration not available' })).toBeInTheDocument();
-            expect(screen.getByText(/and it’s registered for 2026-2027/)).toBeInTheDocument();
+            expect(screen.getByText(/and it’s covered through 2nd Term, 2026-2027/)).toBeInTheDocument();
             expect(link('See my registrations')).toBeInTheDocument();
             expect(link('Go to My Organization')).toBeInTheDocument();
         });
@@ -152,11 +152,11 @@ describe('blocked pages', () => {
             attachmentSlots: [],
         };
 
-        it('is "not open yet" outside 3rd term, naming the organization and the term', () => {
-            render(<CreateRenewal {...base} eligibility={{ status: 'season_closed', message: 'closed' }} />);
+        it('is "not due yet" for an organization already covered this term', () => {
+            render(<CreateRenewal {...base} eligibility={{ status: 'not_yet_due', message: 'CA Org was approved during 1st Term, 2026-2027, so it is already covered for this term.' }} />);
 
-            expect(screen.getByRole('heading', { name: 'Renewal not open yet' })).toBeInTheDocument();
-            expect(screen.getByText(/during/)).toHaveTextContent('You can renew CA Org during 3rd Term. SDAO will notify you once renewal opens.');
+            expect(screen.getByRole('heading', { name: 'Renewal not due yet' })).toBeInTheDocument();
+            expect(screen.getByText(/already covered for this term/)).toBeInTheDocument();
             expect(link('Go to My Organization')).toBeInTheDocument();
         });
 
@@ -164,7 +164,7 @@ describe('blocked pages', () => {
             render(<CreateRenewal {...base} eligibility={{ status: 'already_filed', message: 'filed' }} />);
 
             expect(screen.getByRole('heading', { name: 'Renewal already filed' })).toBeInTheDocument();
-            expect(screen.getByText(/already has a renewal for/)).toHaveTextContent('2027-2028');
+            expect(screen.getByText(/already has a renewal for/)).toHaveTextContent('1st Term, 2026-2027');
             expect(link('See my renewals')).toBeInTheDocument();
         });
 

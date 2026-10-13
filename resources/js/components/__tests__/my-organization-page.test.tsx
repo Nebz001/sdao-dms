@@ -35,13 +35,13 @@ const base = {
     organization: { id: 1, name: 'CA Org', school: 'Senior High School', program: null },
     status: 'active',
     renewalDue: false,
-    coversThroughAcademicYear: '2026-2027',
+    coveredThrough: '2nd Term, 2026-2027',
     requirements: [
         { key: 'registration_approved', label: 'Registration approved', met: true },
         { key: 'adviser_bound', label: 'Adviser bound', met: true },
         { key: 'president_bound', label: 'Active president', met: true },
         { key: 'secretary_bound', label: 'Active secretary', met: false },
-        { key: 'renewal_filed', label: 'Renewal filed for next year', met: false },
+        { key: 'renewal_filed', label: 'Renewal filed this term', met: false },
     ],
     officers: [
         {
@@ -61,7 +61,7 @@ describe('My Organization page', () => {
         render(<MyOrganization {...base} />);
 
         expect(screen.getByText('Senior High School')).toBeInTheDocument();
-        expect(screen.getByText('2026-2027')).toBeInTheDocument();
+        expect(screen.getByText('2nd Term, 2026-2027')).toBeInTheDocument();
         expect(screen.getByText('1 officer, 1 adviser')).toBeInTheDocument();
     });
 
@@ -84,14 +84,14 @@ describe('My Organization page', () => {
         expect(
             screen.getByRole('link', { name: 'Request officer change' }),
         ).toHaveAttribute('href', '/organizations/officer-change');
-        expect(screen.queryByText('File a renewal for next year')).not.toBeInTheDocument();
+        expect(screen.queryByText('File a renewal for this term')).not.toBeInTheDocument();
     });
 
     it('adds the renewal row while renewal applies', () => {
         render(<MyOrganization {...base} renewalDue />);
 
         expect(screen.getByText('3 of 5')).toBeInTheDocument();
-        expect(screen.getByText('File a renewal for next year')).toBeInTheDocument();
+        expect(screen.getByText('File a renewal for this term')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Start renewal' })).toHaveAttribute(
             'href',
             '/renewals/create',

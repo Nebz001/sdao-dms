@@ -7,6 +7,7 @@ use App\Approval\DocumentViewData;
 use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Attachments\AttachmentSlots;
+use App\Dashboard\DocumentDisplayTitle;
 use App\Enums\FormType;
 use App\Http\Controllers\Concerns\HandlesReviewActions;
 use App\Http\Requests\Review\ReviewActionRequest;
@@ -66,7 +67,7 @@ class RenewalReviewController extends Controller
         return Inertia::render('review/renewals/show', [
             'document' => [
                 'id' => $document->id,
-                'title' => $document->title,
+                'title' => DocumentDisplayTitle::subject($document),
                 'status' => $document->status->value,
                 'current_step_position' => $document->current_step_position,
                 'organization' => [
@@ -87,10 +88,11 @@ class RenewalReviewController extends Controller
                 'date_organized' => $detail->date_organized?->toDateString(),
                 'adviser' => $detail->adviser ? ['name' => $detail->adviser->name] : null,
                 'academic_year' => $detail->academic_year,
+                'term_label' => $detail->term?->label(),
             ] : null,
             'attachmentSlots' => $attachments['slots'],
             'attachments' => $attachments['files'],
-            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Academic year', 'value' => $detail?->academic_year]]),
+            'view' => $viewData->for($document, Auth::user(), $document->organization->name, [['label' => 'College', 'value' => $document->organization->school?->name], ['label' => 'Term', 'value' => $detail?->period()?->label()]]),
             'sectionFlags' => SectionFlags::for($document->form_type),
             'currentStepApprovals' => $currentStepApprovals,
             'hasApproved' => $myApproval !== null,

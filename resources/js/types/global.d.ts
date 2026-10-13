@@ -27,7 +27,6 @@ declare module '@inertiajs/core' {
                 term: string;
                 term_label: string;
                 label: string;
-                is_renewal_season: boolean;
             };
             /** null for guests. See HandleInertiaRequests::share() — a closure prop, only queried when requested. */
             notifications: NotificationsProp;

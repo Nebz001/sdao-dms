@@ -318,19 +318,16 @@ class StudentDashboardData
             ];
         }
 
-        if ($this->status()->coversThroughAcademicYear !== null) {
+        if ($this->status()->coveredThrough !== null) {
             $chips['registration'] = [
-                'label' => "Covered through {$this->status()->coversThroughAcademicYear}",
+                'label' => "Covered through {$this->status()->coveredThrough->label()}",
                 'tone' => 'neutral',
             ];
         }
 
-        $nextYear = $this->period->nextAcademicYear();
-
         $chips += match ($this->status()->eligibility->status) {
-            RenewalEligibility::Eligible => ['renewal' => ['label' => 'Renewal is open', 'tone' => 'warning']],
-            RenewalEligibility::AlreadyFiledThisYear => ['renewal' => ['label' => "Filed for {$nextYear}", 'tone' => 'neutral']],
-            RenewalEligibility::SeasonClosed => ['renewal' => ['label' => 'Opens in 3rd term', 'tone' => 'neutral']],
+            RenewalEligibility::Eligible => ['renewal' => ['label' => "Renewal due for {$termLabel}", 'tone' => 'warning']],
+            RenewalEligibility::AlreadyFiledThisTerm => ['renewal' => ['label' => "Renewed for {$termLabel}", 'tone' => 'neutral']],
             RenewalEligibility::NotYetDue, RenewalEligibility::NoPriorRecord => [],
         };
 
@@ -507,11 +504,11 @@ class StudentDashboardData
         };
 
         $detail = match ($state) {
-            'done' => $this->status()->coversThroughAcademicYear !== null
-                ? "Covered through {$this->status()->coversThroughAcademicYear}"
-                : 'Covered for this academic year',
+            'done' => $this->status()->coveredThrough !== null
+                ? "Covered through {$this->status()->coveredThrough->label()}"
+                : 'Covered for this term',
             'in_progress' => 'Registration or renewal under review',
-            default => "Not covered for {$this->period->academicYear}",
+            default => "Not covered for {$this->period->label()}",
         };
 
         return [
@@ -530,15 +527,15 @@ class StudentDashboardData
     private function renewalRequirement(): array
     {
         $eligibility = $this->status()->eligibility;
-        $nextYear = $this->period->nextAcademicYear();
+        $label = "Renewal for {$this->period->label()}";
 
-        if ($eligibility->status === RenewalEligibility::SeasonClosed || $eligibility->status === RenewalEligibility::NoPriorRecord) {
+        if ($eligibility->status === RenewalEligibility::NoPriorRecord) {
             return [
                 'key' => 'renewal',
-                'label' => "Renewal for {$nextYear}",
+                'label' => $label,
                 'tier' => 'conditional',
                 'state' => 'not_applicable',
-                'detail' => 'Opens in 3rd term',
+                'detail' => 'No approved registration to renew',
                 'href' => null,
             ];
         }
@@ -546,10 +543,10 @@ class StudentDashboardData
         if ($eligibility->status === RenewalEligibility::NotYetDue) {
             return [
                 'key' => 'renewal',
-                'label' => "Renewal for {$nextYear}",
+                'label' => $label,
                 'tier' => 'conditional',
                 'state' => 'done',
-                'detail' => 'Already covered through this renewal season',
+                'detail' => 'Already covered this term',
                 'href' => null,
             ];
         }
@@ -557,7 +554,7 @@ class StudentDashboardData
         if ($eligibility->status === RenewalEligibility::Eligible) {
             return [
                 'key' => 'renewal',
-                'label' => "Renewal for {$nextYear}",
+                'label' => $label,
                 'tier' => 'conditional',
                 'state' => 'action_needed',
                 'detail' => 'Due this term',
@@ -565,8 +562,8 @@ class StudentDashboardData
             ];
         }
 
-        // AlreadyFiledThisYear — look up the filed document's own status.
-        $filed = $this->currentYearRenewalDocument();
+        // AlreadyFiledThisTerm — look up the filed document's own status.
+        $filed = $this->currentTermRenewalDocument();
         $state = match ($filed?->status) {
             DocumentStatus::Approved => 'done',
             DocumentStatus::Returned => 'action_needed',
@@ -575,7 +572,7 @@ class StudentDashboardData
 
         return [
             'key' => 'renewal',
-            'label' => "Renewal for {$nextYear}",
+            'label' => $label,
             'tier' => 'conditional',
             'state' => $state,
             'detail' => match ($state) {
@@ -702,11 +699,8 @@ class StudentDashboardData
 
     private function renewalReason(RenewalEligibility $status): string
     {
-        $nextYear = $this->period->nextAcademicYear();
-
         return match ($status) {
-            RenewalEligibility::SeasonClosed => 'Opens in 3rd term',
-            RenewalEligibility::AlreadyFiledThisYear => "Already filed for {$nextYear}",
+            RenewalEligibility::AlreadyFiledThisTerm => "Already filed for {$this->period->label()}",
             RenewalEligibility::NotYetDue => 'Not yet due',
             RenewalEligibility::NoPriorRecord => 'No approved registration to renew',
             RenewalEligibility::Eligible => '',
@@ -910,18 +904,20 @@ class StudentDashboardData
     }
 
     /**
-     * The non-rejected renewal document covering next academic year, if
-     * any — mirrors SubmitOrganizationRenewal::hasNonRejectedRenewalForExactYear()'s
+     * The non-rejected renewal document filed for the current term, if
+     * any — mirrors SubmitOrganizationRenewal::hasNonRejectedRenewalForPeriod()'s
      * exact predicate (that method only returns a boolean; this needs the
      * row itself to read its status for the checklist).
      */
-    private function currentYearRenewalDocument(): ?Document
+    private function currentTermRenewalDocument(): ?Document
     {
         return Document::query()
             ->where('organization_id', $this->membership->organization_id)
             ->where('form_type', FormType::OrganizationRenewal->value)
             ->where('status', '!=', DocumentStatus::Rejected->value)
-            ->whereHas('registrationDetail', fn ($q) => $q->where('covers_academic_year', $this->period->nextAcademicYear()))
+            ->whereHas('registrationDetail', fn ($q) => $q
+                ->where('academic_year', $this->period->academicYear)
+                ->where('term', $this->period->term->value))
             ->first();
     }
 }

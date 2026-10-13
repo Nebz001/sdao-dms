@@ -30,6 +30,7 @@ import {
     StatusBadge,
 } from '@/components/status-badge';
 import TagBadge from '@/components/tag-badge';
+import TermBadge from '@/components/term-badge';
 import { Button } from '@/components/ui/button';
 import {
     Empty,
@@ -62,7 +63,6 @@ type Banner =
     | {
           type: 'needs_renewal';
           coveredThrough: string | null;
-          window: { open: boolean; label: string };
           outstanding: string[];
       }
     | {
@@ -88,6 +88,8 @@ type Summary = {
 type DocumentRef = {
     id: number;
     title: string;
+    /** Renewals only: the term it was filed for. */
+    term: string | null;
     type: string;
     status: string;
     href: string | null;
@@ -196,9 +198,7 @@ function StatusBanner({ banner }: { banner: Banner }) {
                 {banner.coveredThrough
                     ? `Coverage ended with ${banner.coveredThrough}. `
                     : ''}
-                {banner.window.open
-                    ? `The renewal window is open and closes ${banner.window.label}.`
-                    : `The next renewal window opens ${banner.window.label}.`}
+                Renewal is open for this term.
                 {(banner.outstanding ?? []).length > 0 &&
                     ` Still outstanding: ${(banner.outstanding ?? []).join(', ').toLowerCase()}.`}
             </PageNotice>
@@ -350,9 +350,17 @@ const REQUIREMENT_COLUMNS: DataColumn<RequirementRow>[] = [
             ) : r.document ? (
                 <span className="flex flex-col">
                     <span className="font-medium">{r.document.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                        {r.document.type}
-                    </span>
+                    {r.document.type !== r.document.title && (
+                        <span className="text-xs text-muted-foreground">
+                            {r.document.type}
+                        </span>
+                    )}
+                    {r.document.term && (
+                        <TermBadge
+                            label={r.document.term}
+                            className="mt-1 self-start"
+                        />
+                    )}
                 </span>
             ) : (
                 (r.detail ?? DASH)

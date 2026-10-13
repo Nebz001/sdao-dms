@@ -49,7 +49,7 @@ describe('My Organization requirements', () => {
             'renewal_filed',
         ]);
         expect(rows.open[1]).toMatchObject({
-            title: 'File a renewal for next year',
+            title: 'File a renewal for this term',
             description: 'Keeps CA Org active after 2026-2027',
             action: { label: 'Start renewal', target: 'renewal' },
         });
