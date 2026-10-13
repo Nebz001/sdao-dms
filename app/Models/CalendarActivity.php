@@ -78,6 +78,25 @@ class CalendarActivity extends Model
     }
 
     /**
+     * Tentative entries for the logged-in venue calendar: activities whose
+     * linked Activity Proposal is In Review (in routing, not yet fully
+     * approved), on-calendar and off-calendar alike. Drafts, returned and
+     * rejected proposals, and planned entries with no proposal are never
+     * tentative. A row that is also published() is the caller's to drop, so
+     * only the published one shows.
+     *
+     * @param  Builder<CalendarActivity>  $query
+     * @return Builder<CalendarActivity>
+     */
+    public function scopeTentative(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'proposals.document',
+            fn (Builder $q) => $q->where('status', DocumentStatus::InReview->value),
+        );
+    }
+
+    /**
      * start_time/end_time are native SQL TIME columns with no Eloquent
      * cast; PostgreSQL's driver returns them as "H:i:s" (e.g. "09:00:00"),
      * not the bare "H:i" every form's `date_format:H:i` validation rule

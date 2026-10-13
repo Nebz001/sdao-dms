@@ -936,6 +936,32 @@ class DemoDataSeeder extends Seeder
             $statusCounts['approved']++;
         }
 
+        // 9. Proposals still in routing, left at the adviser step, so the
+        // venue calendar shows tentative entries: one on-calendar (against a
+        // planned row nothing else has claimed) and one off-calendar.
+        $inRouting = [
+            ['Red Cross Youth', ProposalCalendarMode::OnCalendar, ['calendar_activity_id' => $calendarActivities['Red Cross Youth'][1]->id, 'activity_nature' => 'community_extension', 'activity_type' => 'donation_drive_fundraising', 'proposed_budget' => 9500, 'budget_source' => 'rso_fund'], 'Hold the term\'s community blood drive with the partner hospital.', ['Liza Santos']],
+            ['JPIA', ProposalCalendarMode::OffCalendar, ['title' => 'Leadership Workshop', 'venue' => 'Room 302', 'activity_date' => '2026-11-12', 'start_time' => '13:00', 'end_time' => '16:00', 'activity_nature' => 'co_curricular', 'activity_type' => 'seminar_workshop', 'proposed_budget' => 4000, 'budget_source' => 'rso_fund'], 'Build leadership skills among incoming JPIA officers.', ['Paolo Ramos']],
+        ];
+
+        foreach ($inRouting as [$orgName, $mode, $data, $objective, $persons]) {
+            $president = $this->presidentOf($orgs[$orgName]);
+            $draft = $this->startProposalDraft->execute(
+                actor: $president,
+                organization: $orgs[$orgName],
+                mode: $mode,
+                data: $data,
+                attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
+            );
+            $this->submitProposal->execute(
+                actor: $president,
+                document: $draft,
+                objectives: "{$objective}\n\nRun the activity as planned with full participation.\nReport results to SDAO afterwards.",
+                responsiblePersons: $persons,
+            );
+            $statusCounts['in_review']++;
+        }
+
         foreach ($statusCounts as $status => $count) {
             $this->summary["activity proposals ({$status})"] = $count;
         }

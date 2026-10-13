@@ -6,48 +6,67 @@ use App\Calendar\ProposalAccess;
 use App\Enums\DocumentStatus;
 use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
+use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CalendarController extends Controller
 {
     /**
-     * Shared venue calendar — only activities whose Activity Proposal has
-     * reached final approval (CalendarActivity::published()), on-calendar and
-     * off-calendar alike; the date, time and venue are the linked
-     * CalendarActivity's. Everyone sees every activity; `can_view_proposal`
-     * says whether this user may open the approved proposal (see
-     * ProposalAccess), so the page only offers a link that works.
+     * Shared venue calendar — confirmed activities (CalendarActivity::published(),
+     * proposal fully approved) plus tentative ones (CalendarActivity::tentative(),
+     * proposal still In Review), on-calendar and off-calendar alike. A row that
+     * is both shows once, as published. Everyone sees every activity;
+     * `can_view_proposal` says whether this user may open the proposal (see
+     * ProposalAccess and DocumentPolicy), so the page only offers a link that works.
      */
     public function index(ProposalAccess $access): Response
     {
-        $activities = CalendarActivity::query()
-            ->published()
-            ->with(['calendar.document.organization', 'proposals.document'])
-            ->orderBy('activity_date')
-            ->orderBy('start_time')
-            ->get();
+        $with = ['calendar.document.organization', 'proposals.document'];
 
-        $approvedProposalDocument = fn (CalendarActivity $a) => $a->proposals
-            ->first(fn (ActivityProposal $p) => $p->document->status === DocumentStatus::Approved)
-            ->document;
+        $published = CalendarActivity::query()->published()->with($with)->get();
+        $tentative = CalendarActivity::query()->tentative()->with($with)->get()
+            ->reject(fn (CalendarActivity $a) => $published->contains('id', $a->id));
 
-        $canView = $access->forUser(Auth::user(), $activities->map($approvedProposalDocument));
+        $entries = $published
+            ->map(fn (CalendarActivity $a) => [$a, $this->proposalDocument($a, DocumentStatus::Approved)])
+            ->concat($tentative->map(fn (CalendarActivity $a) => [$a, $this->proposalDocument($a, DocumentStatus::InReview)]))
+            ->sortBy(fn (array $e) => $e[0]->activity_date->toDateString().' '.$e[0]->start_time)
+            ->values();
+
+        $canView = $access->forUser(Auth::user(), $entries->map(fn (array $e) => $e[1]));
 
         return Inertia::render('calendar/index', [
-            'activities' => $activities->map(fn (CalendarActivity $a) => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'venue' => $a->venue,
-                'activity_date' => $a->activity_date->toDateString(),
-                'start_time' => $a->start_time,
-                'end_time' => $a->end_time,
-                'status' => DocumentStatus::Approved->value,
-                'organization' => $a->calendar->document->organization->name,
-                'document_id' => $approvedProposalDocument($a)->id,
-                'can_view_proposal' => $canView($approvedProposalDocument($a)),
+            'activities' => $entries->map(fn (array $e) => [
+                'id' => $e[0]->id,
+                'name' => $e[0]->name,
+                'venue' => $e[0]->venue,
+                'activity_date' => $e[0]->activity_date->toDateString(),
+                'start_time' => $e[0]->start_time,
+                'end_time' => $e[0]->end_time,
+                'status' => $e[1]->status->value,
+                'organization' => $e[0]->calendar->document->organization->name,
+                'document_id' => $e[1]->id,
+                'can_view_proposal' => $canView($e[1]) && $this->policyAllowsView($e[1]),
             ]),
         ]);
+    }
+
+    private function proposalDocument(CalendarActivity $activity, DocumentStatus $status): Document
+    {
+        return $activity->proposals
+            ->first(fn (ActivityProposal $p) => $p->document->status === $status)
+            ->document;
+    }
+
+    /**
+     * ProposalAccess decides who is offered the button; DocumentPolicy stays
+     * the authority, so the link never leads to a screen that would 403.
+     */
+    private function policyAllowsView(Document $document): bool
+    {
+        return Gate::allows('view', $document) || Gate::allows('reviewView', $document);
     }
 }

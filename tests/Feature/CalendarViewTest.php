@@ -14,6 +14,7 @@ use App\Models\DocumentTransition;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -143,17 +144,87 @@ test('a proposal appears only after its final approval, not after a partial one'
         );
 });
 
-test('draft, in-routing, returned and rejected proposals never show, nor do planned entries or in-review calendars', function () {
-    foreach ([DocumentStatus::Draft, DocumentStatus::InReview, DocumentStatus::Returned, DocumentStatus::Rejected] as $status) {
+test('tentative entries are In Review proposals only, on-calendar and off-calendar', function () {
+    $onCalendar = CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => 'On In Review'], $this->org);
+    CalendarFixtures::proposalFor($onCalendar, DocumentStatus::InReview);
+    CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, ['name' => 'Off In Review'], $this->org);
+
+    expect(CalendarActivity::tentative()->pluck('name')->sort()->values()->all())->toBe(['Off In Review', 'On In Review']);
+
+    $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('activities', 2)
+            ->where('activities.0.status', 'in_review')
+            ->where('activities.1.status', 'in_review')
+        );
+});
+
+test('draft, returned and rejected proposals, planned entries and in-review calendars never show', function () {
+    foreach ([DocumentStatus::Draft, DocumentStatus::Returned, DocumentStatus::Rejected] as $status) {
         CalendarFixtures::offCalendarProposal($status, ['name' => "Off {$status->value}"], $this->org);
         CalendarFixtures::proposalFor(CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => "On {$status->value}"], $this->org), $status);
     }
     CalendarFixtures::plannedActivity(DocumentStatus::InReview, ['name' => 'In review calendar'], $this->org);
     CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => 'Approved calendar only'], $this->org);
 
+    expect(CalendarActivity::tentative()->count())->toBe(0);
+
     $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->has('activities', 0));
+});
+
+test('an approved proposal shows as published, not tentative', function () {
+    CalendarFixtures::publishedActivity(['name' => 'Approved Event'], $this->org);
+
+    expect(CalendarActivity::tentative()->count())->toBe(0);
+
+    $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('activities', 1)
+            ->where('activities.0.status', 'approved')
+        );
+});
+
+test('a planned activity with both an approved and an in-review proposal shows once, as published', function () {
+    $planned = CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => 'Both'], $this->org);
+    CalendarFixtures::proposalFor($planned, DocumentStatus::Approved);
+    $inReview = CalendarFixtures::proposalFor($planned, DocumentStatus::InReview);
+
+    $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('activities', 1)
+            ->where('activities.0.status', 'approved')
+            ->where('activities.0.document_id', fn ($id) => $id !== $inReview->id)
+        );
+});
+
+test('the landing page never shows tentative entries', function () {
+    CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, ['name' => 'Tentative Only'], $this->org);
+    CalendarFixtures::publishedActivity(['name' => 'Published One'], $this->org);
+
+    $response = $this->withoutVite()->get(route('home'))->assertOk();
+
+    expect(json_encode($response->viewData('page')['props']))
+        ->toContain('Published One')
+        ->not->toContain('Tentative Only');
+});
+
+test('the View proposal button on a tentative entry follows who may view the proposal', function () {
+    $own = CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, ['name' => 'Own Tentative'], $this->org);
+    CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, ['name' => 'Other Tentative'], Organization::where('name', 'Computing Society')->firstOrFail());
+
+    $response = $this->actingAs($this->user)->withoutVite()->get(route('calendar.index'))->assertOk();
+
+    expect(calendarButtons($response))->toEqual(['Own Tentative' => true, 'Other Tentative' => false]);
+
+    $adviser = User::where('email', 'adviser-two@nu-lipa.edu.ph')->firstOrFail();
+    $response = $this->actingAs($adviser)->withoutVite()->get(route('calendar.index'))->assertOk();
+
+    expect(calendarButtons($response)['Own Tentative'])->toBe(Gate::forUser($adviser)->allows('reviewView', proposalDocumentOf($own)));
 });
 
 test('everyone sees every activity, but an officer gets the View proposal button only on their own organization', function () {

@@ -58,8 +58,9 @@ type Props = {
 };
 
 /**
- * Shared venue calendar — activities whose proposal has been fully approved. Defaults to a month grid with a selected-day card and a
- * "Coming up" card; the venue-grouped list stays available as a secondary
+ * Shared venue calendar — confirmed (proposal fully approved) and tentative
+ * (proposal in review) activities. Defaults to a month grid with a
+ * selected-day card and a "Coming up" card; the venue-grouped list stays available as a secondary
  * view. Read-only: this page displays existing bookings only.
  *
  * The activity filter (own organization / one organization / everything) is
@@ -283,7 +284,7 @@ export default function CalendarIndex({ activities }: Props) {
                     <div className="min-w-0 flex-1 basis-80">
                         <PageHeader
                             title="Venue Calendar"
-                            subtitle="Venue bookings from fully approved activity proposals across all organizations. Venue names must be spelled the same way for conflicts to be caught."
+                            subtitle="Confirmed and tentative venue bookings across all organizations. Venue names must be spelled the same way for conflicts to be caught."
                         />
                     </div>
                     <ToggleGroup
@@ -388,10 +389,10 @@ export default function CalendarIndex({ activities }: Props) {
                                                             <CalendarX2 />
                                                         </EmptyMedia>
                                                         <EmptyTitle>
-                                                            No approved activities this month
+                                                            No bookings this month
                                                         </EmptyTitle>
                                                         <EmptyDescription>
-                                                            Activities appear here once their proposal is fully approved. Use the arrows to look at another month.
+                                                            Use the arrows to look at another month.
                                                         </EmptyDescription>
                                                     </EmptyHeader>
                                                 </Empty>
@@ -406,6 +407,16 @@ export default function CalendarIndex({ activities }: Props) {
                                             />
                                         )}
 
+                                        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-2">
+                                                <span className="h-3 w-5 rounded-sm border border-success/40 bg-success/10" />
+                                                Confirmed (approved)
+                                            </span>
+                                            <span className="flex items-center gap-2">
+                                                <span className="h-3 w-5 rounded-sm border border-dashed border-warning/60 bg-warning/10" />
+                                                Tentative (under review)
+                                            </span>
+                                        </div>
                                     </CardContent>
                                 </Card>
 
@@ -447,13 +458,13 @@ export default function CalendarIndex({ activities }: Props) {
                                                     <CalendarX2 />
                                                 </EmptyMedia>
                                                 <EmptyTitle>
-                                                    No approved activities
-                                                    yet
+                                                    No activities on the
+                                                    calendar yet
                                                 </EmptyTitle>
                                                 <EmptyDescription>
                                                     {selectedVenue ===
                                                     ALL_VENUES
-                                                        ? 'An activity shows up here once its proposal has been fully approved.'
+                                                        ? 'Once an activity proposal is submitted, it’ll show up here.'
                                                         : 'No bookings match the selected venue.'}
                                                 </EmptyDescription>
                                             </EmptyHeader>
