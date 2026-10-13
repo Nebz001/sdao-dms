@@ -196,14 +196,14 @@ export default function Welcome({ activities }: Props) {
                                     </li>
                                     <li>
                                         <a
-                                            href="tel:+63431234567"
+                                            href="tel:09933462657"
                                             className="flex items-center gap-2 text-sm text-brand-fixed-foreground/80 hover:text-brand-fixed-foreground hover:underline underline-offset-2"
                                         >
                                             <Phone
                                                 className="size-4 shrink-0"
                                                 aria-hidden="true"
                                             />
-                                            (043) 123 4567
+                                            0993 346 2657
                                         </a>
                                     </li>
                                     <li className="flex items-center gap-2 text-sm text-brand-fixed-foreground/80">
