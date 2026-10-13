@@ -1,0 +1,1040 @@
+SDAO DMS MOBILE NOTIFICATION INTEGRATION HANDOFF
+=================================================
+
+Prepared: 2026-09-28 (Asia/Manila)
+Backend commit reviewed: c91c948d55dddb070ebb84477bb304ae9ccf8770
+Repository branch: main
+
+SECURITY NOTE
+-------------
+This document intentionally contains no passwords, access-token values,
+Sanctum bearer-token values, Expo push-token values, or other credentials.
+Values shown as <redacted> or <not-provided> must be supplied through the
+deployment secret store or obtained during the staging test.
+
+
+1. FINAL API ROUTES
+===================
+
+Notification and push-token routes
+----------------------------------
+
+Method  Full path                                           Controller/action
+------  --------------------------------------------------  ---------------------------------------------
+POST    /api/mobile/push-tokens                             Api\Mobile\PushTokenController@store
+DELETE  /api/mobile/push-tokens                             Api\Mobile\PushTokenController@destroy
+GET     /api/mobile/notifications                           Api\Mobile\NotificationController@index
+GET     /api/mobile/notifications/unread-count              Api\Mobile\NotificationController@unreadCount
+PATCH   /api/mobile/notifications/read-all                  Api\Mobile\NotificationController@markAllRead
+PATCH   /api/mobile/notifications/{notification}/read       Api\Mobile\NotificationController@markRead
+
+All six routes use all of the following middleware:
+
+  - api
+  - auth:sanctum
+  - mobile.access (App\Http\Middleware\EnsureMobileAccess)
+  - throttle:mobile-api
+
+The mobile API base URL already includes /api. If the app is configured with
+https://<host>/api, it should call relative paths such as
+/mobile/push-tokens and /mobile/notifications.
+
+Relevant actual command output
+------------------------------
+
+Command:
+
+  php artisan route:list --path=mobile -v
+
+Output captured on 2026-09-28:
+
+  POST api/mobile/login .. api.mobile.login › Api\Mobile\AuthController@login
+    ⇂ api
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:login
+  POST api/mobile/logout .. api.mobile.logout › Api\Mobile\AuthController@logout
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+  GET|HEAD api/mobile/notifications .. api.mobile.notifications.index › Api\Mobile\NotificationController@index
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  PATCH api/mobile/notifications/read-all api.mobile.notifications.read-all › Api\Mobile\NotificationController@markAllRead
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  GET|HEAD api/mobile/notifications/unread-count api.mobile.notifications.unread-count › Api\Mobile\NotificationController@unreadCount
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  PATCH api/mobile/notifications/{notification}/read api.mobile.notifications.read › Api\Mobile\NotificationController@markRead
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  POST api/mobile/push-tokens .. api.mobile.push-tokens.store › Api\Mobile\PushTokenController@store
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  DELETE api/mobile/push-tokens .. api.mobile.push-tokens.destroy › Api\Mobile\PushTokenController@destroy
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+  GET|HEAD api/mobile/user .. api.mobile.user › Api\Mobile\AuthController@user
+    ⇂ api
+    ⇂ Illuminate\Auth\Middleware\Authenticate:sanctum
+    ⇂ App\Http\Middleware\EnsureMobileAccess
+    ⇂ Illuminate\Routing\Middleware\ThrottleRequests:mobile-api
+
+  Showing [9] routes
+
+Authentication behavior
+-----------------------
+
+Every protected request requires:
+
+  Accept: application/json
+  Authorization: Bearer <redacted>
+
+Missing, invalid, or expired Sanctum credentials return HTTP 401:
+
+  {
+    "message": "Unauthenticated."
+  }
+
+A valid Sanctum token whose user no longer qualifies for mobile approver
+access returns HTTP 403:
+
+  {
+    "message": "You are not allowed to perform this action."
+  }
+
+
+2. EXACT PUSH-TOKEN API CONTRACT
+================================
+
+Supported registration fields
+-----------------------------
+
+The requested fields are supported with these exact JSON names:
+
+  - token: required string, maximum 255 characters
+  - device_id: required UUID string
+  - platform: required string; exactly "android" or "ios"
+  - device_name: optional nullable string, maximum 255 characters
+
+The token validator accepts both ExpoPushToken[...] and
+ExponentPushToken[...] formats. A real token value is intentionally omitted
+from this document.
+
+POST /api/mobile/push-tokens
+----------------------------
+
+Request JSON (token value redacted):
+
+  {
+    "token": "<redacted>",
+    "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01",
+    "platform": "android",
+    "device_name": "SDAO DMS Mobile"
+  }
+
+The backend obtains the owner only from the authenticated Sanctum user. It
+does not accept user_id from the request.
+
+New registration success: HTTP 201
+
+  {
+    "data": {
+      "registered": true,
+      "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01",
+      "platform": "android",
+      "device_name": "SDAO DMS Mobile",
+      "last_seen_at": "2026-09-28T10:00:00.000000Z"
+    }
+  }
+
+Existing device registration/rotation success: HTTP 200 with the same shape.
+The push token is never returned in the response.
+
+Representative HTTP 422 validation response for an empty object:
+
+  {
+    "message": "The token field is required. (and 2 more errors)",
+    "errors": {
+      "token": [
+        "The token field is required."
+      ],
+      "device_id": [
+        "The device id field is required."
+      ],
+      "platform": [
+        "The platform field is required."
+      ]
+    }
+  }
+
+Other validation errors use the same HTTP 422 shape. Examples include an
+invalid token format, a non-UUID device_id, a platform other than android or
+ios, or a device_name longer than 255 characters. Validation message text is
+Laravel's default English text and can change if application localization is
+changed; clients should branch on HTTP status and errors.<field>, not the
+human-readable message.
+
+Ownership conflict: HTTP 409
+
+  {
+    "message": "This push token is already registered to another account or device."
+  }
+
+Authentication error: HTTP 401 as documented in Section 1.
+
+DELETE /api/mobile/push-tokens
+------------------------------
+
+Request JSON (token value redacted):
+
+  {
+    "token": "<redacted>",
+    "device_id": "8d4ca0e4-e4be-4cae-8fda-1a54fc4cad01"
+  }
+
+Validation:
+
+  - token: required, same Expo-token validation as registration
+  - device_id: optional nullable UUID
+
+When device_id is supplied, both token and device_id must match. Deletion is
+always scoped through the authenticated user's pushTokens relation, so one
+user cannot delete another user's registration.
+
+Success: HTTP 204 No Content. The response has no JSON body. Deleting a valid
+but nonexistent/not-owned registration is idempotent and also returns 204.
+
+Representative HTTP 422 validation response:
+
+  {
+    "message": "The token field is required.",
+    "errors": {
+      "token": [
+        "The token field is required."
+      ]
+    }
+  }
+
+Authentication error: HTTP 401 as documented in Section 1.
+
+
+3. EXACT NOTIFICATION-INBOX API CONTRACT
+========================================
+
+Scope
+-----
+
+The mobile inbox exposes only durable Laravel database notifications that are:
+
+  - App\Notifications\ApproverHandOffNotification records; and
+  - associated with form_type = activity_proposal.
+
+Other web notification types are not returned by the mobile inbox.
+
+Notification object fields and types
+------------------------------------
+
+  id                  string (Laravel database-notification UUID)
+  type                string; currently always activity_proposal_ready_for_review
+  title               string; currently Proposal ready for review
+  body                string; currently An Activity Proposal is waiting in your review queue.
+  proposal_reference  string for new rows; null is possible for legacy pre-deployment rows
+  read_at             ISO-8601 UTC string or null
+  created_at          ISO-8601 UTC string
+
+Timestamps are produced by Carbon toISOString(). They normally include six
+fractional-second digits, for example 2026-09-28T10:00:00.000000Z. Mobile code
+should parse them as ISO-8601 rather than requiring second-only precision.
+
+GET /api/mobile/notifications
+-----------------------------
+
+Request body: none.
+Optional query parameter: page=<positive integer>.
+
+HTTP 200 example:
+
+  {
+    "data": [
+      {
+        "id": "018f0000-0000-7000-8000-000000000001",
+        "type": "activity_proposal_ready_for_review",
+        "title": "Proposal ready for review",
+        "body": "An Activity Proposal is waiting in your review queue.",
+        "proposal_reference": "PROP-2026-057",
+        "read_at": null,
+        "created_at": "2026-09-28T10:00:00.000000Z"
+      }
+    ],
+    "meta": {
+      "unread_count": 1,
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "total": 1
+    },
+    "links": {
+      "prev": null,
+      "next": null
+    }
+  }
+
+Pagination is enabled with 15 rows per page. Rows are newest-first by
+created_at. links.prev and links.next are nullable URL strings. unread_count
+is the authenticated user's total unread Activity Proposal handoffs, not just
+the unread count on the current page.
+
+GET /api/mobile/notifications/unread-count
+------------------------------------------
+
+Request body: none.
+
+HTTP 200:
+
+  {
+    "data": {
+      "unread_count": 1
+    }
+  }
+
+PATCH /api/mobile/notifications/{notification}/read
+---------------------------------------------------
+
+{notification} is the notification UUID returned by the inbox. Request body:
+none.
+
+HTTP 200:
+
+  {
+    "data": {
+      "id": "018f0000-0000-7000-8000-000000000001",
+      "read_at": "2026-09-28T10:05:00.000000Z"
+    }
+  }
+
+The query is scoped to the authenticated user's Activity Proposal handoffs.
+Another user's UUID, an unrelated web-notification UUID, a malformed UUID, or
+an unknown UUID returns HTTP 404. Calling the endpoint again is safe and keeps
+the existing read_at value through Laravel's markAsRead behavior.
+
+PATCH /api/mobile/notifications/read-all
+----------------------------------------
+
+This optional endpoint is implemented. Request body: none.
+
+HTTP 200:
+
+  {
+    "data": {
+      "unread_count": 0
+    }
+  }
+
+Only the authenticated user's unread Activity Proposal handoffs are updated.
+It does not update another user's rows or unrelated web notification types.
+
+All notification endpoints return the Section 1 HTTP 401/403 responses for
+authentication/mobile-access failures.
+
+
+4. EXACT EXPO PUSH PAYLOAD
+==========================
+
+Current payload for Submitted and Advanced handoffs
+---------------------------------------------------
+
+The token value is redacted here. The exact non-secret fields sent by
+SendExpoPushNotification are:
+
+  {
+    "to": "<redacted>",
+    "title": "Activity Proposal needs your review",
+    "body": "A proposal is ready for your review.",
+    "data": {
+      "proposalReference": "PROP-2026-057"
+    },
+    "channelId": "reviews",
+    "sound": "default"
+  }
+
+Current payload for a Resubmitted handoff
+-----------------------------------------
+
+The only payload difference is:
+
+  "body": "A proposal is ready for your review again."
+
+Critical tap-routing confirmation
+---------------------------------
+
+The key is exactly data.proposalReference in camelCase. It contains the real
+public ProposalReference value, not the numeric document primary key. This is
+covered by ExpoPushDeliveryTest.
+
+Provider request details
+------------------------
+
+  Method: POST
+  URL: config('services.expo.push_url')
+  Default URL: https://exp.host/--/api/v2/push/send
+  Accept: application/json
+  Content-Type: application/json (set by Laravel's JSON HTTP request)
+  Authorization: Bearer <redacted>, only when EXPO_ACCESS_TOKEN is configured
+  Connect timeout: 5 seconds
+  Total request timeout: 15 seconds
+
+The implementation sends one request per registered device. This supports
+multiple devices and never exceeds Expo's batch limit, but it does not combine
+devices into a multi-message batch/chunk request.
+
+IMPORTANT DEVIATION FROM THE MOBILE EXPECTATION
+-----------------------------------------------
+
+The mobile app's requested title/body were:
+
+  title: Proposal ready for review
+  body:  An Activity Proposal is waiting in your review queue.
+
+The current Expo job instead uses the title/body shown above. The inbox uses
+the mobile app's requested wording, but the lock-screen push does not. Mobile
+code must either accept the current push wording or the backend job must be
+changed before release. data.proposalReference already matches exactly.
+
+
+5. WORKFLOW TRIGGER
+===================
+
+Trigger location
+----------------
+
+The notification originates from the existing workflow handoff path:
+
+  App\Approval\ApprovalEngine::activateStep
+    -> App\Approval\StepApproverResolver::approversFor
+    -> App\Approval\Notifications\RecordingApproverNotifier::notify
+
+ApprovalEngine itself was not changed. activateStep resolves the current
+WorkflowStep and uses StepApproverResolver to select actual user records. It
+does not select recipients from role-name strings alone.
+
+Relationship to permissions.can_act
+-----------------------------------
+
+The mobile permissions response is generated by:
+
+  App\Http\Resources\Mobile\ProposalPermissions::for
+    -> Gate::forUser($user)->allows('review', $document)
+
+Before sending, SendExpoPushNotification reloads both records and requires:
+
+  - the user still exists;
+  - the document still exists;
+  - form_type is Activity Proposal;
+  - status is In Review;
+  - current_step_position still equals the queued step; and
+  - Gate::forUser($user)->allows('review', $document) is true.
+
+That final Gate check is the same server-side review ability used to produce
+permissions.can_act. A queued notification therefore becomes a no-op if the
+recipient can no longer act by the time the worker runs.
+
+Transitions that generate an approver notification
+---------------------------------------------------
+
+  - Submitted: a Draft first enters step 1.
+  - Advanced: an approval reaches quorum and advances to the next step.
+  - Resubmitted: a Returned proposal re-enters its retained review step.
+
+No new approver handoff is generated for:
+
+  - ordinary proposal saves/edits;
+  - a partial approval that does not reach quorum;
+  - Returned itself;
+  - Rejected;
+  - Completed/Approved; or
+  - any state where activateStep is not called.
+
+Activity Proposals receive both the persistent inbox row and Expo job.
+Other form types keep their existing web/email/database notification behavior
+but do not enter the Expo job or mobile inbox.
+
+Duplicate prevention
+--------------------
+
+The notification recorder resolves the DocumentTransition written immediately
+before activateStep. approval_notifications.transition_id links the handoff to
+that transition. A database unique constraint on:
+
+  transition_id + user_id
+
+prevents the same workflow occurrence from notifying the same recipient twice.
+RecordingApproverNotifier returns without database notification, mail, or push
+dispatch when firstOrCreate finds the existing idempotency row.
+
+A later resubmission writes a new DocumentTransition ID. It can therefore
+notify the same approver exactly once again, which is intentional.
+
+Transaction and dispatch timing
+-------------------------------
+
+The durable Laravel database-notification channel runs synchronously while the
+workflow transaction is successful. For Activity Proposals, push dispatch is
+registered through DB::afterCommit. The SendExpoPushNotification job is queued
+only after the workflow transaction commits.
+
+Queue-dispatch exceptions are caught and logged without rethrowing into the
+approval flow. Expo provider errors happen in the asynchronous worker and
+cannot roll back or delay the already-committed proposal transition.
+
+
+6. QUEUE AND SCHEDULER REQUIREMENTS
+===================================
+
+Connection and queue
+--------------------
+
+Push and receipt jobs explicitly use the Laravel database queue connection:
+
+  connection: database
+  queue: default (neither job calls onQueue())
+
+The relevant job classes are:
+
+  - App\Jobs\SendExpoPushNotification
+  - App\Jobs\CheckExpoPushReceipt
+
+Approver email notifications also use the database connection. The durable
+database inbox channel itself is synchronous.
+
+Production worker command
+-------------------------
+
+Run at least one continuously supervised worker from the deployed release
+directory:
+
+  php artisan queue:work database --queue=default --sleep=3 --tries=5 --timeout=30 --max-time=3600
+
+The generic requested command also works:
+
+  php artisan queue:work
+
+However, explicitly naming database/default avoids accidentally consuming a
+different connection or queue if deployment defaults change.
+
+Example Supervisor configuration (paths/user must be adapted):
+
+  [program:sdao-dms-worker]
+  process_name=%(program_name)s_%(process_num)02d
+  command=php /var/www/sdao-dms/artisan queue:work database --queue=default --sleep=3 --tries=5 --timeout=30 --max-time=3600
+  directory=/var/www/sdao-dms
+  autostart=true
+  autorestart=true
+  stopasgroup=true
+  killasgroup=true
+  numprocs=1
+  redirect_stderr=true
+  stdout_logfile=/var/www/sdao-dms/storage/logs/worker.log
+  user=www-data
+
+After each deploy, restart workers so they load the new code:
+
+  php artisan queue:restart
+
+For systemd or a hosting-platform worker service, use the same queue:work
+command, set automatic restart on failure, run from the release directory,
+and send stdout/stderr to the platform's log collector. Do not run queue:listen
+for production unless the hosting platform specifically requires it.
+
+Scheduler
+---------
+
+No recurring receipt-check schedule is required. Every successful Expo ticket
+immediately creates a CheckExpoPushReceipt job delayed by 15 minutes. A running
+database queue worker processes that job when it becomes available.
+
+Running the normal Laravel scheduler is harmless and may be required by other
+application features:
+
+  php artisan schedule:run
+
+Standard production cron, if the overall application uses scheduled tasks:
+
+  * * * * * cd /var/www/sdao-dms && php artisan schedule:run >> /dev/null 2>&1
+
+At the time of this handoff, routes/console.php defines no scheduled mobile
+notification task. schedule:run is therefore not required specifically for
+Expo receipts.
+
+Retries and temporary Expo failures
+-----------------------------------
+
+SendExpoPushNotification:
+
+  - tries: 4
+  - timeout: 20 seconds
+  - retry backoff: 10, 60, 300 seconds
+
+CheckExpoPushReceipt:
+
+  - initial delay: 15 minutes after ticket creation
+  - tries: 5
+  - timeout: 20 seconds
+  - retry backoff: 60, 300, 600, 900 seconds
+
+Network exceptions, HTTP 429, HTTP 5xx, and MessageRateExceeded are treated as
+retryable by throwing from the queued job. Permanent failures are sanitized in
+logs and are not repeatedly retried. DeviceNotRegistered deletes only the
+still-matching token registration. No Expo token is written to application
+logs.
+
+Because one SendExpoPushNotification job loops over all of a user's devices, a
+retryable error on one device stops that job attempt; the retry starts the user
+job again and may resend to devices processed earlier in the previous attempt.
+The mobile client should tolerate duplicate system pushes and use the durable
+inbox/idempotent proposal routing as the source of truth.
+
+
+7. ENVIRONMENT VARIABLES
+========================
+
+Variable                   Requirement  Purpose
+-------------------------  -----------  ----------------------------------------
+EXPO_PUSH_URL              Optional     Overrides the Expo send URL. A public default is configured.
+EXPO_PUSH_RECEIPTS_URL     Optional     Overrides the Expo receipt URL. A public default is configured.
+EXPO_ACCESS_TOKEN          Optional     Required only if Expo push security is enabled. Store as a secret.
+QUEUE_CONNECTION           Required     Set to database for the documented deployment.
+APP_URL                    Required     Normal Laravel deployment URL; use the staging/production web origin.
+
+No real values are included here. The public URL defaults are present in
+config/services.php and .env.example. EXPO_ACCESS_TOKEN must remain empty when
+push security is not enabled and must come from the deployment secret store
+when it is enabled.
+
+After changing environment configuration in a cached production deployment:
+
+  php artisan config:clear
+  php artisan config:cache
+  php artisan queue:restart
+
+
+8. DATABASE SETUP
+=================
+
+Feature migrations
+------------------
+
+  database/migrations/2026_09_28_000000_create_push_tokens_table.php
+
+Creates push_tokens with:
+
+  - id
+  - user_id foreign key, cascading on user deletion
+  - device_id UUID
+  - token, unique
+  - platform
+  - device_name, nullable
+  - last_seen_at
+  - created_at / updated_at
+  - unique (user_id, device_id)
+
+  database/migrations/2026_09_28_000001_add_transition_id_to_approval_notifications_table.php
+
+Changes approval_notifications by adding:
+
+  - nullable transition_id foreign key to document_transitions
+  - unique (transition_id, user_id)
+
+Existing reused tables/migrations
+---------------------------------
+
+  database/migrations/2026_08_13_022011_create_notifications_table.php
+    Existing Laravel database-notification inbox table. Stores notification
+    UUID, class type, notifiable owner, JSON data, read_at, and timestamps.
+
+  database/migrations/2026_06_20_055943_create_approval_notifications_table.php
+    Existing workflow handoff record, extended by the migration above.
+
+  database/migrations/0001_01_01_000002_create_jobs_table.php
+    Existing database-queue tables: jobs, job_batches, and failed_jobs.
+
+Production migration command
+----------------------------
+
+  php artisan migrate --force
+
+No additional queue-table generation command is needed because the jobs and
+failed_jobs tables are already in the repository migration set.
+
+
+9. TEST RESULTS
+===============
+
+Backend Unit + Feature suite
+----------------------------
+
+Command executed with PHP 8.4, a temporary non-secret APP_KEY, and a temporary
+.env copied from .env.example:
+
+  php artisan test --testsuite=Unit,Feature
+
+Captured result:
+
+  result: passed
+  tests discovered: 1252
+  passed: 1251
+  skipped: 1
+  assertions: 7749
+  duration: 140502 ms
+
+The one skip is the documented live-Postgres concurrency test. The temporary
+.env intentionally had no DB_DATABASE, so that test skipped rather than
+connecting to or mutating an unknown development database.
+
+Focused mobile notification suite
+---------------------------------
+
+Command:
+
+  php artisan test tests/Feature/Api/Mobile/MobilePushTokensTest.php tests/Feature/Api/Mobile/MobileNotificationsTest.php tests/Feature/Approval/ExpoPushDeliveryTest.php
+
+Captured result:
+
+  result: passed
+  tests: 17
+  passed: 17
+  assertions: 70
+  duration: 2110 ms
+
+Coverage confirmed by these focused tests:
+
+  - unauthenticated token registration is rejected;
+  - token registration is owned by the authenticated user;
+  - token rotation updates the same device;
+  - a token cannot remain attached to the wrong account/device;
+  - a user cannot delete another user's registration;
+  - inbox endpoints require Sanctum authentication;
+  - an actionable Activity Proposal reaches the correct approver inbox;
+  - a non-actionable user receives no inbox row;
+  - a user cannot view/mark another user's notification;
+  - mark-all is owner-scoped;
+  - repeated notifier invocation for one transition is idempotent;
+  - advancement creates the next approver's notification;
+  - resubmission notifies the current approver again once;
+  - only Activity Proposal handoffs enter the push queue;
+  - registered devices do not alter approval status/history;
+  - an Expo failure cannot roll back the actionable workflow stage;
+  - the Expo request uses data.proposalReference;
+  - a stale queued job sends nothing after stage advancement; and
+  - DeviceNotRegistered ticket and receipt errors remove the affected token.
+
+Literal unqualified php artisan test attempt
+--------------------------------------------
+
+The exact unqualified command was also started:
+
+  php artisan test
+
+Because phpunit.xml includes the Browser testsuite, this also launched the Pest
+Browser/Playwright harness. In this Windows workspace it stopped making CPU
+progress and emitted no result for more than ten minutes. It was interrupted,
+so no pass/fail conclusion is claimed for the Browser suite. The backend Unit
+and Feature suite above is complete and passing. No Browser code was changed by
+this implementation.
+
+Additional checks
+-----------------
+
+  - Task-scoped Laravel Pint: passed.
+  - Task-scoped PHPStan: passed with 0 errors.
+  - git diff --check before the implementation commit: passed.
+  - Full non-browser suite was rerun after implementation and passed as shown.
+
+The repository has pre-existing, unrelated repository-wide Pint/PHPStan
+findings. They were intentionally left unchanged and are not in the mobile
+notification diff.
+
+
+10. STAGING TEST PROCEDURE
+==========================
+
+Staging identifiers
+-------------------
+
+STAGING_API_BASE_URL: <not-provided>
+
+Expected format:
+
+  https://<staging-host>/api
+
+No staging hostname or connected staging environment was available in the
+repository/session, so inventing a real URL would be unsafe. Deployment must
+replace <not-provided> with the actual staging API base URL before executing
+this procedure.
+
+TEST_PROPOSAL_REFERENCE: <not-created>
+
+Expected shape only:
+
+  PROP-2026-057
+
+The value above is a format example, not confirmation that document 57 exists
+in staging. Create or identify a real staging proposal and record its actual
+reference before the test.
+
+Preconditions
+-------------
+
+  1. Deploy commit c91c948d55dddb070ebb84477bb304ae9ccf8770 or later.
+  2. Run php artisan migrate --force.
+  3. Configure QUEUE_CONNECTION=database.
+  4. Start/supervise the database queue worker.
+  5. Configure Expo URLs and, only if enabled, the Expo access-token secret.
+  6. Use a verified staging account that is the engine-resolved approver for
+     the chosen Activity Proposal stage.
+  7. Ensure the mobile build has notification permission and Android channel
+     ID reviews configured.
+
+Procedure
+---------
+
+1. Mobile login
+
+   Sign in through POST /api/mobile/login using staging credentials supplied
+   outside this document. Store the returned Sanctum token only in the mobile
+   app's secure storage. Do not copy it into logs or test reports.
+
+2. Register the device
+
+   Obtain the Expo token from expo-notifications and a stable per-installation
+   UUID. Send POST /api/mobile/push-tokens with token, device_id, platform, and
+   optional device_name. Confirm HTTP 201 (new) or 200 (refresh),
+   data.registered=true, and that the response does not echo the token.
+
+3. Make the proposal actionable
+
+   From a different authorized staging account, submit the Activity Proposal
+   or approve its preceding step so ApprovalEngine advances it to the test
+   user's step. Record the real public proposal reference as
+   TEST_PROPOSAL_REFERENCE.
+
+4. Confirm durable database notification creation
+
+   Query through the API first:
+
+     GET /api/mobile/notifications
+
+   Confirm exactly one new item for the occurrence, with the test proposal
+   reference and read_at=null. For server-side verification, an operator may
+   inspect notifications and approval_notifications without exposing their
+   data in shared logs. Confirm approval_notifications.transition_id points to
+   the Submitted, Advanced, or Resubmitted transition.
+
+5. Process the Expo job
+
+   Confirm the supervised queue worker consumes a
+   SendExpoPushNotification job from the database/default queue. Check
+   sanitized logs for errors; logs must not contain token values. If running a
+   one-off staging worker for this test only, use:
+
+     php artisan queue:work database --queue=default --stop-when-empty --tries=5 --timeout=30
+
+6. Confirm device delivery and tap routing
+
+   Lock/background the device, receive the system notification, and tap it.
+   Confirm the app reads data.proposalReference and opens the proposal matching
+   TEST_PROPOSAL_REFERENCE. Note the push title/body wording deviation in
+   Section 4 when validating the lock-screen copy.
+
+7. Fetch unread count
+
+   Call:
+
+     GET /api/mobile/notifications/unread-count
+
+   Confirm data.unread_count increased. Also refresh
+   GET /api/mobile/notifications and retain the matching notification UUID.
+
+8. Mark the opened notification read
+
+   After the proposal screen opens successfully, call:
+
+     PATCH /api/mobile/notifications/{notification-uuid}/read
+
+   Confirm HTTP 200 and non-null data.read_at. Fetch unread-count again and
+   confirm it decreased. The backend does not automatically mark a row read
+   merely because the operating-system notification was tapped; the mobile app
+   must send this PATCH.
+
+9. Receipt cleanup verification (recommended)
+
+   Leave the worker running for at least 15 minutes. Confirm the delayed
+   CheckExpoPushReceipt job executes. For a deliberately invalid staging device
+   registration, confirm DeviceNotRegistered removes only that registration.
+
+10. Logout/unregister cleanup
+
+   When the user explicitly signs out, call DELETE /api/mobile/push-tokens for
+   the current installation before or as part of logout. Do not print either
+   token in mobile logs.
+
+
+11. CHANGED FILES AND DEVIATIONS
+================================
+
+Complete implementation changed-file list (commit c91c948)
+-----------------------------------------------------------
+
+  M  .env.example
+  A  MOBILE_PUSH_HANDOFF.txt
+  M  app/Approval/Notifications/RecordingApproverNotifier.php
+  A  app/Http/Controllers/Api/Mobile/NotificationController.php
+  A  app/Http/Controllers/Api/Mobile/PushTokenController.php
+  A  app/Http/Requests/Api/Mobile/DestroyPushTokenRequest.php
+  A  app/Http/Requests/Api/Mobile/StorePushTokenRequest.php
+  A  app/Jobs/CheckExpoPushReceipt.php
+  A  app/Jobs/SendExpoPushNotification.php
+  M  app/Models/ApprovalNotification.php
+  A  app/Models/PushToken.php
+  M  app/Models/User.php
+  M  app/Notifications/ApproverHandOffNotification.php
+  M  config/services.php
+  A  database/migrations/2026_09_28_000000_create_push_tokens_table.php
+  A  database/migrations/2026_09_28_000001_add_transition_id_to_approval_notifications_table.php
+  M  routes/api.php
+  A  tests/Feature/Api/Mobile/MobileNotificationsTest.php
+  A  tests/Feature/Api/Mobile/MobilePushTokensTest.php
+  A  tests/Feature/Approval/ExpoPushDeliveryTest.php
+
+This handoff request additionally adds:
+
+  A  docs/mobile-notification-integration-handoff.txt
+
+No files under resources/, no routes/web.php, no ApprovalEngine decision or
+routing code, and no DocumentPolicy code were changed.
+
+Contract deviations and mobile adjustments
+------------------------------------------
+
+1. Expo lock-screen wording differs.
+
+   Expected by mobile:
+     title = Proposal ready for review
+     body  = An Activity Proposal is waiting in your review queue.
+
+   Current backend push:
+     title = Activity Proposal needs your review
+     body  = A proposal is ready for your review.
+
+   Resubmission current body:
+     A proposal is ready for your review again.
+
+   data.proposalReference is correct. Decide whether mobile accepts the current
+   display copy or backend wording is changed before release.
+
+2. Push-token registration status/response is richer than the original brief.
+
+   A new row returns HTTP 201, not HTTP 200. A refresh/rotation returns 200.
+   The response includes registered, device_id, platform, device_name, and
+   last_seen_at rather than only data.registered.
+
+3. Push-token timestamp name differs.
+
+   Database/API use last_seen_at, not last_registered_at.
+
+4. Ownership transfer is intentionally rejected.
+
+   A token already associated with another account/device returns HTTP 409.
+   It is not silently transferred. This prevents account/device takeover but
+   differs from a contract that expects re-registration to transfer ownership.
+
+5. Unregister response differs from the original desired JSON response.
+
+   DELETE returns HTTP 204 with no body, not
+   {"data":{"unregistered":true}}. Mobile must treat 204 as success.
+
+6. device_id is optional on DELETE.
+
+   It is supported and recommended, but existing clients may unregister using
+   token only. Ownership is still scoped to the authenticated user.
+
+7. Legacy notification proposal_reference can be null.
+
+   Newly created Activity Proposal handoffs include proposal_reference.
+   Pre-deployment notification rows do not get a backfill and may serialize it
+   as null if they otherwise match the mobile inbox filter.
+
+8. Expo sends are per-device, not batched.
+
+   Multiple devices are supported, one HTTP request each. This remains within
+   Expo limits but is not multi-message chunking.
+
+9. Expo ticket persistence uses the queue payload.
+
+   Successful ticket IDs are persisted inside delayed
+   CheckExpoPushReceipt jobs in the jobs table. There is no separate Expo
+   ticket/receipt table.
+
+10. Receipt checking is delayed-job based, not scheduler based.
+
+    No recurring schedule is required. A queue worker is mandatory.
+
+11. The mobile inbox reuses the existing notifications table.
+
+    No parallel mobile_notifications table was created. This preserves the
+    existing durable notification system while the API filters to Activity
+    Proposal approver handoffs.
+
+12. Shared web notification wording changed for Activity Proposals.
+
+    No web UI code changed, but the shared ApproverHandOffNotification data for
+    Activity Proposals now uses the generic mobile inbox title/body. Therefore
+    the web notification bell also displays the generic wording for these
+    handoffs. Other web routes/pages and approval behavior are unchanged.
+
+13. Staging identifiers were unavailable.
+
+    No real staging base URL or real staging proposal reference was present or
+    accessible during this handoff. Section 10 explicitly marks both as
+    <not-provided>/<not-created>; deployment QA must replace them with actual
+    values rather than relying on the format examples.
+
+14. Browser suite was not confirmed in this Windows environment.
+
+    The complete Unit + Feature backend suite passes. The unqualified Artisan
+    command stalled only after bringing in the configured Browser harness and
+    produced no final result. This is recorded as an environment/test-harness
+    limitation, not represented as a passing browser run.
+
+Assumptions applied in this handoff
+-----------------------------------
+
+  - The mobile client's configured base URL ends in /api, as stated by the
+    integration brief. Client calls therefore use /mobile/... relative paths.
+  - The device creates and persists a stable UUID per app installation.
+  - Android builds create/use notification channel ID reviews.
+  - The mobile app stores Sanctum credentials and the device's Expo token in
+    platform-secure storage and never logs them.
+  - Database migrations are run before workers are restarted after deployment.
+  - At least one continuously supervised database/default queue worker exists.
+  - The delayed jobs table is acceptable persistence for Expo receipt ticket
+    IDs; no separate receipt-reporting dashboard is required.
+  - The app treats the persistent inbox as authoritative and tolerates a
+    duplicated operating-system push after a transient provider retry.
+  - The notification UUID used for mark-read comes from the inbox response;
+    the Expo tap payload intentionally contains only proposalReference.
+  - ProposalReference formatting remains the backend source of truth. Mobile
+    must not derive a reference from an internal numeric document ID.
+
+
+END OF HANDOFF

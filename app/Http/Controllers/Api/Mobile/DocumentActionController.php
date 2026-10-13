@@ -9,6 +9,7 @@ use App\ActivityProposals\RevisionSectionParser;
 use App\Approval\Exceptions\DuplicateApprovalException;
 use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
+use App\Enums\TransitionSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Mobile\ReviewRemarksRequest;
 use App\Http\Resources\Mobile\ProposalResource;
@@ -37,7 +38,11 @@ class DocumentActionController extends Controller
     {
         $document = $this->resolveForAction($request, $proposalReference);
 
-        $this->run($document, fn () => $this->action->approve($document, $request->user()));
+        $this->run($document, fn () => $this->action->approve(
+            $document,
+            $request->user(),
+            source: TransitionSource::Mobile,
+        ));
 
         return $this->freshResource($document, $request);
     }
@@ -53,6 +58,7 @@ class DocumentActionController extends Controller
             $request->user(),
             $remarks,
             $flaggedSections === [] ? null : $flaggedSections,
+            source: TransitionSource::Mobile,
         ));
 
         return $this->freshResource($document, $request);
@@ -66,6 +72,7 @@ class DocumentActionController extends Controller
             $document,
             $request->user(),
             $request->string('remarks')->toString(),
+            source: TransitionSource::Mobile,
         ));
 
         return $this->freshResource($document, $request);
