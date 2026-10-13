@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DocumentStatus;
 use App\Enums\TransitionAction;
+use App\Enums\TransitionSource;
 use Database\Factories\DocumentTransitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $document_id
  * @property int|null $actor_id
  * @property TransitionAction $action
+ * @property TransitionSource|null $source
  * @property DocumentStatus|null $from_status
  * @property DocumentStatus $to_status
  * @property int|null $step_position
@@ -25,13 +27,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<string, string>|null $section_comments
  * @property array<string, array{label: string, status: string, fields: array<int, array{key: string, label: string, old: string|null, new: string|null, changed: bool}>}>|null $field_changes
  */
-#[Fillable(['document_id', 'actor_id', 'action', 'from_status', 'to_status', 'step_position', 'comment', 'flagged_sections', 'section_comments', 'field_changes', 'created_at'])]
+#[Fillable(['document_id', 'actor_id', 'action', 'source', 'from_status', 'to_status', 'step_position', 'comment', 'flagged_sections', 'section_comments', 'field_changes', 'created_at'])]
 class DocumentTransition extends Model
 {
     public $timestamps = false;
 
     protected $casts = [
         'action' => TransitionAction::class,
+        'source' => TransitionSource::class,
         'from_status' => DocumentStatus::class,
         'to_status' => DocumentStatus::class,
         'flagged_sections' => 'array',

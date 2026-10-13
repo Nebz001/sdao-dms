@@ -111,6 +111,24 @@ function actionsTestToken(User $user): string
     return $user->createToken('Phone')->plainTextToken;
 }
 
+function actionsTestAdvanceToExecutiveDirector($test, Document $document): User
+{
+    foreach ([
+        'adviser-one@nu-lipa.edu.ph',
+        'chair-cs@nu-lipa.edu.ph',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+    ] as $email) {
+        $test->engine->approve($document, User::where('email', $email)->firstOrFail());
+        $document->refresh();
+    }
+
+    return User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
+}
+
 // ── Approve ──────────────────────────────────────────────────────────────────
 
 test('approve goes through the real ApprovalEngine and notifies the next approver', function () {
@@ -129,8 +147,71 @@ test('approve goes through the real ApprovalEngine and notifies the next approve
     expect($doc->current_step_position)->toBe(2);
     expect(DocumentTransition::where('document_id', $doc->id)->where('action', TransitionAction::Approved->value)->exists())->toBeTrue();
     expect(DocumentTransition::where('document_id', $doc->id)->where('action', TransitionAction::Advanced->value)->exists())->toBeTrue();
+    expect(DocumentTransition::where('document_id', $doc->id)->where('action', TransitionAction::Approved->value)->firstOrFail()->comment)->toBeNull();
 
     Notification::assertSentTo($this->chair, ApproverHandOffNotification::class);
+});
+
+test('executive director approval saves mobile remarks as the transition comment', function () {
+    $doc = actionsTestSubmitOnCalendar($this);
+    $executiveDirector = actionsTestAdvanceToExecutiveDirector($this, $doc);
+    $reference = ProposalReference::format($doc);
+    $remarks = 'Approved. Please observe the recommendations during implementation.';
+
+    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($executiveDirector)])
+        ->postJson("/api/documents/{$reference}/approve", ['remarks' => $remarks])
+        ->assertOk();
+
+    $transition = DocumentTransition::query()
+        ->where('document_id', $doc->id)
+        ->where('action', TransitionAction::Approved->value)
+        ->where('actor_id', $executiveDirector->id)
+        ->firstOrFail();
+
+    expect($transition->comment)->toBe($remarks);
+});
+
+test('executive director can approve without remarks', function () {
+    $doc = actionsTestSubmitOnCalendar($this);
+    $executiveDirector = actionsTestAdvanceToExecutiveDirector($this, $doc);
+    $reference = ProposalReference::format($doc);
+
+    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($executiveDirector)])
+        ->postJson("/api/documents/{$reference}/approve", [])
+        ->assertOk();
+
+    $transition = DocumentTransition::query()
+        ->where('document_id', $doc->id)
+        ->where('action', TransitionAction::Approved->value)
+        ->where('actor_id', $executiveDirector->id)
+        ->firstOrFail();
+
+    expect($transition->comment)->toBeNull();
+});
+
+test('approval remarks are rejected before the executive director stage', function () {
+    $doc = actionsTestSubmitOnCalendar($this);
+    $reference = ProposalReference::format($doc);
+
+    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($this->adviser)])
+        ->postJson("/api/documents/{$reference}/approve", ['remarks' => 'Approved with an early note.'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('remarks');
+
+    expect(DocumentTransition::query()
+        ->where('document_id', $doc->id)
+        ->where('action', TransitionAction::Approved->value)
+        ->exists())->toBeFalse();
+});
+
+test('approval remarks cannot exceed one thousand characters', function () {
+    $doc = actionsTestSubmitOnCalendar($this);
+    $reference = ProposalReference::format($doc);
+
+    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($this->adviser)])
+        ->postJson("/api/documents/{$reference}/approve", ['remarks' => str_repeat('a', 1001)])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('remarks');
 });
 
 test('a partial SDAO approval keeps the stage and reports 1 of 2, with no notification yet', function () {

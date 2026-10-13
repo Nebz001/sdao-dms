@@ -9,6 +9,7 @@ use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Enums\DocumentStatus;
 use App\Enums\TransitionAction;
+use App\Enums\TransitionSource;
 use App\Models\Document;
 use App\Models\DocumentStepApproval;
 use App\Models\DocumentTransition;
@@ -94,11 +95,11 @@ class ApprovalEngine
      * @throws UnauthorizedApproverException
      * @throws DuplicateApprovalException
      */
-    public function approve(Document $document, User $actor, ?string $comment = null): void
+    public function approve(Document $document, User $actor, ?string $comment = null, TransitionSource $source = TransitionSource::Web): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'approve');
 
-        DB::transaction(function () use ($document, $actor, $comment) {
+        DB::transaction(function () use ($document, $actor, $comment, $source) {
             // Serialize concurrent approvals on the same document: without
             // this lock, two near-simultaneous approve() calls (e.g. both
             // SDAO members approving within moments of each other) can each
@@ -132,7 +133,7 @@ class ApprovalEngine
                 'user_id' => $actor->id,
             ]);
 
-            $this->recordTransition($document, $actor, TransitionAction::Approved, $document->status, $document->status, $step->position, $comment);
+            $this->recordTransition($document, $actor, TransitionAction::Approved, $document->status, $document->status, $step->position, $comment, source: $source);
 
             // Check quorum.
             $approvalCount = DocumentStepApproval::query()
@@ -156,7 +157,7 @@ class ApprovalEngine
                 $document->current_step_position = null;
                 $document->save();
 
-                $this->recordTransition($document, $actor, TransitionAction::Completed, $fromStatus, DocumentStatus::Approved, $step->position);
+                $this->recordTransition($document, $actor, TransitionAction::Completed, $fromStatus, DocumentStatus::Approved, $step->position, source: $source);
                 $this->notifySubmitter($document, DocumentStatus::Approved);
             } else {
                 // Advance to the next step.
@@ -165,7 +166,7 @@ class ApprovalEngine
                 $document->current_step_position = $nextPosition;
                 $document->save();
 
-                $this->recordTransition($document, $actor, TransitionAction::Advanced, $fromStatus, DocumentStatus::InReview, $nextPosition);
+                $this->recordTransition($document, $actor, TransitionAction::Advanced, $fromStatus, DocumentStatus::InReview, $nextPosition, source: $source);
                 $this->activateStep($document, $nextPosition, TransitionAction::Advanced);
             }
         });
@@ -177,11 +178,11 @@ class ApprovalEngine
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      */
-    public function reject(Document $document, User $actor, ?string $comment = null): void
+    public function reject(Document $document, User $actor, ?string $comment = null, TransitionSource $source = TransitionSource::Web): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'reject');
 
-        DB::transaction(function () use ($document, $actor, $comment) {
+        DB::transaction(function () use ($document, $actor, $comment, $source) {
             $step = $this->resolveCurrentStep($document);
             $approvers = $this->approverResolver->approversFor($step, $document);
 
@@ -192,7 +193,7 @@ class ApprovalEngine
             $document->current_step_position = null;
             $document->save();
 
-            $this->recordTransition($document, $actor, TransitionAction::Rejected, $fromStatus, DocumentStatus::Rejected, $step->position, $comment);
+            $this->recordTransition($document, $actor, TransitionAction::Rejected, $fromStatus, DocumentStatus::Rejected, $step->position, $comment, source: $source);
             // No approver notification: terminal action (invariant #2). The
             // submitter IS notified — this is the only way they'd learn a
             // rejected document is dead and a brand-new one is required.
@@ -226,11 +227,11 @@ class ApprovalEngine
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      */
-    public function returnForRevision(Document $document, User $actor, ?string $comment = null, ?array $flaggedSections = null, ?array $sectionComments = null): void
+    public function returnForRevision(Document $document, User $actor, ?string $comment = null, ?array $flaggedSections = null, ?array $sectionComments = null, TransitionSource $source = TransitionSource::Web): void
     {
         $this->guardStatus($document, DocumentStatus::InReview, 'return');
 
-        DB::transaction(function () use ($document, $actor, $comment, $flaggedSections, $sectionComments) {
+        DB::transaction(function () use ($document, $actor, $comment, $flaggedSections, $sectionComments, $source) {
             $step = $this->resolveCurrentStep($document);
             $approvers = $this->approverResolver->approversFor($step, $document);
 
@@ -250,7 +251,7 @@ class ApprovalEngine
             $document->status = DocumentStatus::Returned;
             $document->save();
 
-            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections, $sectionComments);
+            $this->recordTransition($document, $actor, TransitionAction::Returned, $fromStatus, DocumentStatus::Returned, $step->position, $comment, $flaggedSections, $sectionComments, source: $source);
             $this->notifySubmitter($document, DocumentStatus::Returned, $comment);
         });
     }
@@ -334,7 +335,7 @@ class ApprovalEngine
             $document->current_step_position = null;
             $document->save();
 
-            $this->recordTransition($document, null, TransitionAction::Withdrawn, $fromStatus, DocumentStatus::Rejected, $stepPosition, $reason);
+            $this->recordTransition($document, null, TransitionAction::Withdrawn, $fromStatus, DocumentStatus::Rejected, $stepPosition, $reason, source: TransitionSource::System);
 
             // No notifySubmitter() call: the recipient's account is the one
             // being deleted (or, for any other future caller of this method,
@@ -472,11 +473,13 @@ class ApprovalEngine
         ?array $flaggedSections = null,
         ?array $sectionComments = null,
         ?array $fieldChanges = null,
+        TransitionSource $source = TransitionSource::Web,
     ): void {
         DocumentTransition::create([
             'document_id' => $document->id,
             'actor_id' => $actor?->id,
             'action' => $action,
+            'source' => $source,
             'from_status' => $fromStatus,
             'to_status' => $toStatus,
             'step_position' => $stepPosition,

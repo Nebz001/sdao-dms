@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Mobile\ApprovalLogController;
 use App\Http\Controllers\Api\Mobile\AuthController;
 use App\Http\Controllers\Api\Mobile\DocumentActionController;
 use App\Http\Controllers\Api\Mobile\DocumentController;
@@ -29,6 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/mobile/notifications', [NotificationController::class, 'index'])
             ->name('api.mobile.notifications.index');
+
+        Route::get('/mobile/approval-logs', [ApprovalLogController::class, 'index'])
+            ->name('api.mobile.approval-logs.index');
 
         Route::get('/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'])
             ->name('api.mobile.notifications.unread-count');

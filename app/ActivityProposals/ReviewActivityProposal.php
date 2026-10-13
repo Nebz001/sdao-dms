@@ -9,6 +9,7 @@ use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\ProposalCalendarMode;
+use App\Enums\TransitionSource;
 use App\Models\Document;
 use App\Models\User;
 
@@ -37,7 +38,7 @@ class ReviewActivityProposal
      * @throws UnauthorizedApproverException
      * @throws DuplicateApprovalException
      */
-    public function approve(Document $document, User $actor, ?string $comment = null): void
+    public function approve(Document $document, User $actor, ?string $comment = null, TransitionSource $source = TransitionSource::Web): void
     {
         // Fresh load, not loadMissing: a rival proposal may have been
         // Approved (claiming this same slot) since this document was first
@@ -66,16 +67,16 @@ class ReviewActivityProposal
             }
         }
 
-        $this->engine->approve($document, $actor, $comment);
+        $this->engine->approve($document, $actor, $comment, $source);
     }
 
     /**
      * @throws InvalidTransitionException
      * @throws UnauthorizedApproverException
      */
-    public function reject(Document $document, User $actor, ?string $comment = null): void
+    public function reject(Document $document, User $actor, ?string $comment = null, TransitionSource $source = TransitionSource::Web): void
     {
-        $this->engine->reject($document, $actor, $comment);
+        $this->engine->reject($document, $actor, $comment, $source);
     }
 
     /**
@@ -91,7 +92,8 @@ class ReviewActivityProposal
         ?string $comment = null,
         ?array $flaggedSections = null,
         ?array $sectionComments = null,
+        TransitionSource $source = TransitionSource::Web,
     ): void {
-        $this->engine->returnForRevision($document, $actor, $comment, $flaggedSections, $sectionComments);
+        $this->engine->returnForRevision($document, $actor, $comment, $flaggedSections, $sectionComments, $source);
     }
 }
