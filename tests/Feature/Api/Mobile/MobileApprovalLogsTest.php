@@ -202,6 +202,7 @@ test('a mobile rejection is represented as a terminal rejected decision', functi
 
 test('a final mobile approval folds the completed transition into one log entry', function () {
     $document = approvalLogsSubmitProposal($this, 'Final Mobile Approval');
+    $remarks = 'Approved. Please observe the recommendations during implementation.';
 
     foreach ([
         'adviser-one@nu-lipa.edu.ph',
@@ -219,7 +220,7 @@ test('a final mobile approval folds the completed transition into one log entry'
     $executiveDirector = User::where('email', 'executive-director@nu-lipa.edu.ph')->firstOrFail();
     $reference = ProposalReference::format($document);
     $this->withHeaders(approvalLogsHeaders($executiveDirector))
-        ->postJson("/api/documents/{$reference}/approve")
+        ->postJson("/api/documents/{$reference}/approve", ['remarks' => $remarks])
         ->assertOk();
 
     $this->withHeaders(approvalLogsHeaders($executiveDirector))
@@ -231,7 +232,8 @@ test('a final mobile approval folds the completed transition into one log entry'
         ->assertJsonPath('data.0.from_status', 'in_review')
         ->assertJsonPath('data.0.to_status', 'approved')
         ->assertJsonPath('data.0.from_stage', 'executive_director_review')
-        ->assertJsonPath('data.0.to_stage', 'completed');
+        ->assertJsonPath('data.0.to_stage', 'completed')
+        ->assertJsonPath('data.0.remarks', $remarks);
 });
 
 test('approval logs are protected and validate filters', function () {

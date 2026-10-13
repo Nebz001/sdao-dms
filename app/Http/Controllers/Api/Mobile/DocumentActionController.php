@@ -9,8 +9,10 @@ use App\ActivityProposals\RevisionSectionParser;
 use App\Approval\Exceptions\DuplicateApprovalException;
 use App\Approval\Exceptions\InvalidTransitionException;
 use App\Approval\Exceptions\UnauthorizedApproverException;
+use App\Enums\Role;
 use App\Enums\TransitionSource;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Mobile\ApproveRequest;
 use App\Http\Requests\Api\Mobile\ReviewRemarksRequest;
 use App\Http\Resources\Mobile\ProposalResource;
 use App\Models\Document;
@@ -34,13 +36,34 @@ class DocumentActionController extends Controller
 
     public function __construct(private readonly ReviewActivityProposal $action) {}
 
-    public function approve(Request $request, string $proposalReference): ProposalResource
-    {
+    public function approve(
+        ApproveRequest $request,
+        string $proposalReference,
+    ): ProposalResource {
         $document = $this->resolveForAction($request, $proposalReference);
+
+        $validated = $request->validated();
+        $remarks = trim((string) ($validated['remarks'] ?? ''));
+
+        if ($remarks !== '') {
+            $document->loadMissing('workflowTemplate.steps');
+
+            $currentStep = $document->workflowTemplate?->steps
+                ->firstWhere('position', $document->current_step_position);
+
+            if ($currentStep?->role !== Role::ExecutiveDirector) {
+                throw ValidationException::withMessages([
+                    'remarks' => [
+                        'Approval remarks are available only at the Executive Director stage.',
+                    ],
+                ]);
+            }
+        }
 
         $this->run($document, fn () => $this->action->approve(
             $document,
             $request->user(),
+            $remarks === '' ? null : $remarks,
             source: TransitionSource::Mobile,
         ));
 
