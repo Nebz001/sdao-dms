@@ -18,6 +18,7 @@ use App\Notifications\ApproverHandOffNotification;
 use App\Notifications\DocumentOutcomeNotification;
 use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
@@ -152,20 +153,66 @@ test('approve goes through the real ApprovalEngine and notifies the next approve
     Notification::assertSentTo($this->chair, ApproverHandOffNotification::class);
 });
 
-test('executive director approval saves mobile remarks as the transition comment', function () {
+test('every workflow approver can save mobile remarks as the transition comment', function () {
     $doc = actionsTestSubmitOnCalendar($this);
-    $executiveDirector = actionsTestAdvanceToExecutiveDirector($this, $doc);
     $reference = ProposalReference::format($doc);
-    $remarks = 'Approved. Please observe the recommendations during implementation.';
+    $approverEmails = [
+        'adviser-one@nu-lipa.edu.ph',
+        'chair-cs@nu-lipa.edu.ph',
+        'dean-ccit@nu-lipa.edu.ph',
+        'sdao-a@nu-lipa.edu.ph',
+        'sdao-b@nu-lipa.edu.ph',
+        'asst-director@nu-lipa.edu.ph',
+        'academic-director@nu-lipa.edu.ph',
+        'executive-director@nu-lipa.edu.ph',
+    ];
 
-    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($executiveDirector)])
+    foreach ($approverEmails as $index => $email) {
+        Auth::forgetGuards();
+        $approver = User::where('email', $email)->firstOrFail();
+        $remarks = 'Approval remarks from workflow approver '.($index + 1).'.';
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($approver)])
+            ->postJson("/api/documents/{$reference}/approve", ['remarks' => $remarks]);
+
+        $this->assertSame(
+            200,
+            $response->status(),
+            "Approval with remarks failed for {$email}: {$response->getContent()}",
+        );
+
+        $transition = DocumentTransition::query()
+            ->where('document_id', $doc->id)
+            ->where('action', TransitionAction::Approved->value)
+            ->where('actor_id', $approver->id)
+            ->firstOrFail();
+
+        expect($transition->comment)->toBe($remarks);
+    }
+});
+
+test('senior high principal can save mobile approval remarks', function () {
+    $this->org = Organization::where('name', 'SHS Student Council')->firstOrFail();
+    $this->student = User::where('email', 'student-gamma@students.nu-lipa.edu.ph')->firstOrFail();
+
+    $doc = actionsTestSubmitOnCalendar($this, 'Senior High Actions Test Event');
+    $adviser = User::where('email', 'adviser-shs@nu-lipa.edu.ph')->firstOrFail();
+    $principal = User::where('email', 'principal-shs@nu-lipa.edu.ph')->firstOrFail();
+    $remarks = 'Approved by the Senior High School principal.';
+
+    $this->engine->approve($doc, $adviser);
+    $doc->refresh();
+
+    $reference = ProposalReference::format($doc);
+
+    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($principal)])
         ->postJson("/api/documents/{$reference}/approve", ['remarks' => $remarks])
         ->assertOk();
 
     $transition = DocumentTransition::query()
         ->where('document_id', $doc->id)
         ->where('action', TransitionAction::Approved->value)
-        ->where('actor_id', $executiveDirector->id)
+        ->where('actor_id', $principal->id)
         ->firstOrFail();
 
     expect($transition->comment)->toBe($remarks);
@@ -187,21 +234,6 @@ test('executive director can approve without remarks', function () {
         ->firstOrFail();
 
     expect($transition->comment)->toBeNull();
-});
-
-test('approval remarks are rejected before the executive director stage', function () {
-    $doc = actionsTestSubmitOnCalendar($this);
-    $reference = ProposalReference::format($doc);
-
-    $this->withHeaders(['Authorization' => 'Bearer '.actionsTestToken($this->adviser)])
-        ->postJson("/api/documents/{$reference}/approve", ['remarks' => 'Approved with an early note.'])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('remarks');
-
-    expect(DocumentTransition::query()
-        ->where('document_id', $doc->id)
-        ->where('action', TransitionAction::Approved->value)
-        ->exists())->toBeFalse();
 });
 
 test('approval remarks cannot exceed one thousand characters', function () {
