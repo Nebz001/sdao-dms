@@ -136,3 +136,38 @@ test('a rate-limited login re-renders the login page itself with a positive retr
         ->where('retryAfterSeconds', fn (int $seconds) => $seconds > 0)
     );
 });
+
+test('ticking remember me sets the long-lived recaller cookie and stores a remember token', function () {
+    $user = User::factory()->create();
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+        'remember' => 'on',
+    ]);
+
+    $this->assertAuthenticated();
+
+    $recaller = collect($response->headers->getCookies())
+        ->first(fn ($cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+
+    expect($recaller)->not->toBeNull()
+        ->and($recaller->getExpiresTime())->toBeGreaterThan(now()->addYear()->subDay()->timestamp)
+        ->and($user->refresh()->remember_token)->not->toBeNull();
+});
+
+test('leaving remember me unticked sets no recaller cookie', function () {
+    $user = User::factory()->create();
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+
+    $recaller = collect($response->headers->getCookies())
+        ->first(fn ($cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+
+    expect($recaller)->toBeNull();
+});
