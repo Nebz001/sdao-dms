@@ -1,30 +1,31 @@
 import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { formatLongDate } from '@/components/document-view/format';
+import ActivityCalendarEditor, {
+    clockTime,
+    newUid,
+    toActivityFields,
+} from '@/components/activity-calendar-editor';
+import type {
+    ActivityFields,
+    EditorRow,
+    RowAccess,
+    SdgOption,
+} from '@/components/activity-calendar-editor';
 import {
     FixFooter,
-    FixItemBox,
     FixProvider,
     FixShell,
     FixStrip,
     FixSummary,
-    LockedField,
-    LockedGrid,
     useFix,
 } from '@/components/fix-resend';
 import { FormCard, FormFooter, FormStrip } from '@/components/form-shell';
 import FormSubmitConfirm from '@/components/form-submit-confirm';
-import InputError from '@/components/input-error';
-import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { ToneBadge } from '@/components/status-badge';
 import { hasChanged } from '@/lib/fix-resend';
 import type { FixProps } from '@/lib/fix-resend';
 import { todayDateString } from '@/lib/utils';
-
-type SdgOption = { value: string; label: string };
 
 type ActivityData = {
     id: number;
@@ -51,37 +52,14 @@ type Props = {
     fix: FixProps;
 };
 
-type ActivityRow = {
-    name: string;
-    venue: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-    description: string;
-    sdg: string[];
-    participant_program_assigned: string;
-    budget: string;
-};
-
-const emptyRow = (): ActivityRow => ({
-    name: '',
-    venue: '',
-    activity_date: '',
-    start_time: '',
-    end_time: '',
-    description: '',
-    sdg: [],
-    participant_program_assigned: '',
-    budget: '',
-});
-
-function toRow(activity: ActivityData): ActivityRow {
+function toFields(activity: ActivityData): ActivityFields {
     return {
         name: activity.name,
         venue: activity.venue,
         activity_date: activity.activity_date,
-        start_time: activity.start_time,
-        end_time: activity.end_time,
+        // The H:i rule is strict; a stored time can arrive as H:i:s.
+        start_time: clockTime(activity.start_time),
+        end_time: clockTime(activity.end_time),
         description: activity.description ?? '',
         sdg: activity.sdg,
         participant_program_assigned:
@@ -89,6 +67,8 @@ function toRow(activity: ActivityData): ActivityRow {
         budget: activity.budget ?? '',
     };
 }
+
+const flagKey = (position: number | null) => `activity_${position}`;
 
 export default function EditActivityCalendar({ fix, ...props }: Props) {
     useEffect(() => {
@@ -109,35 +89,44 @@ export default function EditActivityCalendar({ fix, ...props }: Props) {
     );
 }
 
+/** Tells the progress summary and footer whether each flagged activity has changed yet. */
+function FlaggedRowReporter({
+    position,
+    changed,
+}: {
+    position: number | null;
+    changed: boolean;
+}) {
+    const { report } = useFix();
+
+    useEffect(() => {
+        report(flagKey(position), changed);
+    }, [position, changed, report]);
+
+    return null;
+}
+
 function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
     const { fix, isFlagged } = useFix();
-    const baseRows = calendar?.activities.map(toRow) ?? [];
-    const [activities, setActivities] = useState<ActivityRow[]>(
-        baseRows.length > 0
-            ? baseRows.map((row, i) => ({
-                  ...row,
-                  ...((fix.draft?.[`activity_${i}`] as
-                      | Partial<ActivityRow>
-                      | undefined) ?? {}),
-              }))
-            : [emptyRow()],
+    // `position` is the row's place in the stored calendar: the number in its
+    // `activity_{n}` flag, and the key the server reads a flagged row by. The
+    // list below is sorted for display only, so neither moves.
+    const baseRows = (calendar?.activities ?? []).map(toFields);
+    const [rows, setRows] = useState<EditorRow[]>(() =>
+        baseRows.map((fields, position) => ({
+            ...fields,
+            ...((fix.draft?.[flagKey(position)] as
+                | Partial<ActivityFields>
+                | undefined) ?? {}),
+            uid: newUid(),
+            position,
+        })),
     );
+    const [pending, setPending] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const minDate = todayDateString();
     const formId = `edit-calendar-form-${document.id}`;
-
-    function updateActivity<K extends keyof ActivityRow>(
-        index: number,
-        field: K,
-        value: ActivityRow[K],
-    ) {
-        setActivities((prev) =>
-            prev.map((row, i) =>
-                i === index ? { ...row, [field]: value } : row,
-            ),
-        );
-    }
 
     function submit(event?: React.FormEvent<HTMLFormElement>) {
         event?.preventDefault();
@@ -149,12 +138,15 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
         // Term is frozen at original submission, never resent.
         const payload = fix.active
             ? Object.fromEntries(
-                  fix.items.map((item) => [
-                      Number(item.key.replace('activity_', '')),
-                      activities[Number(item.key.replace('activity_', ''))],
-                  ]),
+                  rows
+                      .filter(
+                          (row) =>
+                              row.position !== null &&
+                              isFlagged(flagKey(row.position)),
+                      )
+                      .map((row) => [row.position, toActivityFields(row)]),
               )
-            : activities;
+            : rows.map(toActivityFields);
 
         router.put(
             `/activity-calendars/${document.id}`,
@@ -166,207 +158,52 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
         );
     }
 
-    function rowFields(activity: ActivityRow, i: number) {
-        return (
-            <div className="space-y-3">
-                <div className="grid gap-2">
-                    <Label htmlFor={`name-${i}`}>Activity Name</Label>
-                    <Input
-                        id={`name-${i}`}
-                        value={activity.name}
-                        onChange={(e) =>
-                            updateActivity(i, 'name', e.target.value)
-                        }
-                        required
-                    />
-                    <InputError message={errors[`activities.${i}.name`]} />
-                </div>
+    function rowAccess(row: EditorRow): RowAccess {
+        if (!fix.active) {
+            return { editable: true };
+        }
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`venue-${i}`}>Venue</Label>
-                    <Input
-                        id={`venue-${i}`}
-                        value={activity.venue}
-                        onChange={(e) =>
-                            updateActivity(i, 'venue', e.target.value)
-                        }
-                        placeholder="Exact venue name"
-                        required
-                    />
-                    <InputError
-                        message={
-                            errors[`activities.${i}.venue`] ??
-                            errors[`activities.${i}`]
-                        }
-                    />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="grid gap-2">
-                        <Label htmlFor={`date-${i}`}>Date</Label>
-                        <Input
-                            id={`date-${i}`}
-                            type="date"
-                            value={activity.activity_date}
-                            min={minDate}
-                            onChange={(e) =>
-                                updateActivity(
-                                    i,
-                                    'activity_date',
-                                    e.target.value,
-                                )
-                            }
-                            required
-                        />
-                        <InputError
-                            message={errors[`activities.${i}.activity_date`]}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor={`start-${i}`}>Start Time</Label>
-                        <Input
-                            id={`start-${i}`}
-                            type="time"
-                            value={activity.start_time}
-                            onChange={(e) =>
-                                updateActivity(i, 'start_time', e.target.value)
-                            }
-                            required
-                        />
-                        <InputError
-                            message={errors[`activities.${i}.start_time`]}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor={`end-${i}`}>End Time</Label>
-                        <Input
-                            id={`end-${i}`}
-                            type="time"
-                            value={activity.end_time}
-                            onChange={(e) =>
-                                updateActivity(i, 'end_time', e.target.value)
-                            }
-                            required
-                        />
-                        <InputError
-                            message={errors[`activities.${i}.end_time`]}
-                        />
-                    </div>
-                </div>
-
-                <div className="grid gap-2">
-                    <Label>SDG (select one or more)</Label>
-                    <SdgCheckboxGroup
-                        idPrefix={`sdg-${i}`}
-                        options={sdgs}
-                        selected={activity.sdg}
-                        onChange={(next) => updateActivity(i, 'sdg', next)}
-                    />
-                    <InputError message={errors[`activities.${i}.sdg`]} />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`participants-${i}`}>
-                        Participant/Program Assigned
-                    </Label>
-                    <Input
-                        id={`participants-${i}`}
-                        value={activity.participant_program_assigned}
-                        onChange={(e) =>
-                            updateActivity(
-                                i,
-                                'participant_program_assigned',
-                                e.target.value,
-                            )
-                        }
-                        placeholder="e.g. BSCS — All Year Levels"
-                        required
-                    />
-                    <InputError
-                        message={
-                            errors[
-                                `activities.${i}.participant_program_assigned`
-                            ]
-                        }
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`budget-${i}`}>Budget</Label>
-                    <Input
-                        id={`budget-${i}`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={activity.budget}
-                        onChange={(e) =>
-                            updateActivity(i, 'budget', e.target.value)
-                        }
-                        required
-                    />
-                    <InputError message={errors[`activities.${i}.budget`]} />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`description-${i}`}>
-                        Description (optional)
-                    </Label>
-                    <Textarea
-                        id={`description-${i}`}
-                        value={activity.description}
-                        onChange={(e) =>
-                            updateActivity(i, 'description', e.target.value)
-                        }
-                        rows={2}
-                    />
-                    <InputError
-                        message={errors[`activities.${i}.description`]}
-                    />
-                </div>
-            </div>
+        const item = fix.items.find(
+            (candidate) => candidate.key === flagKey(row.position),
         );
+
+        if (!item) {
+            return { editable: false };
+        }
+
+        const base = row.position !== null ? baseRows[row.position] : null;
+        const changed = base ? hasChanged(base, toActivityFields(row)) : false;
+
+        return {
+            editable: true,
+            anchorId: `fix-item-${item.key}`,
+            badge: changed ? (
+                <ToneBadge tone="success">Changed</ToneBadge>
+            ) : (
+                <ToneBadge tone="warning">Needs a change</ToneBadge>
+            ),
+            note: item.comment ? (
+                <p className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-sm text-warning-foreground">
+                    <MessageCircle
+                        aria-hidden
+                        className="mt-0.5 size-4 shrink-0"
+                    />
+                    <span>
+                        <strong className="font-semibold">{fix.role}:</strong>{' '}
+                        {item.comment}
+                    </span>
+                </p>
+            ) : undefined,
+        };
     }
 
-    function lockedRow(row: ActivityRow) {
-        return (
-            <LockedGrid>
-                <LockedField label="Venue" value={row.venue} />
-                <LockedField
-                    label="Date"
-                    value={formatLongDate(row.activity_date)}
-                />
-                <LockedField
-                    label="Time"
-                    value={`${row.start_time} – ${row.end_time}`}
-                />
-                <LockedField
-                    label="Participant/Program"
-                    value={row.participant_program_assigned}
-                />
-                <LockedField
-                    label="Budget"
-                    value={
-                        row.budget &&
-                        `₱${Number(row.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                    }
-                />
-                <LockedField
-                    label="SDG"
-                    value={sdgs
-                        .filter((s) => row.sdg.includes(s.value))
-                        .map((s) => s.label)
-                        .join(', ')}
-                />
-                {row.description && (
-                    <LockedField label="Description" value={row.description} />
-                )}
-            </LockedGrid>
-        );
-    }
+    const pendingNote = pending
+        ? ' The form above has changes you haven’t saved to the list, and they won’t be sent.'
+        : '';
 
     return (
         <FixShell fix={fix}>
-            <form onSubmit={submit} id={formId}>
+            <form onSubmit={submit} id={formId} noValidate>
                 <FormCard>
                     {fix.active ? (
                         <>
@@ -384,6 +221,7 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
                                         </strong>
                                     </>
                                 }
+                                right={`${calendar?.term_label ?? ''} (set at original submission, can’t be changed)`}
                             />
                             <FixSummary />
                         </>
@@ -397,97 +235,32 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
                         </p>
                     )}
 
-                    <section
-                        aria-label="Activities"
-                        className="space-y-4 px-5 py-5 sm:px-6"
-                    >
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h2 className="text-base font-semibold">
-                                Activities
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                {calendar?.term_label} (set at original
-                                submission, can’t be changed)
-                            </p>
-                        </div>
-
-                        {activities.map((activity, i) => (
-                            <div key={i} className="space-y-3">
-                                {fix.active ? (
-                                    <FixItemBox
-                                        sectionKey={`activity_${i}`}
-                                        heading={`Activity ${i + 1}: ${baseRows[i]?.name ?? activity.name}`}
-                                        changed={
-                                            baseRows[i]
-                                                ? hasChanged(
-                                                      baseRows[i],
-                                                      activity,
-                                                  )
-                                                : false
-                                        }
-                                        locked={
-                                            <div className="space-y-2 rounded-lg border p-4">
-                                                <h3 className="text-sm font-semibold">
-                                                    Activity {i + 1}:{' '}
-                                                    {baseRows[i]?.name}
-                                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                                        Locked
-                                                    </span>
-                                                </h3>
-                                                {lockedRow(
-                                                    baseRows[i] ?? activity,
-                                                )}
-                                            </div>
-                                        }
-                                    >
-                                        {rowFields(activity, i)}
-                                    </FixItemBox>
-                                ) : (
-                                    <div className="space-y-3 rounded-lg border p-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-muted-foreground">
-                                                Activity {i + 1}
-                                            </span>
-                                            {activities.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setActivities((prev) =>
-                                                            prev.filter(
-                                                                (_, idx) =>
-                                                                    idx !== i,
-                                                            ),
-                                                        )
-                                                    }
-                                                >
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </div>
-                                        {rowFields(activity, i)}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        {!fix.active && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setActivities((prev) => [
-                                        ...prev,
-                                        emptyRow(),
-                                    ])
-                                }
-                            >
-                                + Add Activity
-                            </Button>
+                    {fix.active &&
+                        rows.map((row) =>
+                            row.position !== null &&
+                            isFlagged(flagKey(row.position)) ? (
+                                <FlaggedRowReporter
+                                    key={row.uid}
+                                    position={row.position}
+                                    changed={hasChanged(
+                                        baseRows[row.position],
+                                        toActivityFields(row),
+                                    )}
+                                />
+                            ) : null,
                         )}
-                    </section>
+
+                    <ActivityCalendarEditor
+                        idPrefix="calendar"
+                        rows={rows}
+                        onRowsChange={setRows}
+                        sdgs={sdgs}
+                        errors={errors}
+                        minDate={minDate}
+                        rowAccess={rowAccess}
+                        canAddAndDelete={!fix.active}
+                        onPendingChange={setPending}
+                    />
 
                     {fix.active ? (
                         <FixFooter
@@ -495,23 +268,22 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
                             processing={processing}
                             collect={() =>
                                 Object.fromEntries(
-                                    fix.items
-                                        .filter((item) => isFlagged(item.key))
-                                        .map((item) => [
-                                            item.key,
-                                            activities[
-                                                Number(
-                                                    item.key.replace(
-                                                        'activity_',
-                                                        '',
-                                                    ),
-                                                )
-                                            ],
+                                    rows
+                                        .filter(
+                                            (row) =>
+                                                row.position !== null &&
+                                                isFlagged(
+                                                    flagKey(row.position),
+                                                ),
+                                        )
+                                        .map((row) => [
+                                            flagKey(row.position),
+                                            toActivityFields(row),
                                         ]),
                                 )
                             }
                             title="Resend this calendar?"
-                            description={`It goes back to ${fix.role}, who asked for these changes.`}
+                            description={`It goes back to ${fix.role}, who asked for these changes.${pendingNote}`}
                         />
                     ) : (
                         <FormFooter
@@ -521,8 +293,9 @@ function CalendarFix({ document, calendar, sdgs }: Omit<Props, 'fix'>) {
                                 formId={formId}
                                 processing={processing}
                                 title="Resend this calendar?"
-                                description={`It goes back to ${fix.role}, who returned it.`}
+                                description={`It goes back to ${fix.role}, who returned it.${pendingNote}`}
                                 confirmLabel={fix.resendLabel}
+                                triggerDisabled={rows.length === 0}
                             >
                                 {fix.resendLabel}
                             </FormSubmitConfirm>

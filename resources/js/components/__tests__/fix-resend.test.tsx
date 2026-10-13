@@ -487,18 +487,22 @@ describe('Fix and Resend: a returned activity calendar', () => {
             />,
         );
 
-        // Row 1 is locked (values only); row 2 has inputs and no Add/Remove.
-        expect(screen.getAllByLabelText('Venue')).toHaveLength(1);
+        // Row 1 is locked (no pencil); row 2 is flagged and opens in the form.
         expect(screen.getByText('Venue 1')).toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: '+ Add Activity' }),
+            screen.queryByRole('button', { name: 'Edit Activity 1 name' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: 'Remove' }),
+            screen.queryByRole('button', { name: /^Delete/ }),
         ).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Venue')).not.toBeInTheDocument();
 
+        await user.click(
+            screen.getByRole('button', { name: 'Edit Activity 2 name' }),
+        );
         await user.clear(screen.getByLabelText('Venue'));
         await user.type(screen.getByLabelText('Venue'), 'Gymnasium');
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await user.click(
             screen.getByRole('button', { name: 'Resend to SDAO' }),
         );

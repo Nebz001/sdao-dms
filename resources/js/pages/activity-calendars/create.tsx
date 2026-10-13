@@ -1,21 +1,31 @@
-import { Head, router } from '@inertiajs/react';
-import { CalendarDays } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { CalendarDays, Lock } from 'lucide-react';
+import { useRef, useState } from 'react';
+import ActivityCalendarEditor, {
+    clockTime,
+    newUid,
+    toActivityFields,
+} from '@/components/activity-calendar-editor';
+import type {
+    ActivityFields,
+    EditorRow,
+    SdgOption,
+} from '@/components/activity-calendar-editor';
 import BlockedState from '@/components/blocked-state';
-import CenteredContainer from '@/components/centered-container';
-import InputError from '@/components/input-error';
-import PageHeader from '@/components/page-header';
+import ConfirmDialog from '@/components/confirm-dialog';
+import type { ConfirmActions } from '@/components/confirm-dialog';
+import {
+    FormCard,
+    FormFooter,
+    FormShell,
+    FormStrip,
+} from '@/components/form-shell';
 import PageNotice from '@/components/page-notice';
-import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
 import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { notify } from '@/lib/toast';
 import { todayDateString } from '@/lib/utils';
 import * as activityCalendars from '@/routes/activity-calendars';
-
-type SdgOption = { value: string; label: string };
 
 type Membership = {
     id: number;
@@ -23,43 +33,6 @@ type Membership = {
     position_label: string;
     organization: { id: number; name: string };
 };
-
-type ActivityRow = {
-    name: string;
-    venue: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-    description: string;
-    sdg: string[];
-    participant_program_assigned: string;
-    budget: string;
-};
-
-type ConflictEntry = {
-    name: string;
-    venue: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-    organization: string;
-};
-type ConflictResult = {
-    confirmed: ConflictEntry[];
-    tentative: ConflictEntry[];
-};
-
-const emptyRow = (): ActivityRow => ({
-    name: '',
-    venue: '',
-    activity_date: '',
-    start_time: '',
-    end_time: '',
-    description: '',
-    sdg: [],
-    participant_program_assigned: '',
-    budget: '',
-});
 
 type ExistingDocument = {
     id: number;
@@ -80,95 +53,103 @@ type Props = {
     sdgs: SdgOption[];
 };
 
+const FORM_ID = 'activity-calendar-form';
+
+/** The draft lives in this browser only: the server has no record of a calendar that was never submitted. */
+function draftKey(membership: Membership | null): string {
+    return `activity-calendar-draft:${membership?.organization.id ?? 'none'}`;
+}
+
+function readDraft(key: string): EditorRow[] {
+    try {
+        const raw = window.localStorage.getItem(key);
+        const parsed = raw
+            ? (JSON.parse(raw) as Partial<ActivityFields>[])
+            : [];
+
+        return parsed.map((row) => ({
+            name: row.name ?? '',
+            venue: row.venue ?? '',
+            activity_date: row.activity_date ?? '',
+            start_time: clockTime(row.start_time),
+            end_time: clockTime(row.end_time),
+            description: row.description ?? '',
+            sdg: row.sdg ?? [],
+            participant_program_assigned:
+                row.participant_program_assigned ?? '',
+            budget: row.budget ?? '',
+            uid: newUid(),
+            position: null,
+        }));
+    } catch {
+        return [];
+    }
+}
+
 export default function CreateActivityCalendar({
     membership,
     current_term_label,
     eligibility,
     sdgs,
 }: Props) {
-    const [activities, setActivities] = useState<ActivityRow[]>([emptyRow()]);
-    const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
+    const { currentPeriod } = usePage().props as {
+        currentPeriod?: { academic_year?: string };
+    };
+    const key = draftKey(membership);
+    const [rows, setRows] = useState<EditorRow[]>(() =>
+        typeof window === 'undefined' ? [] : readDraft(key),
+    );
+    const [restored] = useState(rows.length > 0);
+    const confirmActions = useRef<ConfirmActions | null>(null);
+    const [pending, setPending] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const minDate = todayDateString();
 
-    function submit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+    function saveDraft() {
+        try {
+            window.localStorage.setItem(
+                key,
+                JSON.stringify(rows.map(toActivityFields)),
+            );
+            notify.success({
+                title: 'Draft saved',
+                message:
+                    'Your list is saved in this browser. Come back to this page to pick it up.',
+            });
+        } catch {
+            notify.error({
+                title: 'Couldn’t save the draft',
+                message:
+                    'This browser blocked saving. Submit when you’re ready instead.',
+            });
+        }
+    }
+
+    function submit() {
         setProcessing(true);
         setErrors({});
 
         router.post(
             '/activity-calendars',
-            { activities },
+            { activities: rows.map(toActivityFields) },
             {
+                onSuccess: () => {
+                    try {
+                        window.localStorage.removeItem(key);
+                    } catch {
+                        // Nothing to clean up if storage is blocked.
+                    }
+                },
                 onError: (errs) => setErrors(errs as Record<string, string>),
-                onFinish: () => setProcessing(false),
+                onFinish: () => {
+                    setProcessing(false);
+                    confirmActions.current?.close();
+                },
             },
         );
     }
-
-    function updateActivity<K extends keyof ActivityRow>(
-        index: number,
-        field: K,
-        value: ActivityRow[K],
-    ) {
-        setActivities((prev) => {
-            const next = [...prev];
-            next[index] = { ...next[index], [field]: value };
-
-            return next;
-        });
-    }
-
-    const checkConflicts = useCallback((rows: ActivityRow[]) => {
-        const checkable = rows.filter(
-            (r) => r.venue && r.activity_date && r.start_time && r.end_time,
-        );
-
-        if (checkable.length === 0) {
-            setConflicts([]);
-
-            return;
-        }
-
-        fetch('/activity-calendars/conflict-check', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                Accept: 'application/json',
-            },
-            body: JSON.stringify({
-                activities: checkable.map((r) => ({
-                    venue: r.venue,
-                    activity_date: r.activity_date,
-                    start_time: r.start_time,
-                    end_time: r.end_time,
-                })),
-            }),
-        })
-            .then((res) => res.json())
-            .then((data) => setConflicts(data.results ?? []))
-            .catch(() => {});
-    }, []);
-
-    useEffect(() => {
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(
-            () => checkConflicts(activities),
-            600,
-        );
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [activities, checkConflicts]);
 
     if (!membership || eligibility?.status !== 'eligible') {
         return (
@@ -183,7 +164,10 @@ export default function CreateActivityCalendar({
                         body={
                             eligibility?.message ?? (
                                 <>
-                                    <strong>{membership.organization.name}</strong> already has an activity calendar for{' '}
+                                    <strong>
+                                        {membership.organization.name}
+                                    </strong>{' '}
+                                    already has an activity calendar for{' '}
                                     <strong>{current_term_label}</strong>.
                                 </>
                             )
@@ -192,12 +176,16 @@ export default function CreateActivityCalendar({
                             eligibility?.existingDocument
                                 ? {
                                       label:
-                                          eligibility.existingDocument.status === 'returned'
+                                          eligibility.existingDocument
+                                              .status === 'returned'
                                               ? 'Edit calendar'
                                               : 'View calendar',
                                       href: eligibility.existingDocument.href,
                                   }
-                                : { label: 'My Activity Calendars', href: activityCalendars.index() }
+                                : {
+                                      label: 'My Activity Calendars',
+                                      href: activityCalendars.index(),
+                                  }
                         }
                     />
                 )}
@@ -205,324 +193,139 @@ export default function CreateActivityCalendar({
         );
     }
 
+    const period = [current_term_label, currentPeriod?.academic_year]
+        .filter(Boolean)
+        .join(', ');
+    const noActivities = rows.length === 0;
+
     return (
         <>
             <Head title="Submit Activity Calendar" />
 
-            <CenteredContainer maxWidth="3xl" className="space-y-6">
-                <PageHeader title="Activity Calendar" subtitle="Plan your organization's activities for the term" />
+            <FormShell
+                title="Activity Calendar"
+                subtitle="List the activities your organization plans for this term. Add them one at a time."
+            >
+                <form
+                    id={FORM_ID}
+                    onSubmit={(e) => e.preventDefault()}
+                    noValidate
+                >
+                    <FormCard>
+                        <FormStrip
+                            left={
+                                <>
+                                    Submitting for{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {membership.organization.name}
+                                    </strong>{' '}
+                                    as {membership.position_label}
+                                </>
+                            }
+                            right={
+                                <span className="flex items-center gap-1.5">
+                                    <Lock aria-hidden className="size-3.5" />
+                                    {period} · Set by SDAO
+                                </span>
+                            }
+                        />
 
-                <PageNotice tone="info">
-                    Submitting for {membership.organization.name} as{' '}
-                    {membership.position_label}.
-                </PageNotice>
+                        {restored && (
+                            <div className="border-b px-5 py-3 sm:px-6">
+                                <PageNotice tone="info">
+                                    We restored the list you saved in this
+                                    browser.
+                                </PageNotice>
+                            </div>
+                        )}
 
-                <form onSubmit={submit} className="space-y-8">
-                    {errors.period && (
-                        <PageNotice tone="destructive" urgent title={errors.period} />
-                    )}
-                    {errors.activities && (
-                        <PageNotice tone="destructive" urgent title={errors.activities} />
-                    )}
+                        {(errors.period || errors.activities) && (
+                            <div className="space-y-2 border-b px-5 py-3 sm:px-6">
+                                {errors.period && (
+                                    <PageNotice
+                                        tone="destructive"
+                                        urgent
+                                        title={errors.period}
+                                    />
+                                )}
+                                {errors.activities && (
+                                    <PageNotice
+                                        tone="destructive"
+                                        urgent
+                                        title={errors.activities}
+                                    />
+                                )}
+                            </div>
+                        )}
 
-                    {/* Term is a global, admin-controlled setting — shown read-only. */}
-                    <div className="grid gap-2">
-                        <Label>Term</Label>
-                        <p className="text-sm text-muted-foreground">
-                            {current_term_label}{' '}
-                            <span className="text-xs">
-                                (set by SDAO — not selectable here)
-                            </span>
-                        </p>
-                    </div>
+                        <ActivityCalendarEditor
+                            idPrefix="calendar"
+                            rows={rows}
+                            onRowsChange={(update) => {
+                                // Errors point at rows by position; any change makes them stale.
+                                setErrors({});
+                                setRows(update);
+                            }}
+                            sdgs={sdgs}
+                            errors={errors}
+                            minDate={minDate}
+                            checkConflicts
+                            onPendingChange={setPending}
+                        />
 
-                    {/* Activities */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-base font-medium">
-                                Activities
-                            </h3>
+                        <FormFooter status="You can add more activities anytime before you submit.">
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setActivities((prev) => [
-                                        ...prev,
-                                        emptyRow(),
-                                    ])
-                                }
+                                disabled={noActivities || processing}
+                                onClick={saveDraft}
                             >
-                                + Add Activity
+                                Save draft
                             </Button>
-                        </div>
-
-                        {activities.map((activity, i) => (
-                            <div
-                                key={i}
-                                className="space-y-3 rounded-lg border p-4"
+                            <Button
+                                type="button"
+                                disabled={noActivities || processing}
+                                aria-describedby={
+                                    noActivities
+                                        ? 'calendar-submit-hint'
+                                        : undefined
+                                }
+                                onClick={() => setConfirmOpen(true)}
                             >
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">
-                                        Activity {i + 1}
-                                    </span>
-                                    {activities.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                setActivities((prev) =>
-                                                    prev.filter(
-                                                        (_, idx) => idx !== i,
-                                                    ),
-                                                )
-                                            }
-                                        >
-                                            Remove
-                                        </Button>
-                                    )}
-                                </div>
-
-                                {/* Live conflict notice */}
-                                {conflicts[i] && (
-                                    <>
-                                        {conflicts[i].confirmed.length > 0 && (
-                                            <PageNotice
-                                                tone="destructive"
-                                                urgent
-                                                title="Confirmed conflict with an approved booking."
-                                            >
-                                                {conflicts[i].confirmed
-                                                    .map(
-                                                        (c) =>
-                                                            `"${c.name}" (${c.organization})`,
-                                                    )
-                                                    .join(', ')}
-                                            </PageNotice>
-                                        )}
-                                        {conflicts[i].tentative.length > 0 && (
-                                            <PageNotice
-                                                tone="warning"
-                                                title="Tentative overlap with a pending booking."
-                                            >
-                                                {conflicts[i].tentative
-                                                    .map(
-                                                        (c) =>
-                                                            `"${c.name}" (${c.organization})`,
-                                                    )
-                                                    .join(', ')}
-                                                . This is a warning only. You can
-                                                still submit.
-                                            </PageNotice>
-                                        )}
-                                    </>
-                                )}
-
-                                <div className="grid gap-2">
-                                    <Label>Activity Name</Label>
-                                    <Input
-                                        value={activity.name}
-                                        onChange={(e) =>
-                                            updateActivity(
-                                                i,
-                                                'name',
-                                                e.target.value,
-                                            )
-                                        }
-                                        required
-                                    />
-                                    {errors[`activities.${i}.name`] && (
-                                        <InputError message={errors[`activities.${i}.name`]} />
-                                    )}
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Venue</Label>
-                                    <Input
-                                        value={activity.venue}
-                                        onChange={(e) =>
-                                            updateActivity(
-                                                i,
-                                                'venue',
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder="Exact venue name (case-sensitive)"
-                                        required
-                                    />
-                                    {errors[`activities.${i}.venue`] && (
-                                        <InputError message={errors[`activities.${i}.venue`]} />
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="grid gap-2">
-                                        <Label>Date</Label>
-                                        <Input
-                                            type="date"
-                                            value={activity.activity_date}
-                                            min={minDate}
-                                            onChange={(e) =>
-                                                updateActivity(
-                                                    i,
-                                                    'activity_date',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                        />
-                                        {errors[
-                                            `activities.${i}.activity_date`
-                                        ] && (
-                                            <InputError message={
-                                                    errors[
-                                                        `activities.${i}.activity_date`
-                                                    ]
-                                                } />
-                                        )}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Start Time</Label>
-                                        <Input
-                                            type="time"
-                                            value={activity.start_time}
-                                            onChange={(e) =>
-                                                updateActivity(
-                                                    i,
-                                                    'start_time',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                        />
-                                        {errors[
-                                            `activities.${i}.start_time`
-                                        ] && (
-                                            <InputError message={
-                                                    errors[
-                                                        `activities.${i}.start_time`
-                                                    ]
-                                                } />
-                                        )}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>End Time</Label>
-                                        <Input
-                                            type="time"
-                                            value={activity.end_time}
-                                            onChange={(e) =>
-                                                updateActivity(
-                                                    i,
-                                                    'end_time',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                        />
-                                        {errors[`activities.${i}.end_time`] && (
-                                            <InputError message={
-                                                    errors[
-                                                        `activities.${i}.end_time`
-                                                    ]
-                                                } />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>SDG (select one or more)</Label>
-                                    <SdgCheckboxGroup
-                                        idPrefix={`sdg-${i}`}
-                                        options={sdgs}
-                                        selected={activity.sdg}
-                                        onChange={(next) =>
-                                            updateActivity(i, 'sdg', next)
-                                        }
-                                    />
-                                    {errors[`activities.${i}.sdg`] && (
-                                        <InputError message={errors[`activities.${i}.sdg`]} />
-                                    )}
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Participant/Program Assigned</Label>
-                                    <Input
-                                        value={
-                                            activity.participant_program_assigned
-                                        }
-                                        onChange={(e) =>
-                                            updateActivity(
-                                                i,
-                                                'participant_program_assigned',
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder="e.g. BSCS — All Year Levels"
-                                        required
-                                    />
-                                    {errors[
-                                        `activities.${i}.participant_program_assigned`
-                                    ] && (
-                                        <InputError message={
-                                                errors[
-                                                    `activities.${i}.participant_program_assigned`
-                                                ]
-                                            } />
-                                    )}
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Budget</Label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={activity.budget}
-                                        onChange={(e) =>
-                                            updateActivity(
-                                                i,
-                                                'budget',
-                                                e.target.value,
-                                            )
-                                        }
-                                        required
-                                    />
-                                    {errors[`activities.${i}.budget`] && (
-                                        <InputError message={errors[`activities.${i}.budget`]} />
-                                    )}
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Description (optional)</Label>
-                                    <Textarea
-                                        value={activity.description}
-                                        onChange={(e) =>
-                                            updateActivity(
-                                                i,
-                                                'description',
-                                                e.target.value,
-                                            )
-                                        }
-                                        rows={2}
-                                    />
-                                    {errors[`activities.${i}.description`] && (
-                                        <InputError message={
-                                                errors[
-                                                    `activities.${i}.description`
-                                                ]
-                                            } />
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <Button type="submit" disabled={processing}>
-                        {processing ? 'Submitting…' : 'Submit for Review'}
-                    </Button>
+                                Submit for Review
+                            </Button>
+                        </FormFooter>
+                        {noActivities && (
+                            <p id="calendar-submit-hint" className="sr-only">
+                                Add at least one activity to submit.
+                            </p>
+                        )}
+                    </FormCard>
                 </form>
-            </CenteredContainer>
+            </FormShell>
+
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title="Submit this calendar for review?"
+                description={`SDAO reviews all ${rows.length} ${rows.length === 1 ? 'activity' : 'activities'} together. You can’t change the calendar unless it’s returned to you.`}
+                notice={
+                    pending ? (
+                        <PageNotice
+                            tone="warning"
+                            title="The form isn’t added to the list yet."
+                        >
+                            What you typed there won’t be submitted. Cancel,
+                            then choose “Add to list” or “Save changes” first.
+                        </PageNotice>
+                    ) : undefined
+                }
+                confirmLabel="Submit for Review"
+                onConfirm={(actions) => {
+                    confirmActions.current = actions;
+                    submit();
+                }}
+            />
         </>
     );
 }
