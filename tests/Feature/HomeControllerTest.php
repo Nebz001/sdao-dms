@@ -1,34 +1,21 @@
 <?php
 
 use App\Enums\DocumentStatus;
-use App\Models\ActivityCalendar;
-use App\Models\CalendarActivity;
-use App\Models\Document;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Fixtures\CalendarFixtures;
 
 /**
  * End-to-end version of the authorization boundary pinned at the query
  * level in CalendarActivityApprovedScopeTest.php: a guest hitting the real
- * public route must only ever see Approved activities in the response.
+ * public route must only ever see activities of fully Approved proposals.
  */
-function seedHomeActivity(DocumentStatus $status, string $name): CalendarActivity
-{
-    $document = Document::factory()->create(['status' => $status]);
-    $calendar = ActivityCalendar::factory()->for($document)->create();
-
-    return CalendarActivity::factory()->for($calendar, 'calendar')->create([
-        'name' => $name,
-        'activity_date' => now()->addDays(5)->toDateString(),
-    ]);
-}
-
-test('guests visiting home see only approved activities', function () {
-    seedHomeActivity(DocumentStatus::Draft, 'Draft Event');
-    seedHomeActivity(DocumentStatus::InReview, 'In Review Event');
-    seedHomeActivity(DocumentStatus::Returned, 'Returned Event');
-    seedHomeActivity(DocumentStatus::Rejected, 'Rejected Event');
-    seedHomeActivity(DocumentStatus::Approved, 'Approved Event');
+test('guests visiting home see only activities of approved proposals', function () {
+    foreach ([DocumentStatus::Draft, DocumentStatus::InReview, DocumentStatus::Returned, DocumentStatus::Rejected] as $status) {
+        CalendarFixtures::offCalendarProposal($status, ['name' => "{$status->value} proposal event", 'activity_date' => now()->addDays(5)->toDateString()]);
+    }
+    CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => 'Planned only event', 'activity_date' => now()->addDays(5)->toDateString()]);
+    CalendarFixtures::publishedActivity(['name' => 'Approved Event', 'activity_date' => now()->addDays(5)->toDateString()]);
 
     $response = $this->get(route('home'))
         ->assertOk()
@@ -38,14 +25,31 @@ test('guests visiting home see only approved activities', function () {
             ->where('activities.0.name', 'Approved Event')
         );
 
-    $response->assertDontSee('Draft Event');
-    $response->assertDontSee('In Review Event');
-    $response->assertDontSee('Returned Event');
-    $response->assertDontSee('Rejected Event');
+    $response->assertDontSee('draft proposal event');
+    $response->assertDontSee('in_review proposal event');
+    $response->assertDontSee('returned proposal event');
+    $response->assertDontSee('rejected proposal event');
+    $response->assertDontSee('Planned only event');
+});
+
+test('approving an Activity Calendar puts nothing on the public endpoint', function () {
+    CalendarFixtures::plannedActivity(DocumentStatus::Approved, ['name' => 'Planned Event']);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('activities', 0));
+});
+
+test('an approved off-calendar proposal appears on the public endpoint', function () {
+    CalendarFixtures::offCalendarProposal(DocumentStatus::Approved, ['name' => 'Off Calendar Event', 'activity_date' => now()->addDays(3)->toDateString()]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('activities', 1)->where('activities.0.name', 'Off Calendar Event'));
 });
 
 test('the public activities payload never includes document status or id', function () {
-    seedHomeActivity(DocumentStatus::Approved, 'Approved Event');
+    CalendarFixtures::publishedActivity(['name' => 'Approved Event']);
 
     $this->get(route('home'))
         ->assertOk()
@@ -62,12 +66,7 @@ test('the public activities payload never includes document status or id', funct
 });
 
 test('an approved activity far beyond 90 days in the future is still shown', function () {
-    $document = Document::factory()->create(['status' => DocumentStatus::Approved]);
-    $calendar = ActivityCalendar::factory()->for($document)->create();
-    CalendarActivity::factory()->for($calendar, 'calendar')->create([
-        'name' => 'Far Future Event',
-        'activity_date' => now()->addDays(120)->toDateString(),
-    ]);
+    CalendarFixtures::publishedActivity(['name' => 'Far Future Event', 'activity_date' => now()->addDays(120)->toDateString()]);
 
     $this->get(route('home'))
         ->assertOk()
@@ -79,12 +78,7 @@ test('an approved activity far beyond 90 days in the future is still shown', fun
 });
 
 test('an approved activity in the past is still shown, so the calendar can navigate back to it', function () {
-    $document = Document::factory()->create(['status' => DocumentStatus::Approved]);
-    $calendar = ActivityCalendar::factory()->for($document)->create();
-    CalendarActivity::factory()->for($calendar, 'calendar')->create([
-        'name' => 'Past Event',
-        'activity_date' => now()->subDays(120)->toDateString(),
-    ]);
+    CalendarFixtures::publishedActivity(['name' => 'Past Event', 'activity_date' => now()->subDays(120)->toDateString()]);
 
     $this->get(route('home'))
         ->assertOk()

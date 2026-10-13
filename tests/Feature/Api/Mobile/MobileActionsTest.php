@@ -20,6 +20,7 @@ use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -36,7 +37,7 @@ beforeEach(function () {
     $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
 });
 
-function actionsTestApprovedActivity(Organization $org, string $venue = 'Actions Test Hall', string $date = '2026-11-15', string $start = '09:00', string $end = '11:00', string $name = 'Actions Test Event'): CalendarActivity
+function actionsTestApprovedActivity(Organization $org, string $venue = 'Actions Test Hall', string $date = '2026-11-15', string $start = '09:00', string $end = '11:00', string $name = 'Actions Test Event', bool $published = false): CalendarActivity
 {
     $doc = Document::create([
         'form_type' => FormType::ActivityCalendar,
@@ -54,7 +55,7 @@ function actionsTestApprovedActivity(Organization $org, string $venue = 'Actions
         'term' => 'first_term',
     ]);
 
-    return CalendarActivity::create([
+    $publishedPlan = CalendarActivity::create([
         'activity_calendar_id' => $cal->id,
         'name' => $name,
         'venue' => $venue,
@@ -62,6 +63,11 @@ function actionsTestApprovedActivity(Organization $org, string $venue = 'Actions
         'start_time' => $start,
         'end_time' => $end,
     ]);
+    if ($published) {
+        CalendarFixtures::proposalFor($publishedPlan, DocumentStatus::Approved);
+    }
+
+    return $publishedPlan;
 }
 
 function actionsTestSubmitOnCalendar($test, string $title = 'Actions Test Event'): Document
@@ -273,7 +279,7 @@ test('a partial SDAO approval keeps the stage and reports 1 of 2, with no notifi
 
 test('approve is blocked by a confirmed off-calendar venue conflict with a 422', function () {
     $doc = actionsTestSubmitOffCalendar($this, 'Shared Hall', '2026-12-10', '09:00', '11:00');
-    actionsTestApprovedActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event');
+    actionsTestApprovedActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event', published: true);
 
     $reference = ProposalReference::format($doc);
 

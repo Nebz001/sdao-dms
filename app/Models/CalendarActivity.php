@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -49,21 +50,29 @@ class CalendarActivity extends Model
         return $this->belongsTo(ActivityCalendar::class, 'activity_calendar_id');
     }
 
+    /** @return HasMany<ActivityProposal, $this> */
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(ActivityProposal::class, 'calendar_activity_id');
+    }
+
     /**
-     * Restricts to activities whose parent document has been fully
-     * Approved. This is the authorization boundary for anything shown to
-     * a public, unauthenticated audience (the landing-page activities
-     * widget) — never bypass it for a guest-facing query. A
-     * Draft/InReview/Returned/Rejected document's activities must never
-     * reach a guest through this scope.
+     * THE publication rule: an activity is on the centralized calendar, the
+     * public landing page and the hard-block side of conflict checks only
+     * when an Activity Proposal linked to it (an on-calendar proposal against
+     * the planned row, or an off-calendar proposal's own private row) has
+     * reached final Approval. The Activity Calendar document's own status
+     * decides nothing: an approved calendar is only the planning list.
+     * Every reader must use this scope so the rule cannot drift; it is also
+     * the authorization boundary for the unauthenticated landing page.
      *
      * @param  Builder<CalendarActivity>  $query
      * @return Builder<CalendarActivity>
      */
-    public function scopeApproved(Builder $query): Builder
+    public function scopePublished(Builder $query): Builder
     {
         return $query->whereHas(
-            'calendar.document',
+            'proposals.document',
             fn (Builder $q) => $q->where('status', DocumentStatus::Approved->value),
         );
     }

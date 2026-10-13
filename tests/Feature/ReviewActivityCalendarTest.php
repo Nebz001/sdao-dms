@@ -14,6 +14,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -68,31 +69,19 @@ test('second SDAO approve completes the calendar — Approved', function () {
     expect($doc->current_step_position)->toBeNull();
 });
 
-test('approved activities become confirmed hard-blocks', function () {
+test('approving a calendar does not hard-block its planned activities, it only warns', function () {
     $doc = submittedCalendar();
     $this->engine->approve($doc, $this->sdaoA);
     $doc->refresh();
     $this->engine->approve($doc, $this->sdaoB);
     $doc->refresh();
 
-    // Now try to submit another calendar at the same venue/date/time
-    $otherOrg = Organization::where('name', 'IT Guild')->firstOrFail();
-    $otherDoc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Clashing Calendar',
-        'status' => DocumentStatus::Approved,
-        'current_step_position' => null,
-        'organization_id' => $otherOrg->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
+    expect($doc->status)->toBe(DocumentStatus::Approved);
 
-    expect($doc->status)->toBe(DocumentStatus::Approved); // confirmed hard-block source
-    // VenueConflictChecker would return it as a confirmed conflict
+    // An approved Activity Calendar is only the planning list: no hard block until a proposal is approved.
     $checker = app(VenueConflictChecker::class);
-    $conflicts = $checker->confirmedConflicts('Gymnasium', '2026-09-15', '09:30', '11:00');
-    expect($conflicts)->not->toBeEmpty();
+    expect($checker->confirmedConflicts('Gymnasium', '2026-09-15', '09:30', '11:00'))->toBeEmpty();
+    expect($checker->tentativeConflicts('Gymnasium', '2026-09-15', '09:30', '11:00'))->not->toBeEmpty();
 });
 
 test('reject terminates the document', function () {
@@ -141,7 +130,7 @@ test('approve is refused when a confirmed conflict exists at review time (race)'
         'academic_year' => AcademicYear::current(),
         'term' => Term::FirstTerm->value,
     ]);
-    CalendarActivity::create([
+    $publishedPlan = CalendarActivity::create([
         'activity_calendar_id' => $rivalCal->id,
         'name' => 'Rival Event',
         'venue' => 'Gymnasium',
@@ -149,6 +138,7 @@ test('approve is refused when a confirmed conflict exists at review time (race)'
         'start_time' => '09:00',
         'end_time' => '12:00',
     ]);
+    CalendarFixtures::proposalFor($publishedPlan, DocumentStatus::Approved);
 
     // Now simulate the controller's pre-approve conflict check
     $checker = app(VenueConflictChecker::class);

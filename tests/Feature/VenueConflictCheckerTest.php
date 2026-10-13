@@ -2,77 +2,39 @@
 
 use App\Calendar\VenueConflictChecker;
 use App\Enums\DocumentStatus;
-use App\Enums\FormType;
-use App\Enums\Term;
-use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
-use App\Models\Document;
 use App\Models\Organization;
-use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
 /**
- * Helper: create an approved activity at the given venue/date/time.
- * Bypasses the engine to set status directly (unit scope).
+ * Helper: an activity published through a fully Approved proposal.
  */
 function approvedActivity(string $venue, string $date, string $start, string $end): CalendarActivity
 {
-    $org = Organization::firstOrFail();
-    $document = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Test Calendar',
-        'status' => DocumentStatus::Approved,
-        'current_step_position' => null,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $calendar = ActivityCalendar::create([
-        'document_id' => $document->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => Term::FirstTerm->value,
-    ]);
-
-    return CalendarActivity::create([
-        'activity_calendar_id' => $calendar->id,
+    return CalendarFixtures::publishedActivity([
         'name' => 'Existing Activity',
         'venue' => $venue,
         'activity_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
-    ]);
+    ], Organization::firstOrFail());
 }
 
+/**
+ * Helper: an activity of a proposal still in routing (tentative).
+ */
 function inReviewActivity(string $venue, string $date, string $start, string $end): CalendarActivity
 {
-    $org = Organization::firstOrFail();
-    $document = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Test Calendar InReview',
-        'status' => DocumentStatus::InReview,
-        'current_step_position' => 1,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $calendar = ActivityCalendar::create([
-        'document_id' => $document->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => Term::FirstTerm->value,
-    ]);
-
-    return CalendarActivity::create([
-        'activity_calendar_id' => $calendar->id,
+    return CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, [
         'name' => 'In Review Activity',
         'venue' => $venue,
         'activity_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
-    ]);
+    ], Organization::firstOrFail());
 }
 
 beforeEach(function () {

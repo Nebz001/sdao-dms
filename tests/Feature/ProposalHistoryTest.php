@@ -16,6 +16,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -189,30 +190,13 @@ test('reject is recorded with final Rejected status in history', function () {
 // ── Conflict-check endpoint (direct VenueConflictChecker calls) ───────────────
 
 test('conflict checker returns confirmed when overlapping an Approved activity', function () {
-    // Create an Approved activity for IT Guild
-    $existingDoc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Existing Approved',
-        'status' => DocumentStatus::Approved,
-        'current_step_position' => null,
-        'organization_id' => $this->itGuild->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $existingCal = ActivityCalendar::create([
-        'document_id' => $existingDoc->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => 'first_term',
-    ]);
-    CalendarActivity::create([
-        'activity_calendar_id' => $existingCal->id,
+    CalendarFixtures::publishedActivity([
         'name' => 'Existing IT Guild Event',
         'venue' => 'Conference Room',
         'activity_date' => '2026-11-20',
         'start_time' => '10:00',
         'end_time' => '13:00',
-    ]);
+    ], $this->itGuild);
 
     $confirmed = $this->checker->confirmedConflicts('Conference Room', '2026-11-20', '11:00', '12:00');
 
@@ -221,29 +205,13 @@ test('conflict checker returns confirmed when overlapping an Approved activity',
 });
 
 test('conflict checker returns tentative when overlapping an InReview activity', function () {
-    $inReviewDoc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Existing InReview',
-        'status' => DocumentStatus::InReview,
-        'current_step_position' => 1,
-        'organization_id' => $this->itGuild->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $inReviewCal = ActivityCalendar::create([
-        'document_id' => $inReviewDoc->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => 'first_term',
-    ]);
-    CalendarActivity::create([
-        'activity_calendar_id' => $inReviewCal->id,
+    CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, [
         'name' => 'IT Guild InReview Event',
         'venue' => 'Lab B',
         'activity_date' => '2026-11-25',
         'start_time' => '09:00',
         'end_time' => '11:00',
-    ]);
+    ], $this->itGuild);
 
     $confirmed = $this->checker->confirmedConflicts('Lab B', '2026-11-25', '09:30', '10:30');
     $tentative = $this->checker->tentativeConflicts('Lab B', '2026-11-25', '09:30', '10:30');

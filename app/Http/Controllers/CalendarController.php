@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Calendar\ProposalAccess;
 use App\Enums\DocumentStatus;
+use App\Models\ActivityProposal;
 use App\Models\CalendarActivity;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -12,24 +13,27 @@ use Inertia\Response;
 class CalendarController extends Controller
 {
     /**
-     * Shared venue calendar — confirmed (Approved) and tentative (InReview) activities
-     * across all orgs, for the double-booking-prevention view. Everyone sees every
-     * activity; `can_view_proposal` says whether this user may open its document
-     * (see ProposalAccess), so the page only offers a link that works.
+     * Shared venue calendar — only activities whose Activity Proposal has
+     * reached final approval (CalendarActivity::published()), on-calendar and
+     * off-calendar alike; the date, time and venue are the linked
+     * CalendarActivity's. Everyone sees every activity; `can_view_proposal`
+     * says whether this user may open the approved proposal (see
+     * ProposalAccess), so the page only offers a link that works.
      */
     public function index(ProposalAccess $access): Response
     {
         $activities = CalendarActivity::query()
-            ->whereHas('calendar.document', fn ($q) => $q->whereIn('status', [
-                DocumentStatus::Approved->value,
-                DocumentStatus::InReview->value,
-            ]))
-            ->with('calendar.document.organization')
+            ->published()
+            ->with(['calendar.document.organization', 'proposals.document'])
             ->orderBy('activity_date')
             ->orderBy('start_time')
             ->get();
 
-        $canView = $access->forUser(Auth::user(), $activities->map(fn (CalendarActivity $a) => $a->calendar->document));
+        $approvedProposalDocument = fn (CalendarActivity $a) => $a->proposals
+            ->first(fn (ActivityProposal $p) => $p->document->status === DocumentStatus::Approved)
+            ->document;
+
+        $canView = $access->forUser(Auth::user(), $activities->map($approvedProposalDocument));
 
         return Inertia::render('calendar/index', [
             'activities' => $activities->map(fn (CalendarActivity $a) => [
@@ -39,10 +43,10 @@ class CalendarController extends Controller
                 'activity_date' => $a->activity_date->toDateString(),
                 'start_time' => $a->start_time,
                 'end_time' => $a->end_time,
-                'status' => $a->calendar->document->status->value,
+                'status' => DocumentStatus::Approved->value,
                 'organization' => $a->calendar->document->organization->name,
-                'document_id' => $a->calendar->document_id,
-                'can_view_proposal' => $canView($a->calendar->document),
+                'document_id' => $approvedProposalDocument($a)->id,
+                'can_view_proposal' => $canView($approvedProposalDocument($a)),
             ]),
         ]);
     }

@@ -17,6 +17,7 @@ use App\Support\CurrentPeriod;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -64,7 +65,7 @@ function makeApprovedCalendarActivity(string $venue, string $date, string $start
         'term' => Term::FirstTerm->value,
     ]);
 
-    return CalendarActivity::create([
+    $publishedPlan = CalendarActivity::create([
         'activity_calendar_id' => $cal->id,
         'name' => 'Existing Approved Event',
         'venue' => $venue,
@@ -72,35 +73,20 @@ function makeApprovedCalendarActivity(string $venue, string $date, string $start
         'start_time' => $start,
         'end_time' => $end,
     ]);
+    CalendarFixtures::proposalFor($publishedPlan, DocumentStatus::Approved);
+
+    return $publishedPlan;
 }
 
 function makeInReviewCalendarActivity(string $venue, string $date, string $start, string $end): CalendarActivity
 {
-    $org = Organization::where('name', 'IT Guild')->firstOrFail();
-    $doc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'InReview Calendar',
-        'status' => DocumentStatus::InReview,
-        'current_step_position' => 1,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $cal = ActivityCalendar::create([
-        'document_id' => $doc->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => Term::FirstTerm->value,
-    ]);
-
-    return CalendarActivity::create([
-        'activity_calendar_id' => $cal->id,
+    return CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, [
         'name' => 'Existing InReview Event',
         'venue' => $venue,
         'activity_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
-    ]);
+    ], Organization::where('name', 'IT Guild')->firstOrFail());
 }
 
 test('affiliated president can submit an activity calendar', function () {

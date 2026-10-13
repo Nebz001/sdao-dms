@@ -2,6 +2,8 @@
 
 use App\Models\DocumentAttachment;
 use App\Models\Organization;
+use App\Models\RoleAssignment;
+use App\Models\User;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\IdentitySeeder;
 use Database\Seeders\RealRosterSeeder;
@@ -59,4 +61,33 @@ test('DemoDataSeeder writes every seeded attachment to the local disk, never sup
 
     // Nothing seeded should have reached the (faked) supabase disk at all.
     expect(Storage::disk('supabase')->allFiles())->toBeEmpty();
+});
+
+/**
+ * demo:reset keeps `users` and `role_assignments` but wipes organizations, so
+ * a second run meets every demo account the first one created. The seeder
+ * must reuse them by email instead of colliding on users_email_unique.
+ */
+test('DemoDataSeeder can run twice in a row, reusing its demo accounts', function () {
+    $this->seed([SettingsSeeder::class, RealRosterSeeder::class, WorkflowTemplateSeeder::class, IdentitySeeder::class]);
+    Organization::query()->delete();
+
+    app(DemoDataSeeder::class)->run();
+
+    $userCount = User::count();
+    $roleAssignmentCount = RoleAssignment::count();
+    $organizationCount = Organization::count();
+
+    // Same wipe demo:reset does between runs: organizations (cascading to
+    // documents). Reports go first only because SQLite checks the restrictive
+    // report -> proposal key before the cascade reaches them; Postgres does not.
+    DB::table('after_activity_reports')->delete();
+    Organization::query()->delete();
+
+    app(DemoDataSeeder::class)->run();
+
+    expect(User::count())->toBe($userCount)
+        ->and(RoleAssignment::count())->toBe($roleAssignmentCount)
+        ->and(Organization::count())->toBe($organizationCount)
+        ->and(User::where('email', 'roxasm@nu-lipa.edu.ph')->count())->toBe(1);
 });

@@ -1,50 +1,48 @@
 <?php
 
 use App\Enums\DocumentStatus;
-use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
-use App\Models\Document;
+use Tests\Fixtures\CalendarFixtures;
 
 /**
- * The authorization boundary for the public landing page's activities
- * widget: CalendarActivity::approved() must return activities for
- * Approved documents only, regardless of how many other statuses exist
- * alongside them. This is the direct test of that boundary — the request-
- * level test in HomeControllerTest.php exercises the same guarantee
- * end-to-end, but this one pins the query itself.
+ * The authorization boundary for the centralized calendar and the public
+ * landing page: CalendarActivity::published() returns only activities whose
+ * Activity Proposal is fully Approved. An Activity Calendar's own status
+ * never publishes anything. HomeControllerTest exercises the same guarantee
+ * end-to-end; this pins the query itself.
  */
-function seedActivityWithStatus(DocumentStatus $status, string $name): CalendarActivity
-{
-    $document = Document::factory()->create(['status' => $status]);
-    $calendar = ActivityCalendar::factory()->for($document)->create();
+test('the published scope returns only activities with an Approved proposal', function () {
+    foreach ([DocumentStatus::Draft, DocumentStatus::InReview, DocumentStatus::Returned, DocumentStatus::Rejected] as $status) {
+        CalendarFixtures::proposalFor(CalendarFixtures::plannedActivity(), $status);
+    }
+    $published = CalendarFixtures::publishedActivity(['name' => 'Approved Event']);
 
-    return CalendarActivity::factory()->for($calendar, 'calendar')->create([
-        'name' => $name,
-        'activity_date' => now()->addDays(5)->toDateString(),
-    ]);
-}
-
-test('the approved scope returns only activities whose document is Approved', function () {
-    seedActivityWithStatus(DocumentStatus::Draft, 'Draft Event');
-    seedActivityWithStatus(DocumentStatus::InReview, 'In Review Event');
-    seedActivityWithStatus(DocumentStatus::Returned, 'Returned Event');
-    seedActivityWithStatus(DocumentStatus::Rejected, 'Rejected Event');
-    $approved = seedActivityWithStatus(DocumentStatus::Approved, 'Approved Event');
-
-    $results = CalendarActivity::approved()->get();
+    $results = CalendarActivity::published()->get();
 
     expect($results)->toHaveCount(1);
-    expect($results->first()->id)->toBe($approved->id);
-    expect($results->first()->name)->toBe('Approved Event');
+    expect($results->first()->id)->toBe($published->id);
 });
 
-test('the approved scope excludes every non-Approved status, one at a time', function (DocumentStatus $status) {
-    seedActivityWithStatus($status, "{$status->value} Event");
+test('an approved Activity Calendar with no proposal publishes nothing', function () {
+    CalendarFixtures::plannedActivity(DocumentStatus::Approved);
 
-    expect(CalendarActivity::approved()->get())->toHaveCount(0);
+    expect(CalendarActivity::published()->get())->toHaveCount(0);
+});
+
+test('the published scope excludes every non-Approved proposal status, one at a time', function (DocumentStatus $status) {
+    CalendarFixtures::proposalFor(CalendarFixtures::plannedActivity(), $status);
+    CalendarFixtures::offCalendarProposal($status);
+
+    expect(CalendarActivity::published()->get())->toHaveCount(0);
 })->with([
     DocumentStatus::Draft,
     DocumentStatus::InReview,
     DocumentStatus::Returned,
     DocumentStatus::Rejected,
 ]);
+
+test('an approved off-calendar proposal publishes its own row', function () {
+    $activity = CalendarFixtures::offCalendarProposal(DocumentStatus::Approved);
+
+    expect(CalendarActivity::published()->pluck('id')->all())->toBe([$activity->id]);
+});

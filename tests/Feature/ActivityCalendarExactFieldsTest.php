@@ -2,12 +2,14 @@
 
 use App\Approval\ApprovalEngine;
 use App\Calendar\SubmitActivityCalendar;
+use App\Enums\DocumentStatus;
 use App\Enums\Sdg;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -236,6 +238,9 @@ test('venue-conflict detection is unaffected by differing SDG/participant/budget
     $this->engine->approve($first['document'], $this->sdaoA);
     $first['document']->refresh();
     $this->engine->approve($first['document'], $this->sdaoB);
+
+    // Only a fully approved proposal publishes (hard-blocks) the slot.
+    CalendarFixtures::proposalFor($first['document']->activityCalendar->activities()->firstOrFail(), DocumentStatus::Approved);
 
     // A second org submits an overlapping activity with DIFFERENT sdg/budget —
     // conflict must still be detected purely on venue+date+time.

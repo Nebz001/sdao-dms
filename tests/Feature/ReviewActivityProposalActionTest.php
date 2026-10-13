@@ -18,6 +18,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -42,7 +43,7 @@ beforeEach(function () {
     $this->chair = User::where('email', 'chair-cs@nu-lipa.edu.ph')->firstOrFail();
 });
 
-function approvedCalendarActivity(Organization $org, string $venue, string $date, string $start, string $end, string $name = 'Existing Approved Event'): CalendarActivity
+function approvedCalendarActivity(Organization $org, string $venue, string $date, string $start, string $end, string $name = 'Existing Approved Event', bool $published = false): CalendarActivity
 {
     $doc = Document::create([
         'form_type' => FormType::ActivityCalendar,
@@ -60,7 +61,7 @@ function approvedCalendarActivity(Organization $org, string $venue, string $date
         'term' => 'first_term',
     ]);
 
-    return CalendarActivity::create([
+    $publishedPlan = CalendarActivity::create([
         'activity_calendar_id' => $cal->id,
         'name' => $name,
         'venue' => $venue,
@@ -68,6 +69,11 @@ function approvedCalendarActivity(Organization $org, string $venue, string $date
         'start_time' => $start,
         'end_time' => $end,
     ]);
+    if ($published) {
+        CalendarFixtures::proposalFor($publishedPlan, DocumentStatus::Approved);
+    }
+
+    return $publishedPlan;
 }
 
 function submitOnCalendarProposal($test): Document
@@ -149,7 +155,7 @@ test('approve throws ProposalVenueConflictException when a rival booking was app
 
     // A rival proposal claims the exact same slot and gets approved AFTER
     // this document entered review — the race the re-check guards against.
-    approvedCalendarActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event');
+    approvedCalendarActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event', published: true);
 
     expect(fn () => $this->action->approve($doc, $this->adviser))
         ->toThrow(ProposalVenueConflictException::class);
@@ -169,7 +175,7 @@ test('approve throws ProposalVenueConflictException when a rival booking was app
 
 test('the venue conflict exception carries the exact web message text', function () {
     $doc = submitOffCalendarProposal($this, 'Shared Hall', '2026-12-10', '09:00', '11:00');
-    approvedCalendarActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event');
+    approvedCalendarActivity($this->org, 'Shared Hall', '2026-12-10', '09:30', '10:30', 'Rival Event', published: true);
 
     try {
         $this->action->approve($doc, $this->adviser);

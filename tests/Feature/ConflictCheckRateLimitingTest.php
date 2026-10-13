@@ -10,6 +10,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -78,7 +79,7 @@ test('calendar conflict-check is rate limited, but a real conflict is still dete
         'academic_year' => AcademicYear::current(),
         'term' => Term::FirstTerm->value,
     ]);
-    CalendarActivity::create([
+    $publishedPlan = CalendarActivity::create([
         'activity_calendar_id' => $cal->id,
         'name' => 'Rate Limit Fixture Event',
         'venue' => 'Shared Auditorium',
@@ -86,6 +87,7 @@ test('calendar conflict-check is rate limited, but a real conflict is still dete
         'start_time' => '13:00',
         'end_time' => '15:00',
     ]);
+    CalendarFixtures::proposalFor($publishedPlan, DocumentStatus::Approved);
 
     // 30 requests within throttle:30,1 all succeed — proves the limit doesn't
     // break the legitimate debounced-typing use case. The 30th is a real

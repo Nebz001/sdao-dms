@@ -33,8 +33,10 @@ use App\Reports\SubmitAfterActivityReport;
 use App\Support\CurrentPeriod;
 use App\Support\PersonName;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -171,14 +173,14 @@ class DemoDataSeeder extends Seeder
         $adviserVillanueva = $this->makeStaff('Grace Villanueva', 'villanuevag');
         $adviserSpare = $this->makeStaff('Nora Espiritu', 'espiritun');
         foreach ([$adviserRoxas, $adviserSantiago, $adviserDelaCruzR, $adviserVillanueva, $adviserSpare] as $adviser) {
-            RoleAssignment::create(['user_id' => $adviser->id, 'role' => Role::Adviser, 'organization_id' => null]);
+            RoleAssignment::firstOrCreate(['user_id' => $adviser->id, 'role' => Role::Adviser->value], ['organization_id' => null]);
         }
         $this->summary['new adviser accounts'] = 5;
 
         // Medical Technology has no program_chair at all yet — MTSC's chain
         // can't resolve without one.
         $mtChair = $this->makeStaff('Dr. Cristina Bautista', 'bautistac');
-        RoleAssignment::create(['user_id' => $mtChair->id, 'role' => Role::ProgramChair, 'program_id' => $medTech->id]);
+        RoleAssignment::firstOrCreate(['user_id' => $mtChair->id, 'role' => Role::ProgramChair->value, 'program_id' => $medTech->id]);
         $this->summary['new program chair accounts'] = 1;
 
         $adviserOne = User::where('email', 'adviser-one@nu-lipa.edu.ph')->firstOrFail();
@@ -257,11 +259,33 @@ class DemoDataSeeder extends Seeder
         ];
     }
 
+    /**
+     * Creates the demo account, or, when a previous run already left it
+     * behind (demo:reset keeps `users`), puts it back to its freshly seeded
+     * state in place. This is what lets demo:reset run twice in a row.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function makeOrRefreshUser(string $email, Factory $factory, array $attributes): User
+    {
+        $fresh = $factory->make([...$attributes, 'email' => $email]);
+        $existing = User::where('email', $email)->first();
+
+        if ($existing === null) {
+            $fresh->save();
+
+            return $fresh;
+        }
+
+        $existing->forceFill(Arr::except($fresh->getAttributes(), ['id', 'email', 'created_at']))->save();
+
+        return $existing;
+    }
+
     private function makeStaff(string $name, string $localPart): User
     {
-        return User::factory()->create([
+        return $this->makeOrRefreshUser("{$localPart}@nu-lipa.edu.ph", User::factory(), [
             ...PersonName::attributes($name),
-            'email' => "{$localPart}@nu-lipa.edu.ph",
             'password' => Hash::make(self::PASSWORD),
         ]);
     }
@@ -276,9 +300,8 @@ class DemoDataSeeder extends Seeder
             $factory = $factory->rejectedAccount();
         }
 
-        return $factory->create([
+        return $this->makeOrRefreshUser("{$localPart}@students.nu-lipa.edu.ph", $factory, [
             ...PersonName::attributes($name),
-            'email' => "{$localPart}@students.nu-lipa.edu.ph",
             'password' => Hash::make(self::PASSWORD),
             'id_number' => $this->nextIdNumber(),
         ]);
@@ -648,8 +671,9 @@ class DemoDataSeeder extends Seeder
 
             $document = $result['document'];
 
-            // Leave Psychology Org's calendar In Review — the "tentative"
-            // demonstration case.
+            // Leave Psychology Org's calendar In Review — approved calendars only
+            // list planned activities; nothing is on the centralized calendar
+            // until its proposal is fully approved.
             if ($orgName !== 'Psychology Org') {
                 $this->engine->approve($document, $this->carl);
                 $document->refresh();
@@ -877,6 +901,40 @@ class DemoDataSeeder extends Seeder
         $piceApprovedDoc = $this->approveEntireChain($result['document'], $orgs['PICE']);
         $proposals['pice_approved'] = $piceApprovedDoc->activityProposal;
         $statusCounts['approved']++;
+
+        // 8. More fully Approved proposals so the centralized calendar is
+        // healthy: only an Approved proposal publishes an activity (an approved
+        // Activity Calendar is just the planning list). Mix of on-calendar
+        // (against planned rows) and off-calendar. The planned rows left
+        // without a proposal (e.g. CODECS orientation, Red Cross trainings,
+        // JPIA career talk) stay off the calendar and show only as soft
+        // warnings in conflict checks.
+        $extraApproved = [
+            ['PICE', ProposalCalendarMode::OnCalendar, ['calendar_activity_id' => $calendarActivities['PICE'][1]->id, 'activity_nature' => 'co_curricular', 'activity_type' => 'competition', 'proposed_budget' => 14000, 'budget_source' => 'rso_fund'], 'Sharpen members\' structural design skills through a team challenge.', ['Juan Dela Cruz']],
+            ['MTSC', ProposalCalendarMode::OnCalendar, ['calendar_activity_id' => $calendarActivities['MTSC'][1]->id, 'activity_nature' => 'community_extension', 'activity_type' => 'donation_drive_fundraising', 'proposed_budget' => 9000, 'budget_source' => 'rso_savings'], 'Collect blood donations for the local hospital partner.', ['Ella Mercado']],
+            ['JPIA', ProposalCalendarMode::OnCalendar, ['calendar_activity_id' => $calendarActivities['JPIA'][1]->id, 'activity_nature' => 'co_curricular', 'activity_type' => 'competition', 'proposed_budget' => 11000, 'budget_source' => 'rso_fund'], 'Prepare accountancy students for the CPA board exam.', ['Paolo Ramos']],
+            ['Red Cross Youth', ProposalCalendarMode::OffCalendar, ['title' => 'Disaster Preparedness Drill', 'venue' => 'Gymnasium', 'activity_date' => '2026-10-21', 'start_time' => '09:00', 'end_time' => '15:00', 'activity_nature' => 'community_extension', 'activity_type' => 'outreach', 'proposed_budget' => 7000, 'budget_source' => 'rso_fund'], 'Train students in earthquake and fire response.', ['Liza Santos']],
+            ['CODECS', ProposalCalendarMode::OffCalendar, ['title' => 'Alumni Tech Talk', 'venue' => 'Room 301', 'activity_date' => '2026-10-28', 'start_time' => '14:00', 'end_time' => '17:00', 'activity_nature' => 'co_curricular', 'activity_type' => 'seminar_workshop', 'proposed_budget' => 3000, 'budget_source' => 'rso_fund'], 'Connect members with alumni working in the industry.', ['Patricia Lim']],
+        ];
+
+        foreach ($extraApproved as [$orgName, $mode, $data, $objective, $persons]) {
+            $president = $this->presidentOf($orgs[$orgName]);
+            $draft = $this->startProposalDraft->execute(
+                actor: $president,
+                organization: $orgs[$orgName],
+                mode: $mode,
+                data: $data,
+                attachmentFiles: $this->fakeAttachmentsFor(FormType::ActivityProposal),
+            );
+            $submitted = $this->submitProposal->execute(
+                actor: $president,
+                document: $draft,
+                objectives: "{$objective}\n\nRun the activity as planned with full participation.\nReport results to SDAO afterwards.",
+                responsiblePersons: $persons,
+            );
+            $this->approveEntireChain($submitted['document'], $orgs[$orgName]);
+            $statusCounts['approved']++;
+        }
 
         foreach ($statusCounts as $status => $count) {
             $this->summary["activity proposals ({$status})"] = $count;

@@ -5,16 +5,14 @@ use App\ActivityProposals\StartProposalDraft;
 use App\ActivityProposals\SubmitActivityProposal;
 use App\Approval\ApprovalEngine;
 use App\Enums\DocumentStatus;
-use App\Enums\FormType;
 use App\Enums\ProposalCalendarMode;
-use App\Models\ActivityCalendar;
 use App\Models\CalendarActivity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\AcademicYear;
 use Database\Seeders\WorkflowTemplateSeeder;
 use Illuminate\Validation\ValidationException;
+use Tests\Fixtures\CalendarFixtures;
 use Tests\Fixtures\MembershipSeeder;
 use Tests\Fixtures\TestIdentitySeeder;
 
@@ -34,60 +32,24 @@ beforeEach(function () {
 
 function offCalApprovedActivity(string $venue, string $date, string $start, string $end): CalendarActivity
 {
-    $org = Organization::where('name', 'IT Guild')->firstOrFail();
-    $doc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Existing Approved Calendar',
-        'status' => DocumentStatus::Approved,
-        'current_step_position' => null,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $cal = ActivityCalendar::create([
-        'document_id' => $doc->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => 'first_term',
-    ]);
-
-    return CalendarActivity::create([
-        'activity_calendar_id' => $cal->id,
+    return CalendarFixtures::publishedActivity([
         'name' => 'Existing Approved Event',
         'venue' => $venue,
         'activity_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
-    ]);
+    ], Organization::where('name', 'IT Guild')->firstOrFail());
 }
 
 function offCalInReviewActivity(string $venue, string $date, string $start, string $end): CalendarActivity
 {
-    $org = Organization::where('name', 'IT Guild')->firstOrFail();
-    $doc = Document::create([
-        'form_type' => FormType::ActivityCalendar,
-        'variant' => null,
-        'title' => 'Existing InReview Calendar',
-        'status' => DocumentStatus::InReview,
-        'current_step_position' => 1,
-        'organization_id' => $org->id,
-        'workflow_template_id' => null,
-        'submitted_by' => null,
-    ]);
-    $cal = ActivityCalendar::create([
-        'document_id' => $doc->id,
-        'academic_year' => AcademicYear::current(),
-        'term' => 'first_term',
-    ]);
-
-    return CalendarActivity::create([
-        'activity_calendar_id' => $cal->id,
+    return CalendarFixtures::offCalendarProposal(DocumentStatus::InReview, [
         'name' => 'Existing InReview Event',
         'venue' => $venue,
         'activity_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
-    ]);
+    ], Organization::where('name', 'IT Guild')->firstOrFail());
 }
 
 function offCalSubmitDraft(User $student, Organization $org, string $venue, string $date, string $start, string $end): Document

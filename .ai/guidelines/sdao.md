@@ -85,9 +85,18 @@ These are product rules, not suggestions. Do not "simplify" them away.
 5. **Real-time everywhere.** Any approve/reject/return must reflect across all
    clients without a manual refresh.
 
-6. **Calendar: tentative warns, confirmed blocks — on time RANGES.** A
-   submission under review shows tentatively and only warns. An approved
-   activity HARD-BLOCKS its venue for its date and time range. Two activities
+6. **Calendar: only fully approved PROPOSALS publish; tentative warns,
+   confirmed blocks — on time RANGES.** An activity is on the centralized
+   calendar, the public landing page and the hard-block side of conflict checks
+   only when an Activity Proposal linked to it (on-calendar against the planned
+   row, or off-calendar with its own row) is fully Approved. This is ONE rule,
+   `CalendarActivity::published()`; every reader uses it, never a copy of the
+   filter. An approved Activity Calendar is only the planning list: it publishes
+   nothing and never hard-blocks, but its planned entries without an In Review
+   or Approved proposal show as a soft warning, like proposals still in routing
+   (`VenueConflictChecker::tentativeConflicts()`). A proposal has no schedule of
+   its own: its linked CalendarActivity is its date, time and venue. An
+   approved activity HARD-BLOCKS its venue for its date and time range. Two activities
    conflict only if they share a venue and date AND their time ranges OVERLAP
    (A.start < B.end AND B.start < A.end). Same time at a different venue never
    conflicts. **Venue is a free-text value typed by the user; there is no
