@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -50,7 +51,8 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if (! $this->mobileAccess->canAccess($user) || ! $this->hasStaffEmail($user)) {
+        if (! $this->mobileAccess->canAccess($user)
+            || (! Gate::forUser($user)->allows('access-admin') && ! $this->hasStaffEmail($user))) {
             abort(403, 'You are not allowed to perform this action.');
         }
 
@@ -81,12 +83,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Login-only, on top of MobileAccess::canAccess() — an admin-provisioned
-     * approver account is expected to already sit on the staff domain (the
-     * production read-only check confirmed 0/48 accounts fail this), so
-     * this is a defensive belt against a future data-integrity slip, not a
-     * per-request re-check (see EnsureMobileAccess, which re-checks
-     * canAccess() alone on every subsequent request).
+     * Non-admin approvers must use a configured staff domain. SDAO members
+     * pass the access-admin gate and are intentionally exempt because the web
+     * system permits administrators to use an externally hosted email account.
      */
     private function hasStaffEmail(User $user): bool
     {
