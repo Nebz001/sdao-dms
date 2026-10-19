@@ -22,6 +22,7 @@ class WorkflowStepFactory extends Factory
             'position' => 1,
             'role' => Role::Adviser,
             'required_approvals' => 1,
+            'lead_time_days' => 3,
         ];
     }
 }

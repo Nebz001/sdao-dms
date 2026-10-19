@@ -355,7 +355,8 @@ test('the bell row links to the review screen for an approver and the document p
     remind($this, $returned);
 
     $approverRow = $this->adviserOne->notifications()->where('type', StuckDocumentReminderNotification::class)->firstOrFail();
-    expect($approverRow->data['kind'])->toBe('stuck_document_reminder')
+    // 6 days is past the step's 3 day lead time, so it is the overdue wording.
+    expect($approverRow->data['kind'])->toBe('step_overdue')
         ->and($approverRow->data['url'])->toBe(route('review.activity-proposals.show', $review, absolute: false))
         ->and($approverRow->data['document_id'])->toBe($review->id);
 
@@ -378,14 +379,14 @@ test('only SDAO members can send a reminder', function () {
     expect(DocumentReminder::count())->toBe(0);
 });
 
-test('a document can be reminded once every 24 hours', function () {
+test('a document can be reminded once every 12 hours', function () {
     Notification::fake();
     $doc = stuckDoc($this->org, 6);
 
     remind($this, $doc)->assertSessionHas('flash.title', 'Reminder sent');
     remind($this, $doc)->assertSessionHas('flash.title', 'Reminder not sent');
 
-    $this->travel(23)->hours();
+    $this->travel(11)->hours();
     remind($this, $doc)->assertSessionHas('flash.title', 'Reminder not sent');
 
     Notification::assertCount(1);
@@ -418,8 +419,8 @@ test('the page says when a reminded document can be reminded again', function ()
     stuckPage($this)->assertInertia(fn ($page) => $page->where('documents.data', function ($rows) use ($reminded, $other) {
         $rows = collect($rows)->keyBy('id');
 
-        // 12:00 UTC on 9/16 is 8:00 PM in Manila; the next one is a day later.
-        return $rows[$reminded->id]['remindAvailableLabel'] === '9/17/2026 8:00 PM'
+        // 12:00 UTC on 9/16 is 8:00 PM in Manila; the next one is 12 hours later.
+        return $rows[$reminded->id]['remindAvailableLabel'] === '9/17/2026 8:00 AM'
             && $rows[$other->id]['remindAvailableLabel'] === null;
     }));
 });

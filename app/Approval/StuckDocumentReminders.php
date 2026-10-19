@@ -5,6 +5,7 @@ namespace App\Approval;
 use App\Approval\Exceptions\ReminderNotAllowedException;
 use App\Dashboard\InReviewSnapshot;
 use App\Enums\DocumentStatus;
+use App\Mail\StuckDocumentReminderMail;
 use App\Models\Document;
 use App\Models\DocumentReminder;
 use App\Models\DocumentStepApproval;
@@ -28,12 +29,16 @@ use Throwable;
  *   the original submitter when the organization has none, the same fallback
  *   ApprovalEngine uses for outcome notifications.
  *
- * At most one reminder per document every COOLDOWN_HOURS, counted from the
- * newest row in document_reminders.
+ * One reminder log (document_reminders) serves the manual button and the
+ * hourly scheduler. The manual button is locked for COOLDOWN_HOURS after ANY
+ * reminder (manual or automatic) went to the approver at the document's
+ * current step; a reminder for an earlier visit to a step never counts. A
+ * manual send writes no slot, so it cannot move the automatic 24 hour
+ * schedule (see AutomaticStepReminders).
  */
 class StuckDocumentReminders
 {
-    public const int COOLDOWN_HOURS = 24;
+    public const int COOLDOWN_HOURS = 12;
 
     public function __construct(
         private readonly StepApproverResolver $resolver,
@@ -90,39 +95,80 @@ class StuckDocumentReminders
      */
     public function nextAvailableAt(Document $document): ?CarbonInterface
     {
-        return $this->nextAvailableForMany([$document->id])[$document->id] ?? null;
+        return $this->cooldownsFor([$document->id])[$document->id]['availableAt'] ?? null;
     }
 
     /**
-     * Next-available time for each document id that is on cooldown (ids that
-     * can be reminded now are left out). One query for the whole list.
+     * The cooldown for each document id that has one running (ids that can be
+     * reminded now are left out). A reminder only counts when it was about the
+     * document's current visit to its step (or predates the log recording one),
+     * and the SDAO overdue alert, which goes to SDAO and not the approver,
+     * never counts. Two queries for the whole list.
      *
      * @param  array<int, int>  $documentIds
-     * @return array<int, CarbonInterface>
+     * @return array<int, array{availableAt: CarbonInterface, lastSentAt: CarbonInterface, kind: string}>
      */
-    public function nextAvailableForMany(array $documentIds): array
+    public function cooldownsFor(array $documentIds): array
     {
         if ($documentIds === []) {
             return [];
         }
 
-        $latest = DocumentReminder::query()
+        $arrivals = Document::query()
+            ->with('latestTransition')
+            ->whereIn('id', $documentIds)
+            ->get()
+            ->mapWithKeys(fn (Document $document) => [$document->id => $document->latestTransition?->id]);
+
+        $recent = DocumentReminder::query()
             ->whereIn('document_id', $documentIds)
-            ->get(['document_id', 'created_at'])
-            ->groupBy('document_id')
-            ->map(fn (Collection $rows) => $rows->max('created_at'));
+            ->where('kind', '!=', DocumentReminder::KIND_SDAO_OVERDUE)
+            ->where('created_at', '>', now()->subHours(self::COOLDOWN_HOURS))
+            ->get()
+            ->groupBy('document_id');
 
-        $available = [];
+        $cooldowns = [];
 
-        foreach ($latest as $documentId => $sentAt) {
-            $next = $sentAt->copy()->addHours(self::COOLDOWN_HOURS);
+        foreach ($recent as $documentId => $rows) {
+            $arrival = $arrivals[$documentId] ?? null;
+            $latest = $rows
+                ->filter(fn (DocumentReminder $row) => $row->arrival_transition_id === null || $row->arrival_transition_id === $arrival)
+                ->sortByDesc('created_at')
+                ->first();
 
-            if ($next->isFuture()) {
-                $available[(int) $documentId] = $next;
+            if ($latest instanceof DocumentReminder) {
+                $cooldowns[(int) $documentId] = [
+                    'availableAt' => $latest->created_at->copy()->addHours(self::COOLDOWN_HOURS),
+                    'lastSentAt' => $latest->created_at,
+                    'kind' => $latest->kind,
+                ];
             }
         }
 
-        return $available;
+        return $cooldowns;
+    }
+
+    /**
+     * The notification for a document, worded by where it stands: a nudge, or
+     * an overdue alert once the approver's step has passed its lead time.
+     */
+    public function notificationFor(Document $document, bool $toApprover): StuckDocumentReminderNotification
+    {
+        $document->loadMissing('latestTransition');
+        $deadline = $toApprover ? StepDeadline::for($document) : null;
+
+        if ($deadline?->isOverdue()) {
+            return new StuckDocumentReminderNotification(
+                $document,
+                true,
+                InReviewSnapshot::idleDays($document),
+                StuckDocumentReminderMail::VARIANT_OVERDUE,
+                $deadline->daysOverdue(),
+                $deadline->leadTimeLabel(),
+            );
+        }
+
+        return new StuckDocumentReminderNotification($document, $toApprover, InReviewSnapshot::idleDays($document));
     }
 
     /**
@@ -138,17 +184,21 @@ class StuckDocumentReminders
         Gate::forUser($actor)->authorize('access-admin');
 
         return DB::transaction(function () use ($actor, $document) {
-            // Serialise two admins clicking Remind at once, as the engine does for approvals.
+            // Serialise two admins clicking Remind at once (and the scheduler),
+            // as the engine does for approvals.
             $locked = Document::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
 
             if (! in_array($locked->status, [DocumentStatus::InReview, DocumentStatus::Returned], true)) {
                 throw new ReminderNotAllowedException('This document is no longer open, so there is no one to remind.');
             }
 
-            $next = $this->nextAvailableAt($locked);
+            $cooldown = $this->cooldownsFor([$locked->id])[$locked->id] ?? null;
 
-            if ($next !== null) {
-                throw new ReminderNotAllowedException('A reminder was already sent in the last 24 hours. You can send another after '.$next->setTimezone(DisplayTimezone::ASIA_MANILA)->format('n/j/Y g:i A').'.');
+            if ($cooldown !== null) {
+                $sentAt = DisplayTimezone::convert($cooldown['lastSentAt']->copy())->format('n/j/Y g:i A');
+                $nextAt = DisplayTimezone::convert($cooldown['availableAt']->copy())->format('n/j/Y g:i A');
+
+                throw new ReminderNotAllowedException("A reminder for this step was already sent on {$sentAt}. You can send another after {$nextAt}.");
             }
 
             $recipients = $this->recipients($locked);
@@ -158,21 +208,37 @@ class StuckDocumentReminders
             }
 
             $locked->load('latestTransition');
-            $idleDays = InReviewSnapshot::idleDays($locked);
-            $toApprover = $this->isWaitingOnApprover($locked);
+            $notification = $this->notificationFor($locked, $this->isWaitingOnApprover($locked));
 
             foreach ($recipients as $recipient) {
-                $recipient->notify(new StuckDocumentReminderNotification($locked, $toApprover, $idleDays));
+                $recipient->notify($notification);
             }
 
-            DocumentReminder::create([
-                'document_id' => $locked->id,
-                'sent_by' => $actor->id,
-                'recipient_count' => $recipients->count(),
-                'created_at' => now(),
-            ]);
+            $this->record($locked, DocumentReminder::KIND_MANUAL, $recipients->count(), $actor->id);
 
             return $recipients;
         });
+    }
+
+    /**
+     * Writes the log row for a reminder about the document's current visit to
+     * its step. The one place a row is created, for manual and automatic alike.
+     *
+     * @param  int|null  $slot  the 24 hour mark for an automatic row; null for a manual one
+     */
+    public function record(Document $document, string $kind, int $recipientCount, ?int $sentBy = null, ?int $slot = null): DocumentReminder
+    {
+        $document->loadMissing('latestTransition');
+
+        return DocumentReminder::create([
+            'document_id' => $document->id,
+            'sent_by' => $sentBy,
+            'kind' => $kind,
+            'step_position' => $document->status === DocumentStatus::InReview ? $document->current_step_position : null,
+            'arrival_transition_id' => $document->latestTransition?->id,
+            'slot' => $slot,
+            'recipient_count' => $recipientCount,
+            'created_at' => now(),
+        ]);
     }
 }

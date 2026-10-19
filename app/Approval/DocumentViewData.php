@@ -274,6 +274,8 @@ class DocumentViewData
                 'date' => ($rejected?->created_at ?? $decided->last()?->created_at)?->toIso8601String(),
                 'state' => $state,
                 'isYou' => $state === 'current' && $approvers->contains('id', $viewer->id),
+                'leadTimeDays' => $step->lead_time_days,
+                'leadTimeLabel' => StepDeadline::leadTimeText($step->lead_time_days),
             ];
         }
 
@@ -315,7 +317,7 @@ class DocumentViewData
 
     /**
      * @param  Collection<int, WorkflowStep>  $steps
-     * @return array{step: int, totalSteps: int, stepName: string, days: int}|null
+     * @return array{step: int, totalSteps: int, stepName: string, days: int, deadline: array<string, mixed>|null}|null
      */
     private function waiting(Document $document, Collection $steps): ?array
     {
@@ -339,6 +341,9 @@ class DocumentViewData
             'totalSteps' => $steps->count() + 2,
             'stepName' => $this->stepName($step),
             'days' => (int) $since->diffInDays(now(), true),
+            // Everyone who can see the document sees the allotted time and the
+            // due/overdue reading, counted from its latest transition.
+            'deadline' => StepDeadline::for($document)?->toArray(),
         ];
     }
 

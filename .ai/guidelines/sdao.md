@@ -554,6 +554,60 @@ approximate these.
 - **Page component tests** live in `resources/js/components/__tests__/`, never inside `resources/js/pages/`: the Inertia vite plugin globs `./pages/**/*.tsx` with no test exclusion, so a test file there is bundled as a page chunk and is resolvable as a page name.
 - Never commit secrets or `.env` files.
 
+## Step lead time, reminders and overdue alerts
+
+- **Lead time is configuration, on the step.** `workflow_steps.lead_time_days`
+  (default 3, 1 to 60) is edited by SDAO at *Review Lead Times*
+  (`Admin\StepLeadTimeController`). It is never hardcoded in the engine, and a
+  change applies at once to documents already waiting.
+- **One clock, one class.** `App\Approval\StepDeadline` is the only place a
+  due time is worked out: the document's latest `document_transitions` row
+  (never `documents.updated_at`) plus the step's lead time, in PHP/Carbon so it
+  behaves the same on SQLite and Postgres. Every page gets
+  `StepDeadline::toArray()` under `deadline` (document page, review queues,
+  admin oldest-in-review, stuck documents) and shows it with `DueBadge`.
+  The older fixed `ReviewQueueData::tierFor()` / `ApproverQueue::waitTier()`
+  columns are separate and unchanged.
+- **One reminder log.** `document_reminders` records every reminder: `kind`
+  (`manual`, `automatic`, `overdue`, `sdao_overdue`), the `arrival_transition_id`
+  it was about (one row of history per visit to a step) and a `slot`. It is
+  unique on `(arrival_transition_id, slot)`, written *before* the notification,
+  so a restart or double run cannot send a slot twice.
+- **Automatic schedule** (`documents:send-step-reminders`, hourly via
+  `routes/console.php`; `App\Approval\AutomaticStepReminders`): the Nth
+  24 hour mark since the document reached the step sends the current
+  approver(s) a reminder, or an overdue alert once the lead time has passed.
+  It stops by itself when the approver acts (the document then has a newer
+  transition or has left the step). The first time a step is found overdue,
+  SDAO gets one `sdao_overdue` alert (slot 0, once per visit to the step).
+  All of it is `StuckDocumentReminderNotification` (mail + database), the same
+  class the manual button uses.
+- **Manual Remind** (SDAO only, Stuck Documents page): locked for 12 hours per
+  step visit, shared by all admins, and also after any automatic reminder or
+  overdue alert to that step's approver. The server enforces it
+  (`StuckDocumentReminders::cooldownsFor()`); the button only words it. A
+  manual row has no slot, so it never moves the automatic schedule. The
+  `sdao_overdue` alert never counts toward the cooldown.
+- **Deployment.** The scheduler needs a process. Add `php artisan schedule:work &`
+  to the Railway Custom Start Command, next to the `queue:work` it already
+  starts (or run `schedule:work` as a second service). `nixpacks.toml` has no
+  `[start]` block and must not get one. The migration
+  `2026_10_20_100000_add_lead_time_and_reminder_log_columns` runs with
+  `php artisan migrate --force` in the Pre-deploy Command.
+
+## Forms: required marks, uploads, SDG picker
+
+- **Required marks come from one place.** `Label required` / `FormField required`
+  draw the red asterisk (hidden from screen readers) and set `aria-required` on
+  the control; `RequiredNote` is the "* Required" legend, shown by `FormShell`.
+  Mark a field required only when the server rule is `required`.
+- **Every upload is capped at 2 MB** by `UploadLimits::MAX_FILE_KB`, used by
+  `AttachmentSlots` (validation and the `max_kb` the pages receive). The
+  frontend checks before uploading and shows "File is too large. Maximum size is
+  2 MB." with "Max 2 MB" under every upload input (`lib/upload.ts`).
+- **SDG picker** is `SdgGrid`: equal tiles, a real checkbox per goal, stored
+  values unchanged (`target_sdg[]` / calendar `sdg`).
+
 ## Production logging (Railway)
 
 - **Production errors reach Railway's logs only through `php-fpm.conf`** (repo

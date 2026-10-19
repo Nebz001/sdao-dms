@@ -9,6 +9,7 @@ use App\Approval\DocumentViewData;
 use App\Approval\ReviewQueueData;
 use App\Approval\SectionFlags;
 use App\Approval\StepApproverResolver;
+use App\Approval\StepDeadline;
 use App\Attachments\AttachmentSlots;
 use App\Calendar\VenueConflictChecker;
 use App\Enums\FormType;
@@ -138,6 +139,7 @@ class ActivityProposalReviewController extends Controller
             'waiting_days' => $days,
             'tier' => ReviewQueueData::tierFor($days),
             'step' => $this->stepInfo($d),
+            'deadline' => StepDeadline::for($d)?->toArray(),
             'extra' => $d->organization->school?->name,
             'college' => $d->organization->school?->name,
         ];

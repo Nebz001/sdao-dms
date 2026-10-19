@@ -1,6 +1,8 @@
 import { CircleCheck, CircleX, Clock, FileEdit, Hourglass, Undo2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import DueBadge from '@/components/due-badge';
+import type { StepDeadline } from '@/components/due-badge';
 import { cn } from '@/lib/utils';
 import { formatLongDate } from './format';
 import type { DocumentViewData } from './types';
@@ -66,6 +68,22 @@ export function StateBanner({
     );
 }
 
+/** "Due in 2 days" with the allotted time and due date beside it, for whoever is looking at the document. */
+function DeadlineLine({ deadline }: { deadline: StepDeadline | null | undefined }) {
+    if (!deadline) {
+        return null;
+    }
+
+    return (
+        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <DueBadge deadline={deadline} />
+            <span className="text-xs text-muted-foreground">
+                {deadline.leadTimeLabel} allotted for this step, due {deadline.dueDate}
+            </span>
+        </span>
+    );
+}
+
 type Props = {
     view: DocumentViewData;
     status: string;
@@ -119,6 +137,7 @@ function PanelBody({ view, status, noun, audience, canAct, hasApproved = false, 
                             Approved by {quorum.approvedBy.join(', ')} ({quorum.approvedBy.length} of {quorum.required}).
                         </>
                     )}
+                    <DeadlineLine deadline={waiting.deadline} />
                 </StateBanner>
                 {decision}
             </div>
@@ -167,6 +186,7 @@ function PanelBody({ view, status, noun, audience, canAct, hasApproved = false, 
                                   ? `Waiting on ${waiting.stepName.toLowerCase()} (step ${waiting.step} of ${waiting.totalSteps}). No action is needed from you.`
                                   : `Waiting on ${waiting.stepName.toLowerCase()} (step ${waiting.step} of ${waiting.totalSteps}).`
                               : `This ${noun} is moving through the approval flow.`}
+                        <DeadlineLine deadline={waiting?.deadline} />
                     </StateBanner>
                 </div>
             );

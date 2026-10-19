@@ -162,7 +162,7 @@ export default function DocumentView({
                     </div>
 
                     <div className="lg:col-start-2 lg:row-start-2">
-                        <FlowCard flow={view.flow} />
+                        <FlowCard flow={view.flow} deadline={view.waiting?.deadline ?? null} />
                     </div>
 
                     <div className="lg:col-start-2 lg:row-start-3 lg:self-start">

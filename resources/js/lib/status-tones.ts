@@ -24,6 +24,7 @@ export type StatusDomain =
     | 'requirement'
     | 'wait'
     | 'idle'
+    | 'deadline'
     | 'venue'
     | 'flag';
 
@@ -98,6 +99,12 @@ const TABLE: Record<StatusDomain, Record<string, Entry>> = {
         fresh: { tone: 'success', label: 'Recent' },
         aging: { tone: 'warning', label: 'Getting old' },
         stale: { tone: 'destructive', label: 'Overdue' },
+    },
+    // StepDeadline::state(): where the current step stands against its lead time
+    deadline: {
+        on_track: { tone: 'neutral', label: 'On track' },
+        due_soon: { tone: 'warning', label: 'Due soon' },
+        overdue: { tone: 'destructive', label: 'Overdue' },
     },
     // A venue booking on the calendar
     venue: {

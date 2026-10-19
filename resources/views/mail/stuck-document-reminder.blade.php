@@ -1,5 +1,32 @@
 <x-mail::message>
-@if ($toApprover)
+@if ($variant === 'sdao_overdue')
+# Overdue: review time has passed
+
+Hi {{ $recipientName }},
+
+A **{{ $formTypeLabel }}** from **{{ $organizationName }}** has been waiting {{ $idleText }} on **{{ $waitingOn }}**.
+That is {{ $overdueText }} past the {{ $leadTimeLabel }} allotted for this step.
+The approver has already been sent an overdue alert.
+
+> {{ $documentTitle }}
+
+<x-mail::button :url="$documentUrl">
+Open Document
+</x-mail::button>
+@elseif ($variant === 'overdue')
+# Overdue: your review is late
+
+Hi {{ $recipientName }},
+
+A **{{ $formTypeLabel }}** from **{{ $organizationName }}** has passed the {{ $leadTimeLabel }} allotted for your review.
+It is now {{ $overdueText }} overdue, and the officers cannot move on until you decide:
+
+> {{ $documentTitle }}
+
+<x-mail::button :url="$documentUrl">
+Review Now
+</x-mail::button>
+@elseif ($toApprover)
 # Reminder: review needed
 
 Hi {{ $recipientName }},

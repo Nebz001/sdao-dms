@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Inbox } from 'lucide-react';
 import AccountName from '@/components/account-name';
+import DueBadge from '@/components/due-badge';
 import TermBadge from '@/components/term-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -177,6 +178,20 @@ export function PendingTable({
                                       {r.step.name}
                                   </span>
                               </div>
+                          ) : (
+                              <span className="text-muted-foreground">—</span>
+                          ),
+                  },
+              ]
+            : []),
+        ...(rows.some((r) => r.deadline)
+            ? [
+                  {
+                      key: 'due',
+                      header: 'Due',
+                      cell: (r: QueueRow) =>
+                          r.deadline ? (
+                              <DueBadge deadline={r.deadline} />
                           ) : (
                               <span className="text-muted-foreground">—</span>
                           ),

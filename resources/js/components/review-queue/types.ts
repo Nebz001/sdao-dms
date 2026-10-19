@@ -1,3 +1,4 @@
+import type { StepDeadline } from '@/components/due-badge';
 export type WaitTier = 'fresh' | 'aging' | 'overdue';
 
 export type QueueRow = {
@@ -20,6 +21,8 @@ export type QueueRow = {
     href?: string;
     noun?: string;
     step?: { position: number; total: number; name: string } | null;
+    /** The current step against its lead time (StepDeadline::toArray()); null off the live queue. */
+    deadline?: StepDeadline | null;
 };
 
 export type QueueStats = {

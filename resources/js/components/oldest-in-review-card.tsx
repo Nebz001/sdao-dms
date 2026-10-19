@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { CircleCheck } from 'lucide-react';
+import DueBadge from '@/components/due-badge';
+import type { StepDeadline } from '@/components/due-badge';
 import IdleBadge from '@/components/idle-badge';
 import type { IdleTier } from '@/components/idle-badge';
 import OrganizationBadge from '@/components/organization-badge';
@@ -20,6 +22,8 @@ export type OldestDocument = {
     approverName: string;
     idleDays: number;
     tier: IdleTier;
+    /** The current step against its lead time; null when no step clock is running. */
+    deadline: StepDeadline | null;
     href: string;
 };
 
@@ -80,7 +84,10 @@ export default function OldestInReviewCard({ documents, viewAllHref }: OldestInR
                                         <span className="break-words">at {doc.approverName}</span>
                                     </div>
                                 </div>
-                                <IdleBadge days={doc.idleDays} tier={doc.tier} label="idle" />
+                                <div className="flex shrink-0 flex-col items-end gap-1">
+                                    <DueBadge deadline={doc.deadline} />
+                                    <IdleBadge days={doc.idleDays} tier={doc.tier} label="idle" />
+                                </div>
                             </li>
                         ))}
                     </ul>

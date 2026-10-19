@@ -15,7 +15,7 @@ const baseView: DocumentViewData = {
     history: [],
     remark: { canAdd: false, url: '/documents/1/remarks', maxLength: 1000 },
     flow: [],
-    waiting: { step: 3, totalSteps: 4, stepName: 'SDAO review', days: 3 },
+    waiting: { step: 3, totalSteps: 4, stepName: 'SDAO review', days: 3, deadline: null },
     quorum: null,
     record: { submittedBy: 'Miguel Torres', decidedBy: null, decidedOn: null, revisions: 0, timeToDecide: null },
 };

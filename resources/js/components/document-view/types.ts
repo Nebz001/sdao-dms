@@ -1,3 +1,4 @@
+import type { StepDeadline } from '@/components/due-badge';
 import type { FieldChanges } from '@/types/document-transitions';
 
 /** One event in the unified, newest-first history timeline. */
@@ -28,6 +29,9 @@ export type FlowNode = {
     state: FlowState;
     /** The current step, and the viewer is one of its approvers. */
     isYou: boolean;
+    /** Review steps only: the days this step is given, and the same in words ("3 days"). */
+    leadTimeDays?: number;
+    leadTimeLabel?: string;
 };
 
 /** Everything the shared document page needs that is not form-specific (App\Approval\DocumentViewData). */
@@ -45,6 +49,8 @@ export type DocumentViewData = {
         totalSteps: number;
         stepName: string;
         days: number;
+        /** Due or overdue against the step's lead time; seen by everyone who can see the document. */
+        deadline: StepDeadline | null;
     } | null;
     quorum: { required: number; approvedBy: string[] } | null;
     record: {

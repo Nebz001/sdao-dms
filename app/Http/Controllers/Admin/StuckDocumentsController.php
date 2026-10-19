@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Approval\Exceptions\ReminderNotAllowedException;
+use App\Approval\StepDeadline;
 use App\Approval\StuckDocumentReminders;
 use App\Dashboard\AdminAttentionData;
 use App\Dashboard\DocumentDisplayTitle;
@@ -82,12 +83,19 @@ class StuckDocumentsController extends Controller
             ->values();
 
         $documents = $this->paginate($request, $rows->all());
-        $cooldowns = $reminders->nextAvailableForMany(array_column($documents['data'], 'id'));
+        $cooldowns = $reminders->cooldownsFor(array_column($documents['data'], 'id'));
         $documents['data'] = array_map(fn (array $row) => [
             ...$row,
+            // Null when a reminder can go now. Otherwise when it unlocks, and
+            // when (and how) the last one went out, for the button's tooltip.
+            'remindAvailableAt' => isset($cooldowns[$row['id']]) ? $cooldowns[$row['id']]['availableAt']->toIso8601String() : null,
             'remindAvailableLabel' => isset($cooldowns[$row['id']])
-                ? DisplayTimezone::convert($cooldowns[$row['id']]->copy())->format('n/j/Y g:i A')
+                ? DisplayTimezone::convert($cooldowns[$row['id']]['availableAt']->copy())->format('n/j/Y g:i A')
                 : null,
+            'lastReminderLabel' => isset($cooldowns[$row['id']])
+                ? DisplayTimezone::convert($cooldowns[$row['id']]['lastSentAt']->copy())->format('n/j/Y g:i A')
+                : null,
+            'lastReminderKind' => $cooldowns[$row['id']]['kind'] ?? null,
         ], $documents['data']);
 
         return Inertia::render('admin/stuck-documents/index', [
@@ -164,6 +172,7 @@ class StuckDocumentsController extends Controller
         return [
             ...$this->commonFields($document, $row->idleDays),
             'state' => 'in_review',
+            'deadline' => StepDeadline::for($document)?->toArray(),
             // Who the Remind button will message, in words for its confirmation.
             'remindTo' => $row->isSdaoStep() ? 'the SDAO members who have not approved it yet' : $row->approverName,
             'waitingOn' => $row->approverName,
@@ -184,6 +193,8 @@ class StuckDocumentsController extends Controller
         return [
             ...$this->commonFields($document, InReviewSnapshot::idleDays($document)),
             'state' => 'returned',
+            'deadline' => null,
+            'deadline' => null,
             'remindTo' => "the president and secretary of {$document->organization->name}",
             'waitingOn' => 'The organization',
             'waitingOnLine' => 'Returned for revision',

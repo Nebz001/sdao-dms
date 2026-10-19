@@ -76,6 +76,7 @@ describe('OldestInReviewCard', () => {
             approverName: 'Dr. Maria Reyes',
             idleDays: 11,
             tier: 'stale' as const,
+            deadline: null,
             href: '/review/activity-proposals/1',
         },
     ];

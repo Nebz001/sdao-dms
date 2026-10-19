@@ -2,6 +2,7 @@
 
 namespace App\Dashboard;
 
+use App\Approval\StepDeadline;
 use App\Enums\AccountStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
@@ -206,6 +207,7 @@ class AdminAttentionData
             'approverName' => $row->approverName,
             'idleDays' => $row->idleDays,
             'tier' => $row->tier,
+            'deadline' => StepDeadline::for($row->document)?->toArray(),
             'href' => DocumentDisplayTitle::href($row->document),
         ])->values()->all();
     }

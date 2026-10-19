@@ -2,6 +2,7 @@
 export type NotificationKind =
     | 'approver_hand_off'
     | 'stuck_document_reminder'
+    | 'step_overdue'
     | 'document_outcome'
     | 'document_remark'
     | 'account_verified'

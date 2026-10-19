@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\OfficerChangeReviewController as AdminOfficerChan
 use App\Http\Controllers\Admin\OrganizationAdviserController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\PendingAccountController;
+use App\Http\Controllers\Admin\StepLeadTimeController;
 use App\Http\Controllers\Admin\StuckDocumentsController;
 use App\Http\Controllers\AfterActivityReportController;
 use App\Http\Controllers\AfterActivityReportReviewController;
@@ -289,6 +290,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // forward to a new term opens that term's renewal round.
         Route::get('/settings/period', [CurrentPeriodController::class, 'edit'])->name('settings.period.edit');
         Route::put('/settings/period', [CurrentPeriodController::class, 'update'])->name('settings.period.update');
+
+        // SDAO admin — how many days each approval step is given (lead time).
+        Route::get('/settings/lead-times', [StepLeadTimeController::class, 'edit'])->name('settings.lead-times.edit');
+        Route::put('/settings/lead-times', [StepLeadTimeController::class, 'update'])->name('settings.lead-times.update');
 
         // SDAO admin — every organization with its derived status
         // (App\Organizations\OrganizationStatusResolver) and requirements

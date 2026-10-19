@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { CalendarClock, CircleCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import DueBadge from '@/components/due-badge';
+import type { StepDeadline } from '@/components/due-badge';
 import { FormTypeLabelBadge } from '@/components/form-type-badge';
 import OrganizationBadge from '@/components/organization-badge';
 import PageHeader from '@/components/page-header';
@@ -58,7 +60,13 @@ type OpenDocument = {
     waitingOn: string;
     waitingOnLine: string;
     remindTo: string;
+    /** ISO time the Remind button unlocks; null when a reminder can go now. */
+    remindAvailableAt: string | null;
     remindAvailableLabel: string | null;
+    /** When the reminder that locked it went out, display time. */
+    lastReminderLabel: string | null;
+    lastReminderKind: string | null;
+    deadline: StepDeadline | null;
     sinceDate: string;
     idleDays: number;
     idleTone: Tone;
@@ -478,6 +486,11 @@ const columns: DataColumn<OpenDocument>[] = [
         cell: (r) => r.sinceDate,
     },
     {
+        key: 'due',
+        header: 'Due',
+        cell: (r) => (r.deadline ? <DueBadge deadline={r.deadline} /> : <span className="text-muted-foreground">—</span>),
+    },
+    {
         key: 'idle',
         header: 'Idle',
         slot: 'badge',
@@ -497,7 +510,9 @@ const columns: DataColumn<OpenDocument>[] = [
                 documentId={r.id}
                 documentTitle={r.title}
                 remindTo={r.remindTo}
-                availableLabel={r.remindAvailableLabel}
+                availableAt={r.remindAvailableAt}
+                lastSentLabel={r.lastReminderLabel}
+                lastSentKind={r.lastReminderKind}
             />
         ),
     },

@@ -12,11 +12,12 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Notification;
 
 /**
- * The reminder an admin sends from the Stuck Documents page, to whoever the
- * document is waiting on: its approver(s), or the organization's officers
- * when it was returned. Same two channels as ApproverHandOffNotification
- * (mail queued, bell row written synchronously), same single source of
- * wording (StuckDocumentReminderMail).
+ * The one notification for a document waiting on someone, whoever starts it:
+ * an SDAO admin's Remind button, the hourly scheduler's 24 hour reminder, the
+ * overdue alert to the approver, and the single overdue alert to SDAO. The
+ * `variant` picks the wording (see StuckDocumentReminderMail); everything else
+ * is shared. Same two channels as ApproverHandOffNotification (mail queued,
+ * bell row written synchronously), same single source of wording.
  */
 class StuckDocumentReminderNotification extends Notification implements ShouldQueue
 {
@@ -29,6 +30,10 @@ class StuckDocumentReminderNotification extends Notification implements ShouldQu
         public readonly Document $document,
         public readonly bool $toApprover,
         public readonly int $idleDays,
+        public readonly string $variant = StuckDocumentReminderMail::VARIANT_REMINDER,
+        public readonly int $overdueDays = 0,
+        public readonly string $leadTimeLabel = '',
+        public readonly ?string $waitingOn = null,
     ) {
         $this->document->loadMissing('organization');
     }
@@ -70,13 +75,17 @@ class StuckDocumentReminderNotification extends Notification implements ShouldQu
     public function toArray(object $notifiable): array
     {
         $mail = $this->mailFor($this->recipient($notifiable));
+        $overdue = $mail->isOverdueVariant();
 
         return [
-            'kind' => 'stuck_document_reminder',
+            'kind' => $overdue ? 'step_overdue' : 'stuck_document_reminder',
             'title' => $mail->subjectLine(),
-            'body' => $this->toApprover
-                ? "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name} \u{2022} waiting {$mail->idleText()}"
-                : "Returned for revision \u{2022} waiting {$mail->idleText()}",
+            'body' => match (true) {
+                $mail->variant === StuckDocumentReminderMail::VARIANT_SDAO_OVERDUE => "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name} \u{2022} {$mail->overdueText()} overdue",
+                $overdue => "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name} \u{2022} {$mail->overdueText()} overdue",
+                $this->toApprover => "{$this->document->form_type->label()} \u{2022} {$this->document->organization->name} \u{2022} waiting {$mail->idleText()}",
+                default => "Returned for revision \u{2022} waiting {$mail->idleText()}",
+            },
             'url' => $this->toApprover
                 ? DocumentUrls::pathForReviewer($this->document)
                 : DocumentUrls::pathForSubmitter($this->document),
@@ -90,7 +99,16 @@ class StuckDocumentReminderNotification extends Notification implements ShouldQu
 
     private function mailFor(User $recipient): StuckDocumentReminderMail
     {
-        return new StuckDocumentReminderMail($recipient, $this->document, $this->toApprover, $this->idleDays);
+        return new StuckDocumentReminderMail(
+            $recipient,
+            $this->document,
+            $this->toApprover,
+            $this->idleDays,
+            $this->variant,
+            $this->overdueDays,
+            $this->leadTimeLabel,
+            $this->waitingOn,
+        );
     }
 
     private function recipient(object $notifiable): User

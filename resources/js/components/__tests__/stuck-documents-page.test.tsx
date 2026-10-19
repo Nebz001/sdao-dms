@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import StuckDocumentsIndex from '@/pages/admin/stuck-documents/index';
 
 vi.mock('@inertiajs/react', () => ({
@@ -28,7 +29,11 @@ const row = {
     waitingOn: 'Carolyn D. Matira',
     waitingOnLine: 'Dean, step 3 of 4',
     remindTo: 'Carolyn D. Matira',
+    remindAvailableAt: null,
     remindAvailableLabel: null,
+    lastReminderLabel: null,
+    lastReminderKind: null,
+    deadline: null,
     sinceDate: '9/24/2026',
     idleDays: 9,
     idleTone: 'warning' as const,
@@ -91,17 +96,21 @@ describe('Stuck Documents page', () => {
         }
     });
 
-    it('disables Remind and says when the next one can go while a document is on its cooldown', () => {
+    it('disables Remind and shows the time left while a document is on its cooldown', () => {
         const base = props();
-        const documents = { ...base.documents!, data: [{ ...row, remindAvailableLabel: '9/17/2026 8:00 PM' }] };
-        render(<StuckDocumentsIndex {...base} documents={documents} />);
+        const unlocksAt = new Date(Date.now() + 5 * 3_600_000).toISOString();
+        const documents = {
+            ...base.documents!,
+            data: [{ ...row, remindAvailableAt: unlocksAt, remindAvailableLabel: '9/17/2026 8:00 PM', lastReminderLabel: '9/17/2026 8:00 AM', lastReminderKind: 'automatic' }],
+        };
+        render(<TooltipProvider><StuckDocumentsIndex {...base} documents={documents} /></TooltipProvider>);
 
-        const buttons = screen.getAllByRole('button', { name: /^Remind/ });
+        const buttons = screen.getAllByRole('button', { name: /^Remind again in 5h/ });
         expect(buttons.every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
-        expect(screen.getAllByText('Again after 9/17/2026 8:00 PM').length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/The last reminder was sent automatically on 9\/17\/2026 8:00 AM/).length).toBeGreaterThan(0);
     });
 
-    it('keeps Remind enabled when no reminder was sent in the last day', () => {
+    it('keeps Remind enabled when no reminder is locking it', () => {
         render(<StuckDocumentsIndex {...props()} />);
 
         const buttons = screen.getAllByRole('button', { name: /^Remind/ });

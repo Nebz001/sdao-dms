@@ -11,6 +11,7 @@ import {
     UserCheck,
     UserPlus,
     UserRoundCog,
+    Timer,
     Users,
     TriangleAlert,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import * as adminDashboard from '@/routes/admin/dashboard';
 import * as adminOfficerChangeRequests from '@/routes/admin/officer-change-requests';
 import * as adminOrganizations from '@/routes/admin/organizations';
 import * as pendingAccounts from '@/routes/admin/pending-accounts';
+import * as leadTimeSettings from '@/routes/admin/settings/lead-times';
 import * as currentPeriodSettings from '@/routes/admin/settings/period';
 import * as stuckDocuments from '@/routes/admin/stuck-documents';
 import * as calendar from '@/routes/calendar';
@@ -361,6 +363,11 @@ export function buildNavSections(
                 title: 'Current Period',
                 href: currentPeriodSettings.edit(),
                 icon: CalendarCog,
+            },
+            {
+                title: 'Review Lead Times',
+                href: leadTimeSettings.edit(),
+                icon: Timer,
             },
         );
     }

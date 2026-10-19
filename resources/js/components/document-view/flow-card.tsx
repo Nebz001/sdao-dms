@@ -1,5 +1,7 @@
 import { Check, X } from 'lucide-react';
 import AccountName from '@/components/account-name';
+import DueBadge from '@/components/due-badge';
+import type { StepDeadline } from '@/components/due-badge';
 import { ToneBadge } from '@/components/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
@@ -44,7 +46,7 @@ function Marker({ node, index }: { node: FlowNode; index: number }) {
 }
 
 /** Every step of the approval flow, in order, with who acts on it and when it was done. */
-export default function FlowCard({ flow }: { flow: FlowNode[] }) {
+export default function FlowCard({ flow, deadline = null }: { flow: FlowNode[]; deadline?: StepDeadline | null }) {
     return (
         <Card>
             <CardHeading title="Approval flow" />
@@ -82,6 +84,10 @@ export default function FlowCard({ flow }: { flow: FlowNode[] }) {
                                         </p>
                                     )}
                                     {date && <p className="text-xs text-muted-foreground">{date}</p>}
+                                    {node.leadTimeLabel && (
+                                        <p className="text-xs text-muted-foreground">{node.leadTimeLabel} allotted to review</p>
+                                    )}
+                                    {node.state === 'current' && deadline && <DueBadge deadline={deadline} className="mt-1 self-start" />}
                                     {node.isYou && (
                                         <ToneBadge tone="neutral" className={cn(BRAND_TINT_OUTLINE, 'mt-1 self-start')}>
                                             You are here
