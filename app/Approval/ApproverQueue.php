@@ -56,6 +56,7 @@ class ApproverQueue
             'organization',
             'workflowTemplate.steps',
             'latestTransition',
+            'stepArrivalTransition',
             ...$with,
         ]));
 

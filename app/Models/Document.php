@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DocumentStatus;
 use App\Enums\FormType;
 use App\Enums\ProposalVariant;
+use App\Enums\TransitionAction;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -127,6 +128,28 @@ class Document extends Model
     public function latestTransition(): HasOne
     {
         return $this->hasOne(DocumentTransition::class)->latestOfMany('created_at');
+    }
+
+    /**
+     * The transition that put the document into its current visit to a step:
+     * Submitted, Advanced (the step below passed it up) or Resubmitted (a
+     * return came back to the step that issued it). A partial approval
+     * (Approved, the first of SDAO's two) is deliberately not one, so it does
+     * not restart the step's lead-time clock or its reminder schedule. See
+     * StepDeadline.
+     *
+     * @return HasOne<DocumentTransition, $this>
+     */
+    public function stepArrivalTransition(): HasOne
+    {
+        return $this->hasOne(DocumentTransition::class)->ofMany(
+            ['created_at' => 'max', 'id' => 'max'],
+            fn (Builder $query) => $query->whereIn('action', [
+                TransitionAction::Submitted->value,
+                TransitionAction::Advanced->value,
+                TransitionAction::Resubmitted->value,
+            ]),
+        );
     }
 
     /** @return HasOne<OrganizationRegistrationDetail, $this> */

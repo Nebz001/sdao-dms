@@ -115,10 +115,10 @@ class StuckDocumentReminders
         }
 
         $arrivals = Document::query()
-            ->with('latestTransition')
+            ->with('stepArrivalTransition')
             ->whereIn('id', $documentIds)
             ->get()
-            ->mapWithKeys(fn (Document $document) => [$document->id => $document->latestTransition?->id]);
+            ->mapWithKeys(fn (Document $document) => [$document->id => StepDeadline::arrivalFor($document)?->id]);
 
         $recent = DocumentReminder::query()
             ->whereIn('document_id', $documentIds)
@@ -235,7 +235,7 @@ class StuckDocumentReminders
             'sent_by' => $sentBy,
             'kind' => $kind,
             'step_position' => $document->status === DocumentStatus::InReview ? $document->current_step_position : null,
-            'arrival_transition_id' => $document->latestTransition?->id,
+            'arrival_transition_id' => StepDeadline::arrivalFor($document)?->id,
             'slot' => $slot,
             'recipient_count' => $recipientCount,
             'created_at' => now(),

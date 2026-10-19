@@ -137,6 +137,7 @@ class InReviewSnapshot
                 'organization.program',
                 'workflowTemplate.steps',
                 'latestTransition',
+                'stepArrivalTransition',
             ])
             ->where('status', DocumentStatus::InReview->value)
             ->get()

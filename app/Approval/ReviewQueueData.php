@@ -69,7 +69,8 @@ class ReviewQueueData
         $now = Date::now();
 
         return Document::query()
-            ->with(['organization.school', 'transitions', 'latestTransition', 'workflowTemplate.steps', ...DocumentDisplayTitle::relations(), ...$this->with])
+            ->with(['organization.school', 'transitions', 'latestTransition',
+                'stepArrivalTransition', 'workflowTemplate.steps', ...DocumentDisplayTitle::relations(), ...$this->with])
             ->where('form_type', $this->formType->value)
             ->where('status', DocumentStatus::InReview->value)
             // Defensive: a submitter-less document must never reach the queue

@@ -13,13 +13,15 @@ use Illuminate\Support\Facades\Date;
 /**
  * When the approver holding a document's current step is due to act.
  *
- * The clock starts when the document reached the step: its latest
- * document_transitions row, never documents.updated_at (see
- * Document::latestTransition()). The due time is that moment plus the step's
+ * The clock starts when the document first arrived at the step: the
+ * transition that moved it into this visit to the step (Submitted, Advanced or
+ * Resubmitted; see Document::stepArrivalTransition()), never documents.updated_at
+ * and never a later partial approval. A return and resubmit is a new visit, so
+ * it starts a fresh clock. The due time is that moment plus the step's
  * lead_time_days. All of the arithmetic is Carbon, in PHP, so it behaves the
  * same on SQLite and Postgres.
  *
- * Needs `workflowTemplate.steps` and `latestTransition` on the document;
+ * Needs `workflowTemplate.steps` and `stepArrivalTransition` on the document;
  * eager-load them when building a list (for() loads what is missing).
  */
 final readonly class StepDeadline
@@ -51,16 +53,33 @@ final readonly class StepDeadline
             return null;
         }
 
-        $document->loadMissing('workflowTemplate.steps', 'latestTransition');
+        $document->loadMissing('workflowTemplate.steps');
 
         $step = $document->workflowTemplate?->steps->firstWhere('position', $document->current_step_position);
-        $arrival = $document->latestTransition;
+        $arrival = self::arrivalFor($document);
 
         if (! $step instanceof WorkflowStep || ! $arrival instanceof DocumentTransition) {
             return null;
         }
 
         return self::from($step, $arrival, $now);
+    }
+
+    /**
+     * The transition that began the document's current visit to its step. A
+     * hand-built row with none falls back to its newest transition.
+     */
+    public static function arrivalFor(Document $document): ?DocumentTransition
+    {
+        $document->loadMissing('stepArrivalTransition');
+
+        if ($document->stepArrivalTransition instanceof DocumentTransition) {
+            return $document->stepArrivalTransition;
+        }
+
+        $document->loadMissing('latestTransition');
+
+        return $document->latestTransition;
     }
 
     public static function from(WorkflowStep $step, DocumentTransition $arrival, ?CarbonInterface $now = null): self

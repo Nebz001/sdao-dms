@@ -572,9 +572,12 @@ approximate these.
   (`Admin\StepLeadTimeController`). It is never hardcoded in the engine, and a
   change applies at once to documents already waiting.
 - **One clock, one class.** `App\Approval\StepDeadline` is the only place a
-  due time is worked out: the document's latest `document_transitions` row
-  (never `documents.updated_at`) plus the step's lead time, in PHP/Carbon so it
-  behaves the same on SQLite and Postgres. Every page gets
+  due time is worked out: the transition that began the document's current
+  visit to the step (`Document::stepArrivalTransition()`: Submitted, Advanced
+  or Resubmitted; never `documents.updated_at`, and never a later partial
+  approval) plus the step's lead time, in PHP/Carbon so it behaves the same on
+  SQLite and Postgres. A partial SDAO approval does not restart the clock or
+  the reminder schedule; a return and resubmit is a new visit and does. Every page gets
   `StepDeadline::toArray()` under `deadline` (document page, review queues,
   admin oldest-in-review, stuck documents) and shows it with `DueBadge`.
   The older fixed `ReviewQueueData::tierFor()` / `ApproverQueue::waitTier()`
@@ -588,9 +591,12 @@ approximate these.
   `routes/console.php`; `App\Approval\AutomaticStepReminders`): the Nth
   24 hour mark since the document reached the step sends the current
   approver(s) a reminder, or an overdue alert once the lead time has passed.
-  It stops by itself when the approver acts (the document then has a newer
-  transition or has left the step). The first time a step is found overdue,
-  SDAO gets one `sdao_overdue` alert (slot 0, once per visit to the step).
+  It stops by itself when the approver acts, and an SDAO member who already
+  approved is left out. Each run sends at most one reminder per document and
+  visit, for the CURRENT 24 hour slot only: it never catches up on slots a
+  first deploy, downtime or a stopped scheduler skipped, so a document that
+  waited 10 days gets one overdue alert, not ten. The first time a step is
+  found overdue, SDAO gets one `sdao_overdue` alert (slot 0, once per visit).
   All of it is `StuckDocumentReminderNotification` (mail + database), the same
   class the manual button uses.
 - **Manual Remind** (SDAO only, Stuck Documents page): locked for 12 hours per

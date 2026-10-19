@@ -76,7 +76,7 @@ class AutomaticStepReminders
 
             // The same lock a manual Remind takes, so the two cannot interleave.
             $document = Document::query()
-                ->with(['organization', 'workflowTemplate.steps', 'latestTransition'])
+                ->with(['organization', 'workflowTemplate.steps', 'stepArrivalTransition', 'latestTransition'])
                 ->whereKey($documentId)
                 ->lockForUpdate()
                 ->first();
@@ -113,15 +113,21 @@ class AutomaticStepReminders
     }
 
     /**
-     * Sends SDAO the one overdue alert for this visit to the step. People who
-     * already got the overdue reminder as the approver (the SDAO step itself)
-     * are left out, so nobody is told twice.
+     * Sends SDAO admins the one overdue alert for this visit to the step.
+     * On the SDAO step itself it goes to no one extra (see below), but is still
+     * recorded so it stays once per visit.
      *
      * @param  Collection<int, User>  $approvers
      */
     private function alertSdao(Document $document, StepDeadline $deadline, Collection $approvers): bool
     {
-        $audience = $this->directory->sdaoMembers()->reject(fn (User $user) => $approvers->contains('id', $user->id))->values();
+        // On the SDAO step the approvers ARE the SDAO members, so there is no one
+        // else to tell: those who have not acted got the overdue reminder, and
+        // those who have are not nagged about a step they finished.
+        $step = $document->workflowTemplate?->steps->firstWhere('position', $document->current_step_position);
+        $audience = $step?->role === Role::SdaoMember
+            ? collect()
+            : $this->directory->sdaoMembers()->values();
 
         if (! $this->claim($document, DocumentReminder::KIND_SDAO_OVERDUE, $audience->count(), self::SDAO_ALERT_SLOT)) {
             return false;
@@ -148,7 +154,7 @@ class AutomaticStepReminders
      */
     private function claim(Document $document, string $kind, int $recipientCount, int $slot): bool
     {
-        $arrivalId = $document->latestTransition?->id;
+        $arrivalId = StepDeadline::arrivalFor($document)?->id;
 
         $taken = DocumentReminder::query()
             ->where('arrival_transition_id', $arrivalId)
