@@ -242,7 +242,7 @@ function ReportFix({
                                         }
                                     >
                                         <FormField
-                                            id="summary"
+                                            id="summary" required
                                             label="Summary"
                                             error={errors.summary}
                                         >
@@ -265,7 +265,7 @@ function ReportFix({
                                             )}
                                         </FormField>
                                         <FormField
-                                            id="event_program"
+                                            id="event_program" required
                                             label="Program"
                                             error={errors.event_program}
                                         >
@@ -411,7 +411,7 @@ function ReportFix({
                                             </Button>
                                         </fieldset>
                                         <FormField
-                                            id="prepared_by"
+                                            id="prepared_by" required
                                             label="Prepared by"
                                             error={errors.prepared_by}
                                         >
@@ -497,7 +497,7 @@ function ReportFix({
                                         </FormField>
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <FormField
-                                                id="target_participants_percentage"
+                                                id="target_participants_percentage" required
                                                 label="Target participants reached"
                                                 error={
                                                     errors.target_participants_percentage

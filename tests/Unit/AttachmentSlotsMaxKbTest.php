@@ -2,6 +2,7 @@
 
 use App\Attachments\AttachmentSlots;
 use App\Enums\FormType;
+use App\Support\UploadLimits;
 
 /*
  * A large file used to only be rejected server-side, after a full upload
@@ -17,7 +18,7 @@ test('slotsFor() exposes the document max_kb for a single-file slot', function (
 
     foreach ($slots as $slot) {
         expect($slot['multiple'])->toBeFalse();
-        expect($slot['max_kb'])->toBe(10240);
+        expect($slot['max_kb'])->toBe(UploadLimits::MAX_FILE_KB);
     }
 });
 
@@ -27,5 +28,27 @@ test('slotsFor() exposes the photo max_kb for a multi-file slot', function () {
 
     expect($photos)->not->toBeNull();
     expect($photos['multiple'])->toBeTrue();
-    expect($photos['max_kb'])->toBe(5120);
+    expect($photos['max_kb'])->toBe(UploadLimits::MAX_FILE_KB);
+});
+
+test('the shared upload ceiling is 2 MB and every slot rule enforces it', function () {
+    expect(UploadLimits::MAX_FILE_KB)->toBe(2048);
+    expect(UploadLimits::fileTooLargeMessage())->toBe('File is too large. Maximum size is 2 MB.');
+
+    foreach (FormType::cases() as $formType) {
+        foreach (AttachmentSlots::validationRules($formType, requiredAtWrite: true) as $key => $rules) {
+            if (str_ends_with($key, '.*') || ! collect($rules)->contains(fn ($rule) => is_string($rule) && str_starts_with($rule, 'mimes:'))) {
+                continue;
+            }
+
+            expect($rules)->toContain('max:2048');
+        }
+    }
+});
+
+test('every slot has the shared too-large message', function () {
+    $messages = AttachmentSlots::validationMessages(FormType::AfterActivityReport);
+
+    expect($messages)->toHaveKey('attachments.photos.*.max', 'File is too large. Maximum size is 2 MB.');
+    expect($messages['attachments.photos.*.max'])->toBe(UploadLimits::fileTooLargeMessage());
 });

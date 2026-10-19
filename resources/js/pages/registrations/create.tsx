@@ -171,7 +171,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                     />
 
                     <FormSection title="About the organization">
-                        <FormField id="name" label="Organization name" error={errors.name}>
+                        <FormField id="name" required label="Organization name" error={errors.name}>
                             {(aria) => (
                                 <Input
                                     id="name"
@@ -184,7 +184,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                         </FormField>
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <FormField id="organization_type" label="Type of organization" error={errors.organization_type}>
+                            <FormField id="organization_type" required label="Type of organization" error={errors.organization_type}>
                                 {(aria) => (
                                     <Select
                                         value={organizationType}
@@ -214,7 +214,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                                 )}
                             </FormField>
 
-                            <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                            <FormField id="date_organized" required label="Date organized" error={errors.date_organized}>
                                 {(aria) => (
                                     <Input
                                         id="date_organized"
@@ -227,7 +227,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                             </FormField>
 
                             {needsCollege && (
-                                <FormField id="college" label="College" error={errors.school_id}>
+                                <FormField id="college" required label="College" error={errors.school_id}>
                                     {(aria) => (
                                         <Select
                                             value={schoolId}
@@ -252,7 +252,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                             )}
 
                             {needsProgram && (
-                                <FormField id="program" label="Program" error={errors.program_id}>
+                                <FormField id="program" required label="Program" error={errors.program_id}>
                                     {(aria) => (
                                         <Select value={programId} onValueChange={setProgramId}>
                                             <SelectTrigger id="program" className="w-full" {...aria}>
@@ -271,7 +271,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                             )}
                         </div>
 
-                        <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                        <FormField id="purpose_of_organization" required label="Purpose" error={errors.purpose_of_organization}>
                             {(aria) => (
                                 <Textarea
                                     id="purpose_of_organization"
@@ -287,7 +287,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
 
                     <FormSection title="Adviser">
                         <FormField
-                            id="adviser"
+                            id="adviser" required
                             label="Faculty adviser"
                             error={errors.adviser_id}
                             helper="SDAO will confirm your adviser"
@@ -305,7 +305,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                     </FormSection>
 
                     <FormSection title="Contact">
-                        <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                        <FormField id="contact_person" required label="Contact person" error={errors.contact_person}>
                             {(aria) => (
                                 <Input
                                     id="contact_person"
@@ -317,7 +317,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                             )}
                         </FormField>
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                            <FormField id="contact_no" required label="Contact number" error={errors.contact_no}>
                                 {(aria) => (
                                     <Input
                                         id="contact_no"
@@ -329,7 +329,7 @@ export default function CreateRegistration({ canPropose, blocked, schools, organ
                                     />
                                 )}
                             </FormField>
-                            <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                            <FormField id="email_address" required label="Organization email" error={errors.email_address}>
                                 {(aria) => (
                                     <Input
                                         id="email_address"

@@ -50,4 +50,14 @@ class StoreRenewalRequest extends FormRequest
             ...AttachmentSlots::validationAttributes(FormType::OrganizationRenewal),
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            ...AttachmentSlots::validationMessages(FormType::OrganizationRenewal),
+        ];
+    }
 }

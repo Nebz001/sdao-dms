@@ -14,6 +14,21 @@ namespace App\Support;
  */
 class UploadLimits
 {
+    /** The ceiling for every single uploaded file, in kilobytes (Laravel's `max` unit). Change it here only. */
+    public const int MAX_FILE_KB = 2048;
+
+    /** The ceiling in whole megabytes, for display. */
+    public static function maxFileMb(): int
+    {
+        return intdiv(self::MAX_FILE_KB, 1024);
+    }
+
+    /** The message shown for a file over the ceiling, server and client alike. */
+    public static function fileTooLargeMessage(): string
+    {
+        return 'File is too large. Maximum size is '.self::maxFileMb().' MB.';
+    }
+
     /**
      * The effective `post_max_size` in whole megabytes (floored). Falls back
      * to a sane default if the directive is empty or set to 0 (unlimited).

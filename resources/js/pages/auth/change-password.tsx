@@ -1,6 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import ChangeTemporaryPasswordController from '@/actions/App/Http/Controllers/Settings/ChangeTemporaryPasswordController';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageNotice from '@/components/page-notice';
 import PasswordInput from '@/components/password-input';
@@ -24,14 +25,15 @@ export default function ChangePassword({ passwordRules }: Props) {
             >
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
+                        <RequiredNote />
                         <PageNotice tone="info" icon={KeyRound} title="You are using a temporary password.">
                             Set a new one to continue. You will stay logged in.
                         </PageNotice>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="current_password">Temporary password</Label>
+                            <Label htmlFor="current_password" required>Temporary password</Label>
                             <PasswordInput
-                                id="current_password"
+                                id="current_password" aria-required
                                 name="current_password"
                                 autoComplete="current-password"
                                 autoFocus
@@ -42,9 +44,9 @@ export default function ChangePassword({ passwordRules }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">New password</Label>
+                            <Label htmlFor="password" required>New password</Label>
                             <PasswordInput
-                                id="password"
+                                id="password" aria-required
                                 name="password"
                                 autoComplete="new-password"
                                 required
@@ -55,9 +57,9 @@ export default function ChangePassword({ passwordRules }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">Confirm new password</Label>
+                            <Label htmlFor="password_confirmation" required>Confirm new password</Label>
                             <PasswordInput
-                                id="password_confirmation"
+                                id="password_confirmation" aria-required
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 required

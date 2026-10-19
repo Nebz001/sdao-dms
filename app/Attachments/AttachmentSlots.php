@@ -4,6 +4,7 @@ namespace App\Attachments;
 
 use App\Enums\FormType;
 use App\Models\Document;
+use App\Support\UploadLimits;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 
@@ -18,12 +19,12 @@ class AttachmentSlots
     /** Document-style slots (letters, forms, statements): PDF or a scanned/photographed image. */
     private const array DOCUMENT_MIMES = ['pdf', 'jpg', 'jpeg', 'png'];
 
-    private const int DOCUMENT_MAX_KB = 10240; // 10 MB
+    private const int DOCUMENT_MAX_KB = UploadLimits::MAX_FILE_KB;
 
     /** Photo slots: images only. */
     private const array PHOTO_MIMES = ['jpg', 'jpeg', 'png', 'webp'];
 
-    private const int PHOTO_MAX_KB = 5120; // 5 MB
+    private const int PHOTO_MAX_KB = UploadLimits::MAX_FILE_KB;
 
     private const int PHOTO_MAX_COUNT = 10;
 
@@ -154,6 +155,24 @@ class AttachmentSlots
         }
 
         return $attributes;
+    }
+
+    /**
+     * The shared "too large" message for every slot, keyed the way
+     * validationRules() keys them. Merge into a FormRequest's messages().
+     *
+     * @return array<string, string>
+     */
+    public static function validationMessages(FormType $formType, ?int $step = null): array
+    {
+        $messages = [];
+
+        foreach (self::for($formType, $step) as $slot) {
+            $key = $slot->multiple ? "attachments.{$slot->key}.*.max" : "attachments.{$slot->key}.max";
+            $messages[$key] = UploadLimits::fileTooLargeMessage();
+        }
+
+        return $messages;
     }
 
     /**

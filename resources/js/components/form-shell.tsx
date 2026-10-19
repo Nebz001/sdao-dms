@@ -5,7 +5,7 @@ import CenteredContainer from '@/components/centered-container';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Label, RequiredMark } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,6 +16,19 @@ import { cn } from '@/lib/utils';
  * prop, which is what lines the "Back to …" link up with the card's left edge.
  */
 export const FORM_COLUMN_WIDTH = '3xl' as const;
+
+/** "* Required" legend for the top of a form. The asterisk matches the one Label draws. */
+export function RequiredNote({ className }: { className?: string }) {
+    return (
+        <p className={cn('text-xs text-muted-foreground', className)}>
+            <span
+                aria-hidden="true"
+                className="text-destructive after:content-['*']"
+            />{' '}
+            Required
+        </p>
+    );
+}
 
 export function FormShell({
     title,
@@ -37,6 +50,7 @@ export function FormShell({
             <div className="space-y-4">
                 <PageHeader title={title} subtitle={subtitle} />
                 {steps && <FormStepper steps={steps} current={currentStep} />}
+                <RequiredNote />
             </div>
             {children}
         </CenteredContainer>
@@ -152,10 +166,13 @@ export function FormStrip({
 export function FormSection({
     title,
     aside,
+    required = false,
     children,
     className,
 }: {
     title: string;
+    /** Draws the asterisk next to the heading for a section that must be filled in. */
+    required?: boolean;
     /** Small muted text at the end of the heading row ("Pick at least one"). */
     aside?: ReactNode;
     children: ReactNode;
@@ -164,7 +181,7 @@ export function FormSection({
     return (
         <section className="space-y-4 border-b px-5 py-5 last:border-b-0 sm:px-6">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <h2 className="text-base font-semibold">{title}</h2>
+                <h2 className="text-base font-semibold">{title}{required && <RequiredMark />}</h2>
                 {aside && (
                     <p className="text-xs text-muted-foreground" aria-live="polite">
                         {aside}
@@ -187,6 +204,7 @@ export function FormField({
     id,
     label,
     optional = false,
+    required = false,
     helper,
     helperAbove = false,
     error,
@@ -196,6 +214,8 @@ export function FormField({
     id: string;
     label: ReactNode;
     optional?: boolean;
+    /** Draws the asterisk and sets aria-required on the control. Mirror the server rule. */
+    required?: boolean;
     helper?: ReactNode;
     /** Puts the helper between the label and the control (attachment slots). */
     helperAbove?: boolean;
@@ -204,6 +224,7 @@ export function FormField({
     children: (aria: {
         'aria-describedby': string | undefined;
         'aria-invalid': true | undefined;
+        'aria-required': true | undefined;
     }) => ReactNode;
 }) {
     const helperId = helper ? `${id}-helper` : undefined;
@@ -218,7 +239,7 @@ export function FormField({
         <div
             className={cn('grid grid-cols-[minmax(0,1fr)] gap-1.5', className)}
         >
-            <Label htmlFor={id} className="leading-snug">
+            <Label htmlFor={id} required={required} className="leading-snug">
                 {label}
                 {optional && (
                     <span className="ml-1.5 text-xs font-normal text-muted-foreground">
@@ -231,6 +252,7 @@ export function FormField({
                 'aria-describedby':
                     [helperId, errorId].filter(Boolean).join(' ') || undefined,
                 'aria-invalid': error ? true : undefined,
+                'aria-required': required ? true : undefined,
             })}
             {!helperAbove && helperNode}
             <InputError id={errorId} message={error} />

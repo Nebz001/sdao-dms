@@ -32,9 +32,9 @@ vi.mock('@inertiajs/react', () => ({
 }));
 
 const slots = [
-    { key: 'letter_of_intent', label: 'Letter of Intent', required: true, multiple: false, accept: '.pdf', max_kb: 10240 },
-    { key: 'application_form', label: 'Application Form', required: true, multiple: false, accept: '.pdf', max_kb: 10240 },
-    { key: 'by_laws', label: 'By-Laws', required: true, multiple: false, accept: '.pdf', max_kb: 10240 },
+    { key: 'letter_of_intent', label: 'Letter of Intent', required: true, multiple: false, accept: '.pdf', max_kb: 2048 },
+    { key: 'application_form', label: 'Application Form', required: true, multiple: false, accept: '.pdf', max_kb: 2048 },
+    { key: 'by_laws', label: 'By-Laws', required: true, multiple: false, accept: '.pdf', max_kb: 2048 },
 ];
 
 const types = [
@@ -50,11 +50,11 @@ describe('requirements list', () => {
     afterEach(cleanup);
 
     it('summarizes real counts and the real size limit', () => {
-        expect(requirementsSummary(slots, {})).toBe('0 of 3 uploaded · PDF up to 10 MB each');
-        expect(requirementsSummary(slots, { letter_of_intent: pdf('a.pdf') })).toBe('1 of 3 uploaded · PDF up to 10 MB each');
+        expect(requirementsSummary(slots, {})).toBe('0 of 3 uploaded · PDF up to 2 MB each');
+        expect(requirementsSummary(slots, { letter_of_intent: pdf('a.pdf') })).toBe('1 of 3 uploaded · PDF up to 2 MB each');
         expect(
             requirementsSummary(slots, {}, { by_laws: [{ id: 1, original_filename: 'b.pdf', download_url: '', preview_url: '' }] }),
-        ).toBe('1 of 3 uploaded · PDF up to 10 MB each');
+        ).toBe('1 of 3 uploaded · PDF up to 2 MB each');
     });
 
     it('numbers each row, turns an uploaded row green with its file name, and offers Replace', async () => {
@@ -83,7 +83,7 @@ describe('requirements list', () => {
         const big = pdf('huge.pdf');
         Object.defineProperty(big, 'size', { value: 11 * 1024 * 1024 });
         await user.upload(document.getElementById('attachment-by_laws') as HTMLInputElement, big);
-        expect(screen.getByText(/"huge.pdf" is too large/)).toBeInTheDocument();
+        expect(screen.getByText("File is too large. Maximum size is 2 MB.")).toBeInTheDocument();
 
         await user.upload(
             document.getElementById('attachment-application_form') as HTMLInputElement,
@@ -119,10 +119,10 @@ describe('Register a New Organization', () => {
             expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
         }
 
-        expect(screen.getByText('0 of 3 uploaded · PDF up to 10 MB each')).toBeInTheDocument();
+        expect(screen.getByText('0 of 3 uploaded · PDF up to 2 MB each')).toBeInTheDocument();
 
         await user.upload(document.getElementById('attachment-by_laws') as HTMLInputElement, pdf('Bylaws.pdf'));
-        expect(screen.getByText('1 of 3 uploaded · PDF up to 10 MB each')).toBeInTheDocument();
+        expect(screen.getByText('1 of 3 uploaded · PDF up to 2 MB each')).toBeInTheDocument();
         expect(screen.getByText('Bylaws.pdf')).toBeInTheDocument();
     });
 
@@ -191,7 +191,7 @@ describe('Renew Your Organization', () => {
         expect(screen.getByText('Can’t be changed in a renewal')).toBeInTheDocument();
         expect(screen.getByLabelText('Contact person')).toHaveValue('Carl Andrew');
         expect(screen.getByLabelText('Purpose')).toHaveValue('Grow skills.');
-        expect(screen.getByText('0 of 3 uploaded · PDF up to 10 MB each')).toBeInTheDocument();
+        expect(screen.getByText('0 of 3 uploaded · PDF up to 2 MB each')).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Adviser' })).not.toBeInTheDocument();
     });
 

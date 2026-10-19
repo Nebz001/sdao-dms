@@ -79,7 +79,7 @@ async function fillForm(
     set('Start time', '13:00');
     set('End time', '16:00');
     await user.click(
-        screen.getByRole('button', { name: 'SDG 4: Quality Education' }),
+        screen.getByRole('checkbox', { name: 'SDG 4: Quality Education' }),
     );
     set('Participants or program', 'All members');
     set('Budget', '3000');

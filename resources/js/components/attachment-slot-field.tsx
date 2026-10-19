@@ -3,6 +3,7 @@ import { AttachmentPreviewLink } from '@/components/attachment-preview';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { fileTooLargeMessage, formatMaxSize } from '@/lib/upload';
 
 export type AttachmentSlotDef = {
     key: string;
@@ -37,13 +38,6 @@ type Props = {
     onFilesChange?: (files: FileList | null) => void;
 };
 
-/** "10240 KB" -> "10 MB" — slot.max_kb is always a whole number of MB in practice. */
-function formatMaxSize(maxKb: number): string {
-    const mb = maxKb / 1024;
-
-    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
-}
-
 /**
  * Phase 2 item 8, Mode A — one file-input field for a bundled attachment
  * slot, rendered inside the form's existing <Form>/native form so the file
@@ -70,7 +64,7 @@ export default function AttachmentSlotField({ slot, existing = [], error, onFile
         const oversized = files ? Array.from(files).find((file) => file.size > maxBytes) : undefined;
 
         if (oversized) {
-            setSizeError(`"${oversized.name}" is too large — this field accepts files up to ${formatMaxSize(slot.max_kb)}.`);
+            setSizeError(fileTooLargeMessage(slot.max_kb));
 
             if (inputRef.current) {
                 inputRef.current.value = '';
@@ -87,7 +81,7 @@ export default function AttachmentSlotField({ slot, existing = [], error, onFile
 
     return (
         <div className="grid gap-2">
-            <Label htmlFor={slot.key}>
+            <Label htmlFor={slot.key} required={slot.required}>
                 {slot.label}
                 {!slot.required && <span className="ml-1 font-normal text-muted-foreground">(optional)</span>}
             </Label>
@@ -110,11 +104,12 @@ export default function AttachmentSlotField({ slot, existing = [], error, onFile
                 accept={slot.accept}
                 multiple={slot.multiple}
                 required={isNativeRequired}
+                aria-required={slot.required ? true : undefined}
                 onChange={handleChange}
             />
             <p className="text-xs text-muted-foreground">
                 {existing.length > 0 && (slot.multiple ? 'Selecting files adds to the ones above. ' : 'Selecting a file replaces the one above. ')}
-                Max {formatMaxSize(slot.max_kb)} per file.
+                Max {formatMaxSize(slot.max_kb)}{slot.multiple ? ' per file' : ''}.
             </p>
             <InputError message={sizeError ?? error} />
         </div>

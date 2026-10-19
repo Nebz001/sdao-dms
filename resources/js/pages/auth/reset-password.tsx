@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -25,10 +26,11 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
             >
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
+                        <RequiredNote />
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email" required>Email</Label>
                             <Input
-                                id="email"
+                                id="email" aria-required
                                 type="email"
                                 name="email"
                                 autoComplete="email"
@@ -43,9 +45,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password" required>Password</Label>
                             <PasswordInput
-                                id="password"
+                                id="password" aria-required
                                 name="password"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
@@ -57,11 +59,11 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">
+                            <Label htmlFor="password_confirmation" required>
                                 Confirm password
                             </Label>
                             <PasswordInput
-                                id="password_confirmation"
+                                id="password_confirmation" aria-required
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"

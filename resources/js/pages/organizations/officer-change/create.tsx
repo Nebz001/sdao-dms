@@ -16,6 +16,7 @@ import PageNotice from '@/components/page-notice';
 import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RequiredMark } from '@/components/ui/label';
 import { RadioGroup, RadioGroupOption } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
@@ -258,6 +259,7 @@ export default function RequestOfficerChange({
                             <fieldset className="grid gap-1.5">
                                 <legend className="mb-1.5 text-sm leading-snug font-medium">
                                     Which position?
+                                    <RequiredMark />
                                 </legend>
                                 <RadioGroup className="grid-cols-1 sm:grid-cols-2">
                                     {positions.map((p) => {
@@ -313,6 +315,7 @@ export default function RequestOfficerChange({
 
                             <FormField
                                 id="nominee-search"
+                                required
                                 label="Who should take this position?"
                                 error={fieldErrors.nominee_id}
                             >

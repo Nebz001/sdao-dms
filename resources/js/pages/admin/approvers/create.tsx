@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ApproverController from '@/actions/App/Http/Controllers/Admin/ApproverController';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
@@ -135,11 +136,12 @@ export default function CreateApprover({ roles, schools, programs, organizations
                 <PageHeader title="Provision Approver" subtitle="Creates the account with a one time password and emails it to the approver. They must change it the first time they log in." />
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <RequiredNote />
                     <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="first_name">First name</Label>
+                            <Label htmlFor="first_name" required>First name</Label>
                             <Input
-                                id="first_name"
+                                id="first_name" aria-required
                                 name="first_name"
                                 required
                                 maxLength={100}
@@ -151,9 +153,9 @@ export default function CreateApprover({ roles, schools, programs, organizations
                             <InputError message={form.errors.first_name} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="last_name">Last name</Label>
+                            <Label htmlFor="last_name" required>Last name</Label>
                             <Input
-                                id="last_name"
+                                id="last_name" aria-required
                                 name="last_name"
                                 required
                                 maxLength={100}
@@ -167,9 +169,9 @@ export default function CreateApprover({ roles, schools, programs, organizations
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" required>Email</Label>
                         <Input
-                            id="email"
+                            id="email" aria-required
                             type="email"
                             name="email"
                             required
@@ -199,9 +201,9 @@ export default function CreateApprover({ roles, schools, programs, organizations
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="role">Role</Label>
+                        <Label htmlFor="role" required>Role</Label>
                         <Select name="role" required value={form.data.role} onValueChange={handleRoleChange}>
-                            <SelectTrigger id="role" className="w-full">
+                            <SelectTrigger id="role" aria-required className="w-full">
                                 <SelectValue placeholder="Select role…" />
                             </SelectTrigger>
                             <SelectContent>
@@ -219,14 +221,14 @@ export default function CreateApprover({ roles, schools, programs, organizations
 
                     {scopeType === 'school' && (
                         <div className="grid gap-2">
-                            <Label htmlFor="school_id">School</Label>
+                            <Label htmlFor="school_id" required>School</Label>
                             <Select
                                 name="school_id"
                                 required
                                 value={form.data.school_id}
                                 onValueChange={(value) => form.setData('school_id', value)}
                             >
-                                <SelectTrigger id="school_id" className="w-full">
+                                <SelectTrigger id="school_id" aria-required className="w-full">
                                     <SelectValue placeholder="Select school…" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -245,14 +247,14 @@ export default function CreateApprover({ roles, schools, programs, organizations
 
                     {scopeType === 'program' && (
                         <div className="grid gap-2">
-                            <Label htmlFor="program_id">Program</Label>
+                            <Label htmlFor="program_id" required>Program</Label>
                             <Select
                                 name="program_id"
                                 required
                                 value={form.data.program_id}
                                 onValueChange={(value) => form.setData('program_id', value)}
                             >
-                                <SelectTrigger id="program_id" className="w-full">
+                                <SelectTrigger id="program_id" aria-required className="w-full">
                                     <SelectValue placeholder="Select program…" />
                                 </SelectTrigger>
                                 <SelectContent>

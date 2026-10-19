@@ -10,6 +10,7 @@ import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import { AddonInput, FormField, FormSection } from '@/components/form-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RequiredMark } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { FlaggedRevisionProps } from '@/types';
 
@@ -91,7 +92,7 @@ export default function ReportFormSections({
                     'summary_program',
                     <>
                         <FormField
-                            id="summary"
+                            id="summary" required
                             label="Summary"
                             error={errors.summary}
                         >
@@ -107,7 +108,7 @@ export default function ReportFormSections({
                             )}
                         </FormField>
                         <FormField
-                            id="event_program"
+                            id="event_program" required
                             label="Program"
                             error={errors.event_program}
                         >
@@ -153,7 +154,7 @@ export default function ReportFormSections({
                     'evaluation',
                     <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
-                            id="target_participants_percentage"
+                            id="target_participants_percentage" required
                             label="Target participants reached"
                             error={errors.target_participants_percentage}
                         >
@@ -211,6 +212,7 @@ export default function ReportFormSections({
                         <fieldset className="grid gap-2">
                             <legend className="mb-1.5 text-sm leading-snug font-medium">
                                 Activity chairs
+                                <RequiredMark />
                             </legend>
                             {chairs.map((chair, index) => {
                                 const chairError =
@@ -237,6 +239,7 @@ export default function ReportFormSections({
                                                 }
                                                 placeholder="Full name"
                                                 aria-label={`Activity chair ${index + 1}`}
+                                                aria-required
                                                 aria-invalid={
                                                     chairError ? true : undefined
                                                 }
@@ -287,7 +290,7 @@ export default function ReportFormSections({
                         </fieldset>
 
                         <FormField
-                            id="prepared_by"
+                            id="prepared_by" required
                             label="Prepared by"
                             error={errors.prepared_by}
                             helper="Filled in with your name. Change it if someone else prepared the report."

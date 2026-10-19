@@ -6,6 +6,7 @@ import OrganizationOfficerController from '@/actions/App/Http/Controllers/Organi
 import AccountName from '@/components/account-name';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
@@ -209,10 +210,11 @@ export default function OfficersIndex({ organization, memberships, students, sea
                         >
                             {({ processing, errors }) => (
                                 <>
+                                    <RequiredNote />
                                     <div className="grid gap-2">
-                                        <Label htmlFor="user_id">Student</Label>
+                                        <Label htmlFor="user_id" required>Student</Label>
                                         <Select name="user_id" required>
-                                            <SelectTrigger id="user_id" className="w-full">
+                                            <SelectTrigger id="user_id" aria-required className="w-full">
                                                 <SelectValue placeholder="Select student…" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -236,9 +238,9 @@ export default function OfficersIndex({ organization, memberships, students, sea
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="position">Position</Label>
+                                        <Label htmlFor="position" required>Position</Label>
                                         <Select name="position" required>
-                                            <SelectTrigger id="position" className="w-full">
+                                            <SelectTrigger id="position" aria-required className="w-full">
                                                 <SelectValue placeholder="Select position…" />
                                             </SelectTrigger>
                                             <SelectContent>

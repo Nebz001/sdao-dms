@@ -219,3 +219,22 @@ test('download is authorized for the submitter and the reviewing SDAO member, fo
     $this->actingAs($sdaoA)->get(route('attachments.download', $attachment))->assertOk();
     $this->actingAs($outsider)->get(route('attachments.download', $attachment))->assertForbidden();
 });
+
+test('a file over 2 MB is refused with the shared message, and exactly 2 MB is accepted', function () {
+    $student = User::factory()->create();
+    $adviser = unboundAdviserForAttachmentsTest();
+
+    $submit = function (int $kilobytes) use ($student, $adviser) {
+        $files = registrationAttachmentFiles();
+        $files['letter_of_intent'] = UploadedFile::fake()->create('letter.pdf', $kilobytes, 'application/pdf');
+
+        return $this->actingAs($student)->post(route('registrations.store'), array_merge(
+            foundingRegistrationPayload(['school_id' => $this->school->id, 'program_id' => attachmentsTestProgramId(), 'adviser_id' => $adviser->id]),
+            ['attachments' => $files],
+        ));
+    };
+
+    $submit(2049)->assertInvalid(['attachments.letter_of_intent' => 'File is too large. Maximum size is 2 MB.']);
+
+    $submit(2048)->assertValid(['attachments.letter_of_intent']);
+});

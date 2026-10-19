@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageNotice from '@/components/page-notice';
 import PasswordInput from '@/components/password-input';
@@ -76,10 +77,11 @@ export default function Login({ status, canResetPassword, retryAfterSeconds }: P
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            <RequiredNote />
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email" required>Email address</Label>
                                 <Input
-                                    id="email"
+                                    id="email" aria-required
                                     type="email"
                                     name="email"
                                     required
@@ -93,7 +95,7 @@ export default function Login({ status, canResetPassword, retryAfterSeconds }: P
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password" required>Password</Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -105,7 +107,7 @@ export default function Login({ status, canResetPassword, retryAfterSeconds }: P
                                     )}
                                 </div>
                                 <PasswordInput
-                                    id="password"
+                                    id="password" aria-required
                                     name="password"
                                     required
                                     tabIndex={2}

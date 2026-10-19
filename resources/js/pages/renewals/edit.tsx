@@ -193,7 +193,7 @@ function RenewalFix({
                                 }
                             >
                                 <FormField
-                                    id="date_organized"
+                                    id="date_organized" required
                                     label="Date organized"
                                     error={errors.date_organized}
                                 >
@@ -215,7 +215,7 @@ function RenewalFix({
                                     )}
                                 </FormField>
                                 <FormField
-                                    id="purpose_of_organization"
+                                    id="purpose_of_organization" required
                                     label="Purpose"
                                     error={errors.purpose_of_organization}
                                 >
@@ -266,7 +266,7 @@ function RenewalFix({
                                 }
                             >
                                 <FormField
-                                    id="contact_person"
+                                    id="contact_person" required
                                     label="Contact person"
                                     error={errors.contact_person}
                                 >
@@ -288,7 +288,7 @@ function RenewalFix({
                                 </FormField>
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <FormField
-                                        id="contact_no"
+                                        id="contact_no" required
                                         label="Contact number"
                                         error={errors.contact_no}
                                     >
@@ -310,7 +310,7 @@ function RenewalFix({
                                         )}
                                     </FormField>
                                     <FormField
-                                        id="email_address"
+                                        id="email_address" required
                                         label="Organization email"
                                         error={errors.email_address}
                                     >

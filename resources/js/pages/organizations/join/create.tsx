@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import BlockedState from '@/components/blocked-state';
 import CenteredContainer from '@/components/centered-container';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
@@ -149,10 +150,12 @@ export default function JoinOrganization({
             <CenteredContainer maxWidth="2xl" className="space-y-6">
                 <PageHeader title="Join an Organization" subtitle="Search for your organization and send a request to join" />
 
+                <RequiredNote />
+
                 <div className="grid gap-2">
-                    <Label htmlFor="organization-search">Organization</Label>
+                    <Label htmlFor="organization-search" required>Organization</Label>
                     <Input
-                        id="organization-search"
+                        id="organization-search" aria-required
                         placeholder="Search by organization name…"
                         value={query}
                         onChange={(e) => {

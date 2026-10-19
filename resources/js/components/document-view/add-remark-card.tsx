@@ -3,6 +3,7 @@ import { MessageSquarePlus } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
@@ -46,15 +47,16 @@ export default function AddRemarkCard({ remark }: { remark: DocumentViewData['re
                     Leave a note on this document. The organization&apos;s officers are told, and its status does not
                     change.
                 </CardDescription>
+                <RequiredNote />
                 <div className="flex flex-col gap-2">
                     <div className="flex items-baseline justify-between gap-3">
-                        <Label htmlFor="document-remark">Remark</Label>
+                        <Label htmlFor="document-remark" required>Remark</Label>
                         <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
                             {body.length}/{remark.maxLength}
                         </span>
                     </div>
                     <Textarea
-                        id="document-remark"
+                        id="document-remark" aria-required
                         rows={3}
                         value={body}
                         maxLength={remark.maxLength}

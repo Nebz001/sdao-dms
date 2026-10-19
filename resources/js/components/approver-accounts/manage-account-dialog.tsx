@@ -2,6 +2,7 @@ import { Form, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Admin/AccountController';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import { FlagBadge, ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -137,13 +138,15 @@ export default function ManageAccountDialog({
                     >
                         {({ processing, errors }) => (
                             <>
+                                <RequiredNote />
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor={`first-name-${account.id}`}>
+                                        <Label htmlFor={`first-name-${account.id}`} required>
                                             First name
                                         </Label>
                                         <Input
                                             id={`first-name-${account.id}`}
+                                            aria-required
                                             name="first_name"
                                             defaultValue={account.first_name ?? ''}
                                             required
@@ -155,11 +158,12 @@ export default function ManageAccountDialog({
                                         <InputError message={errors.first_name} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor={`last-name-${account.id}`}>
+                                        <Label htmlFor={`last-name-${account.id}`} required>
                                             Last name
                                         </Label>
                                         <Input
                                             id={`last-name-${account.id}`}
+                                            aria-required
                                             name="last_name"
                                             defaultValue={account.last_name ?? ''}
                                             required

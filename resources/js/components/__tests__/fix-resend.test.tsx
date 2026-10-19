@@ -64,7 +64,7 @@ const slots = [
         required: true,
         multiple: false,
         accept: '.pdf',
-        max_kb: 10240,
+        max_kb: 2048,
     },
     {
         key: 'by_laws',
@@ -72,7 +72,7 @@ const slots = [
         required: true,
         multiple: false,
         accept: '.pdf',
-        max_kb: 10240,
+        max_kb: 2048,
     },
 ];
 const existing = {
@@ -396,7 +396,7 @@ describe('Fix and Resend: a returned after-activity report', () => {
             required: true,
             multiple: true,
             accept: '.jpg,.png',
-            max_kb: 5120,
+            max_kb: 2048,
         },
         {
             key: 'attendance_sheet',
@@ -404,7 +404,7 @@ describe('Fix and Resend: a returned after-activity report', () => {
             required: true,
             multiple: false,
             accept: '.pdf',
-            max_kb: 10240,
+            max_kb: 2048,
         },
     ];
 
@@ -576,7 +576,7 @@ describe('Fix and Resend: a returned activity proposal', () => {
                         required: true,
                         multiple: false,
                         accept: '.pdf',
-                        max_kb: 10240,
+                        max_kb: 2048,
                     },
                 ]}
                 attachments={{

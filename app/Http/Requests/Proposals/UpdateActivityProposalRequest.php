@@ -121,6 +121,7 @@ class UpdateActivityProposalRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...AttachmentSlots::validationMessages(FormType::ActivityProposal, step: 1),
             'partner_organizations.*.organization_id.exists' => 'That organization no longer exists. Clear the entry and search again, or type the name as free text.',
         ];
     }

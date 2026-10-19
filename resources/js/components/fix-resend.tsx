@@ -34,6 +34,7 @@ import { needText, progressText } from '@/lib/fix-resend';
 import type { FixDraftValues, FixItem, FixProps } from '@/lib/fix-resend';
 import { xsrfToken } from '@/lib/notifications';
 import { notify } from '@/lib/toast';
+import { fileTooLargeMessage, formatMaxSize } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 
 type FixState = {
@@ -453,8 +454,7 @@ export function FlaggedFile({
     const inputRef = useRef<HTMLInputElement>(null);
     const [localError, setLocalError] = useState<string | null>(null);
     const shownError = localError ?? error;
-    const maxMb = slot.max_kb / 1024;
-    const maxLabel = `${Number.isInteger(maxMb) ? maxMb : maxMb.toFixed(1)} MB`;
+    const maxLabel = formatMaxSize(slot.max_kb);
     const extensions = slot.accept
         .split(',')
         .map((part) => part.trim().replace(/^\./, '').toLowerCase())
@@ -480,7 +480,7 @@ export function FlaggedFile({
         if (refused) {
             setLocalError(
                 refused.size > slot.max_kb * 1024
-                    ? `"${refused.name}" is too large. This requirement accepts files up to ${maxLabel}.`
+                    ? fileTooLargeMessage(slot.max_kb)
                     : `"${refused.name}" is not an accepted file type. Use ${extensions.join(', ').toUpperCase()}.`,
             );
             event.target.value = '';
@@ -590,9 +590,9 @@ export function FlaggedFile({
                         </p>
                         <p className="text-xs text-muted-foreground">
                             {extensions.length > 0
-                                ? `${extensions.join(', ').toUpperCase()}, `
+                                ? `${extensions.join(', ').toUpperCase()}. `
                                 : ''}
-                            up to {maxLabel}
+                            Max {maxLabel}
                             {slot.multiple ? ' each' : ''}
                         </p>
                     </div>

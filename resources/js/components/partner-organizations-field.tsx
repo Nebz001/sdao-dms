@@ -70,7 +70,7 @@ export default function PartnerOrganizationsField({
     return (
         <div className="space-y-1">
             <div className="flex items-center justify-between">
-                <Label>Partner Organization(s)/School(s)/RSO</Label>
+                <Label required>Partner Organization(s)/School(s)/RSO</Label>
                 <Button
                     type="button"
                     variant="outline"

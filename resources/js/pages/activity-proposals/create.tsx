@@ -16,10 +16,11 @@ import {
 } from '@/components/form-shell';
 import PageNotice from '@/components/page-notice';
 import PartnerOrganizationChips from '@/components/partner-organization-chips';
-import SdgChipGroup from '@/components/sdg-chip-group';
+import SdgGrid from '@/components/sdg-grid';
 import { NotAnOfficerBlocked } from '@/components/student-blocked';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RequiredMark } from '@/components/ui/label';
 import { RadioGroup, RadioGroupOption } from '@/components/ui/radio-group';
 import {
     Select,
@@ -233,8 +234,9 @@ export default function CreateActivityProposal({
                                     <legend className="mb-1.5 text-sm leading-snug font-medium">
                                         Is this activity in your activity
                                         calendar?
+                                        <RequiredMark />
                                     </legend>
-                                    <RadioGroup className="grid-cols-1 sm:grid-cols-2">
+                                    <RadioGroup aria-required="true" className="grid-cols-1 sm:grid-cols-2">
                                         {calendarModes.map((mode) => (
                                             <RadioGroupOption
                                                 key={mode.value}
@@ -266,7 +268,7 @@ export default function CreateActivityProposal({
 
                                 {isOnCalendar ? (
                                     <FormField
-                                        id="calendar_activity_id"
+                                        id="calendar_activity_id" required
                                         label="Calendar activity"
                                         error={errors.calendar_activity_id}
                                     >
@@ -318,7 +320,7 @@ export default function CreateActivityProposal({
                                     </FormField>
                                 ) : (
                                     <FormField
-                                        id="title"
+                                        id="title" required
                                         label="Title of activity"
                                         error={errors.title}
                                     >
@@ -339,7 +341,7 @@ export default function CreateActivityProposal({
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <FormField
-                                        id="activity_nature"
+                                        id="activity_nature" required
                                         label="Nature of activity"
                                         error={errors.activity_nature}
                                     >
@@ -371,7 +373,7 @@ export default function CreateActivityProposal({
                                     </FormField>
 
                                     <FormField
-                                        id="activity_type"
+                                        id="activity_type" required
                                         label="Type of activity"
                                         error={errors.activity_type}
                                     >
@@ -404,7 +406,7 @@ export default function CreateActivityProposal({
 
                                     {activityNature === 'others' && (
                                         <FormField
-                                            id="activity_nature_other"
+                                            id="activity_nature_other" required
                                             label="Please specify the nature"
                                             error={errors.activity_nature_other}
                                         >
@@ -425,7 +427,7 @@ export default function CreateActivityProposal({
                                     )}
                                     {activityType === 'others' && (
                                         <FormField
-                                            id="activity_type_other"
+                                            id="activity_type_other" required
                                             label="Please specify the type"
                                             error={errors.activity_type_other}
                                             className={cn(
@@ -456,7 +458,7 @@ export default function CreateActivityProposal({
                             {!isOnCalendar && (
                                 <FormSection title="When and where">
                                     <FormField
-                                        id="venue"
+                                        id="venue" required
                                         label="Venue"
                                         error={errors.venue}
                                         helper={
@@ -504,7 +506,7 @@ export default function CreateActivityProposal({
 
                                     <div className="grid gap-4 sm:grid-cols-3">
                                         <FormField
-                                            id="activity_date"
+                                            id="activity_date" required
                                             label="Date"
                                             error={errors.activity_date}
                                         >
@@ -525,7 +527,7 @@ export default function CreateActivityProposal({
                                             )}
                                         </FormField>
                                         <FormField
-                                            id="start_time"
+                                            id="start_time" required
                                             label="Start time"
                                             error={errors.start_time}
                                         >
@@ -543,7 +545,7 @@ export default function CreateActivityProposal({
                                             )}
                                         </FormField>
                                         <FormField
-                                            id="end_time"
+                                            id="end_time" required
                                             label="End time"
                                             error={errors.end_time}
                                         >
@@ -624,7 +626,9 @@ export default function CreateActivityProposal({
                                     </>
                                 }
                             >
-                                <SdgChipGroup
+                                <SdgGrid
+                                    idPrefix="target-sdg"
+                                    name="target_sdg[]"
                                     label="Target SDGs, pick one or more"
                                     describedBy={
                                         errors.target_sdg ? 'sdg-error' : undefined
@@ -644,7 +648,7 @@ export default function CreateActivityProposal({
                             <FormSection title="Budget">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <FormField
-                                        id="proposed_budget"
+                                        id="proposed_budget" required
                                         label="Proposed budget"
                                         error={errors.proposed_budget}
                                     >
@@ -678,7 +682,7 @@ export default function CreateActivityProposal({
                                     </FormField>
 
                                     <FormField
-                                        id="budget_source"
+                                        id="budget_source" required
                                         label="Budget source"
                                         error={errors.budget_source}
                                     >

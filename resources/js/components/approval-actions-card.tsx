@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import ConfirmDialog from '@/components/confirm-dialog';
 import type { ConfirmActions } from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,10 +95,11 @@ export default function ApprovalActionsCard({
                             </CardHeader>
                             <CardContent className="flex flex-col gap-5">
                                 {returnConfig.flagFields}
+                                <RequiredNote />
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="return-comment">Message to the organization</Label>
+                                    <Label htmlFor="return-comment" required>Message to the organization</Label>
                                     <Textarea
-                                        id="return-comment"
+                                        id="return-comment" aria-required
                                         name="comment"
                                         placeholder={returnConfig.placeholder}
                                         rows={4}
@@ -181,13 +183,21 @@ export default function ApprovalActionsCard({
                         <Form {...reject.formProps} options={{ preserveScroll: true }} onSuccess={close}>
                             {({ processing, errors }) => (
                                 <>
+                                    <div className="grid gap-2">
+                                        <RequiredNote />
+                                        <Label htmlFor="reject-comment" required>
+                                        Reason for rejection
+                                    </Label>
                                     <Textarea
+                                        id="reject-comment"
                                         name="comment"
                                         placeholder={reject.placeholder ?? 'Reason for rejection…'}
                                         rows={3}
                                         required
+                                        aria-required
                                     />
                                     <InputError message={errors.comment} />
+                                    </div>
                                     <DialogFooter className="mt-4 gap-2">
                                         <DialogClose asChild>
                                             <Button type="button" variant="secondary" disabled={processing}>

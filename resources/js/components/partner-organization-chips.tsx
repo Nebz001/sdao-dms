@@ -21,6 +21,8 @@ type Props = {
     helper?: string;
     /** Marks the label "optional" (the server rule decides whether it is). */
     optional?: boolean;
+    /** The server requires at least one partner on a proposal. */
+    required?: boolean;
 };
 
 const SEARCH_DELAY_MS = 400;
@@ -42,6 +44,7 @@ export default function PartnerOrganizationChips({
     label = 'Partner organizations, schools, or RSOs',
     helper,
     optional = false,
+    required = true,
 }: Props) {
     const inputId = useId();
     const listId = `${inputId}-results`;
@@ -190,6 +193,7 @@ export default function PartnerOrganizationChips({
             id={inputId}
             label={label}
             optional={optional}
+            required={required && !optional}
             helper={helper}
             error={errorMessage}
         >

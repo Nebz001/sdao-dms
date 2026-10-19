@@ -59,7 +59,7 @@ const props = {
             required: true,
             multiple: false,
             accept: '.pdf',
-            max_kb: 10240,
+            max_kb: 2048,
         },
         {
             key: 'resume_of_resource_person',
@@ -67,7 +67,7 @@ const props = {
             required: false,
             multiple: false,
             accept: '.pdf',
-            max_kb: 10240,
+            max_kb: 2048,
         },
     ],
 };
@@ -156,7 +156,7 @@ describe('New Activity Proposal, step 1', () => {
         await user.type(screen.getByLabelText('Title of activity'), 'Leadership Summit');
         await user.type(screen.getByLabelText('Venue'), 'NU Lipa Gym');
         await user.type(screen.getByLabelText('Proposed budget'), '1500');
-        await user.click(screen.getByRole('button', { name: /Zero Hunger/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Zero Hunger/ }));
 
         await user.click(screen.getByRole('radio', { name: /Yes, on calendar/ }));
         await user.click(screen.getByRole('radio', { name: /No, off calendar/ }));
@@ -164,10 +164,7 @@ describe('New Activity Proposal, step 1', () => {
         expect(screen.getByLabelText('Title of activity')).toHaveValue('Leadership Summit');
         expect(screen.getByLabelText('Venue')).toHaveValue('NU Lipa Gym');
         expect(screen.getByLabelText('Proposed budget')).toHaveValue(1500);
-        expect(screen.getByRole('button', { name: /Zero Hunger/ })).toHaveAttribute(
-            'aria-pressed',
-            'true',
-        );
+        expect(screen.getByRole('checkbox', { name: /Zero Hunger/ })).toBeChecked();
     }, 20000);
 
     it('counts the selected SDGs live and submits each one', async () => {
@@ -177,25 +174,19 @@ describe('New Activity Proposal, step 1', () => {
 
         expect(screen.getByText(/0 selected/)).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: /No Poverty/ }));
-        await user.click(screen.getByRole('button', { name: /Good Health/ }));
+        await user.click(screen.getByRole('checkbox', { name: /No Poverty/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Good Health/ }));
 
         expect(screen.getByText(/2 selected/)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /No Poverty/ })).toHaveAttribute(
-            'aria-pressed',
-            'true',
-        );
-        expect(screen.getByRole('button', { name: /Zero Hunger/ })).toHaveAttribute(
-            'aria-pressed',
-            'false',
-        );
+        expect(screen.getByRole('checkbox', { name: /No Poverty/ })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /Zero Hunger/ })).not.toBeChecked();
 
         const submitted = Array.from(
             container.querySelectorAll<HTMLInputElement>('input[name="target_sdg[]"]'),
-        ).map((input) => input.value);
+        ).filter((input) => input.checked).map((input) => input.value);
         expect(submitted).toEqual(['no_poverty', 'good_health']);
 
-        await user.click(screen.getByRole('button', { name: /No Poverty/ }));
+        await user.click(screen.getByRole('checkbox', { name: /No Poverty/ }));
         expect(screen.getByText(/1 selected/)).toBeInTheDocument();
     });
 

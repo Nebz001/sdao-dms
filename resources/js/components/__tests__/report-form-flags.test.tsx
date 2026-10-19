@@ -59,7 +59,7 @@ const slots = [
         required: true,
         multiple: true,
         accept: '.jpg,.png',
-        max_kb: 5120,
+        max_kb: 2048,
     },
     {
         key: 'attendance_sheet',
@@ -67,7 +67,7 @@ const slots = [
         required: true,
         multiple: false,
         accept: '.pdf',
-        max_kb: 10240,
+        max_kb: 2048,
     },
 ];
 

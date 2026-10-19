@@ -1,5 +1,6 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { useState } from 'react';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,10 +70,11 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             onSubmit={handleSubmit}
             className="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
         >
+            <RequiredNote />
             <div className="grid gap-2">
-                <Label htmlFor="passkey-name">Passkey name</Label>
+                <Label htmlFor="passkey-name" required>Passkey name</Label>
                 <Input
-                    id="passkey-name"
+                    id="passkey-name" aria-required
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}

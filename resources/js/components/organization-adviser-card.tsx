@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ApproverController from '@/actions/App/Http/Controllers/Admin/ApproverController';
 import OrganizationAdviserController from '@/actions/App/Http/Controllers/Admin/OrganizationAdviserController';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageNotice from '@/components/page-notice';
 import DataTable from '@/components/review-queue/data-table';
@@ -253,8 +254,11 @@ function ChangeAdviserDialog({
                                     }
                                 />
 
+                                <RequiredNote />
+
+
                                 <div className="grid gap-2">
-                                    <Label htmlFor="pool-adviser">
+                                    <Label htmlFor="pool-adviser" required>
                                         Unassigned adviser
                                     </Label>
                                     <Select
@@ -262,7 +266,7 @@ function ChangeAdviserDialog({
                                         onValueChange={setAdviserId}
                                     >
                                         <SelectTrigger
-                                            id="pool-adviser"
+                                            id="pool-adviser" aria-required
                                             className="w-full"
                                             aria-invalid={
                                                 errors.adviser_id ||

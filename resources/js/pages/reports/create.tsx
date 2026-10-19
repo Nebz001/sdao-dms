@@ -153,7 +153,7 @@ export default function CreateReport({
                                     value={activityId}
                                 />
                                 <FormField
-                                    id="activity_proposal_id"
+                                    id="activity_proposal_id" required
                                     label="Approved activity"
                                     error={errors.activity_proposal_id}
                                 >

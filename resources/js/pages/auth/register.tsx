@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { FolderPlus, Users } from 'lucide-react';
 import { useState } from 'react';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import PasswordRuleHint from '@/components/password-rule-hint';
@@ -55,6 +56,7 @@ export default function Register({ passwordRules }: Props) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            <RequiredNote />
                             <div className="grid gap-2">
                                 <Label id="intended-path-label">
                                     What do you want to do?
@@ -83,9 +85,9 @@ export default function Register({ passwordRules }: Props) {
 
                             <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="first_name">First name</Label>
+                                    <Label htmlFor="first_name" required>First name</Label>
                                     <Input
-                                        id="first_name"
+                                        id="first_name" aria-required
                                         type="text"
                                         required
                                         autoFocus
@@ -98,9 +100,9 @@ export default function Register({ passwordRules }: Props) {
                                     <InputError message={errors.first_name} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="last_name">Last name</Label>
+                                    <Label htmlFor="last_name" required>Last name</Label>
                                     <Input
-                                        id="last_name"
+                                        id="last_name" aria-required
                                         type="text"
                                         required
                                         autoComplete="family-name"
@@ -114,9 +116,9 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">School email</Label>
+                                <Label htmlFor="email" required>School email</Label>
                                 <Input
-                                    id="email"
+                                    id="email" aria-required
                                     type="email"
                                     required
                                     autoComplete="email"
@@ -130,11 +132,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="id_number">
+                                <Label htmlFor="id_number" required>
                                     Student ID number
                                 </Label>
                                 <Input
-                                    id="id_number"
+                                    id="id_number" aria-required
                                     type="text"
                                     inputMode="numeric"
                                     required
@@ -153,9 +155,9 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password" required>Password</Label>
                                 <PasswordInput
-                                    id="password"
+                                    id="password" aria-required
                                     required
                                     autoComplete="new-password"
                                     name="password"
@@ -171,11 +173,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                                <Label htmlFor="password_confirmation" required>
                                     Confirm password
                                 </Label>
                                 <PasswordInput
-                                    id="password_confirmation"
+                                    id="password_confirmation" aria-required
                                     required
                                     autoComplete="new-password"
                                     name="password_confirmation"

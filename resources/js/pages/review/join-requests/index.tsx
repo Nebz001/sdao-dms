@@ -273,9 +273,9 @@ function ApproveAction({
                 <>
                     {open.length > 1 && (
                         <div className="grid gap-1.5">
-                            <Label htmlFor={`position-${request.id}`}>Position</Label>
+                            <Label htmlFor={`position-${request.id}`} required>Position</Label>
                             <Select value={position} onValueChange={setPicked}>
-                                <SelectTrigger id={`position-${request.id}`} className="w-full">
+                                <SelectTrigger id={`position-${request.id}`} aria-required className="w-full">
                                     <SelectValue placeholder="Position" />
                                 </SelectTrigger>
                                 <SelectContent>

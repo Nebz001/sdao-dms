@@ -9,6 +9,7 @@ import type {
 import { formatFileSize } from '@/components/document-view/format';
 import { FormField } from '@/components/form-shell';
 import { Button } from '@/components/ui/button';
+import { fileTooLargeMessage, formatMaxSize } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -20,12 +21,6 @@ type Props = {
     existing?: ExistingAttachment[];
     error?: string;
 };
-
-function formatMaxSize(maxKb: number): string {
-    const mb = maxKb / 1024;
-
-    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
-}
 
 /** ".pdf,.jpg" -> ["pdf", "jpg"] */
 function acceptedExtensions(accept: string): string[] {
@@ -82,7 +77,7 @@ export default function AttachmentDropZone({
 
         if (tooLarge) {
             setLocalError(
-                `"${tooLarge.name}" is too large. This field accepts files up to ${formatMaxSize(slot.max_kb)}.`,
+                fileTooLargeMessage(slot.max_kb),
             );
 
             return false;
@@ -156,6 +151,7 @@ export default function AttachmentDropZone({
             id={slot.key}
             label={label ?? slot.label}
             optional={!slot.required}
+            required={slot.required}
             helper={helper}
             helperAbove
             error={shownError}
@@ -250,7 +246,7 @@ export default function AttachmentDropZone({
                                           : 'Drop a file here'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    or choose {noun} from your computer. Up to{' '}
+                                    or choose {noun} from your computer. Max{' '}
                                     {formatMaxSize(slot.max_kb)}
                                     {slot.multiple ? ' each' : ''}.
                                 </p>
@@ -273,6 +269,7 @@ export default function AttachmentDropZone({
                         type="file"
                         name={fieldName}
                         accept={slot.accept}
+                        aria-required={slot.required ? true : undefined}
                         multiple={slot.multiple}
                         onChange={handleChange}
                         className="sr-only"

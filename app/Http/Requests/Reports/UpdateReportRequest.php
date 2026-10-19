@@ -51,4 +51,14 @@ class UpdateReportRequest extends FormRequest
             ...AttachmentSlots::validationAttributes(FormType::AfterActivityReport),
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            ...AttachmentSlots::validationMessages(FormType::AfterActivityReport),
+        ];
+    }
 }

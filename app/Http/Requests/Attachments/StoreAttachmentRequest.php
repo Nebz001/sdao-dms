@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Attachments;
 
 use App\Attachments\AttachmentSlots;
+use App\Support\UploadLimits;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -28,6 +29,16 @@ class StoreAttachmentRequest extends FormRequest
             'document_id' => ['required', 'integer', 'exists:documents,id'],
             'slot_key' => ['required', 'string'],
             'file' => AttachmentSlots::documentFileRules(required: true),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'file.max' => UploadLimits::fileTooLargeMessage(),
         ];
     }
 }

@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PageNotice from '@/components/page-notice';
 import TextLink from '@/components/text-link';
@@ -24,10 +25,11 @@ export default function ForgotPassword({ status }: { status?: string }) {
                 <Form {...email.form()}>
                     {({ processing, errors }) => (
                         <>
+                            <RequiredNote />
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email" required>Email address</Label>
                                 <Input
-                                    id="email"
+                                    id="email" aria-required
                                     type="email"
                                     name="email"
                                     autoComplete="off"

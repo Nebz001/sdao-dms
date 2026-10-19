@@ -11,7 +11,7 @@ function makeSlot(overrides: Partial<AttachmentSlotDef> = {}): AttachmentSlotDef
         required: true,
         multiple: false,
         accept: '.pdf,.jpg,.jpeg,.png',
-        max_kb: 10240,
+        max_kb: 2048,
         ...overrides,
     };
 }
@@ -32,15 +32,15 @@ function makeFile(name: string, sizeInBytes: number): File {
 describe('AttachmentSlotField', () => {
     it('rejects a file larger than the slot max_kb, without calling onFilesChange', async () => {
         const onFilesChange = vi.fn();
-        const slot = makeSlot({ max_kb: 10240 }); // 10 MB
+        const slot = makeSlot({ max_kb: 2048 }); // 2 MB
         const user = userEvent.setup();
         render(<AttachmentSlotField slot={slot} onFilesChange={onFilesChange} />);
 
-        const oversizedFile = makeFile('huge.pdf', 11 * 1024 * 1024); // 11 MB
+        const oversizedFile = makeFile('huge.pdf', 3 * 1024 * 1024); // 3 MB
         await user.upload(screen.getByLabelText('Letter of Intent'), oversizedFile);
 
         expect(screen.getByText(/is too large/)).toBeInTheDocument();
-        expect(screen.getByText(/up to 10 MB/)).toBeInTheDocument();
+        expect(screen.getByText("File is too large. Maximum size is 2 MB.")).toBeInTheDocument();
         expect(onFilesChange).not.toHaveBeenCalledWith(expect.anything());
     });
 
@@ -72,9 +72,9 @@ describe('AttachmentSlotField', () => {
     });
 
     it('shows the slot’s max size as a hint even before any selection', () => {
-        const slot = makeSlot({ max_kb: 5120 });
+        const slot = makeSlot({ max_kb: 2048 });
         render(<AttachmentSlotField slot={slot} />);
 
-        expect(screen.getByText(/Max 5 MB per file/)).toBeInTheDocument();
+        expect(screen.getByText(/Max 2 MB/)).toBeInTheDocument();
     });
 });

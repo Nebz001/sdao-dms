@@ -74,6 +74,7 @@ export default function ExpenseItemsEditor({ items, onChange, errors, budget }: 
                                         onChange={(e) => update(i, { material: e.target.value })}
                                         placeholder="e.g. Certificates"
                                         aria-label={`Item ${i + 1}`}
+                                        aria-required
                                         aria-invalid={rowError ? true : undefined}
                                         className="col-span-2 sm:col-span-1"
                                     />
@@ -87,6 +88,7 @@ export default function ExpenseItemsEditor({ items, onChange, errors, budget }: 
                                         onChange={(e) => update(i, { quantity: e.target.value })}
                                         placeholder="0"
                                         aria-label={`Quantity for item ${i + 1}`}
+                                        aria-required
                                         aria-invalid={rowError ? true : undefined}
                                     />
                                     <AddonInput
@@ -100,6 +102,7 @@ export default function ExpenseItemsEditor({ items, onChange, errors, budget }: 
                                         onChange={(e) => update(i, { unit_price: e.target.value })}
                                         placeholder="0.00"
                                         aria-label={`Unit price for item ${i + 1}`}
+                                        aria-required
                                         invalid={Boolean(rowError)}
                                     />
                                     <p className="col-span-2 flex items-center justify-between text-sm tabular-nums sm:col-span-1 sm:block sm:text-right">

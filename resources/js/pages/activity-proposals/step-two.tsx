@@ -258,7 +258,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                             )}
 
                             <FormSection title="Objectives">
-                                <FormField id="objectives" label="Objectives" error={errors.objectives}>
+                                <FormField id="objectives" required label="Objectives" error={errors.objectives}>
                                     {(aria) => (
                                         <Textarea
                                             id="objectives"
@@ -275,7 +275,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                             </FormSection>
 
                             <FormSection title="Activity description">
-                                <FormField id="activity_description" label="Description" error={errors.activity_description}>
+                                <FormField id="activity_description" required label="Description" error={errors.activity_description}>
                                     {(aria) => (
                                         <Textarea
                                             id="activity_description"
@@ -289,7 +289,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                         />
                                     )}
                                 </FormField>
-                                <FormField id="criteria_mechanics" label="Criteria/Mechanics" error={errors.criteria_mechanics}>
+                                <FormField id="criteria_mechanics" required label="Criteria/Mechanics" error={errors.criteria_mechanics}>
                                     {(aria) => (
                                         <Textarea
                                             id="criteria_mechanics"
@@ -303,7 +303,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                         />
                                     )}
                                 </FormField>
-                                <FormField id="program_flow" label="Program Flow" error={errors.program_flow}>
+                                <FormField id="program_flow" required label="Program Flow" error={errors.program_flow}>
                                     {(aria) => (
                                         <Textarea
                                             id="program_flow"
@@ -319,7 +319,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                 </FormField>
                             </FormSection>
 
-                            <FormSection title="Expenses" aside="List every item you’ll spend on">
+                            <FormSection required title="Expenses" aside="List every item you’ll spend on">
                                 {proposal?.expenses && (
                                     <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                                         Previously entered as text — re-enter it below as itemized rows: “{proposal.expenses}”
@@ -336,7 +336,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                 />
                             </FormSection>
 
-                            <FormSection title="Responsible persons">
+                            <FormSection required title="Responsible persons">
                                 <fieldset className="grid gap-2">
                                     <legend className="sr-only">Responsible persons</legend>
                                     {responsiblePersons.map((name, i) => {
@@ -358,6 +358,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                                         }}
                                                         placeholder="Full name"
                                                         aria-label={`Responsible person ${i + 1}`}
+                                                        aria-required
                                                         aria-invalid={error ? true : undefined}
                                                     />
                                                     <Button

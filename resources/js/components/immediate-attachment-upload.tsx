@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { fileTooLargeMessage, formatMaxSize } from '@/lib/upload';
 import * as attachments from '@/routes/attachments';
 
 type Props = {
@@ -35,6 +36,12 @@ export default function ImmediateAttachmentUpload({ documentId, slot, existing =
         e.target.value = '';
 
         if (!file) {
+            return;
+        }
+
+        if (file.size > slot.max_kb * 1024) {
+            setError(fileTooLargeMessage(slot.max_kb));
+
             return;
         }
 
@@ -94,7 +101,7 @@ export default function ImmediateAttachmentUpload({ documentId, slot, existing =
 
     return (
         <div className="grid gap-2">
-            <Label htmlFor={slot.key}>
+            <Label htmlFor={slot.key} required={slot.required}>
                 {slot.label}
                 {!slot.required && <span className="ml-1 font-normal text-muted-foreground">(optional)</span>}
             </Label>
@@ -110,10 +117,11 @@ export default function ImmediateAttachmentUpload({ documentId, slot, existing =
 
             {!current && (
                 <div className="flex items-center gap-3">
-                    <Input id={slot.key} type="file" accept={slot.accept} onChange={handleSelect} disabled={uploading} />
+                    <Input id={slot.key} type="file" accept={slot.accept} aria-required={slot.required ? true : undefined} onChange={handleSelect} disabled={uploading} />
                     {uploading && <Spinner />}
                 </div>
             )}
+            <p className="text-xs text-muted-foreground">Max {formatMaxSize(slot.max_kb)}</p>
 
             <InputError message={error ?? undefined} />
         </div>

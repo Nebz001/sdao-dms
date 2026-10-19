@@ -28,7 +28,7 @@ import FormSubmitConfirm from '@/components/form-submit-confirm';
 import InputError from '@/components/input-error';
 import PartnerOrganizationsField from '@/components/partner-organizations-field';
 import type { PartnerOrganization } from '@/components/partner-organizations-field';
-import SdgCheckboxGroup from '@/components/sdg-checkbox-group';
+import SdgGrid from '@/components/sdg-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -368,11 +368,11 @@ function ProposalFix({
                                     }
                                 >
                                     <div className="space-y-1">
-                                        <Label htmlFor="title">
+                                        <Label htmlFor="title" required>
                                             Title of Activity
                                         </Label>
                                         <Input
-                                            id="title"
+                                            id="title" aria-required
                                             name="title"
                                             value={title}
                                             onChange={(e) =>
@@ -422,7 +422,7 @@ function ProposalFix({
                             >
                                 <div className="space-y-4">
                                     <div className="space-y-1">
-                                        <Label htmlFor="activity_nature">
+                                        <Label htmlFor="activity_nature" required>
                                             Nature of Activity
                                         </Label>
                                         <Select
@@ -430,7 +430,7 @@ function ProposalFix({
                                             value={nature}
                                             onValueChange={setNature}
                                         >
-                                            <SelectTrigger id="activity_nature">
+                                            <SelectTrigger id="activity_nature" aria-required>
                                                 <SelectValue placeholder="Select nature…" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -449,11 +449,11 @@ function ProposalFix({
                                         />
                                         {nature === 'others' && (
                                             <div className="space-y-1 pt-1">
-                                                <Label htmlFor="activity_nature_other">
+                                                <Label htmlFor="activity_nature_other" required>
                                                     Please specify
                                                 </Label>
                                                 <Input
-                                                    id="activity_nature_other"
+                                                    id="activity_nature_other" aria-required
                                                     name="activity_nature_other"
                                                     value={natureOther}
                                                     onChange={(e) =>
@@ -471,7 +471,7 @@ function ProposalFix({
                                         )}
                                     </div>
                                     <div className="space-y-1">
-                                        <Label htmlFor="activity_type">
+                                        <Label htmlFor="activity_type" required>
                                             Type of Activity
                                         </Label>
                                         <Select
@@ -479,7 +479,7 @@ function ProposalFix({
                                             value={type}
                                             onValueChange={setType}
                                         >
-                                            <SelectTrigger id="activity_type">
+                                            <SelectTrigger id="activity_type" aria-required>
                                                 <SelectValue placeholder="Select type…" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -498,11 +498,11 @@ function ProposalFix({
                                         />
                                         {type === 'others' && (
                                             <div className="space-y-1 pt-1">
-                                                <Label htmlFor="activity_type_other">
+                                                <Label htmlFor="activity_type_other" required>
                                                     Please specify
                                                 </Label>
                                                 <Input
-                                                    id="activity_type_other"
+                                                    id="activity_type_other" aria-required
                                                     name="activity_type_other"
                                                     value={typeOther}
                                                     onChange={(e) =>
@@ -558,10 +558,11 @@ function ProposalFix({
                                         onChange={setPartners}
                                     />
                                     <div className="space-y-1">
-                                        <Label>
+                                        <Label required>
                                             Target SDG (select one or more)
                                         </Label>
-                                        <SdgCheckboxGroup
+                                        <SdgGrid
+                                            label="Target SDG, select one or more"
                                             idPrefix="target-sdg"
                                             name="target_sdg[]"
                                             options={sdgs}
@@ -616,7 +617,7 @@ function ProposalFix({
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between">
-                                            <Label>Expenses</Label>
+                                            <Label required>Expenses</Label>
                                             <Button
                                                 type="button"
                                                 variant="outline"
@@ -788,11 +789,11 @@ function ProposalFix({
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="proposed_budget">
+                                        <Label htmlFor="proposed_budget" required>
                                             Proposed Budget
                                         </Label>
                                         <Input
-                                            id="proposed_budget"
+                                            id="proposed_budget" aria-required
                                             name="proposed_budget"
                                             type="number"
                                             min="0"
@@ -810,7 +811,7 @@ function ProposalFix({
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="budget_source">
+                                        <Label htmlFor="budget_source" required>
                                             Budget Source
                                         </Label>
                                         <Select
@@ -818,7 +819,7 @@ function ProposalFix({
                                             value={budgetSource || undefined}
                                             onValueChange={setBudgetSource}
                                         >
-                                            <SelectTrigger id="budget_source">
+                                            <SelectTrigger id="budget_source" aria-required>
                                                 <SelectValue placeholder="Select source…" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -872,9 +873,9 @@ function ProposalFix({
                                 >
                                     <div className="space-y-4">
                                         <div className="space-y-1">
-                                            <Label htmlFor="venue">Venue</Label>
+                                            <Label htmlFor="venue" required>Venue</Label>
                                             <Input
-                                                id="venue"
+                                                id="venue" aria-required
                                                 name="venue"
                                                 value={schedule.venue}
                                                 onChange={(e) =>
@@ -890,11 +891,11 @@ function ProposalFix({
                                         </div>
                                         <div className="grid gap-3 sm:grid-cols-3">
                                             <div className="space-y-1">
-                                                <Label htmlFor="activity_date">
+                                                <Label htmlFor="activity_date" required>
                                                     Date of Activity
                                                 </Label>
                                                 <Input
-                                                    id="activity_date"
+                                                    id="activity_date" aria-required
                                                     name="activity_date"
                                                     type="date"
                                                     value={
@@ -916,11 +917,11 @@ function ProposalFix({
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label htmlFor="start_time">
+                                                <Label htmlFor="start_time" required>
                                                     Start
                                                 </Label>
                                                 <Input
-                                                    id="start_time"
+                                                    id="start_time" aria-required
                                                     name="start_time"
                                                     type="time"
                                                     value={schedule.start_time}
@@ -937,11 +938,11 @@ function ProposalFix({
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label htmlFor="end_time">
+                                                <Label htmlFor="end_time" required>
                                                     End
                                                 </Label>
                                                 <Input
-                                                    id="end_time"
+                                                    id="end_time" aria-required
                                                     name="end_time"
                                                     type="time"
                                                     value={schedule.end_time}
@@ -1008,11 +1009,11 @@ function ProposalFix({
                                 }
                             >
                                 <div className="space-y-1">
-                                    <Label htmlFor="objectives">
+                                    <Label htmlFor="objectives" required>
                                         Objectives
                                     </Label>
                                     <Textarea
-                                        id="objectives"
+                                        id="objectives" aria-required
                                         name="objectives"
                                         value={objectives}
                                         onChange={(e) =>
@@ -1058,11 +1059,11 @@ function ProposalFix({
                             >
                                 <div className="space-y-4">
                                     <div className="space-y-1">
-                                        <Label htmlFor="activity_description">
+                                        <Label htmlFor="activity_description" required>
                                             Activity Description
                                         </Label>
                                         <Textarea
-                                            id="activity_description"
+                                            id="activity_description" aria-required
                                             name="activity_description"
                                             value={
                                                 description.activity_description
@@ -1090,13 +1091,13 @@ function ProposalFix({
                                         </p>
                                         <div className="space-y-1">
                                             <Label
-                                                htmlFor="criteria_mechanics"
+                                                htmlFor="criteria_mechanics" required
                                                 className="text-sm font-normal text-muted-foreground"
                                             >
                                                 Criteria/Mechanics
                                             </Label>
                                             <Textarea
-                                                id="criteria_mechanics"
+                                                id="criteria_mechanics" aria-required
                                                 name="criteria_mechanics"
                                                 value={
                                                     description.criteria_mechanics
@@ -1118,13 +1119,13 @@ function ProposalFix({
                                         </div>
                                         <div className="space-y-1">
                                             <Label
-                                                htmlFor="program_flow"
+                                                htmlFor="program_flow" required
                                                 className="text-sm font-normal text-muted-foreground"
                                             >
                                                 Program Flow
                                             </Label>
                                             <Textarea
-                                                id="program_flow"
+                                                id="program_flow" aria-required
                                                 name="program_flow"
                                                 value={description.program_flow}
                                                 onChange={(e) =>
@@ -1160,7 +1161,7 @@ function ProposalFix({
                             >
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <Label>Responsible Person(s)</Label>
+                                        <Label required>Responsible Person(s)</Label>
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -1181,6 +1182,7 @@ function ProposalFix({
                                                 <Input
                                                     name={`responsible_persons[${i}]`}
                                                     aria-label={`Responsible person ${i + 1}`}
+                                                        aria-required
                                                     value={name}
                                                     onChange={(e) =>
                                                         setResponsible((prev) =>

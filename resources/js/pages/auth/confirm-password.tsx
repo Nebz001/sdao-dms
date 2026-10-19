@@ -3,6 +3,7 @@ import {
     index as confirmOptions,
     store as confirmStore,
 } from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController';
+import { RequiredNote } from '@/components/form-shell';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -29,10 +30,11 @@ export default function ConfirmPassword() {
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <div className="space-y-6">
+                        <RequiredNote />
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password" required>Password</Label>
                             <PasswordInput
-                                id="password"
+                                id="password" aria-required
                                 name="password"
                                 placeholder="Password"
                                 autoComplete="current-password"

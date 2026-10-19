@@ -154,7 +154,7 @@ export default function CreateRenewal({
                                             </Select>
                                         )}
                                     </FormField>
-                                    <FormField id="date_organized" label="Date organized" error={errors.date_organized}>
+                                    <FormField id="date_organized" required label="Date organized" error={errors.date_organized}>
                                         {(aria) => (
                                             <Input
                                                 id="date_organized"
@@ -167,7 +167,7 @@ export default function CreateRenewal({
                                     </FormField>
                                 </div>
 
-                                <FormField id="purpose_of_organization" label="Purpose" error={errors.purpose_of_organization}>
+                                <FormField id="purpose_of_organization" required label="Purpose" error={errors.purpose_of_organization}>
                                     {(aria) => (
                                         <Textarea
                                             id="purpose_of_organization"
@@ -185,7 +185,7 @@ export default function CreateRenewal({
                                 adviser field and the server takes none. */}
 
                             <FormSection title="Contact">
-                                <FormField id="contact_person" label="Contact person" error={errors.contact_person}>
+                                <FormField id="contact_person" required label="Contact person" error={errors.contact_person}>
                                     {(aria) => (
                                         <Input
                                             id="contact_person"
@@ -196,7 +196,7 @@ export default function CreateRenewal({
                                     )}
                                 </FormField>
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                    <FormField id="contact_no" label="Contact number" error={errors.contact_no}>
+                                    <FormField id="contact_no" required label="Contact number" error={errors.contact_no}>
                                         {(aria) => (
                                             <Input
                                                 id="contact_no"
@@ -207,7 +207,7 @@ export default function CreateRenewal({
                                             />
                                         )}
                                     </FormField>
-                                    <FormField id="email_address" label="Organization email" error={errors.email_address}>
+                                    <FormField id="email_address" required label="Organization email" error={errors.email_address}>
                                         {(aria) => (
                                             <Input
                                                 id="email_address"

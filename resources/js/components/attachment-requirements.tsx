@@ -6,14 +6,12 @@ import type { AttachmentSlotDef, ExistingAttachment } from '@/components/attachm
 import { formatFileSize } from '@/components/document-view/format';
 import FlaggedSectionWrapper from '@/components/flagged-section-wrapper';
 import { Button } from '@/components/ui/button';
+import { RequiredMark } from '@/components/ui/label';
+import { fileTooLargeMessage, formatMaxSize } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import type { FlaggedRevisionProps } from '@/types';
 
-function maxSizeLabel(kb: number): string {
-    const mb = kb / 1024;
-
-    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
-}
+const maxSizeLabel = formatMaxSize;
 
 /** ".pdf,.jpg,.png" -> ["pdf", "jpg", "png"] */
 function extensionsOf(accept: string): string[] {
@@ -152,7 +150,7 @@ function RequirementRow({
         let problem: string | null = null;
 
         if (picked.size > slot.max_kb * 1024) {
-            problem = `"${picked.name}" is too large. This requirement accepts files up to ${maxSizeLabel(slot.max_kb)}.`;
+            problem = fileTooLargeMessage(slot.max_kb);
         } else if (extensions.length > 0 && !extensions.includes(extension)) {
             problem = `"${picked.name}" is not an accepted file type. Use ${extensions.join(', ').toUpperCase()}.`;
         }
@@ -185,6 +183,12 @@ function RequirementRow({
             <div className="min-w-0 flex-1 basis-48 space-y-0.5">
                 <p className="text-sm leading-snug font-semibold">
                     {slot.label}
+                    {slot.required && (
+                        <>
+                            <RequiredMark />
+                            <span className="sr-only"> (required)</span>
+                        </>
+                    )}
                     {!slot.required && (
                         <span className="ml-1.5 text-xs font-normal text-muted-foreground">optional</span>
                     )}
@@ -205,6 +209,7 @@ function RequirementRow({
                         {helper}
                     </p>
                 )}
+                <p className="text-xs text-muted-foreground">Max {maxSizeLabel(slot.max_kb)}</p>
             </div>
 
             <input

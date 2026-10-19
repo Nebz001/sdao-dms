@@ -14,6 +14,8 @@ import DateBadge from '@/components/date-badge';
 import { formatPeso } from '@/components/document-view/format';
 import { AddonInput, FormField } from '@/components/form-shell';
 import PageNotice from '@/components/page-notice';
+import SdgGrid from '@/components/sdg-grid';
+import type { SdgOption } from '@/components/sdg-grid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,13 +26,14 @@ import {
     EmptyTitle,
 } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { RequiredMark } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Toggle } from '@/components/ui/toggle';
+
 import { BRAND_TINT_OUTLINE } from '@/lib/brand-tint';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
-export type SdgOption = { value: string; label: string };
+export type { SdgOption };
 
 /** The fields of one activity, exactly as the backend receives them. */
 export type ActivityFields = {
@@ -833,7 +836,7 @@ export default function ActivityCalendarEditor({
                     )}
 
                     <FormField
-                        id={id('name')}
+                        id={id('name')} required
                         label="Activity name"
                         error={err('name')}
                     >
@@ -852,7 +855,7 @@ export default function ActivityCalendarEditor({
                     </FormField>
 
                     <FormField
-                        id={id('venue')}
+                        id={id('venue')} required
                         label="Venue"
                         helper="Type the exact venue name. Check the venue calendar to make sure it’s free."
                         error={err('venue')}
@@ -879,7 +882,7 @@ export default function ActivityCalendarEditor({
 
                     <div className="grid gap-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
                         <FormField
-                            id={id('date')}
+                            id={id('date')} required
                             label="Date"
                             error={err('activity_date')}
                         >
@@ -908,7 +911,7 @@ export default function ActivityCalendarEditor({
                             )}
                         </FormField>
                         <FormField
-                            id={id('start')}
+                            id={id('start')} required
                             label="Start time"
                             error={err('start_time')}
                         >
@@ -936,7 +939,7 @@ export default function ActivityCalendarEditor({
                             )}
                         </FormField>
                         <FormField
-                            id={id('end')}
+                            id={id('end')} required
                             label="End time"
                             error={err('end_time')}
                         >
@@ -968,56 +971,19 @@ export default function ActivityCalendarEditor({
                         tabIndex={-1}
                     >
                         <legend className="mb-1.5 text-sm leading-snug font-medium">
-                            Target SDGs{' '}
+                            Target SDGs<RequiredMark />{' '}
                             <span className="ml-1 text-xs font-normal text-muted-foreground">
                                 pick at least one
                             </span>
                         </legend>
-                        <div className="flex flex-wrap gap-2">
-                            {sdgs.map((option) => {
-                                const { number, short, full } =
-                                    sdgParts(option);
-                                const on = form.sdg.includes(option.value);
-
-                                return (
-                                    <Toggle
-                                        key={option.value}
-                                        variant="outline"
-                                        size="sm"
-                                        pressed={on}
-                                        title={`SDG ${number}: ${full}`}
-                                        aria-label={`SDG ${number}: ${full}`}
-                                        onPressedChange={(next) =>
-                                            setField(
-                                                'sdg',
-                                                next
-                                                    ? [
-                                                          ...form.sdg,
-                                                          option.value,
-                                                      ]
-                                                    : form.sdg.filter(
-                                                          (v) =>
-                                                              v !==
-                                                              option.value,
-                                                      ),
-                                            )
-                                        }
-                                        className={cn(
-                                            'h-8 rounded-full px-3 text-xs font-normal',
-                                            'data-[state=on]:border-brand-soft-border data-[state=on]:bg-brand-soft data-[state=on]:text-brand-soft-foreground data-[state=on]:hover:bg-brand-soft',
-                                        )}
-                                    >
-                                        <span
-                                            aria-hidden
-                                            className="tabular-nums opacity-70"
-                                        >
-                                            {number}
-                                        </span>
-                                        <span aria-hidden>{short}</span>
-                                    </Toggle>
-                                );
-                            })}
-                        </div>
+                        <SdgGrid
+                            label="Target SDGs, pick at least one"
+                            idPrefix={id('sdg')}
+                            options={sdgs}
+                            selected={form.sdg}
+                            onChange={(next) => setField('sdg', next)}
+                            invalid={Boolean(err('sdg'))}
+                        />
                         {err('sdg') && (
                             <p
                                 role="alert"
@@ -1030,7 +996,7 @@ export default function ActivityCalendarEditor({
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
-                            id={id('participants')}
+                            id={id('participants')} required
                             label="Participants or program"
                             error={err('participant_program_assigned')}
                         >
@@ -1051,7 +1017,7 @@ export default function ActivityCalendarEditor({
                             )}
                         </FormField>
                         <FormField
-                            id={id('budget')}
+                            id={id('budget')} required
                             label="Budget"
                             error={err('budget')}
                         >

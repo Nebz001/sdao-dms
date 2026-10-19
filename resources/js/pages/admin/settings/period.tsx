@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import CurrentPeriodController from '@/actions/App/Http/Controllers/Admin/CurrentPeriodController';
 import CenteredContainer from '@/components/centered-container';
+import { RequiredNote } from '@/components/form-shell';
 import PageHeader from '@/components/page-header';
 import PageNotice from '@/components/page-notice';
 import { Button } from '@/components/ui/button';
@@ -106,11 +107,12 @@ export default function CurrentPeriodSettings({
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <RequiredNote />
                         <div className="flex flex-col gap-4 sm:flex-row">
                             <div className="grid flex-1 gap-2">
-                                <Label htmlFor="pending-term">Term</Label>
+                                <Label htmlFor="pending-term" required>Term</Label>
                                 <Select value={pendingTerm} onValueChange={handleTermChange}>
-                                    <SelectTrigger id="pending-term" className="w-full">
+                                    <SelectTrigger id="pending-term" aria-required className="w-full">
                                         <SelectValue placeholder="Select term…" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -123,7 +125,7 @@ export default function CurrentPeriodSettings({
                                 </Select>
                             </div>
                             <div className="grid flex-1 gap-2">
-                                <Label htmlFor="pending-year">Academic Year</Label>
+                                <Label htmlFor="pending-year" required>Academic Year</Label>
                                 <Select
                                     value={pendingYear}
                                     onValueChange={(value) => {
@@ -131,7 +133,7 @@ export default function CurrentPeriodSettings({
                                         setPendingYear(value);
                                     }}
                                 >
-                                    <SelectTrigger id="pending-year" className="w-full">
+                                    <SelectTrigger id="pending-year" aria-required className="w-full">
                                         <SelectValue placeholder="Select academic year…" />
                                     </SelectTrigger>
                                     <SelectContent>

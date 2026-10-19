@@ -76,6 +76,7 @@ class UpdateRegistrationRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...AttachmentSlots::validationMessages(FormType::OrganizationRegistration),
             'adviser_id.exists' => 'Select an adviser from the search list. If none appear, contact SDAO.',
         ];
     }
