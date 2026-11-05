@@ -16,6 +16,7 @@ use App\Support\AcademicPeriod;
 use App\Support\AcademicYear;
 use App\Support\CurrentPeriod;
 use Database\Seeders\WorkflowTemplateSeeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -36,7 +37,7 @@ function currentTermPayload(): array
         'activities' => [[
             'name' => 'JS Night',
             'venue' => 'Gymnasium',
-            'activity_date' => '2027-01-15',
+            'activity_date' => now()->addDays(60)->toDateString(),
             'start_time' => '09:00',
             'end_time' => '12:00',
             // Required by StoreActivityCalendarRequest (Phase 2 item 7 slice 1) —
@@ -63,8 +64,12 @@ function setCurrentTerm(Term $term): void
 // --- CurrentPeriod accessor (App\Support\CurrentPeriod) ------------------
 
 test('CurrentPeriod::get() falls back to the clock-derived period when no setting row exists yet', function () {
+    $this->travelTo('2026-09-16 12:00:00');
+    // get() caches what it resolved; beforeEach already resolved it at another clock.
+    Cache::flush();
+
     expect(Setting::where('key', 'current_period')->exists())->toBeFalse();
-    expect(CurrentPeriod::get()->term)->toBe(Term::FirstTerm);
+    expect(CurrentPeriod::get()->toString())->toBe('2026-2027:first_term');
 });
 
 test('CurrentPeriod::set() then get() round-trips', function () {
@@ -351,7 +356,7 @@ test('POST /activity-proposals succeeds with no term field for off-calendar and 
         'calendar_mode' => 'off_calendar',
         'title' => 'HTTP Off Calendar Term Test',
         'venue' => 'Room 200',
-        'activity_date' => '2026-11-05',
+        'activity_date' => now()->addDays(30)->toDateString(),
         'start_time' => '10:00',
         'end_time' => '12:00',
         // No 'term' field at all — matches the "no term field" HTTP

@@ -191,9 +191,14 @@ test('the table total follows the filters but the stat cards stay on the whole t
         );
 });
 
-/** Pins the current period, so "this term" does not depend on the wall clock. */
+/**
+ * Pins the current period AND the clock inside it, so "this term" does not
+ * depend on the wall clock: rows made with now() must land inside the pinned
+ * term (Aug 1 to Dec 1 2026), not just the period setting.
+ */
 function pinFirstTerm2026(): void
 {
+    test()->travelTo('2026-09-16 12:00:00');
     CurrentPeriod::set(AcademicPeriod::fromString('2026-2027:first_term'));
 }
 

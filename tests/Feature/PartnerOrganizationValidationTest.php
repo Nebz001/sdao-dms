@@ -40,7 +40,7 @@ function partnerOrgStep1Payload(array $partnerOrganizations): array
         'calendar_mode' => 'off_calendar',
         'title' => 'Partner Org Validation Test Activity',
         'venue' => 'Room 700',
-        'activity_date' => '2026-12-01',
+        'activity_date' => now()->addDays(30)->toDateString(),
         'start_time' => '09:00',
         'end_time' => '11:00',
         'activity_nature' => 'co_curricular',

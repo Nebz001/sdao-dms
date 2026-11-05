@@ -284,6 +284,8 @@ test('a rejected calendar frees the term — a new submission succeeds', functio
 });
 
 test('advancing the period to the next term unblocks a previously blocked org', function () {
+    $this->travelTo('2026-09-16 12:00:00');
+    CurrentPeriod::set(new AcademicPeriod('2026-2027', Term::FirstTerm));
     $p = calendarPayload();
     $first = $this->action->execute(actor: $this->studentAlpha, organization: $this->org, activities: $p['activities']);
     expect($first['document']->status)->toBe(DocumentStatus::InReview);

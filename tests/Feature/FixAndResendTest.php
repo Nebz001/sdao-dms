@@ -633,6 +633,12 @@ test('proposal: Schedule & Venue on an on-calendar proposal has nothing to edit,
 
 // ── Activity calendar ───────────────────────────────────────────────────────
 
+/** A future activity date, relative to the clock; the same offset always gives the same date within a test. */
+function fixCalendarDate(int $daysAhead): string
+{
+    return now()->addDays($daysAhead)->toDateString();
+}
+
 function fixReturnedCalendar(array $flagged): Document
 {
     $org = Organization::where('name', 'Computing Society')->firstOrFail();
@@ -643,8 +649,8 @@ function fixReturnedCalendar(array $flagged): Document
         actor: $student,
         organization: $org,
         activities: [
-            ['name' => 'Orientation', 'venue' => 'Gymnasium', 'activity_date' => '2027-09-15', 'start_time' => '09:00', 'end_time' => '12:00', 'sdg' => ['no_poverty'], 'participant_program_assigned' => 'All', 'budget' => '100'],
-            ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => '2027-10-01', 'start_time' => '08:00', 'end_time' => '17:00', 'sdg' => ['no_poverty'], 'participant_program_assigned' => 'All', 'budget' => '200'],
+            ['name' => 'Orientation', 'venue' => 'Gymnasium', 'activity_date' => fixCalendarDate(45), 'start_time' => '09:00', 'end_time' => '12:00', 'sdg' => ['no_poverty'], 'participant_program_assigned' => 'All', 'budget' => '100'],
+            ['name' => 'Hackathon', 'venue' => 'AVR 1', 'activity_date' => fixCalendarDate(60), 'start_time' => '08:00', 'end_time' => '17:00', 'sdg' => ['no_poverty'], 'participant_program_assigned' => 'All', 'budget' => '200'],
         ],
     );
 
@@ -658,7 +664,7 @@ function fixCalendarRow(array $overrides = []): array
     return [
         'name' => 'Hackathon',
         'venue' => 'AVR 1',
-        'activity_date' => '2027-10-01',
+        'activity_date' => fixCalendarDate(60),
         'start_time' => '08:00',
         'end_time' => '17:00',
         'sdg' => ['no_poverty'],
@@ -689,7 +695,7 @@ test('calendar: a change to a row that was not flagged is refused', function () 
 
     $this->actingAs($this->student)
         ->put(route('activity-calendars.update', $document), ['activities' => [
-            0 => fixCalendarRow(['name' => 'Orientation', 'venue' => 'Auditorium', 'activity_date' => '2027-09-15', 'start_time' => '09:00', 'end_time' => '12:00', 'budget' => '100']),
+            0 => fixCalendarRow(['name' => 'Orientation', 'venue' => 'Auditorium', 'activity_date' => fixCalendarDate(45), 'start_time' => '09:00', 'end_time' => '12:00', 'budget' => '100']),
             1 => fixCalendarRow(['venue' => 'Auditorium 2']),
         ]])
         ->assertSessionHasErrors('locked');
@@ -721,7 +727,7 @@ test('calendar: a return with no flags still replaces the whole calendar', funct
 
     $this->actingAs($this->student)
         ->put(route('activity-calendars.update', $document), ['activities' => [
-            fixCalendarRow(['name' => 'Orientation', 'venue' => 'Elsewhere', 'activity_date' => '2027-09-15', 'start_time' => '09:00', 'end_time' => '12:00', 'budget' => '100']),
+            fixCalendarRow(['name' => 'Orientation', 'venue' => 'Elsewhere', 'activity_date' => fixCalendarDate(45), 'start_time' => '09:00', 'end_time' => '12:00', 'budget' => '100']),
         ]])
         ->assertSessionHasNoErrors();
 

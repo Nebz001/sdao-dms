@@ -35,7 +35,7 @@ function exactFieldsActivity(array $overrides = []): array
     return array_merge([
         'name' => 'JS Night',
         'venue' => 'Gymnasium',
-        'activity_date' => '2027-01-15',
+        'activity_date' => now()->addDays(60)->toDateString(),
         'start_time' => '09:00',
         'end_time' => '12:00',
         'sdg' => [Sdg::QualityEducation->value],

@@ -116,7 +116,7 @@ test('resubmitting a returned activity calendar: the redirect target loads for t
     $activityPayload = [
         'name' => 'Draft Event',
         'venue' => 'Gymnasium',
-        'activity_date' => '2027-01-15',
+        'activity_date' => now()->addDays(60)->toDateString(),
         'start_time' => '09:00',
         'end_time' => '12:00',
         'sdg' => ['quality_education'],
@@ -148,7 +148,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'calendar_mode' => 'off_calendar',
         'title' => 'Resubmit Redirect Test Activity',
         'venue' => 'Room 300',
-        'activity_date' => '2026-11-01',
+        'activity_date' => now()->addDays(14)->toDateString(),
         'start_time' => '13:00',
         'end_time' => '15:00',
         'activity_nature' => 'co_curricular',
@@ -161,7 +161,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
     ];
 
     $storeResponse = $this->actingAs($student)->post(route('activity-proposals.store'), $step1Payload);
-    $storeResponse->assertRedirect();
+    $storeResponse->assertSessionHasNoErrors()->assertRedirect();
 
     $document = Document::where('form_type', FormType::ActivityProposal->value)
         ->where('organization_id', $org->id)
@@ -192,7 +192,7 @@ test('resubmitting a returned activity proposal: the redirect target loads for t
         'responsible_persons' => ['Responsible Person'],
         'title' => 'Resubmit Redirect Test Activity',
         'venue' => 'Room 400',
-        'activity_date' => '2026-12-10',
+        'activity_date' => now()->addDays(30)->toDateString(),
         'start_time' => '09:00',
         'end_time' => '11:00',
     ]);

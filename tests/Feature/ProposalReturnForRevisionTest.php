@@ -284,6 +284,8 @@ test('return at dean (step 3) keeps steps 1–2 and resumes at step 3', function
 // Postgres round-trip produces; a natural insert-then-read cycle would not
 // reproduce the bug at all under this suite's own database.
 test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored time passes validation', function () {
+    $activityDate = now()->addDays(30)->toDateString();
+
     $draft = $this->startDraft->execute(
         actor: $this->student,
         organization: $this->org,
@@ -291,7 +293,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
         data: [
             'title' => 'Time Format Test Activity',
             'venue' => 'Room 400',
-            'activity_date' => '2026-12-10',
+            'activity_date' => $activityDate,
             'start_time' => '09:00',
             'end_time' => '11:00',
         ],
@@ -339,7 +341,7 @@ test('HTTP: resubmitting an off-calendar proposal with a seconds-bearing stored 
         'responsible_persons' => ['Responsible Person'],
         'title' => 'Time Format Test Activity',
         'venue' => 'Room 400',
-        'activity_date' => '2026-12-10',
+        'activity_date' => $activityDate,
         'start_time' => '09:00',
         'end_time' => '11:00',
     ]);
