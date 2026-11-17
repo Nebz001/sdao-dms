@@ -94,6 +94,31 @@ trait ProfileValidationRules
     }
 
     /**
+     * A student's personal email, the address notifications are mailed at (see
+     * User::notificationEmail()). A normal email with NO domain restriction: it
+     * is deliberately not on the school domain, which is what the school email
+     * field is for. It is not unique, because a mailbox is not an identity.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function personalEmailRules(): array
+    {
+        return ['required', 'string', 'email', 'max:255'];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function personalEmailMessages(): array
+    {
+        return [
+            'personal_email.required' => 'Enter your personal email address. Notifications are sent here.',
+            'personal_email.email' => 'Enter a valid personal email address.',
+            'personal_email.max' => 'Your personal email must be 255 characters or fewer.',
+        ];
+    }
+
+    /**
      * Get the validation rules used to validate a student/staff ID number.
      *
      * Required student self-registration IDs follow NU Lipa's confirmed

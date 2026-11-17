@@ -20,6 +20,7 @@ function startRegistrationWithIntent(?string $intentedPath): string
         'first_name' => 'Test', 'last_name' => 'Student',
         'email' => $email,
         'id_number' => fake()->unique()->numerify('####-######'),
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ];
@@ -79,6 +80,7 @@ test('an invalid intended_path value is rejected by validation', function () {
         'first_name' => 'Test', 'last_name' => 'Student',
         'email' => 'student-'.Str::random(10).'@students.nu-lipa.edu.ph',
         'id_number' => fake()->unique()->numerify('####-######'),
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
         'intended_path' => 'something_else',

@@ -126,9 +126,32 @@ export default function Register({ passwordRules }: Props) {
                                     placeholder="juan.delacruz@students.nu-lipa.edu.ph"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    We send a verification code to this address.
+                                    You sign in with this address. We send
+                                    the verification code here, and only here.
                                 </p>
                                 <InputError message={errors.email} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="personal_email" required>
+                                    Personal email
+                                </Label>
+                                <Input
+                                    id="personal_email" aria-required
+                                    type="email"
+                                    required
+                                    autoComplete="off"
+                                    name="personal_email"
+                                    maxLength={255}
+                                    placeholder="juan.delacruz@gmail.com"
+                                    aria-invalid={errors.personal_email ? true : undefined}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Any email you check often. Every
+                                    notification about your documents is sent
+                                    here. Double-check it for typos.
+                                </p>
+                                <InputError message={errors.personal_email} />
                             </div>
 
                             <div className="grid gap-2">

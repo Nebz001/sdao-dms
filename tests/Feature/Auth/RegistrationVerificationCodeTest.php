@@ -11,6 +11,7 @@ function startRegistration(string $email): void
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);

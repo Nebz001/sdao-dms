@@ -30,6 +30,10 @@ class ProfileController extends Controller
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            // Students have a separate personal email (where notifications go);
+            // everyone else is mailed at the one address they were given.
+            'hasPersonalEmail' => $request->user()->isStudentAccount(),
+            'personalEmail' => $request->user()->personal_email,
         ]);
     }
 
@@ -58,7 +62,7 @@ class ProfileController extends Controller
         $request->session()->put('pending_profile_email', $data['email']);
 
         return to_route('profile.verify-email')
-            ->with('flash', FlashToast::make('Name updated', "We sent a verification code to {$data['email']} to confirm your new address."));
+            ->with('flash', FlashToast::make('Name updated', "We sent a verification code to {$data['email']} to confirm your new school address."));
     }
 
     /**
@@ -73,6 +77,7 @@ class ProfileController extends Controller
         }
 
         return Inertia::render('settings/verify-email-change', [
+            'kind' => 'school',
             'email' => $email,
             'resendCooldownSeconds' => (int) config('school.verification_code.resend_cooldown_seconds'),
         ]);
@@ -102,7 +107,7 @@ class ProfileController extends Controller
 
         $request->session()->forget('pending_profile_email');
 
-        return to_route('profile.edit')->with('flash', FlashToast::make('Email updated', 'Your new address is verified and used for sign in and notifications.'));
+        return to_route('profile.edit')->with('flash', FlashToast::make('School email updated', 'Your new school address is verified and is now what you sign in with.'));
     }
 
     public function verifyEmailResend(Request $request, EmailVerificationCodeService $codes): RedirectResponse

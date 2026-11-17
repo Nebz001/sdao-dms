@@ -5,7 +5,10 @@ export type User = {
     name: string;
     first_name: string | null;
     last_name: string | null;
+    /** The school address: the login. */
     email: string;
+    /** Students only: where notifications are mailed. */
+    personal_email?: string | null;
     avatar?: string;
     email_verified_at: string | null;
     account_status: AccountStatus;

@@ -68,7 +68,7 @@ class AdviserAssignedNotification extends Notification implements ShouldQueue
             $this->waitingDocuments,
             $this->waitingDocumentCount,
             $this->pendingJoinRequestCount,
-        ))->to($notifiable->email);
+        ))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
+import { update as updatePersonalEmail } from '@/routes/profile/personal-email';
 import { send } from '@/routes/verification';
 import type { Auth } from '@/types';
 
@@ -20,9 +21,13 @@ type PageProps = {
 export default function Profile({
     mustVerifyEmail,
     status,
+    hasPersonalEmail,
+    personalEmail,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    hasPersonalEmail: boolean;
+    personalEmail: string | null;
 }) {
     const { auth } = usePage<PageProps>().props;
 
@@ -36,7 +41,7 @@ export default function Profile({
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your name and email address"
+                    description="Update your name and school email address"
                 />
 
                 <Form
@@ -95,9 +100,10 @@ export default function Profile({
                                 />
 
                                 <p className="text-xs text-muted-foreground">
-                                    Must be an NU Lipa school address.
-                                    Changing it sends a verification code to
-                                    the new address before it takes effect.
+                                    Must be an NU Lipa school address. This is
+                                    what you sign in with. Changing it sends a
+                                    verification code to the new address before
+                                    it takes effect.
                                 </p>
 
                                 <InputError
@@ -146,6 +152,71 @@ export default function Profile({
                     )}
                 </Form>
             </div>
+
+            {hasPersonalEmail && (
+                <div className="space-y-6">
+                    <Heading
+                        variant="small"
+                        title="Personal email"
+                        description="Where we send notifications about your documents"
+                    />
+
+                    <Form
+                        {...updatePersonalEmail.form()}
+                        options={{ preserveScroll: true }}
+                        className="space-y-6"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                {!personalEmail && (
+                                    <PageNotice
+                                        tone="warning"
+                                        title="You have no personal email yet."
+                                    >
+                                        Until you add one, notifications are
+                                        sent to your school email.
+                                    </PageNotice>
+                                )}
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="personal_email" required>
+                                        Personal email
+                                    </Label>
+                                    <Input
+                                        id="personal_email" aria-required
+                                        type="email"
+                                        name="personal_email"
+                                        defaultValue={personalEmail ?? ''}
+                                        required
+                                        maxLength={255}
+                                        autoComplete="off"
+                                        placeholder="juan.delacruz@gmail.com"
+                                        aria-invalid={errors.personal_email ? true : undefined}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Any email you check often; it does not
+                                        have to be a school address. Changing
+                                        it sends a verification code to the new
+                                        address first, so a typo cannot cut you
+                                        off from your notifications.
+                                    </p>
+                                    <InputError message={errors.personal_email} />
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <Button
+                                        loading={processing}
+                                        loadingText="Sending code…"
+                                        data-test="update-personal-email-button"
+                                    >
+                                        Send verification code
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </Form>
+                </div>
+            )}
 
             <DeleteUser />
         </>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\ChangeTemporaryPasswordController;
+use App\Http\Controllers\Settings\PersonalEmailController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -30,6 +31,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('settings/profile/verify-email/resend', [ProfileController::class, 'verifyEmailResend'])
         ->middleware('throttle:email-code-resend')
         ->name('profile.verify-email.resend');
+
+    // A student's personal email (where notifications go) is its own form and
+    // its own code, sent to the NEW personal address — PersonalEmailController.
+    Route::patch('settings/profile/personal-email', [PersonalEmailController::class, 'update'])
+        ->middleware('throttle:10,1')
+        ->name('profile.personal-email.update');
+    Route::get('settings/profile/verify-personal-email', [PersonalEmailController::class, 'verify'])
+        ->name('profile.verify-personal-email');
+    Route::post('settings/profile/verify-personal-email', [PersonalEmailController::class, 'verifyStore'])
+        ->middleware('throttle:10,1')
+        ->name('profile.verify-personal-email.store');
+    Route::post('settings/profile/verify-personal-email/resend', [PersonalEmailController::class, 'resend'])
+        ->middleware('throttle:email-code-resend')
+        ->name('profile.verify-personal-email.resend');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

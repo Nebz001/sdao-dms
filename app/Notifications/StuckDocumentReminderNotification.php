@@ -66,7 +66,7 @@ class StuckDocumentReminderNotification extends Notification implements ShouldQu
     {
         $recipient = $this->recipient($notifiable);
 
-        return $this->mailFor($recipient)->to($recipient->email);
+        return $this->mailFor($recipient)->to($recipient->routeNotificationFor('mail', $this));
     }
 
     /**

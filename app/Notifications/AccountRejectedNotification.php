@@ -46,7 +46,7 @@ class AccountRejectedNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new AccountRejectedMail($notifiable))->to($notifiable->email);
+        return (new AccountRejectedMail($notifiable))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

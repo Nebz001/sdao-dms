@@ -46,7 +46,7 @@ class AccountVerifiedNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new AccountVerifiedMail($notifiable))->to($notifiable->email);
+        return (new AccountVerifiedMail($notifiable))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

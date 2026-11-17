@@ -23,6 +23,7 @@ test('self-registration rejects a personal email', function () {
         'first_name' => 'Someone', 'last_name' => 'Tester',
         'email' => 'someone@gmail.com',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
@@ -38,6 +39,7 @@ test('self-registration rejects a staff-domain email — students use the studen
         'first_name' => 'Someone', 'last_name' => 'Tester',
         'email' => 'someone@nu-lipa.edu.ph',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);

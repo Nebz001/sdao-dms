@@ -53,7 +53,7 @@ class AdviserRoleEndedNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new AdviserRoleEndedMail($this->organization, $this->accountDeactivated))->to($notifiable->email);
+        return (new AdviserRoleEndedMail($this->organization, $this->accountDeactivated))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

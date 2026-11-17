@@ -302,6 +302,11 @@ class DemoDataSeeder extends Seeder
 
         return $this->makeOrRefreshUser("{$localPart}@students.nu-lipa.edu.ph", $factory, [
             ...PersonName::attributes($name),
+            // Every seeded student has both addresses, like a real registration:
+            // the school one signs in, the personal one receives notifications.
+            // example.com is reserved (RFC 2606) and can never deliver, so a dev
+            // machine with a live mailer cannot mail a stranger from demo data.
+            'personal_email' => "{$localPart}@example.com",
             'password' => Hash::make(self::PASSWORD),
             'id_number' => $this->nextIdNumber(),
         ]);

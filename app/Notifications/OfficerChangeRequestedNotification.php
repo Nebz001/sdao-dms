@@ -54,7 +54,7 @@ class OfficerChangeRequestedNotification extends Notification implements ShouldQ
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new OfficerChangeRequestedMail($notifiable, $this->changeRequest))->to($notifiable->email);
+        return (new OfficerChangeRequestedMail($notifiable, $this->changeRequest))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

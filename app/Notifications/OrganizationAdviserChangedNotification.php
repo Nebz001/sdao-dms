@@ -52,7 +52,7 @@ class OrganizationAdviserChangedNotification extends Notification implements Sho
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new OrganizationAdviserChangedMail($this->organization, $this->adviserName))->to($notifiable->email);
+        return (new OrganizationAdviserChangedMail($this->organization, $this->adviserName))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**
