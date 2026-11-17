@@ -81,7 +81,7 @@ class ResubmitActivityProposal
         //
         // The two field-key sets are disjoint (proposal: title,
         // activity_nature, activity_type, partner_organizations, target_sdg,
-        // objectives, activity_description, criteria_mechanics, program_flow,
+        // objectives, specific_objectives, activity_description, criteria_mechanics, program_flow,
         // expense_items, responsible_persons, proposed_budget, budget_source;
         // activity: venue, activity_date, start_time, end_time), so merging
         // them into one flat snapshot is safe.
@@ -163,6 +163,10 @@ class ResubmitActivityProposal
 
             $proposal->update([
                 'objectives' => $data['objectives'],
+                // Optional, so an unposted value (the Fix and Resend page only
+                // posts flagged fields) keeps what is stored; a posted null
+                // clears it.
+                'specific_objectives' => array_key_exists('specific_objectives', $data) ? $data['specific_objectives'] : $proposal->specific_objectives,
                 // Group E backlog — Activity Description restored.
                 'activity_description' => $data['activity_description'],
                 // Exact field corrections (Phase 2 item 7 slice 4b).

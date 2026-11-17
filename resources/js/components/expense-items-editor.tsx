@@ -3,6 +3,7 @@ import { AddonInput } from '@/components/form-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPeso, parseAmount } from '@/lib/money';
+import { SHORT_TEXT_MAX_LENGTH } from '@/lib/proposal-text';
 import { cn } from '@/lib/utils';
 
 export type ExpenseItem = { material: string; quantity: string; unit_price: string };
@@ -73,6 +74,7 @@ export default function ExpenseItemsEditor({ items, onChange, errors, budget }: 
                                         value={item.material}
                                         onChange={(e) => update(i, { material: e.target.value })}
                                         placeholder="e.g. Certificates"
+                                        maxLength={SHORT_TEXT_MAX_LENGTH}
                                         aria-label={`Item ${i + 1}`}
                                         aria-required
                                         aria-invalid={rowError ? true : undefined}

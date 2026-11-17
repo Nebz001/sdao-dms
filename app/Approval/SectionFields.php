@@ -120,8 +120,17 @@ class SectionFields
                     new FieldDefinition('end_time', 'End Time'),
                 ],
                 // Group E backlog — collapsed back into a single field.
+                // BY DESIGN, both the general Objectives field and Specific
+                // Objectives live under this ONE 'objectives' key: flagging
+                // "Objectives" opens (and, unflagged, locks) both together,
+                // and the revision history and Fix and Resend lock pick both
+                // up with no second flag key. A separate 'specific_objectives'
+                // flag is a deliberate future option, not an oversight; it
+                // would need its own SectionFlags entry, a section here, and
+                // its own FixItemBox on the edit page.
                 'objectives' => [
                     new FieldDefinition('objectives', 'Objectives'),
+                    new FieldDefinition('specific_objectives', 'Specific Objectives'),
                 ],
                 // Group E backlog — Activity Description restored as the
                 // primary field in this section (a fresh `activity_description`

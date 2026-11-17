@@ -6,6 +6,7 @@ import {
     parseObjectives,
     parseResponsiblePerson,
     parseResponsiblePersons,
+    splitSpecificObjectives,
     toParagraphs,
 } from '@/lib/proposal-text';
 
@@ -170,5 +171,35 @@ describe('initialsOf', () => {
 describe('toParagraphs', () => {
     it('keeps a single line break inside a paragraph', () => {
         expect(toParagraphs('Line one\nLine two\n\n\n\nNext')).toEqual(['Line one\nLine two', 'Next']);
+    });
+});
+
+describe('splitSpecificObjectives', () => {
+    it('trims every line, drops blank ones and keeps the order', () => {
+        expect(splitSpecificObjectives('  Zebra  \n\n\n   \nApple\n\tMango\t')).toEqual(['Zebra', 'Apple', 'Mango']);
+    });
+
+    it('handles every kind of line break', () => {
+        expect(splitSpecificObjectives('One\r\nTwo\rThree\nFour')).toEqual(['One', 'Two', 'Three', 'Four']);
+    });
+
+    it('drops a list marker the author typed so the shown number is not doubled', () => {
+        expect(splitSpecificObjectives('1. Raise awareness\n2) Train members\n- Share results\n• Report back')).toEqual([
+            'Raise awareness',
+            'Train members',
+            'Share results',
+            'Report back',
+        ]);
+    });
+
+    it('keeps a number that belongs to the sentence', () => {
+        expect(splitSpecificObjectives('2026 targets are set\nReach 3. goals')).toEqual(['2026 targets are set', 'Reach 3. goals']);
+    });
+
+    it('is empty for nothing, null and whitespace', () => {
+        expect(splitSpecificObjectives(null)).toEqual([]);
+        expect(splitSpecificObjectives(undefined)).toEqual([]);
+        expect(splitSpecificObjectives('')).toEqual([]);
+        expect(splitSpecificObjectives('  \n\t\n ')).toEqual([]);
     });
 });

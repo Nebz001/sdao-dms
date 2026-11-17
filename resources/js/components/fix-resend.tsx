@@ -30,6 +30,7 @@ import PageNotice from '@/components/page-notice';
 import { ToneBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { didDraftSave } from '@/lib/draft-save';
 import { needText, progressText } from '@/lib/fix-resend';
 import type { FixDraftValues, FixItem, FixProps } from '@/lib/fix-resend';
 import { xsrfToken } from '@/lib/notifications';
@@ -748,7 +749,8 @@ export function FixFooter({
                 body: JSON.stringify({ sections: collect() }),
             });
 
-            if (!response.ok) {
+            // Not response.ok alone: an expired session is a followed redirect.
+            if (!(await didDraftSave(response))) {
                 throw new Error('save failed');
             }
 

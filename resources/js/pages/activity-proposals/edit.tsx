@@ -6,7 +6,9 @@ import type {
     AttachmentSlotDef,
     ExistingAttachment,
 } from '@/components/attachment-slot-field';
+import { CountedTextarea } from '@/components/counted-textarea';
 import { formatLongDate } from '@/components/document-view/format';
+import { NumberedList } from '@/components/document-view/proposal-text';
 import {
     FixFooter,
     FixItemBox,
@@ -42,6 +44,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { hasChanged } from '@/lib/fix-resend';
 import type { FixProps } from '@/lib/fix-resend';
+import {
+    SHORT_TEXT_MAX_LENGTH,
+    SPECIFIC_OBJECTIVES_MAX_LENGTH,
+    splitSpecificObjectives,
+} from '@/lib/proposal-text';
 import { todayDateString } from '@/lib/utils';
 import * as activityProposals from '@/routes/activity-proposals';
 
@@ -53,6 +60,7 @@ type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    specific_objectives: string | null;
     activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
@@ -177,7 +185,10 @@ function ProposalFix({
             start_time: activity?.start_time ?? '',
             end_time: activity?.end_time ?? '',
         },
-        objectives: { objectives: proposal?.objectives ?? '' },
+        objectives: {
+            objectives: proposal?.objectives ?? '',
+            specific_objectives: proposal?.specific_objectives ?? '',
+        },
         activity_description: {
             activity_description: proposal?.activity_description ?? '',
             criteria_mechanics: proposal?.criteria_mechanics ?? '',
@@ -247,6 +258,12 @@ function ProposalFix({
     const [objectives, setObjectives] = useState(
         String(draft('objectives').objectives ?? base.objectives.objectives),
     );
+    const [specificObjectives, setSpecificObjectives] = useState(
+        String(
+            draft('objectives').specific_objectives ??
+                base.objectives.specific_objectives,
+        ),
+    );
     const [description, setDescription] = useState({
         ...base.activity_description,
         ...(draft('activity_description') as Partial<
@@ -285,7 +302,7 @@ function ProposalFix({
             ),
         },
         schedule_venue: schedule,
-        objectives: { objectives },
+        objectives: { objectives, specific_objectives: specificObjectives },
         activity_description: description,
         responsible_persons: {
             responsible_persons: responsible.filter((p) => p.trim() !== ''),
@@ -644,6 +661,7 @@ function ProposalFix({
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <Input
                                                         name={`expense_items[${i}][material]`}
+                                                        maxLength={SHORT_TEXT_MAX_LENGTH}
                                                         aria-label={`Expense ${i + 1} material`}
                                                         value={item.material}
                                                         onChange={(e) =>
@@ -1005,6 +1023,23 @@ function ProposalFix({
                                             label="Objectives"
                                             value={base.objectives.objectives}
                                         />
+                                        <LockedField
+                                            label="Specific Objectives"
+                                            value={
+                                                splitSpecificObjectives(
+                                                    base.objectives
+                                                        .specific_objectives,
+                                                ).length > 0 ? (
+                                                    <NumberedList
+                                                        label="Specific Objectives"
+                                                        items={splitSpecificObjectives(
+                                                            base.objectives
+                                                                .specific_objectives,
+                                                        )}
+                                                    />
+                                                ) : null
+                                            }
+                                        />
                                     </LockedGrid>
                                 }
                             >
@@ -1025,6 +1060,32 @@ function ProposalFix({
                                         rows={6}
                                     />
                                     <InputError message={errors.objectives} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="specific_objectives">
+                                        Specific Objectives
+                                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                                            optional
+                                        </span>
+                                    </Label>
+                                    <CountedTextarea
+                                        id="specific_objectives"
+                                        name="specific_objectives"
+                                        value={specificObjectives}
+                                        onChange={(e) =>
+                                            setSpecificObjectives(e.target.value)
+                                        }
+                                        placeholder="Type one objective per line, press Enter to add the next one"
+                                        maxLength={SPECIFIC_OBJECTIVES_MAX_LENGTH}
+                                        rows={5}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Each line is shown as a numbered
+                                        objective.
+                                    </p>
+                                    <InputError
+                                        message={errors.specific_objectives}
+                                    />
                                 </div>
                             </FixItemBox>
 
@@ -1181,6 +1242,7 @@ function ProposalFix({
                                             <div className="flex items-center gap-2">
                                                 <Input
                                                     name={`responsible_persons[${i}]`}
+                                                    maxLength={SHORT_TEXT_MAX_LENGTH}
                                                     aria-label={`Responsible person ${i + 1}`}
                                                         aria-required
                                                     value={name}

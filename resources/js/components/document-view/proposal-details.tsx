@@ -8,6 +8,7 @@ import {
     CriteriaMechanicsSection,
     NarrativeSection,
     ObjectivesSection,
+    SpecificObjectivesSection,
     Paragraphs,
     ResponsiblePersonsSection,
 } from './proposal-text';
@@ -16,6 +17,7 @@ export type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    specific_objectives: string | null;
     activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
@@ -52,7 +54,7 @@ export default function ProposalDetails({
     const partners = proposal?.partner_organizations ?? [];
     const persons = proposal?.responsible_persons ?? [];
     const hasNarrative =
-        proposal && (proposal.objectives || proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow);
+        proposal && (proposal.objectives || proposal.specific_objectives || proposal.activity_description || proposal.criteria_mechanics || proposal.program_flow);
 
     return (
         <DetailsCard title="Proposal details">
@@ -103,6 +105,7 @@ export default function ProposalDetails({
                 <section aria-label="Narrative" className="flex flex-col gap-5">
                     <h3 className="text-xs font-medium tracking-wide text-primary-text uppercase">Narrative</h3>
                     {proposal.objectives && <ObjectivesSection text={proposal.objectives} />}
+                    {proposal.specific_objectives && <SpecificObjectivesSection text={proposal.specific_objectives} />}
                     {proposal.activity_description && (
                         <NarrativeSection label="Activity description" labelId="proposal-activity-description">
                             <Paragraphs text={proposal.activity_description} />

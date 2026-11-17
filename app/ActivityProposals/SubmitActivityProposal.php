@@ -48,6 +48,7 @@ class SubmitActivityProposal
         ?string $programFlow = null,
         ?array $expenseItems = null,
         ?array $responsiblePersons = null,
+        ?string $specificObjectives = null,
     ): array {
         if ($document->status !== DocumentStatus::Draft) {
             throw new AuthorizationException('Only Draft documents can be submitted to the chain.');
@@ -77,7 +78,7 @@ class SubmitActivityProposal
 
         $document = DB::transaction(function () use (
             $actor, $document, $proposal, $variant, $objectives, $activityDescription,
-            $criteriaMechanics, $programFlow, $expenseItems, $responsiblePersons,
+            $criteriaMechanics, $programFlow, $expenseItems, $responsiblePersons, $specificObjectives,
         ) {
             // proposed_budget (and the other step-1 exact fields) are
             // intentionally NOT touched here — they're set once at step 1
@@ -86,6 +87,8 @@ class SubmitActivityProposal
             // echoes step 1's budget_source_label read-only instead.
             $proposal->update([
                 'objectives' => $objectives,
+                // Specific Objectives: optional, one per line, plain text.
+                'specific_objectives' => $specificObjectives,
                 // Group E backlog — Activity Description restored.
                 'activity_description' => $activityDescription,
                 // Exact field corrections (Phase 2 item 7 slice 4b).

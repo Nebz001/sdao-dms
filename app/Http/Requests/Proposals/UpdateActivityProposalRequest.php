@@ -9,13 +9,24 @@ use App\Enums\BudgetSource;
 use App\Enums\FormType;
 use App\Enums\Sdg;
 use App\Http\Requests\Concerns\FillsLockedFields;
+use App\Http\Requests\Concerns\NormalizesSpecificObjectives;
+use App\Rules\AtLeastOneSpecificObjective;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateActivityProposalRequest extends FormRequest
 {
-    use FillsLockedFields;
+    use FillsLockedFields {
+        prepareForValidation as protected fillLockedFields;
+    }
+    use NormalizesSpecificObjectives;
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeSpecificObjectives();
+        $this->fillLockedFields();
+    }
 
     public function authorize(): bool
     {
@@ -30,6 +41,8 @@ class UpdateActivityProposalRequest extends FormRequest
         return [
             // Group E backlog — collapsed back into a single field.
             'objectives' => ['required', 'string'],
+            // Specific Objectives: optional, one per line, plain text.
+            'specific_objectives' => AtLeastOneSpecificObjective::rules(),
             // Group E backlog — Activity Description restored.
             'activity_description' => ['required', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
@@ -106,6 +119,7 @@ class UpdateActivityProposalRequest extends FormRequest
             'proposed_budget' => 'Proposed Budget',
             'budget_source' => 'Budget Source',
             'objectives' => 'Objectives',
+            'specific_objectives' => 'Specific Objectives',
             'activity_description' => 'Activity Description',
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',

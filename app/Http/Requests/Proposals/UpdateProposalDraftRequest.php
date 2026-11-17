@@ -2,11 +2,20 @@
 
 namespace App\Http\Requests\Proposals;
 
+use App\Http\Requests\Concerns\NormalizesSpecificObjectives;
+use App\Rules\AtLeastOneSpecificObjective;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProposalDraftRequest extends FormRequest
 {
+    use NormalizesSpecificObjectives;
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeSpecificObjectives();
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -20,6 +29,8 @@ class UpdateProposalDraftRequest extends FormRequest
         return [
             // Group E backlog — collapsed back into a single field.
             'objectives' => ['nullable', 'string'],
+            // Specific Objectives: optional, one per line, plain text.
+            'specific_objectives' => AtLeastOneSpecificObjective::rules(),
             // Group E backlog — Activity Description restored.
             'activity_description' => ['nullable', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
@@ -40,6 +51,16 @@ class UpdateProposalDraftRequest extends FormRequest
             // proposed_budget is no longer part of step-2 autosave (Phase 2
             // item 7 slice 4a) — it's set once at step 1. source_of_funding
             // is gone entirely (Group D item 4).
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'specific_objectives' => 'Specific Objectives',
         ];
     }
 }

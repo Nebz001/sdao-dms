@@ -91,6 +91,18 @@
         .page-break { page-break-before: always; }
         .h2 { font-weight: bold; font-size: 9pt; margin-top: 8pt; margin-bottom: 2pt; }
         .indent { margin-left: 10pt; }
+        {{-- A numbered list inside a narrative section (Specific Objectives).
+             dompdf draws "outside" markers in the left margin, so the list
+             needs its own margin-left and no padding, like .instructions ol. --}}
+        .specific-objectives { margin-top: 4pt; }
+        .specific-objectives-list { margin: 2pt 0 0 12pt; padding: 0; }
+        {{-- Each item is one unbreakable block, so its number (drawn by dompdf
+             with the item, in the margin) always lands on the same page as
+             its text, and stays on the first line however long it wraps. --}}
+        .specific-objectives-list li { margin-bottom: 1.5pt; page-break-inside: avoid; }
+        {{-- A short list also stays with its heading. Never set on a long one:
+             a block taller than a page cannot be kept together. --}}
+        .keep-together { page-break-inside: avoid; }
         .muted-note { font-style: italic; color: #444; }
     </style>
 </head>

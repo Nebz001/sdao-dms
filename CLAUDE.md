@@ -395,7 +395,9 @@ keys), not just a comment string. Section definitions per form type:
   (Nature/Type), Partner Orgs & SDG, Budget, Schedule & Venue, Request Letter,
   Resume of Resource Person(s), Sample Post-Survey Form, General
 - **Proposal narrative (step 2):** Objectives (a single field — was briefly
-  split into Overall Goal/Specific Objectives, collapsed back), Activity
+  split into Overall Goal/Specific Objectives, collapsed back; plus the
+  separate optional Specific Objectives field under it, flagged with it, see
+  "Specific Objectives" below), Activity
   Description (a real, intentional field again — restored under this name,
   not the old `narrative` column — with Criteria/Mechanics and Program Flow
   as its subordinate detail), Budget (Proposed Budget, Budget Source,
@@ -553,6 +555,56 @@ approximate these.
   Chair/s, Prepared By, Date Submitted, Summary, Program, Photos (attachment),
   Activity Evaluation Report (% target participants + sample eval form,
   attachment), Attendance Sheet (attachment).
+
+## Specific Objectives (activity proposal)
+
+An optional second field directly under Objectives. The single Objectives field
+and its placeholder are unchanged.
+
+- **Stored as plain text, one objective per line**, in
+  `activity_proposals.specific_objectives` (nullable text, max 2000). Never JSON, so
+  revision history and flagging stay string based. It was first added as
+  `objective_lines` and renamed (not recreated) to `specific_objectives` so the
+  field has one name in the database, the pages, the print form and the mobile
+  api. The older `specific_objectives` column dropped by the collapse migration
+  was a different thing: the second half of a split of `objectives`, merged back
+  into it. `overall_goal`, `narrative` and `source_of_funding` stay gone.
+- **One splitter, `App\Support\SpecificObjectives::split()`**: trims every line, drops
+  blank ones, keeps the author's order, drops a list marker the author typed
+  ("1.", "2)", "-", "•", "*"). The print form and the mobile api
+  (`activity_proposal.specific_objectives`) use it;
+  `splitSpecificObjectives()` in `resources/js/lib/proposal-text.ts` mirrors it for the
+  web pages. Numbering is display only (`NumberedList`).
+- **It rides the existing "Objectives" flag section, by design**: no new flag key
+  (a separate one is a deliberate future option, noted where the section is
+  defined in `SectionFlags` and `SectionFields`). Flagging Objectives opens both
+  fields on Fix and Resend, locks both otherwise, and `SectionFields` puts both
+  in the revision history diff. The resubmit actions keep the stored value when
+  the page does not post it.
+- **Rule `AtLeastOneSpecificObjective`**: nullable, max 2000, and a value present must
+  hold a non-empty line. It is implicit so a whitespace-only string is checked.
+  The requests first make line breaks plain `\n` (`NormalizesSpecificObjectives`),
+  because a browser form posts `\r\n`, which would count twice against a cap the
+  page counts once.
+- **The textarea (`CountedTextarea`)** shows a live "n / 2,000" count, turns to a
+  warning from 90%, and stops input at the cap (typed or pasted). Use it for any
+  textarea that has a server length cap. The other long narrative textareas
+  (Objectives, Description, Criteria, Program Flow) have no server length rule,
+  so there is nothing to count against; the short inputs that do (a person's
+  name, an expense item: `max:255`) carry `maxLength` (`SHORT_TEXT_MAX_LENGTH`).
+- **A draft save is never silent.** The web app renders validation failures and
+  expired sessions as redirects (only `api/*` gets JSON), which a `fetch` follows
+  and reports as `response.ok`. Draft saves therefore judge success with
+  `didDraftSave()` (`lib/draft-save.ts`): JSON, not redirected, `saved: true`.
+  Anything else turns the footer red and toasts once per run of failures. Do not
+  check `response.ok` alone on a draft or autosave `fetch`.
+- **Print**: its own labeled block under "IV. Objectives" as an `<ol>`, with no
+  invented numeral (the paper form has none for it); omitted when empty. Each
+  `<li>` is `page-break-inside: avoid` so a number is never parted from its text
+  by a page break, and a list of 6 or fewer also stays with its heading
+  (`keep-together`, never on a long list). Verified by reading text positions out
+  of the rendered PDF (number and first line share a page and a y; wrapped lines
+  align under the text), not by tests alone.
 
 ## Commands
 

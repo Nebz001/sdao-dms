@@ -48,6 +48,9 @@ class SectionFlags
                 new SectionFlag('partner_orgs_sdg', 'Partner Orgs & SDG'),
                 new SectionFlag('budget', 'Budget'),
                 new SectionFlag('schedule_venue', 'Schedule & Venue'),
+                // BY DESIGN this one key covers both the general Objectives
+                // field and Specific Objectives (see SectionFields). A separate
+                // key for Specific Objectives is a deliberate future option.
                 new SectionFlag('objectives', 'Objectives'),
                 new SectionFlag('activity_description', 'Activity Description'),
                 // Group E backlog — matches the print form's own standalone

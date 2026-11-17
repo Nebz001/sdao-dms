@@ -5,6 +5,7 @@ import {
     parseCriteriaMechanics,
     parseObjectives,
     parseResponsiblePersons,
+    splitSpecificObjectives,
     toParagraphs,
 } from '@/lib/proposal-text';
 import type { CriteriaRow } from '@/lib/proposal-text';
@@ -53,6 +54,36 @@ export function Paragraphs({ text }: { text: string }) {
     );
 }
 
+/** Items in their given order, the number shown beside each. Shared by every numbered list of objectives. */
+export function NumberedList({ items, labelledBy, label }: { items: string[]; labelledBy?: string; label?: string }) {
+    return (
+        <ol role="list" aria-labelledby={labelledBy} aria-label={label} className="flex flex-col gap-3">
+            {items.map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                    <Badge variant="secondary" aria-hidden className="mt-0.5 size-6 rounded-full p-0 tabular-nums">
+                        {i + 1}
+                    </Badge>
+                    <span className="min-w-0 leading-relaxed break-words whitespace-pre-wrap">{item}</span>
+                </li>
+            ))}
+        </ol>
+    );
+}
+
+/** The Specific Objectives field (one per line, stored as text), shown as a numbered list. */
+export function SpecificObjectivesSection({ text }: { text: string }) {
+    const items = splitSpecificObjectives(text);
+
+    if (items.length === 0) {
+        return null;
+    }
+
+    return (
+        <NarrativeSection label="Specific objectives" labelId="proposal-objective-lines">
+            <NumberedList items={items} labelledBy="proposal-objective-lines" />
+        </NarrativeSection>
+    );
+}
 export function ObjectivesSection({ text }: { text: string }) {
     const { paragraphs, specific } = parseObjectives(text);
 
@@ -72,20 +103,7 @@ export function ObjectivesSection({ text }: { text: string }) {
                     <h5 id="proposal-specific-objectives" className={LABEL}>
                         Specific objectives
                     </h5>
-                    <ol role="list" aria-labelledby="proposal-specific-objectives" className="flex flex-col gap-3">
-                        {specific.map((item, i) => (
-                            <li key={i} className="flex items-start gap-3">
-                                <Badge
-                                    variant="secondary"
-                                    aria-hidden
-                                    className="mt-0.5 size-6 rounded-full p-0 tabular-nums"
-                                >
-                                    {i + 1}
-                                </Badge>
-                                <span className="min-w-0 leading-relaxed whitespace-pre-wrap">{item}</span>
-                            </li>
-                        ))}
-                    </ol>
+                    <NumberedList items={specific} labelledBy="proposal-specific-objectives" />
                 </div>
             )}
         </NarrativeSection>

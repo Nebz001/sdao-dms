@@ -9,6 +9,7 @@ use App\Identity\RoleDirectory;
 use App\Models\Document;
 use App\Support\AcademicYear;
 use App\Support\DisplayTimezone;
+use App\Support\SpecificObjectives;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use LogicException;
@@ -201,6 +202,9 @@ class ActivityProposalForm implements PrintableForm
                 ? $this->formatTime($activity->start_time).' – '.$this->formatTime($activity->end_time)
                 : null,
             'objectives' => $proposal->objectives,
+            // "Specific Objectives" — one numbered item per stored line; the
+            // blade prints it as its own labeled block under IV. Objectives.
+            'specific_objectives' => SpecificObjectives::split($proposal->specific_objectives),
             // Group E backlog — Activity Description restored (fresh column,
             // not a revival of the old `narrative` column removed separately).
             'activity_description' => $proposal->activity_description,

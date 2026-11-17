@@ -2,11 +2,20 @@
 
 namespace App\Http\Requests\Proposals;
 
+use App\Http\Requests\Concerns\NormalizesSpecificObjectives;
+use App\Rules\AtLeastOneSpecificObjective;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SubmitProposalRequest extends FormRequest
 {
+    use NormalizesSpecificObjectives;
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeSpecificObjectives();
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -20,6 +29,8 @@ class SubmitProposalRequest extends FormRequest
         return [
             // Group E backlog — collapsed back into a single field.
             'objectives' => ['required', 'string'],
+            // Specific Objectives: optional, one per line, plain text.
+            'specific_objectives' => AtLeastOneSpecificObjective::rules(),
             // Group E backlog — Activity Description restored.
             'activity_description' => ['required', 'string'],
             // Exact field corrections (Phase 2 item 7 slice 4b).
@@ -51,6 +62,7 @@ class SubmitProposalRequest extends FormRequest
     {
         return [
             'objectives' => 'Objectives',
+            'specific_objectives' => 'Specific Objectives',
             'activity_description' => 'Activity Description',
             'criteria_mechanics' => 'Criteria/Mechanics',
             'program_flow' => 'Program Flow',

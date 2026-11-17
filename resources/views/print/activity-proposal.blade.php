@@ -173,6 +173,19 @@
 
     <div class="h2">IV. Objectives</div>
     <div>{{ $objectives }}</div>
+    {{-- Specific Objectives: its own labeled block under IV. (the paper form
+         has no separate numeral for it, so it is not given one). Omitted
+         entirely when empty so a proposal without it prints exactly as before. --}}
+    @if (! empty($specific_objectives))
+        <div @class(['indent', 'specific-objectives', 'keep-together' => count($specific_objectives) <= 6])>
+            <strong>Specific Objectives</strong>
+            <ol class="specific-objectives-list">
+                @foreach ($specific_objectives as $objective)
+                    <li>{{ $objective }}</li>
+                @endforeach
+            </ol>
+        </div>
+    @endif
 
     <div class="h2">V. Activity Description</div>
     <div>{{ $activity_description }}</div>

@@ -1,6 +1,7 @@
 import { Form, Head, usePage } from '@inertiajs/react';
 import { Calendar, Clock, MapPin, Plus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { CountedTextarea } from '@/components/counted-textarea';
 import ExpenseItemsEditor, { EMPTY_EXPENSE_ITEM } from '@/components/expense-items-editor';
 import type { ExpenseItem } from '@/components/expense-items-editor';
 import {
@@ -19,7 +20,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatActivityDate, formatClockRange } from '@/lib/activity-time';
+import { didDraftSave } from '@/lib/draft-save';
 import { formatPeso, parseAmount } from '@/lib/money';
+import { SHORT_TEXT_MAX_LENGTH, SPECIFIC_OBJECTIVES_MAX_LENGTH } from '@/lib/proposal-text';
 import { notify } from '@/lib/toast';
 import * as activityProposals from '@/routes/activity-proposals';
 
@@ -35,6 +38,7 @@ type ProposalData = {
     calendar_mode: string;
     title: string;
     objectives: string | null;
+    specific_objectives: string | null;
     activity_description: string | null;
     criteria_mechanics: string | null;
     program_flow: string | null;
@@ -87,10 +91,12 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
     const formId = `narrative-form-${doc.id}`;
 
     const objectivesRef = useRef<HTMLTextAreaElement>(null);
+    const specificObjectivesRef = useRef<HTMLTextAreaElement>(null);
     const activityDescriptionRef = useRef<HTMLTextAreaElement>(null);
     const criteriaMechanicsRef = useRef<HTMLTextAreaElement>(null);
     const programFlowRef = useRef<HTMLTextAreaElement>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const failureShown = useRef(false);
 
     const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
     const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -147,6 +153,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
             },
             body: JSON.stringify({
                 objectives: objectivesRef.current?.value ?? null,
+                specific_objectives: specificObjectivesRef.current?.value ?? null,
                 activity_description: activityDescriptionRef.current?.value ?? null,
                 criteria_mechanics: criteriaMechanicsRef.current?.value ?? null,
                 program_flow: programFlowRef.current?.value ?? null,
@@ -154,21 +161,34 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                 responsible_persons: responsiblePersonsRef.current,
             }),
         })
-            .then((response) => {
-                if (!response.ok) {
+            .then(async (response) => {
+                // A validation failure or an expired session comes back as a
+                // followed redirect with a 200, so response.ok alone would
+                // report a lost draft as saved.
+                if (!(await didDraftSave(response))) {
                     throw new Error('save failed');
                 }
 
+                failureShown.current = false;
                 setSavedAt(new Date().toISOString());
                 setSaveState('saved');
 
                 return true;
             })
             .catch(() => {
-                // Best-effort autosave — a failed ping is retried on the
-                // next keystroke or covered by the final validated
-                // "Submit for Review" action.
+                // Best-effort autosave: retried on the next keystroke and
+                // covered by the validated "Submit for Review". It is never
+                // silent: the footer turns red, and a toast says so once per
+                // run of failures (not on every retry).
                 setSaveState('failed');
+
+                if (!failureShown.current) {
+                    failureShown.current = true;
+                    notify.error({
+                        title: 'Draft not saved',
+                        message: 'Your latest changes are not saved yet. Check your connection; we will keep trying as you type.',
+                    });
+                }
 
                 return false;
             });
@@ -272,6 +292,27 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                         />
                                     )}
                                 </FormField>
+                                <FormField
+                                    id="specific_objectives"
+                                    optional
+                                    label="Specific Objectives"
+                                    helper="Each line is shown as a numbered objective."
+                                    error={errors.specific_objectives}
+                                >
+                                    {(aria) => (
+                                        <CountedTextarea
+                                            id="specific_objectives"
+                                            name="specific_objectives"
+                                            ref={specificObjectivesRef}
+                                            defaultValue={proposal?.specific_objectives ?? ''}
+                                            placeholder="Type one objective per line, press Enter to add the next one"
+                                            maxLength={SPECIFIC_OBJECTIVES_MAX_LENGTH}
+                                            rows={5}
+                                            onChange={scheduleSave}
+                                            {...aria}
+                                        />
+                                    )}
+                                </FormField>
                             </FormSection>
 
                             <FormSection title="Activity description">
@@ -357,6 +398,7 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                                             scheduleSave();
                                                         }}
                                                         placeholder="Full name"
+                                                        maxLength={SHORT_TEXT_MAX_LENGTH}
                                                         aria-label={`Responsible person ${i + 1}`}
                                                         aria-required
                                                         aria-invalid={error ? true : undefined}
@@ -408,7 +450,9 @@ export default function StepTwo({ document: doc, proposal, activity }: Props) {
                                             Saved as draft <RelativeTime dateString={savedAt} />
                                         </>
                                     ) : saveState === 'failed' ? (
-                                        'Couldn’t save just now. We’ll try again as you type.'
+                                        <span className="font-medium text-destructive">
+                                            Not saved. Check your connection, then use Save draft to retry.
+                                        </span>
                                     ) : (
                                         'Your narrative saves as you type.'
                                     )

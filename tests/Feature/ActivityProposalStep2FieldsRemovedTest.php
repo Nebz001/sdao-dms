@@ -23,16 +23,25 @@ beforeEach(function () {
     $this->student = User::where('email', 'student-alpha@students.nu-lipa.edu.ph')->firstOrFail();
 });
 
-test('narrative, source_of_funding, overall_goal, and specific_objectives are not columns on activity_proposals', function () {
+test('narrative, source_of_funding and overall_goal are not columns on activity_proposals', function () {
     expect(Schema::hasColumn('activity_proposals', 'narrative'))->toBeFalse();
     expect(Schema::hasColumn('activity_proposals', 'source_of_funding'))->toBeFalse();
-    // Group E backlog — overall_goal/specific_objectives (themselves a
-    // replacement for the original narrative removal) were collapsed back
-    // into a single `objectives` field.
+    // Group E backlog — overall_goal (with the old split-era
+    // specific_objectives, see the next test) was collapsed back into a
+    // single `objectives` field.
     expect(Schema::hasColumn('activity_proposals', 'overall_goal'))->toBeFalse();
-    expect(Schema::hasColumn('activity_proposals', 'specific_objectives'))->toBeFalse();
 
     // The current field exists in their place.
+    expect(Schema::hasColumn('activity_proposals', 'objectives'))->toBeTrue();
+});
+
+test('Specific Objectives is one column under one name, the old objective_lines name is gone', function () {
+    // `specific_objectives` was once the second half of a split of
+    // `objectives` (dropped by the collapse migration, merged back into
+    // `objectives`). It is now a separate optional field; the column was
+    // created as `objective_lines` and renamed in place.
+    expect(Schema::hasColumn('activity_proposals', 'specific_objectives'))->toBeTrue();
+    expect(Schema::hasColumn('activity_proposals', 'objective_lines'))->toBeFalse();
     expect(Schema::hasColumn('activity_proposals', 'objectives'))->toBeTrue();
 });
 

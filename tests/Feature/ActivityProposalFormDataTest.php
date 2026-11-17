@@ -490,3 +490,96 @@ test('the print route responds successfully for a document whose adviser cannot 
         ->get(route('documents.print', $doc))
         ->assertOk();
 });
+
+// ── Specific Objectives ──────────────────────────────────────────────────
+
+test('specific objectives reach the print data as split, trimmed, ordered items', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'specific_objectives' => "  Train 30 members  \n\n2. Hold a mock defense\r\n- Publish the results",
+    ]);
+
+    expect(dataForProposal($doc)['specific_objectives'])->toBe([
+        'Train 30 members',
+        'Hold a mock defense',
+        'Publish the results',
+    ]);
+});
+
+test('the rendered Blade prints specific objectives as their own numbered block under Objectives, in order', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'specific_objectives' => "Zebra objective\nApple objective\nMango <b>objective</b>",
+    ]);
+    $form = app(ActivityProposalForm::class);
+    $doc->load($form->eagerLoads());
+
+    $html = view($form->view(), $form->data($doc))->render();
+
+    // Its own labeled block, a real ordered list, sitting between IV and V.
+    expect($html)->toContain('<strong>Specific Objectives</strong>')
+        ->toContain('<ol class="specific-objectives-list">');
+    expect(strpos($html, 'IV. Objectives'))
+        ->toBeLessThan(strpos($html, '<strong>Specific Objectives</strong>'))
+        ->and(strpos($html, '<strong>Specific Objectives</strong>'))
+        ->toBeLessThan(strpos($html, 'V. Activity Description'));
+
+    // The author's order, not alphabetical, and user text is escaped.
+    preg_match_all('#<li>(.*?)</li>#s', substr($html, (int) strpos($html, '<ol class="specific-objectives-list">')), $items);
+    expect(array_slice($items[1], 0, 3))->toBe([
+        'Zebra objective',
+        'Apple objective',
+        'Mango &lt;b&gt;objective&lt;/b&gt;',
+    ]);
+
+    // The paper form has no numeral for it, so none is invented.
+    expect($html)->not->toContain('V. Specific')->not->toContain('IV-A');
+});
+
+test('a proposal without specific objectives prints exactly as before, with no empty block', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar);
+    $form = app(ActivityProposalForm::class);
+    $doc->load($form->eagerLoads());
+
+    $html = view($form->view(), $form->data($doc))->render();
+
+    expect(dataForProposal($doc)['specific_objectives'])->toBe([]);
+    expect($html)->not->toContain('Specific Objectives')->not->toContain('specific-objectives-list"');
+});
+
+test('a proposal with specific objectives renders a real PDF through the print route', function () {
+    $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+        'specific_objectives' => collect(range(1, 12))->map(fn ($n) => "Objective {$n} ".str_repeat('with a long wrapping description ', 6))->implode("\n"),
+    ]);
+
+    $response = $this->actingAs($this->studentAlpha)->get(route('documents.print', $doc));
+
+    $response->assertOk();
+    expect(str_starts_with($response->getContent(), '%PDF'))->toBeTrue();
+});
+
+test('a short specific objectives list stays with its heading, a long one is never forced to', function () {
+    $form = app(ActivityProposalForm::class);
+
+    $htmlFor = function (array $lines) use ($form) {
+        $doc = activityProposalPrintDocument($this->org, $this->studentAlpha, ProposalVariant::RegularOnCalendar, [
+            'specific_objectives' => implode("\n", $lines),
+        ]);
+        $doc->load($form->eagerLoads());
+
+        return view($form->view(), $form->data($doc))->render();
+    };
+
+    expect($htmlFor(['One', 'Two', 'Three', 'Four', 'Five', 'Six']))
+        ->toContain('class="indent specific-objectives keep-together"');
+
+    // A block taller than a page cannot be kept together, so a long list must not ask to be.
+    expect($htmlFor(['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven']))
+        ->toContain('class="indent specific-objectives"')
+        ->not->toContain('specific-objectives keep-together');
+});
+
+test('the print layout sets page-break-inside: avoid on each specific objectives item', function () {
+    $source = file_get_contents(resource_path('views/print/layout.blade.php'));
+
+    expect($source)->toMatch('/\.specific-objectives-list li \{[^}]*page-break-inside: avoid;[^}]*\}/')
+        ->and($source)->toMatch('/\.keep-together \{ page-break-inside: avoid; \}/');
+});

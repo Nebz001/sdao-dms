@@ -142,3 +142,23 @@ export function initialsOf(name: string): string {
 
     return letters.length === 1 ? letters[0] : letters[0] + letters[letters.length - 1];
 }
+
+/**
+ * Specific Objectives is stored as plain text, one objective per line. This is
+ * the display split, mirrored by App\Support\SpecificObjectives on the server (print
+ * form, mobile API, validation): every line trimmed, blank lines dropped, the
+ * author's order kept. A list marker the author typed themselves ("1.", "2)",
+ * "-", "•", "*" followed by a space) is dropped so the shown number is not doubled.
+ */
+export function splitSpecificObjectives(text: string | null | undefined): string[] {
+    return (text ?? '')
+        .split(/\r\n|\r|\n/)
+        .map((line) => line.trim().replace(LIST_MARKER, '').trim())
+        .filter((line) => line !== '');
+}
+
+/** The server's cap on Specific Objectives (App\Rules\AtLeastOneSpecificObjective::MAX_LENGTH). */
+export const SPECIFIC_OBJECTIVES_MAX_LENGTH = 2000;
+
+/** The server's cap on a short text input (a person's name, an expense item): `max:255`. */
+export const SHORT_TEXT_MAX_LENGTH = 255;

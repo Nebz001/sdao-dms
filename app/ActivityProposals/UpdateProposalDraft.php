@@ -36,6 +36,8 @@ class UpdateProposalDraft
         // step-2 narrative autosave.
         $proposal->update([
             'objectives' => $data['objectives'] ?? $proposal->objectives,
+            // Present-and-null clears the field, same as the editor emptying it.
+            'specific_objectives' => array_key_exists('specific_objectives', $data) ? $data['specific_objectives'] : $proposal->specific_objectives,
             // Group E backlog — Activity Description restored.
             'activity_description' => $data['activity_description'] ?? $proposal->activity_description,
             // Exact field corrections (Phase 2 item 7 slice 4b).

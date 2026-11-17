@@ -5,6 +5,7 @@ import type { ProposalData } from '@/components/document-view/proposal-details';
 import {
     CriteriaMechanicsSection,
     ObjectivesSection,
+    SpecificObjectivesSection,
     ResponsiblePersonsSection,
 } from '@/components/document-view/proposal-text';
 
@@ -132,6 +133,7 @@ describe('ProposalDetails uses the shared sections', () => {
         calendar_mode: 'on_calendar',
         title: 'Mock CPA Board Exam',
         objectives: 'Main objective.\n\nSpecific Objectives:\nOne\nTwo',
+        specific_objectives: null,
         activity_description: 'Describes\n\n\n\nthe activity.',
         criteria_mechanics: 'Participants: Everyone',
         program_flow: '9:00 Opening\n\n\n10:00 Exam',
@@ -157,5 +159,80 @@ describe('ProposalDetails uses the shared sections', () => {
         expect(container.textContent).toContain('9:00 Opening');
         expect(container.textContent).toContain('10:00 Exam');
         expect(container.querySelector('.border-l-2')).toBeNull();
+    });
+});
+
+describe('SpecificObjectivesSection', () => {
+    it('shows each saved line as a numbered item, in the author\'s order, blank lines dropped', () => {
+        render(<SpecificObjectivesSection text={'  Zebra goal  \n\n\nApple goal\n   \nMango goal'} />);
+
+        expect(screen.getByRole('heading', { name: 'Specific objectives' })).toBeInTheDocument();
+
+        const list = screen.getByRole('list', { name: 'Specific objectives' });
+        expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+            '1Zebra goal',
+            '2Apple goal',
+            '3Mango goal',
+        ]);
+    });
+
+    it('does not double a number the author typed', () => {
+        render(<SpecificObjectivesSection text={'1. Raise awareness\n2) Train members'} />);
+
+        const list = screen.getByRole('list', { name: 'Specific objectives' });
+        expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+            '1Raise awareness',
+            '2Train members',
+        ]);
+    });
+
+    it('renders nothing when there is no real line', () => {
+        const { container } = render(<SpecificObjectivesSection text={'  \n\n  '} />);
+
+        expect(container).toBeEmptyDOMElement();
+    });
+});
+
+describe('ProposalDetails with specific objectives', () => {
+    const base: ProposalData = {
+        calendar_mode: 'on_calendar',
+        title: 'Mock CPA Board Exam',
+        objectives: 'Main objective.',
+        specific_objectives: 'Train 30 members\nHold a mock defense',
+        activity_description: null,
+        criteria_mechanics: null,
+        program_flow: null,
+        expenses: null,
+        expense_items: null,
+        expense_items_total: null,
+        responsible_persons: null,
+        proposed_budget: null,
+        activity_nature_label: null,
+        activity_type_label: null,
+        partner_organizations: null,
+        target_sdg_labels: [],
+        budget_source_label: null,
+    };
+
+    it('shows the numbered list directly under Objectives', () => {
+        render(<ProposalDetails organizationName="JPIA" proposal={base} activity={null} />);
+
+        const headings = screen.getAllByRole('heading').map((h) => h.textContent);
+        expect(headings.indexOf('Specific objectives')).toBe(headings.indexOf('Objectives') + 1);
+
+        const list = screen.getByRole('list', { name: 'Specific objectives' });
+        expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    });
+
+    it('shows the narrative with only specific objectives filled in', () => {
+        render(<ProposalDetails organizationName="JPIA" proposal={{ ...base, objectives: null }} activity={null} />);
+
+        expect(screen.getByRole('list', { name: 'Specific objectives' })).toBeInTheDocument();
+    });
+
+    it('shows no Specific objectives heading when the field is empty', () => {
+        render(<ProposalDetails organizationName="JPIA" proposal={{ ...base, specific_objectives: null }} activity={null} />);
+
+        expect(screen.queryByRole('heading', { name: 'Specific objectives' })).not.toBeInTheDocument();
     });
 });

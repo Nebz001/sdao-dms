@@ -529,6 +529,7 @@ describe('Fix and Resend: a returned activity proposal', () => {
         calendar_mode: 'off_calendar',
         title: 'Coding Night',
         objectives: 'Learn.',
+        specific_objectives: 'Learn A\nLearn B',
         activity_description: 'Describe.',
         criteria_mechanics: 'Criteria.',
         program_flow: 'Flow.',
@@ -621,6 +622,13 @@ describe('Fix and Resend: a returned activity proposal', () => {
             screen.queryByLabelText('Title of Activity'),
         ).not.toBeInTheDocument();
         expect(screen.getByText('Learn.')).toBeInTheDocument();
+
+        // Specific Objectives is locked with Objectives, shown as a numbered list.
+        expect(screen.queryByRole('textbox', { name: /Specific Objectives/ })).not.toBeInTheDocument();
+        const locked = screen.getByRole('list', { name: 'Specific Objectives' });
+        expect(
+            within(locked).getAllByRole('listitem').map((li) => li.textContent),
+        ).toEqual(['1Learn A', '2Learn B']);
     });
 
     it('opens the narrative sections that were flagged and nothing else', async () => {
@@ -636,6 +644,10 @@ describe('Fix and Resend: a returned activity proposal', () => {
         );
 
         expect(screen.getByLabelText('Objectives')).toHaveValue('Learn.');
+        // Specific Objectives opens with the section it belongs to.
+        expect(screen.getByLabelText(/Specific Objectives/)).toHaveValue(
+            'Learn A\nLearn B',
+        );
         expect(screen.getByLabelText('Responsible person 1')).toHaveValue(
             'Ana',
         );

@@ -287,7 +287,7 @@ final class ReturnedEditLock
         // value when absent, so only the required narrative fields need filling.
         if ($document->form_type === FormType::ActivityProposal) {
             $defaults = array_intersect_key($defaults, array_flip([
-                'objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expense_items', 'responsible_persons',
+                'objectives', 'specific_objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expense_items', 'responsible_persons',
             ]));
         }
 

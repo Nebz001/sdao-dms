@@ -89,12 +89,12 @@ function FieldChangeLine({ field }: { field: FieldChangeRow }) {
         <li className="grid grid-cols-1 gap-x-4 gap-y-0.5 break-words sm:grid-cols-[minmax(8rem,12rem)_1fr]">
             <span className="text-muted-foreground">{field.label}</span>
             <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-destructive-foreground line-through">
+                <span className="text-destructive-foreground line-through whitespace-pre-line">
                     <span className="sr-only">Before: </span>
                     {field.old ?? NOT_SET}
                 </span>
                 <MoveRight className="size-3.5 text-muted-foreground" aria-hidden />
-                <span className="font-medium text-success-foreground">
+                <span className="font-medium text-success-foreground whitespace-pre-line">
                     <span className="sr-only">After: </span>
                     {field.new ?? '—'}
                 </span>

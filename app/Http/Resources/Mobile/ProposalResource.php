@@ -13,6 +13,7 @@ use App\Models\DocumentAttachment;
 use App\Models\User;
 use App\Support\ApiTimestamp;
 use App\Support\DisplayTimezone;
+use App\Support\SpecificObjectives;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -96,6 +97,7 @@ class ProposalResource extends JsonResource
             'proposed_budget' => $proposal->proposed_budget !== null ? (float) $proposal->proposed_budget : null,
             'budget_source' => $proposal->budget_source?->label(),
             'objectives' => self::splitObjectives($proposal->objectives),
+            'specific_objectives' => SpecificObjectives::split($proposal->specific_objectives),
             'activity_description' => $proposal->activity_description,
             'criteria_mechanics' => $proposal->criteria_mechanics,
             'program_flow' => array_map(

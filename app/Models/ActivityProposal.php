@@ -47,6 +47,11 @@ use Illuminate\Support\Collection;
  *                                   overall_goal/specific_objectives); both
  *                                   hint phrases now live as placeholder
  *                                   text on the one frontend field instead.
+ * @property string|null $specific_objectives Specific Objectives — one objective
+ *                                            per line, plain text with newlines (never JSON), optional. Numbered
+ *                                            only when displayed; App\Support\SpecificObjectives does the splitting.
+ *                                            A new field: the column of the same name dropped in the collapse
+ *                                            migration was the second half of a split of `objectives`, a different thing.
  * @property string|null $activity_description The primary narrative field
  *                                             for "V. Activity Description" — restored as a real, intentional
  *                                             field (client request); Criteria/Mechanics and Program Flow below
@@ -83,7 +88,7 @@ use Illuminate\Support\Collection;
  *                                            Savings / External; was free text.
  * @property int $form_step
  */
-#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'president_name', 'proposed_budget', 'budget_source', 'form_step'])]
+#[Fillable(['document_id', 'calendar_mode', 'calendar_activity_id', 'title', 'activity_nature', 'activity_nature_other', 'activity_type', 'activity_type_other', 'partner_organizations', 'target_sdg', 'objectives', 'specific_objectives', 'activity_description', 'criteria_mechanics', 'program_flow', 'expenses', 'expense_items', 'responsible_persons', 'president_name', 'proposed_budget', 'budget_source', 'form_step'])]
 class ActivityProposal extends Model
 {
     /** @use HasFactory<ActivityProposalFactory> */
