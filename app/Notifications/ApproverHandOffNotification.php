@@ -72,7 +72,7 @@ class ApproverHandOffNotification extends Notification implements ShouldQueue
         $approver = $this->approver($notifiable);
 
         return (new ApproverHandOffMail($approver, $this->document, $this->stepPosition, $this->triggerAction))
-            ->to($approver->email);
+            ->to($approver->routeNotificationFor('mail', $this));
     }
 
     /**

@@ -55,7 +55,7 @@ class OfficerChangeRequestClosedNotification extends Notification implements Sho
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new OfficerChangeRequestClosedMail($this->changeRequest))->to($notifiable->email);
+        return (new OfficerChangeRequestClosedMail($this->changeRequest))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

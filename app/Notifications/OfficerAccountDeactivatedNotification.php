@@ -56,7 +56,7 @@ class OfficerAccountDeactivatedNotification extends Notification implements Shou
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new OfficerAccountDeactivatedMail($this->organization, $this->officerName, $this->position, $this->remainingOfficers))->to($notifiable->email);
+        return (new OfficerAccountDeactivatedMail($this->organization, $this->officerName, $this->position, $this->remainingOfficers))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

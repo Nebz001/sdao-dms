@@ -55,7 +55,7 @@ class JoinRequestWithdrawnNotification extends Notification implements ShouldQue
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new JoinRequestWithdrawnMail($this->joinRequest))->to($notifiable->email);
+        return (new JoinRequestWithdrawnMail($this->joinRequest))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

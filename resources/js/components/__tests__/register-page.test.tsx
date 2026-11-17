@@ -118,7 +118,7 @@ describe('Register page — name and copy changes', () => {
         render(<Register passwordRules="" />);
 
         expect(
-            screen.getByText('We send a verification code to this address.'),
+            screen.getByText(/You sign in with this address\. We send\s+the verification code here, and only here\./),
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Password')).toHaveAttribute(
             'placeholder',

@@ -297,6 +297,39 @@ Approved and Rejected.
   Accounts" queue and manually marks each Verified or Rejected. Only Verified
   accounts can submit registrations or be adviser-bound as officers.
 
+### Two emails: school email proves identity, personal email receives mail
+
+Students have two addresses (client request, reversing the earlier "school email
+only" rule):
+
+- **School email (`users.email`)**: must be on the student domain
+  (`SchoolEmailDomain`), is the LOGIN, and is the only address a registration
+  verification code is ever sent to. It is the identity anchor.
+- **Personal email (`users.personal_email`)**: any valid address, no domain rule,
+  required at registration, nullable and not unique in the database. Where every
+  notification is mailed.
+- **One source of truth: `User::notificationEmail()`** (the personal email, else
+  `email`), reached by Laravel through `routeNotificationForMail()`. Every
+  notification's `toMail()` addresses mail with
+  `->to($notifiable->routeNotificationFor('mail', $this))`; none may read
+  `->email` or `personal_email` itself (a test scans for it). An account with no
+  personal email (every approver; students registered before this field) is
+  simply mailed at `email`.
+- **Mailbox proof is the exception** (`User::MAILBOX_PROOF_NOTIFICATIONS`):
+  password reset and email verification always go to the school email, because a
+  personal mailbox is not an identity. Registration and school-email-change codes
+  go to the address being proven.
+- **Settings**: the school email keeps its domain rule and its code. The
+  personal email is a separate form (`PersonalEmailController`) with no domain
+  rule, but a change is never written directly: a code is sent to the NEW
+  personal address and the change happens only when it is entered.
+- **Approver provisioning** accepts any valid address except a student-domain
+  one (`NotStudentEmailDomain`); the staff domain is the expected case. Approvers
+  have no personal email. Mobile app access for a non-SDAO approver still
+  requires a staff-domain `email` (`Api\Mobile\AuthController::hasStaffEmail`).
+- Demo and test students are seeded with both addresses; the personal ones use
+  `example.com`, which can never deliver.
+
 ## Architecture ownership — do not blur these
 
 - **Laravel** owns ALL business logic and is the ONLY write path. The approval
@@ -600,6 +633,22 @@ approximate these.
   `[start]` block and must not get one. The migration
   `2026_10_20_100000_add_lead_time_and_reminder_log_columns` runs with
   `php artisan migrate --force` in the Pre-deploy Command.
+
+## Auth rate limiting and trusted proxies
+
+- **Login (web and mobile api share it)** returns three limits from
+  `FortifyServiceProvider`: email+IP 5/min (the original), email alone 20 per
+  15 min, IP alone 30/min. Each key has its own prefix. Never collapse them.
+- **Forgot-password and confirm-password** are Fortify vendor routes, so they
+  are throttled by `ThrottleFortifyRoutes` (in `config/fortify.php`
+  `middleware`), which maps route name to a named limiter (`password-email`,
+  `password-confirm`). Add a route to `ThrottleFortifyRoutes::LIMITERS`, do not
+  patch the route collection at boot (lost when routes are cached).
+- **Trusted proxies live in `config/trustedproxy.php`**, not `bootstrap/app.php`
+  (config is not loaded there): `TRUSTED_PROXIES` if set, else `*` when
+  `RAILWAY_ENVIRONMENT_NAME` is present, else none. With none, X-Forwarded-*
+  is ignored, so a spoofed `X-Forwarded-For` cannot dodge per-IP limits.
+  Tests that need proxy trust set `config(['trustedproxy.proxies' => '*'])`.
 
 ## Forms: required marks, uploads, SDG picker
 

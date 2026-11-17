@@ -70,6 +70,7 @@ test('registration requires both names, with plain-word errors', function () {
     $this->post(route('register.store'), [
         'email' => 'nonames@students.nu-lipa.edu.ph',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ])->assertSessionHasErrors([
@@ -88,6 +89,7 @@ test('registration rejects digits and symbols in a name', function (string $fiel
         $field => $value,
         'email' => 'badname@students.nu-lipa.edu.ph',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ])->assertSessionHasErrors($field);

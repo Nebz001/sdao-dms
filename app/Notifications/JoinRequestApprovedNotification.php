@@ -52,7 +52,7 @@ class JoinRequestApprovedNotification extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new JoinRequestApprovedMail($this->joinRequest))->to($notifiable->email);
+        return (new JoinRequestApprovedMail($this->joinRequest))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

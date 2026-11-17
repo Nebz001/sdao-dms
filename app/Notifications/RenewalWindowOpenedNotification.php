@@ -51,7 +51,7 @@ class RenewalWindowOpenedNotification extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new RenewalWindowOpenedMail($notifiable, $this->period))->to($notifiable->email);
+        return (new RenewalWindowOpenedMail($notifiable, $this->period))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

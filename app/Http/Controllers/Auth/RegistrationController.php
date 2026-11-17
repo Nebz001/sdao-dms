@@ -43,7 +43,11 @@ class RegistrationController extends Controller
     public function store(Request $request, EmailVerificationCodeService $codes): RedirectResponse
     {
         $data = $request->validate([
+            // `email` is the school address (student domain, required): it is the
+            // login and the only address a verification code is ever sent to.
             ...$this->profileRules(audience: 'student'),
+            // Where every notification is mailed afterwards. Any valid address.
+            'personal_email' => $this->personalEmailRules(),
             'password' => $this->passwordRules(),
             'id_number' => $this->idNumberRules(required: true),
             // "Join an existing organization" choice (register.tsx's first
@@ -53,16 +57,19 @@ class RegistrationController extends Controller
             // not required: register.tsx always sends one, but nothing else
             // hitting this endpoint (existing tests included) needs to.
             'intended_path' => ['nullable', 'string', 'in:register_new,join_existing'],
-        ], $this->personNameMessages());
+        ], [...$this->personNameMessages(), ...$this->personalEmailMessages()]);
 
         // Hashed immediately (never held plaintext) and the whole payload is
         // additionally encrypted at rest via EmailVerificationCode's cast.
+        // The code goes to the SCHOOL email only; the personal email waits in
+        // the payload and is saved with the account once the code is entered.
         $codes->issue(
             email: $data['email'],
             purpose: self::PURPOSE,
             payload: [
                 'first_name' => PersonName::stripTitle($data['first_name']),
                 'last_name' => PersonName::clean($data['last_name']),
+                'personal_email' => $data['personal_email'],
                 'password' => Hash::make($data['password']),
                 'id_number' => $data['id_number'],
                 'intended_path' => $data['intended_path'] ?? 'register_new',
@@ -72,7 +79,7 @@ class RegistrationController extends Controller
         $request->session()->put('pending_registration_email', $data['email']);
 
         return to_route('register.verify')
-            ->with('flash', FlashToast::make('Check your email', "We sent a verification code to {$data['email']}.", 'info'));
+            ->with('flash', FlashToast::make('Check your school email', "We sent a verification code to {$data['email']}.", 'info'));
     }
 
     public function verify(Request $request): RedirectResponse|Response
@@ -110,6 +117,9 @@ class RegistrationController extends Controller
             'first_name' => $payload['first_name'] ?? $legacy['first'],
             'last_name' => $payload['last_name'] ?? ($legacy['last'] ?: null),
             'email' => $email,
+            // Absent from a registration started before this field existed:
+            // that account is simply mailed at its school email.
+            'personal_email' => $payload['personal_email'] ?? null,
             'password' => $payload['password'],
             'id_number' => $payload['id_number'],
             'email_verified_at' => now(),

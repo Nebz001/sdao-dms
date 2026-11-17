@@ -60,7 +60,7 @@ class DocumentOutcomeNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): Mailable
     {
         return (new DocumentOutcomeMail($notifiable, $this->document, $this->outcome, $this->comment))
-            ->to($notifiable->email);
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

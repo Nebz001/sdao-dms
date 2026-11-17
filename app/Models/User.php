@@ -7,18 +7,22 @@ use App\Enums\Role;
 use App\Support\PersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,7 +32,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $name "First Last", kept in sync with first_name/last_name on save.
  * @property string|null $first_name
  * @property string|null $last_name
- * @property string $email
+ * @property string $email The school address: login and proof of identity (codes, password reset, email verification).
+ * @property string|null $personal_email Where notifications are mailed (students). Read it only through notificationEmail().
  * @property Carbon|null $email_verified_at
  * @property AccountStatus $account_status
  * @property string|null $id_number
@@ -42,7 +47,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'first_name', 'last_name', 'email', 'password', 'must_change_password', 'account_status', 'account_reviewed_at', 'email_verified_at', 'id_number'])]
+#[Fillable(['name', 'first_name', 'last_name', 'email', 'personal_email', 'password', 'must_change_password', 'account_status', 'account_reviewed_at', 'email_verified_at', 'id_number'])]
 #[Hidden(['password', 'remember_token', 'id_number'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
@@ -181,6 +186,61 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function isStudentAccount(): bool
     {
         return ! self::query()->nonStudent()->whereKey($this->id)->exists();
+    }
+
+    /**
+     * Notifications that exist to prove someone controls the mailbox of the
+     * account's identity address. They always go to the school email, never to
+     * a personal one: a personal address is a convenience, not an identity.
+     *
+     * @var list<class-string<Notification>>
+     */
+    public const array MAILBOX_PROOF_NOTIFICATIONS = [
+        ResetPassword::class,
+        VerifyEmail::class,
+    ];
+
+    /**
+     * Stored trimmed and lowercase (the school email is matched that way at
+     * login), and an empty value means "none", not an empty string.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function personalEmail(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => ($clean = Str::lower(trim((string) $value))) === '' ? null : $clean,
+        );
+    }
+
+    /**
+     * THE one place that decides which address a notification is mailed at:
+     * the personal email a student gave, else the account's own `email` (an
+     * account that has no personal one, such as every approver, is mailed there).
+     * Nothing else in the app may pick between the two.
+     */
+    public function notificationEmail(): string
+    {
+        $personal = trim((string) $this->personal_email);
+
+        return $personal !== '' ? $personal : (string) $this->email;
+    }
+
+    /**
+     * Laravel asks this for every mail notification, and every Notification's
+     * toMail() asks it too (`->to($user->routeNotificationFor('mail', $this))`),
+     * so there is no second place that knows about personal emails. Mailbox
+     * proof (password reset, email verification) is the exception.
+     */
+    public function routeNotificationForMail(?Notification $notification = null): string
+    {
+        foreach (self::MAILBOX_PROOF_NOTIFICATIONS as $proof) {
+            if ($notification instanceof $proof) {
+                return (string) $this->email;
+            }
+        }
+
+        return $this->notificationEmail();
     }
 
     /**

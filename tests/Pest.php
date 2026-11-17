@@ -186,6 +186,7 @@ function registerViaHttp(array $overrides = []): array
     $payload = array_merge([
         'first_name' => 'Test', 'last_name' => 'Student',
         'email' => 'student-'.Str::random(10).'@students.nu-lipa.edu.ph',
+        'personal_email' => 'personal-'.Str::random(10).'@example.com',
         'id_number' => fake()->unique()->numerify('####-######'),
         'password' => 'password',
         'password_confirmation' => 'password',

@@ -56,7 +56,7 @@ class OfficerSeatGrantedNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new OfficerSeatGrantedMail($this->organization, $this->position))->to($notifiable->email);
+        return (new OfficerSeatGrantedMail($this->organization, $this->position))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

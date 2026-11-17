@@ -63,7 +63,7 @@ class ApproverProvisionedNotification extends Notification implements ShouldBeEn
 
     public function toMail(object $notifiable): Mailable
     {
-        return (new ApproverProvisionedMail($notifiable, $this->role, $this->temporaryPassword))->to($notifiable->email);
+        return (new ApproverProvisionedMail($notifiable, $this->role, $this->temporaryPassword))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     /**

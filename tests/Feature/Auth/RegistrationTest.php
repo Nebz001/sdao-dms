@@ -18,6 +18,7 @@ test('a submission with a personal email is rejected before any code is generate
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'test@gmail.com',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
@@ -34,6 +35,7 @@ test('an ID number that does not match the 4-digit-year-dash-6-digit format is r
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'bad-id@students.nu-lipa.edu.ph',
         'id_number' => '02000123456',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
@@ -49,6 +51,7 @@ test('a valid submission sends a code and creates no user yet', function () {
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => 'test.user@students.nu-lipa.edu.ph',
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
@@ -74,6 +77,7 @@ test('entering the wrong code fails and creates no account', function () {
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
@@ -93,6 +97,7 @@ test('a code can only be used once', function () {
         'first_name' => 'Test', 'last_name' => 'User',
         'email' => $email,
         'id_number' => '2023-182854',
+        'personal_email' => 'personal.contact@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);

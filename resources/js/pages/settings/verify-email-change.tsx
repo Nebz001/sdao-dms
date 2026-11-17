@@ -11,17 +11,36 @@ import {
 } from '@/components/ui/input-otp';
 import { OTP_MAX_LENGTH } from '@/lib/otp';
 import { edit } from '@/routes/profile';
-import { resend, store } from '@/routes/profile/verify-email';
+import * as schoolEmailRoutes from '@/routes/profile/verify-email';
+import * as personalEmailRoutes from '@/routes/profile/verify-personal-email';
 
 type Props = {
+    /** Which address is being changed: the school email (login) or the personal one (notifications). */
+    kind?: 'school' | 'personal';
     email: string;
     resendCooldownSeconds: number;
 };
 
+const COPY = {
+    school: {
+        title: 'Verify your new school email',
+        description: 'Confirm the new address before it replaces your current one',
+        keeps: 'Your account keeps its current school email until you verify the new one.',
+    },
+    personal: {
+        title: 'Verify your personal email',
+        description: 'Confirm the address before we start sending notifications to it',
+        keeps: 'Notifications keep going to your current address until you verify this one.',
+    },
+} as const;
+
 export default function VerifyEmailChange({
+    kind = 'school',
     email,
     resendCooldownSeconds,
 }: Props) {
+    const { store, resend } = kind === 'personal' ? personalEmailRoutes : schoolEmailRoutes;
+    const copy = COPY[kind];
     const [code, setCode] = useState<string>('');
     const [cooldown, setCooldown] = useState<number>(resendCooldownSeconds);
 
@@ -39,13 +58,13 @@ export default function VerifyEmailChange({
 
     return (
         <>
-            <Head title="Verify your new email" />
+            <Head title={copy.title} />
 
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Verify your new email"
-                    description="Confirm the new address before it replaces your current one"
+                    title={copy.title}
+                    description={copy.description}
                 />
 
                 <p className="text-sm text-muted-foreground">
@@ -53,8 +72,7 @@ export default function VerifyEmailChange({
                     <span className="font-medium text-foreground">
                         {email}
                     </span>
-                    . Your account keeps its current email until you verify
-                    the new one.
+                    . {copy.keeps}
                 </p>
 
                 <Form {...store.form()} className="flex flex-col gap-4" resetOnError>
