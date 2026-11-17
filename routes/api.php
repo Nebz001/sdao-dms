@@ -11,58 +11,58 @@ use Illuminate\Support\Facades\Route;
 // Mobile approver API — the SDAO DMS React Native app. Approver-only,
 // Activity Proposals only. Bearer tokens (Sanctum), never a session.
 Route::post('/mobile/login', [AuthController::class, 'login'])
-    ->middleware('throttle:login')
-    ->name('api.mobile.login');
+  ->middleware('throttle:login')
+  ->name('api.mobile.login');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/mobile/logout', [AuthController::class, 'logout'])
-        ->name('api.mobile.logout');
+  Route::post('/mobile/logout', [AuthController::class, 'logout'])
+    ->name('api.mobile.logout');
 
-    Route::middleware(['mobile.access', 'throttle:mobile-api'])->group(function () {
-        Route::get('/mobile/user', [AuthController::class, 'user'])
-            ->name('api.mobile.user');
+  Route::middleware(['mobile.access', 'throttle:mobile-api'])->group(function () {
+    Route::get('/mobile/user', [AuthController::class, 'user'])
+      ->name('api.mobile.user');
 
-        Route::post('/mobile/push-tokens', [PushTokenController::class, 'store'])
-            ->name('api.mobile.push-tokens.store');
+    Route::post('/mobile/push-tokens', [PushTokenController::class, 'store'])
+      ->name('api.mobile.push-tokens.store');
 
-        Route::delete('/mobile/push-tokens', [PushTokenController::class, 'destroy'])
-            ->name('api.mobile.push-tokens.destroy');
+    Route::delete('/mobile/push-tokens', [PushTokenController::class, 'destroy'])
+      ->name('api.mobile.push-tokens.destroy');
 
-        Route::get('/mobile/notifications', [NotificationController::class, 'index'])
-            ->name('api.mobile.notifications.index');
+    Route::get('/mobile/notifications', [NotificationController::class, 'index'])
+      ->name('api.mobile.notifications.index');
 
-        Route::get('/mobile/approval-logs', [ApprovalLogController::class, 'index'])
-            ->name('api.mobile.approval-logs.index');
+    Route::get('/mobile/approval-logs', [ApprovalLogController::class, 'index'])
+      ->name('api.mobile.approval-logs.index');
 
-        Route::get('/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'])
-            ->name('api.mobile.notifications.unread-count');
+    Route::get('/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+      ->name('api.mobile.notifications.unread-count');
 
-        Route::patch('/mobile/notifications/read-all', [NotificationController::class, 'markAllRead'])
-            ->name('api.mobile.notifications.read-all');
+    Route::patch('/mobile/notifications/read-all', [NotificationController::class, 'markAllRead'])
+      ->name('api.mobile.notifications.read-all');
 
-        Route::patch('/mobile/notifications/{notification}/read', [NotificationController::class, 'markRead'])
-            ->whereUuid('notification')
-            ->name('api.mobile.notifications.read');
+    Route::patch('/mobile/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+      ->whereUuid('notification')
+      ->name('api.mobile.notifications.read');
 
-        // Literal path before the {proposalReference} wildcard below.
-        Route::get('/documents/queue', [DocumentController::class, 'queue'])
-            ->name('api.mobile.documents.queue');
+    // Literal path before the {proposalReference} wildcard below.
+    Route::get('/documents/queue', [DocumentController::class, 'queue'])
+      ->name('api.mobile.documents.queue');
 
-        Route::get('/documents/{proposalReference}', [DocumentController::class, 'show'])
-            ->name('api.mobile.documents.show');
+    Route::get('/documents/{proposalReference}', [DocumentController::class, 'show'])
+      ->name('api.mobile.documents.show');
 
-        Route::get('/documents/{proposalReference}/attachments/{attachmentId}/download', [DocumentController::class, 'downloadAttachment'])
-            ->name('api.mobile.documents.attachments.download');
-    });
+    Route::get('/documents/{proposalReference}/attachments/{attachmentId}/download', [DocumentController::class, 'downloadAttachment'])
+      ->name('api.mobile.documents.attachments.download');
+  });
 
-    Route::middleware(['mobile.access', 'throttle:mobile-review'])->group(function () {
-        Route::post('/documents/{proposalReference}/approve', [DocumentActionController::class, 'approve'])
-            ->name('api.mobile.documents.approve');
+  Route::middleware(['mobile.access', 'throttle:mobile-review'])->group(function () {
+    Route::post('/documents/{proposalReference}/approve', [DocumentActionController::class, 'approve'])
+      ->name('api.mobile.documents.approve');
 
-        Route::post('/documents/{proposalReference}/request-revision', [DocumentActionController::class, 'requestRevision'])
-            ->name('api.mobile.documents.request-revision');
+    Route::post('/documents/{proposalReference}/request-revision', [DocumentActionController::class, 'requestRevision'])
+      ->name('api.mobile.documents.request-revision');
 
-        Route::post('/documents/{proposalReference}/reject', [DocumentActionController::class, 'reject'])
-            ->name('api.mobile.documents.reject');
-    });
+    Route::post('/documents/{proposalReference}/reject', [DocumentActionController::class, 'reject'])
+      ->name('api.mobile.documents.reject');
+  });
 });

@@ -33,6 +33,9 @@ it('sends HSTS only on secure requests', function () {
 });
 
 it('honours X-Forwarded-Proto from the proxy when deciding to send HSTS', function () {
+    // What Railway sets automatically (config/trustedproxy.php); off elsewhere.
+    config(['trustedproxy.proxies' => '*']);
+
     $this->get('/login', ['X-Forwarded-Proto' => 'https'])
         ->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 });

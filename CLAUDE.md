@@ -612,6 +612,22 @@ approximate these.
   `2026_10_20_100000_add_lead_time_and_reminder_log_columns` runs with
   `php artisan migrate --force` in the Pre-deploy Command.
 
+## Auth rate limiting and trusted proxies
+
+- **Login (web and mobile api share it)** returns three limits from
+  `FortifyServiceProvider`: email+IP 5/min (the original), email alone 20 per
+  15 min, IP alone 30/min. Each key has its own prefix. Never collapse them.
+- **Forgot-password and confirm-password** are Fortify vendor routes, so they
+  are throttled by `ThrottleFortifyRoutes` (in `config/fortify.php`
+  `middleware`), which maps route name to a named limiter (`password-email`,
+  `password-confirm`). Add a route to `ThrottleFortifyRoutes::LIMITERS`, do not
+  patch the route collection at boot (lost when routes are cached).
+- **Trusted proxies live in `config/trustedproxy.php`**, not `bootstrap/app.php`
+  (config is not loaded there): `TRUSTED_PROXIES` if set, else `*` when
+  `RAILWAY_ENVIRONMENT_NAME` is present, else none. With none, X-Forwarded-*
+  is ignored, so a spoofed `X-Forwarded-For` cannot dodge per-IP limits.
+  Tests that need proxy trust set `config(['trustedproxy.proxies' => '*'])`.
+
 ## Forms: required marks, uploads, SDG picker
 
 - **Required marks come from one place.** `Label required` / `FormField required`

@@ -27,19 +27,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Railway (like Heroku/Render/Fly) terminates TLS at its edge and
-        // forwards plain HTTP to the container, setting X-Forwarded-Proto:
-        // https on the way in. Without this, Laravel/Symfony never sees the
-        // request as secure, so url()/asset()/route() all generate http://
-        // links -- which the browser then blocks as mixed content on an
-        // https:// page. Railway's edge IP isn't published or fixed, so we
-        // trust the immediate connection unconditionally; that's safe here
-        // because the container has no public network path except through
-        // Railway's own proxy (it's a private container, not directly
-        // internet-routable), so this can't be used to spoof headers from
-        // the public internet. The trusted header set (FOR/HOST/PORT/PROTO/
-        // PREFIX/AWS_ELB) is TrustProxies' own default -- left unspecified.
-        $middleware->trustProxies(at: '*');
+        // Trusted proxies are deliberately NOT set here. Railway terminates TLS
+        // at its edge and forwards plain HTTP (X-Forwarded-Proto: https), so
+        // behind it the proxy must be trusted or url()/asset() generate http://
+        // links the browser blocks as mixed content. But trusting forwarded
+        // headers when no proxy is in front lets a client spoof
+        // X-Forwarded-For and dodge every per-IP rate limit. Which case we are
+        // in is decided per request from config/trustedproxy.php (TRUSTED_PROXIES,
+        // else auto-on for Railway, else off). Config is not loaded yet while
+        // this closure runs, which is why it cannot be an at: argument here.
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
